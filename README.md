@@ -25,50 +25,27 @@
 
 ---
 
-## Getting Started
+## Building from Source (Audit & Verification)
+
+This repository is published for source transparency and independent security auditing. To verify and compile standalone application packages locally:
 
 ### Prerequisites
-- Node.js (>= 18.x)
-- npm or yarn
+- Node.js (>= 20.x)
+- npm
 
-### Installation
+### Build Commands
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/SkinsBoat/SkinOracle.git
 cd SkinOracle
 
-# Install dependencies
+# 2. Install dependencies
 npm install
-```
 
-### Development
-```bash
-# Start Vite development server + Electron shell
-npm run dev
-```
-
-### Testing
-```bash
-# Run Vitest test suites
-npm run test
-```
-
-### Type Checking
-```bash
-# Verify TypeScript types
-npx tsc --noEmit
-```
-
-### Build & Packaging
-```bash
-# Build for current host OS
-npm run build
-
-# Build Windows installer (.exe)
-npm run build:win
-
-# Build Linux packages (.AppImage, .deb)
-npm run build:linux
+# 3. Compile production binaries
+npm run build           # Build for current host OS
+npm run build:win       # Package Windows installer (.exe)
+npm run build:linux     # Package Linux (.AppImage, .deb)
 ```
 
 ---
