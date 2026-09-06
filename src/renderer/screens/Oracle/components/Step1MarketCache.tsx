@@ -94,7 +94,9 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
             </div>
             {!isOpen && (
               <div style={{ fontSize: '12px', color: 'var(--so-text-muted)', marginTop: '2px' }}>
-                Select target markets, fetch live Skinsnipe API data, or load offline JSON price cache
+                {import.meta.env.DEV
+                  ? 'Select target markets, fetch live Skinsnipe API data, or load offline JSON price cache'
+                  : 'Select target markets and fetch live Skinsnipe API data'}
               </div>
             )}
           </div>
@@ -244,10 +246,12 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               )}
             </button>
 
-            <label className="btn btn-cyan" style={{ cursor: 'pointer', margin: 0 }} title="Import an offline JSON price cache file">
-              <FileUp size={16} /> Load Cache JSON File
-              <input type="file" accept=".json" onChange={onUploadJsonCache} style={{ display: 'none' }} />
-            </label>
+            {import.meta.env.DEV && (
+              <label className="btn btn-cyan" style={{ cursor: 'pointer', margin: 0 }} title="Import an offline JSON price cache file">
+                <FileUp size={16} /> Load Cache JSON File
+                <input type="file" accept=".json" onChange={onUploadJsonCache} style={{ display: 'none' }} />
+              </label>
+            )}
 
             {!hasApiKey && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
