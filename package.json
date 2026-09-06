@@ -43,6 +43,9 @@
     "vitest": "^4.1.11",
     "wait-on": "^7.2.0"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.0.0"
+  },
   "build": {
     "appId": "com.skinoracle.app",
     "productName": "SkinOracle",

@@ -35,6 +35,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Windows native Rollup binary (fix npm issue #4828)
+        if: matrix.os == 'windows-latest'
+        run: npm install @rollup/rollup-win32-x64-msvc@^4.0.0 --no-save
+
       - name: Type check (TypeScript)
         run: npx tsc --noEmit
 
