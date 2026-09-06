@@ -59,8 +59,9 @@
     ],
     "publish": [
       {
-        "provider": "generic",
-        "url": "https://saas.skinsboat.com/releases/"
+        "provider": "github",
+        "owner": "SkinsBoat",
+        "repo": "SkinOracle"
       }
     ],
     "win": {
