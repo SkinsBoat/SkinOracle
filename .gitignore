@@ -1,0 +1,42 @@
+# Dependencies & Build artifacts
+node_modules/
+dist/
+dist-electron/
+release/
+out/
+
+# Environment files & Local Configs (Secrets Protection)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+!.env.production
+!.env.example
+
+# Local Secure Storage & Private Keys
+secure-keys.bin
+*.pem
+*.key
+*.cert
+*.dmp
+demo-prices-cache.json
+*-prices*.json
+*.cache.json
+
+# Internal Operations & Private Deployment Runbooks
+PRODUCTION_RELEASE_GUIDE.md
+*RELEASE_GUIDE.md
+*DEPLOYMENT_GUIDE.md
+
+# Test Coverage & Tooling Cache
+coverage/
+.eslintcache
+.turbo/
+
+# Editor & OS files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

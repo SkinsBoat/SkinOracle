@@ -1,0 +1,27 @@
+SkinOracle Desktop Source-Available License
+Copyright (c) 2026 SkinOracle. All rights reserved.
+
+1. Purpose & Transparency
+The source code of this software is made publicly available for transparency, 
+security auditing, and trust verification, allowing users to independently 
+verify that API keys, secrets, and private credentials remain strictly on their local machine.
+
+2. Permitted Uses
+You are granted a non-exclusive license to:
+- Inspect, review, and audit the source code for security, privacy, and integrity verification.
+- Compile and run the software locally for your own personal, individual use.
+
+3. Prohibited Uses
+You are strictly prohibited from:
+- Selling, renting, sublicensing, or commercially redistributing this software or any part of its source code.
+- Rebranding, repackaging, or distributing modified versions under another name or commercial offering.
+- Using this source code to operate a competing commercial product or service.
+
+4. Disclaimer of Warranty
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
