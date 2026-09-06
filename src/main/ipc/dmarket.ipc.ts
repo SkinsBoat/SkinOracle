@@ -171,6 +171,276 @@ async function dmarketRequest(
 }
 
 // ─────────────────────────────────────────────────────────────────
+// DMarket Item & Offer Normalization Helpers
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Resolves the true market hash name / skin title from various DMarket API response structures.
+ * DMarket endpoints interchangeably return `Title`, `title`, `marketHashName`, `MarketHashName`,
+ * `assetTitle`, `extra.name`, `attributes.title`, etc.
+ */
+export function resolveDmarketTitle(item: any): string {
+  if (!item) return 'CS2 Item';
+
+  let rawTitle =
+    item.title ||
+    item.Title ||
+    item.marketHashName ||
+    item.MarketHashName ||
+    item.market_hash_name ||
+    item.name ||
+    item.Name ||
+    item.assetTitle ||
+    item.AssetTitle ||
+    item.description ||
+    item.extra?.name ||
+    item.extra?.title ||
+    item.attributes?.title ||
+    item.attributes?.Title ||
+    item.attributes?.marketHashName ||
+    item.attributes?.MarketHashName ||
+    item.attributes?.market_hash_name ||
+    item.attributes?.name ||
+    item.attributes?.Name ||
+    item.attributes?.assetTitle ||
+    item.attributes?.AssetTitle ||
+    '';
+
+  rawTitle = String(rawTitle).trim();
+  if (!rawTitle || rawTitle.toLowerCase() === 'cs2 item') {
+    return 'CS2 Item';
+  }
+
+  // If the title does not yet end with wear condition in parentheses (e.g. "(Field-Tested)")
+  // check if exterior is defined in attributes/extra and append it.
+  if (!rawTitle.match(/\([^)]+\)$/)) {
+    const rawExt =
+      item.attributes?.exterior ||
+      item.attributes?.cs2?.exterior ||
+      item.extra?.exterior ||
+      item.exterior ||
+      item.attributes?.Exterior ||
+      '';
+    const extStr = String(rawExt).toLowerCase().trim();
+    let wearSuffix = '';
+    if (extStr.includes('factory new') || extStr.includes('exterior_factory_new') || extStr === 'fn') {
+      wearSuffix = '(Factory New)';
+    } else if (extStr.includes('minimal wear') || extStr.includes('exterior_minimal_wear') || extStr === 'mw') {
+      wearSuffix = '(Minimal Wear)';
+    } else if (extStr.includes('field-tested') || extStr.includes('field tested') || extStr.includes('exterior_field_tested') || extStr === 'ft') {
+      wearSuffix = '(Field-Tested)';
+    } else if (extStr.includes('well-worn') || extStr.includes('well worn') || extStr.includes('exterior_well_worn') || extStr === 'ww') {
+      wearSuffix = '(Well-Worn)';
+    } else if (extStr.includes('battle-scarred') || extStr.includes('battle scarred') || extStr.includes('exterior_battle_scarred') || extStr === 'bs') {
+      wearSuffix = '(Battle-Scarred)';
+    }
+
+    if (wearSuffix) {
+      rawTitle = `${rawTitle} ${wearSuffix}`;
+    }
+  }
+
+  // StatTrak prefix reconstruction if marked in attributes but omitted in title
+  const isStatTrak =
+    item.attributes?.cs2?.category === 'CATEGORY_STATTRACK' ||
+    item.attributes?.category === 'CATEGORY_STATTRACK' ||
+    item.attributes?.isStatTrak ||
+    item.attributes?.isStattrak ||
+    item.extra?.isStatTrak ||
+    item.extra?.isStattrak ||
+    item.isStatTrak;
+
+  if (isStatTrak && !rawTitle.includes('StatTrak™')) {
+    rawTitle = `StatTrak™ ${rawTitle}`;
+  }
+
+  return rawTitle;
+}
+
+/**
+ * Resolves the primary image URL for a DMarket item or offer.
+ * Properly prefixes relative Steam CDN economy image hashes and falls back
+ * to the Steam API image endpoint using the resolved market hash name.
+ */
+export function resolveDmarketImageUrl(item: any, resolvedTitle?: string): string {
+  const rawImage =
+    item?.imageUrl ||
+    item?.ImageUrl ||
+    item?.image_url ||
+    item?.ImageURL ||
+    item?.image ||
+    item?.Image ||
+    item?.icon_url ||
+    item?.iconUrl ||
+    item?.icon ||
+    item?.Icon ||
+    item?.attributes?.image ||
+    item?.attributes?.Image ||
+    item?.attributes?.imageUrl ||
+    item?.attributes?.image_url ||
+    item?.attributes?.icon_url ||
+    item?.attributes?.iconUrl ||
+    item?.extra?.image ||
+    item?.extra?.imageUrl ||
+    item?.extra?.image_url ||
+    item?.extra?.icon_url ||
+    '';
+
+  if (rawImage && typeof rawImage === 'string') {
+    const trimmed = rawImage.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    // Steam image hash without URL prefix
+    return `https://community.cloudflare.steamstatic.com/economy/image/${trimmed}`;
+  }
+
+  const titleForImg = resolvedTitle || (item ? resolveDmarketTitle(item) : '');
+  if (titleForImg && titleForImg !== 'CS2 Item') {
+    return `https://api.steamapis.com/image/item/730/${encodeURIComponent(titleForImg)}`;
+  }
+
+  return '';
+}
+
+/**
+ * Validates and formats a string into standard RFC 4122 UUID format (8-4-4-4-12 hex).
+ * Supports both standard hyphenated UUIDs and 32-hex character strings.
+ * Returns null if the value is not a valid UUID format.
+ */
+export function formatAsUuid(val?: any): string | null {
+  if (typeof val !== 'string') return null;
+  const s = val.trim();
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) {
+    return s.toLowerCase();
+  }
+  if (/^[0-9a-f]{32}$/i.test(s)) {
+    return s.replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/i, '$1-$2-$3-$4-$5').toLowerCase();
+  }
+  return null;
+}
+
+/**
+ * Searches an item for a valid DMarket asset UUID.
+ * CRITICAL RULE: NEVER pick user/account IDs like owner, depositor, botId, userId!
+ */
+export function findDmarketUuid(item: any): string | null {
+  if (!item || typeof item !== 'object') return null;
+
+  const attr = item.attributes || item.Attributes || {};
+  const extra = item.extra || item.Extra || {};
+  const ownerUuid = formatAsUuid(attr.owner || item.owner);
+  const depositorUuid = formatAsUuid(attr.depositor || item.depositor);
+
+  const isExcluded = (val: string | null) =>
+    !val || val === ownerUuid || val === depositorUuid;
+
+  // 1. Check primary known item ID fields first
+  const primaryCandidates = [
+    attr.id,
+    attr.itemId,
+    attr.assetId,
+    item.id,
+    item.Id,
+    item.itemId,
+    item.ItemId,
+    item.assetId,
+    item.AssetId,
+    extra.id,
+    extra.itemId,
+    extra.assetId,
+  ];
+
+  for (const cand of primaryCandidates) {
+    const uuid = formatAsUuid(cand);
+    if (uuid && !isExcluded(uuid)) {
+      return uuid;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Resolves the unique asset identifier across DMarket V1/V2 endpoints.
+ * - When an item is held on DMarket (inMarket: true), returns the DMarket item UUID.
+ * - When an item is in Steam (inMarket: false), returns the distinct inGameAssetId coordinates.
+ * CRITICAL: NEVER returns the user's owner account ID!
+ */
+export function resolveDmarketAssetId(item: any): string {
+  if (!item) return '';
+
+  const attr = item.attributes || item.Attributes || {};
+  const extra = item.extra || item.Extra || {};
+  const ownerUuid = formatAsUuid(attr.owner || item.owner);
+  const depositorUuid = formatAsUuid(attr.depositor || item.depositor);
+
+  // 1. Prioritize valid item UUID if present (excluding owner/depositor accounts)
+  const uuid = findDmarketUuid(item);
+  if (uuid) {
+    return uuid;
+  }
+
+  // 2. If it's a Steam item (inMarket: false), use the inGameAssetId coordinates or id
+  const candidateRawIds = [
+    attr.inGameAssetId,
+    attr.inGameAssetID,
+    extra.inGameAssetID,
+    extra.inGameAssetId,
+    item.inGameAssetId,
+    attr.id,
+    item.id,
+    item.Id,
+    item.ID,
+    item.itemId,
+    item.ItemId,
+    item.assetId,
+    item.AssetId,
+    item.asset_id,
+    item.AssetID,
+    attr.steamAssetId,
+    item.steamAssetId,
+  ];
+
+  for (const raw of candidateRawIds) {
+    if (raw && typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (trimmed && trimmed !== ownerUuid && trimmed !== depositorUuid) {
+        return trimmed;
+      }
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Resolves price in cents across diverse DMarket price representation shapes.
+ */
+export function resolveDmarketPriceCents(item: any): number {
+  if (!item) return 0;
+  let priceCents = 0;
+  if (item.priceCents !== undefined && item.priceCents !== null) {
+    priceCents = Number(item.priceCents);
+  } else if (item.price_cents !== undefined && item.price_cents !== null) {
+    priceCents = Number(item.price_cents);
+  } else if (item.PriceCents !== undefined && item.PriceCents !== null) {
+    priceCents = Number(item.PriceCents);
+  } else if (item.price?.amount !== undefined) {
+    priceCents = Math.round(Number(item.price.amount) * 100);
+  } else if (item.Price?.Amount !== undefined) {
+    priceCents = Math.round(Number(item.Price.Amount) * 100);
+  } else if (item.price?.USD !== undefined) {
+    priceCents = Number(item.price.USD);
+  } else if (item.Price?.USD !== undefined) {
+    priceCents = Number(item.Price.USD);
+  } else if (item.price?.usd !== undefined) {
+    priceCents = Number(item.price.usd);
+  }
+  return isNaN(priceCents) ? 0 : priceCents;
+}
+
+// ─────────────────────────────────────────────────────────────────
 // IPC Handlers
 // ─────────────────────────────────────────────────────────────────
 
@@ -445,16 +715,7 @@ ipcMain.handle('dmarket:get-closed-targets', async (_, limit: number = 50, curso
 
   const trades = rawTrades.map((t: any) => {
     // 1. Resolve Title
-    const title =
-      t.Title ||
-      t.title ||
-      t.marketHashName ||
-      t.MarketHashName ||
-      t.name ||
-      t.Name ||
-      t.assetTitle ||
-      t.AssetTitle ||
-      'CS2 Item';
+    const title = resolveDmarketTitle(t);
 
     // 2. Resolve Price in USD
     const priceObj = t.Price || t.price;
@@ -532,6 +793,7 @@ ipcMain.handle('dmarket:get-closed-targets', async (_, limit: number = 50, curso
       Status: status,
       closedAt: closedAtSec,
       ClosedAt: closedAtSec,
+      imageUrl: resolveDmarketImageUrl(t, title),
     };
   });
 
@@ -578,32 +840,29 @@ ipcMain.handle(
     if (params?.treeFilters) baseParams.treeFilters = params.treeFilters;
 
     const normalizeOffer = (item: any) => {
-      const id = item.id || item.offerId || item.offer_id;
-      const assetId = item.assetId || item.asset_id;
-      const title = item.title || item.name || 'CS2 Item';
-      let priceCents = 0;
-      if (item.priceCents !== undefined && item.priceCents !== null) {
-        priceCents = Number(item.priceCents);
-      } else if (item.price_cents !== undefined && item.price_cents !== null) {
-        priceCents = Number(item.price_cents);
-      } else if (item.price?.amount !== undefined) {
-        priceCents = Math.round(Number(item.price.amount) * 100);
-      }
+      const id = item.id || item.offerId || item.offer_id || item.OfferID || '';
+      const assetId = resolveDmarketAssetId(item);
+      const title = resolveDmarketTitle(item);
+      const priceCents = resolveDmarketPriceCents(item);
       const priceUsd = (priceCents / 100).toFixed(2);
-      const imageUrl =
-        item.imageUrl ||
-        item.image ||
-        (item.attributes?.image ? item.attributes.image : `https://api.steamapis.com/image/item/730/${encodeURIComponent(title)}`);
+      const imageUrl = resolveDmarketImageUrl(item, title);
+      const attributes = {
+        ...(item.extra || item.Extra || {}),
+        ...(item.attributes || item.Attributes || {}),
+      };
 
       return {
         ...item,
         id,
         assetId,
         title,
+        Title: title,
+        marketHashName: title,
         priceCents,
         priceUsd,
-        status: item.status || 'active',
+        status: item.status || item.Status || 'active',
         imageUrl,
+        attributes,
       };
     };
 
@@ -677,38 +936,64 @@ ipcMain.handle(
     if (params?.treeFilters) baseParams.treeFilters = params.treeFilters;
 
     const normalizeInvItem = (item: any) => {
-      const assetId = item.assetId || item.asset_id || item.id;
-      const title = item.title || item.name || 'CS2 Item';
-      let priceCents = 0;
-      if (item.priceCents !== undefined && item.priceCents !== null) {
-        priceCents = Number(item.priceCents);
-      } else if (item.price_cents !== undefined && item.price_cents !== null) {
-        priceCents = Number(item.price_cents);
-      } else if (item.price?.amount !== undefined) {
-        priceCents = Math.round(Number(item.price.amount) * 100);
-      }
+      const assetId = resolveDmarketAssetId(item);
+      const title = resolveDmarketTitle(item);
+      const priceCents = resolveDmarketPriceCents(item);
       const priceUsd = (priceCents / 100).toFixed(2);
-      const imageUrl =
-        item.imageUrl ||
-        item.image ||
-        (item.attributes?.image ? item.attributes.image : `https://api.steamapis.com/image/item/730/${encodeURIComponent(title)}`);
+      const imageUrl = resolveDmarketImageUrl(item, title);
+      const inMarket = Boolean(item.inMarket ?? item.InMarket ?? item.in_market ?? false);
+      const tradable = item.tradable ?? item.Tradable ?? item.extra?.tradable ?? item.attributes?.tradable ?? true;
+      const attributes = {
+        ...(item.extra || item.Extra || {}),
+        ...(item.attributes || item.Attributes || {}),
+      };
+
+      const inGameAssetId = String(
+        attributes?.inGameAssetId ||
+        attributes?.inGameAssetID ||
+        item?.inGameAssetId ||
+        (assetId.includes(':') ? assetId : '') ||
+        ''
+      ).trim();
+
+      const steamAssetId = String(
+        attributes?.steamAssetId ||
+        item?.steamAssetId ||
+        attributes?.inGameAssetID ||
+        item?.extra?.inGameAssetID ||
+        ''
+      ).trim();
 
       return {
         ...item,
+        id: assetId,
+        itemId: assetId,
         assetId,
+        inGameAssetId: inGameAssetId || undefined,
+        steamAssetId: steamAssetId || undefined,
         title,
+        Title: title,
+        marketHashName: title,
         priceCents,
         priceUsd,
-        tradable: item.tradable !== false,
-        inMarket: !!item.inMarket,
+        tradable: tradable !== false,
+        inMarket,
         imageUrl,
+        attributes,
       };
     };
 
     if (!params?.fetchAll) {
       if (params?.cursor) baseParams.cursor = params.cursor;
       const data = await dmarketRequest('GET', '/marketplace-api/v2/user/inventory', baseParams);
-      const rawItems = Array.isArray(data?.items) ? data.items : [];
+      const rawItems = Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.objects)
+        ? data.objects
+        : Array.isArray(data?.Items)
+        ? data.Items
+        : [];
+      console.log(`[DMarket IPC] Loaded ${rawItems.length} inventory items (single page). Sample item:`, rawItems[0] ? JSON.stringify(rawItems[0]) : 'None');
       return {
         items: rawItems.map(normalizeInvItem),
         total: data?.total || String(rawItems.length),
@@ -728,7 +1013,13 @@ ipcMain.handle(
       if (currentCursor) pageParams.cursor = currentCursor;
 
       const pageData = await dmarketRequest('GET', '/marketplace-api/v2/user/inventory', pageParams);
-      const items = Array.isArray(pageData?.items) ? pageData.items : [];
+      const items = Array.isArray(pageData?.items)
+        ? pageData.items
+        : Array.isArray(pageData?.objects)
+        ? pageData.objects
+        : Array.isArray(pageData?.Items)
+        ? pageData.Items
+        : [];
       if (items.length > 0) {
         allItems = allItems.concat(items);
       }
@@ -742,7 +1033,7 @@ ipcMain.handle(
       }
     }
 
-    console.log(`[DMarket IPC] ✅ Fetched total ${allItems.length} inventory items across ${page} page(s).`);
+    console.log(`[DMarket IPC] ✅ Fetched total ${allItems.length} inventory items across ${page} page(s). Sample item:`, allItems[0] ? JSON.stringify(allItems[0]) : 'None');
     return {
       items: allItems.map(normalizeInvItem),
       total: String(allItems.length),
@@ -756,28 +1047,45 @@ ipcMain.handle(
   'dmarket:create-offers',
   async (
     _,
-    requests: Array<{ assetId: string; priceCents?: number | string; priceUsd?: number | string }>,
+    requests: Array<{ assetId?: string; itemId?: string; id?: string; priceCents?: number | string; priceUsd?: number | string }>,
   ) => {
     console.log(`[DMarket IPC] Batch creating ${requests?.length || 0} offers...`);
     if (!Array.isArray(requests) || requests.length === 0) {
       throw new Error('No items provided for listing creation');
     }
 
-    const formattedRequests = requests.map(r => {
+    const formattedRequests = requests.map((r, idx) => {
       let cents = 0;
       if (r.priceCents !== undefined && r.priceCents !== null) {
         cents = Math.round(Number(r.priceCents));
       } else if (r.priceUsd !== undefined && r.priceUsd !== null) {
         cents = Math.round(Number(r.priceUsd) * 100);
       }
+      const rawId = r.assetId || r.itemId || r.id || '';
       if (cents <= 0) {
-        throw new Error(`Invalid price for asset ${r.assetId}: price must be greater than 0`);
+        throw new Error(`Invalid price for asset ${rawId}: price must be greater than 0`);
       }
+
+      const resolvedUuid = formatAsUuid(rawId);
+      if (!resolvedUuid) {
+        console.error(`[DMarket IPC] ❌ Error: Asset ID "${rawId}" is not a valid DMarket UUID (inMarket: false).`);
+        throw new Error(
+          `Item is currently in your Steam inventory (not deposited to DMarket). Please deposit the item to DMarket first before creating sell listings.`
+        );
+      }
+
       return {
-        asset_id: r.assetId,
+        assetId: resolvedUuid,
+        asset_id: resolvedUuid,
+        priceCents: String(cents),
         price_cents: cents,
       };
     });
+
+    console.log(
+      `[DMarket IPC] Formatted ${formattedRequests.length} offer(s) for creation. Sample payload:`,
+      formattedRequests[0] ? JSON.stringify(formattedRequests[0]) : 'None',
+    );
 
     // Chunk into batches of 100 (DMarket limit per request)
     const chunkSize = 100;
@@ -872,10 +1180,13 @@ ipcMain.handle(
       throw new Error('No offers provided for delisting');
     }
 
-    const formattedRequests = requests.map(r => ({
-      offer_id: r.id,
-      ...(r.assetId ? { asset_id: r.assetId } : {}),
-    }));
+    const formattedRequests = requests.map(r => {
+      const uuid = formatAsUuid(r.assetId);
+      return {
+        offer_id: r.id,
+        ...(uuid ? { asset_id: uuid } : {}),
+      };
+    });
 
     const chunkSize = 100;
     const allDeleted: any[] = [];
@@ -917,14 +1228,8 @@ ipcMain.handle('dmarket:get-closed-offers', async (_, limit: number = 50, cursor
   console.log(`[DMarket IPC] Loaded ${rawTrades.length} closed sell offers.`);
 
   const trades = rawTrades.map((t: any) => {
-    const title =
-      t.Title ||
-      t.title ||
-      t.marketHashName ||
-      t.MarketHashName ||
-      t.name ||
-      t.Name ||
-      'CS2 Item';
+    const title = resolveDmarketTitle(t);
+    const imageUrl = resolveDmarketImageUrl(t, title);
 
     const priceObj = t.Price || t.price;
     let priceFormatted = '—';
@@ -974,7 +1279,7 @@ ipcMain.handle('dmarket:get-closed-offers', async (_, limit: number = 50, cursor
     }
 
     const offerId = t.OfferID || t.offerId || t.id || String(Math.random());
-    const assetId = t.AssetID || t.assetId || '';
+    const assetId = resolveDmarketAssetId(t);
     const status = (t.Status || t.status || 'successful').toLowerCase();
 
     return {
@@ -989,7 +1294,7 @@ ipcMain.handle('dmarket:get-closed-offers', async (_, limit: number = 50, cursor
       ClosedAt: closedAtSec,
       status,
       Status: status,
-      imageUrl: `https://api.steamapis.com/image/item/730/${encodeURIComponent(title)}`,
+      imageUrl,
     };
   });
 
@@ -998,6 +1303,38 @@ ipcMain.handle('dmarket:get-closed-offers', async (_, limit: number = 50, cursor
     total: data?.Total || data?.total || String(trades.length),
     cursor: data?.Cursor || data?.cursor || '',
   };
+});
+
+// 15. Deposit Assets from Steam to DMarket
+ipcMain.handle('dmarket:deposit-assets', async (_, assetIds: string[]) => {
+  console.log(`[DMarket IPC] Initiating deposit for ${assetIds?.length || 0} asset(s)...`);
+  if (!Array.isArray(assetIds) || assetIds.length === 0) {
+    throw new Error('No assets provided for deposit');
+  }
+
+  const formattedAssetIds = assetIds.map(id => String(id).trim()).filter(Boolean);
+  const body = {
+    AssetID: formattedAssetIds,
+  };
+
+  const res = await dmarketRequest('POST', '/marketplace-api/v1/deposit-assets', undefined, body);
+  console.log('[DMarket IPC] ✅ Deposit registered:', res);
+  return res;
+});
+
+// 16. Get Deposit Status
+ipcMain.handle('dmarket:get-deposit-status', async (_, depositId: string) => {
+  if (!depositId) throw new Error('Deposit ID is required');
+  const res = await dmarketRequest('GET', `/marketplace-api/v1/deposit-status/${encodeURIComponent(depositId)}`);
+  return res;
+});
+
+// 17. Sync User Inventory with Steam
+ipcMain.handle('dmarket:sync-user-inventory', async () => {
+  console.log('[DMarket IPC] Syncing inventory with Steam...');
+  const body = { Type: 'Inventory', GameID: 'CSGO' };
+  const res = await dmarketRequest('POST', '/marketplace-api/v1/user-inventory/sync', undefined, body);
+  return res;
 });
 }
 

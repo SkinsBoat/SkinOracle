@@ -148,6 +148,8 @@ export interface DmarketOfferItem {
 
 export interface DmarketInventoryItem {
   assetId: string;
+  inGameAssetId?: string;
+  steamAssetId?: string;
   title: string;
   priceCents: number;
   priceUsd: string;
@@ -367,6 +369,15 @@ export interface ElectronAPI {
       success: boolean;
     }>;
     getClosedOffers: (limit?: number, cursor?: string) => Promise<{ trades: any[]; total: string; cursor: string }>;
+    depositAssets: (assetIds: string[]) => Promise<{ DepositID: string }>;
+    getDepositStatus: (depositId: string) => Promise<{
+      DepositID: string;
+      Status: string;
+      Error?: string;
+      Assets?: Array<{ InGameAssetID: string; DmarketAssetID: string }>;
+      SteamDepositInfo?: { TradeOfferID: string; Message?: string };
+    }>;
+    syncUserInventory: () => Promise<any>;
   };
   balance: {
     getBalance: () => Promise<{

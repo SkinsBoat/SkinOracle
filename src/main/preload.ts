@@ -170,6 +170,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteOffers: (requests: any[]) => safeInvoke('dmarket:delete-offers', requests),
     getClosedOffers: (limit?: number, cursor?: string) =>
       safeInvoke('dmarket:get-closed-offers', limit, cursor),
+    depositAssets: (assetIds: string[]) =>
+      safeInvoke('dmarket:deposit-assets', assetIds),
+    getDepositStatus: (depositId: string) =>
+      safeInvoke('dmarket:get-deposit-status', depositId),
+    syncUserInventory: () =>
+      safeInvoke('dmarket:sync-user-inventory'),
   },
 
   // ── Balance (user balance & transaction ledger) ──
