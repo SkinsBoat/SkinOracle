@@ -32,6 +32,9 @@ import { Link } from 'react-router-dom';
 import { csfloatLogo } from '../../../../assets/images';
 import { CsFloatInventoryItem, ListingAnalysis, ListingPriceInfo } from '../../../shared/types';
 import { safeGetItem } from '../../utils/storage';
+import TrendSparkline from '../../components/TrendSparkline';
+import TrendDetailedChart from '../../components/TrendDetailedChart';
+import { useTrendStore } from '../../store/useTrendStore';
 
 import { roundToCsFloatStep, snapCsFloatBuyOrderPriceCents } from '../Oracle/utils/oracleUtils';
 
@@ -50,6 +53,7 @@ interface AcceptedPriceEntry {
   acceptedPrice: number;
   liquidityScore: number;
   isHyperLiquid: boolean;
+  trendMomentum14d?: number;
 }
 
 interface OrderAnalysis {
@@ -57,6 +61,7 @@ interface OrderAnalysis {
   liquidityScore: number;
   isHyperLiquid: boolean;
   currentPrice: number;
+  trendMomentum14d?: number;
 }
 
 interface SoCloseResultItem {
@@ -67,6 +72,7 @@ interface SoCloseResultItem {
   closenessPercent: number;
   hasExistingOrder: boolean;
   iconUrl?: string;
+  trendMomentum14d?: number;
 }
 
 const MARKET_NAME_MAP: Record<string, string> = {
@@ -173,6 +179,11 @@ export default function CSFloatWorkstation() {
   const [listingProcessingId, setListingProcessingId] = useState<string | null>(null);
   const [batchListingProcessing, setBatchListingProcessing] = useState(false);
 
+  // ── TREND HISTORY DELEGATION (Global useTrendStore) ───────────────
+  const fetchTrendHistoryForItems = (itemNames: string[]) => {
+    useTrendStore.getState().fetchHistoryBatch(itemNames, 14);
+  };
+
   // Sidebar expand/collapse state tracking for full-width floating panel positioning
   const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(() => {
     const saved = safeGetItem('so_sidebar_expanded');
@@ -233,6 +244,7 @@ export default function CSFloatWorkstation() {
     } catch (err) {
       console.error('Failed to load item cache for lookup:', err);
     }
+    fetchTrendHistoryForItems([name]);
   };
 
   // ── BUY ORDERS METHODS ───────────────────────────────────────────
@@ -258,6 +270,7 @@ export default function CSFloatWorkstation() {
         ? data.data
         : [];
       setOrders(list);
+      fetchTrendHistoryForItems(list.map((o: any) => o.market_hash_name));
       toast.success(`Loaded ${list.length} active buy orders`, { id: toastId });
     } catch (err: any) {
       console.error('[CSFloat Workstation] Error fetching orders:', err);
@@ -296,10 +309,12 @@ export default function CSFloatWorkstation() {
           liquidityScore: priceEntry.liquidityScore,
           isHyperLiquid: priceEntry.isHyperLiquid,
           currentPrice: currentPriceDollar,
+          trendMomentum14d: priceEntry.trendMomentum14d,
         };
       });
 
       setItemAnalysis(newAnalysis);
+      fetchTrendHistoryForItems(orders.map(o => o.market_hash_name));
       toast.success(`Matched accepted prices for ${Object.keys(newAnalysis).length} orders`, { id: toastId });
     } catch (err: any) {
       toast.error(`Failed to load accepted prices: ${err.message}`, { id: toastId });
@@ -330,6 +345,7 @@ export default function CSFloatWorkstation() {
       isActionRequired,
       isOverbid,
       isUnderbid,
+      trendMomentum14d: analysis.trendMomentum14d,
     };
   };
 
@@ -516,6 +532,7 @@ export default function CSFloatWorkstation() {
             closenessPercent: parseFloat(((closeness - 1) * 100).toFixed(1)),
             hasExistingOrder: hasExisting,
             iconUrl: cacheItem?.icon_url,
+            trendMomentum14d: (acceptedEntry as any)?.trendMomentum14d,
           });
         }
       }
@@ -523,7 +540,9 @@ export default function CSFloatWorkstation() {
       results.sort((a, b) => a.closeness - b.closeness);
 
       // Safety limit: Never render more than 200 items
-      setSoCloseResults(results.slice(0, 200));
+      const sliced = results.slice(0, 200);
+      setSoCloseResults(sliced);
+      fetchTrendHistoryForItems(sliced.map(s => s.name));
       toast.success(`Found ${Math.min(results.length, 200)} So Close market opportunities!`, { id: toastId });
     } catch (err: any) {
       toast.error(`So Close scan error: ${err.message}`, { id: toastId });
@@ -628,6 +647,7 @@ export default function CSFloatWorkstation() {
     try {
       const list = await window.electronAPI.csfloat.getInventory();
       setInventory(list);
+      fetchTrendHistoryForItems(list.map(i => i.market_hash_name || i.item_name || ''));
       toast.success(`Loaded ${list.length} inventory items`, { id: toastId });
     } catch (err: any) {
       console.error('[CSFloat Workstation] Error fetching inventory:', err);
@@ -1001,6 +1021,12 @@ export default function CSFloatWorkstation() {
     });
   }, []);
 
+  useEffect(() => {
+    if (orders.length > 0) {
+      fetchTrendHistoryForItems(orders.map(o => o.market_hash_name));
+    }
+  }, [orders]);
+
   // Counts for Buy Orders
   const selectedCount = Object.values(selectedItems).filter(Boolean).length;
   const pricesLoaded = acceptedPricesMeta !== null;
@@ -1136,6 +1162,10 @@ export default function CSFloatWorkstation() {
                 </div>
               );
             })()}
+
+            {/* 14-Day Price Trend History Section */}
+            <TrendDetailedChart name={lookupModalItem.name} />
+
 
             {/* Marketplace Breakdown Table */}
             {lookupModalItem.cacheItem?.l && Array.isArray(lookupModalItem.cacheItem.l) && (
@@ -2279,6 +2309,16 @@ export default function CSFloatWorkstation() {
                       )}
                     </div>
 
+                    {/* 14-Day Trend Sparkline */}
+                    <div onClick={e => e.stopPropagation()}>
+                      <TrendSparkline
+                        name={order.market_hash_name}
+                        momentum={driftDetails?.trendMomentum14d}
+                        height={32}
+                        onClick={() => handleOpenLookupModal(order.market_hash_name, driftDetails?.acceptedPrice, currentPrice)}
+                      />
+                    </div>
+
                     {/* Pricing */}
                     <div
                       style={{
@@ -2614,6 +2654,16 @@ export default function CSFloatWorkstation() {
                       )}
                     </div>
 
+                    {/* 14-Day Trend Sparkline */}
+                    <div onClick={e => e.stopPropagation()}>
+                      <TrendSparkline
+                        name={item.name}
+                        momentum={item.trendMomentum14d}
+                        height={32}
+                        onClick={() => handleOpenLookupModal(item.name, item.acceptedPrice, item.currentMarketPrice, item.iconUrl)}
+                      />
+                    </div>
+
                     {/* Pricing Info Box */}
                     <div
                       style={{
@@ -2927,6 +2977,15 @@ export default function CSFloatWorkstation() {
                           </span>
                         )}
                       </div>
+                    </div>
+
+                    {/* 14-Day Trend Sparkline */}
+                    <div onClick={e => e.stopPropagation()}>
+                      <TrendSparkline
+                        name={name}
+                        height={32}
+                        onClick={() => handleOpenLookupModal(name, undefined, currentListedPriceDollar || undefined, item.icon_url)}
+                      />
                     </div>
 
                     {/* Pricing Info Box */}

@@ -7,6 +7,7 @@ import { secureGet, STORAGE_KEYS } from '../../storage/secure-store';
 import { setPriceCache } from './oracle.ipc';
 import { SKINSNIPE_LOWEST_PRICES } from '../constants/apiUrls';
 import { saasAxios } from '../services/saasAxios';
+import { trendStore } from '../services/trendStore';
 
 // ─────────────────────────────────────────────────────────────────
 // Skinsnipe price fetching — runs on the trader's device using the
@@ -258,11 +259,13 @@ ipcMain.handle('skinsnipe:fetch-prices', async (event, targetMarkets?: string[])
         localPriceCache = result.cache; // Swap atomically to the fresh fetch result
         lastFetchedAt = new Date();
         setPriceCache(localPriceCache); // Share updated cache with oracle.ipc.ts
+        trendStore.saveDailySnapshots(localPriceCache).catch(err => console.warn('[TrendStore] Auto-snapshot error:', err));
       } else if (!hasPriorCache) {
         // If no prior cache existed and fetch was stopped mid-way, keep partial results
         localPriceCache = result.cache;
         lastFetchedAt = new Date();
         setPriceCache(localPriceCache);
+        trendStore.saveDailySnapshots(localPriceCache).catch(err => console.warn('[TrendStore] Auto-snapshot error:', err));
       } else {
         console.log('[Skinsnipe] Fetch was aborted or failed critically. Retaining existing active price cache for safety.');
       }
@@ -320,6 +323,7 @@ ipcMain.handle('skinsnipe:load-cache-json', async (_, jsonContent: string) => {
       localPriceCache = Object.keys(cleanCache).length > 0 ? cleanCache : (cacheData as PriceCache);
       lastFetchedAt = new Date();
       setPriceCache(localPriceCache);
+      trendStore.saveDailySnapshots(localPriceCache).catch(err => console.warn('[TrendStore] Auto-snapshot error:', err));
       return {
         success: true,
         itemCount: Object.keys(localPriceCache).length,
@@ -399,6 +403,7 @@ ipcMain.handle('skinsnipe:load-demo-cache', async (_event: IpcMainInvokeEvent, o
       localPriceCache = Object.keys(cleanCache).length > 0 ? cleanCache : (cacheData as PriceCache);
       lastFetchedAt = new Date();
       setPriceCache(localPriceCache);
+      trendStore.saveDailySnapshots(localPriceCache).catch(err => console.warn('[TrendStore] Auto-snapshot error:', err));
       console.log(`[Skinsnipe] Loaded demo price cache (${Object.keys(localPriceCache).length} items, source: ${source})`);
       return {
         success: true,

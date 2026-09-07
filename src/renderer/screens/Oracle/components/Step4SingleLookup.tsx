@@ -1,9 +1,11 @@
 import React from 'react';
-import { Search, ChevronUp, ChevronDown, Loader2, Zap, BarChart3, AlertCircle, Tag, Layers } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, Loader2, Zap, BarChart3, AlertCircle, Tag, Layers, TrendingUp } from 'lucide-react';
 import { ListingPriceStrategy } from '../../../store/useOracleStore';
 import { SKINSNIPE_AVAILABLE_MARKETS } from './Step1MarketCache';
 import { calculateSuggestedListingPrice } from '../utils/oracleUtils';
 import { S } from '../OracleDashboard.styles';
+import { TrendDetailedChart } from '../../../components/TrendDetailedChart';
+import { TrendSparkline } from '../../../components/TrendSparkline';
 
 interface Step4SingleLookupProps {
   isOpen: boolean;
@@ -166,13 +168,36 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                           />
 
                           <div>
-                            <div style={{ fontWeight: 800, fontSize: '17px', color: 'var(--so-text-primary)' }}>
-                              {cleanTitle}
+                            <div style={{ fontWeight: 800, fontSize: '17px', color: 'var(--so-text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span>{cleanTitle}</span>
+                              <TrendSparkline name={r.name} width={90} height={26} />
                             </div>
-                            <div style={{ fontSize: '12.5px', color: 'var(--so-text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ fontSize: '12.5px', color: 'var(--so-text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                               {wear && <span style={{ color: 'var(--so-text-secondary)', fontWeight: 700 }}>({wear})</span>}
                               {r.source === 'built_cache' && <span className="badge badge-success">BUILT CACHE</span>}
                               {r.source === 'oracle_api' && <span className="badge badge-cyan">ORACLE API</span>}
+                              {oracle.nexusDelta !== undefined && oracle.nexusDelta !== null && (
+                                <span
+                                  className="badge"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    backgroundColor: oracle.nexusDelta > 0 ? 'rgba(16, 185, 129, 0.15)' : oracle.nexusDelta < 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                                    color: oracle.nexusDelta > 0 ? 'var(--so-success-text)' : oracle.nexusDelta < 0 ? 'var(--so-danger-text)' : 'var(--so-primary)',
+                                    border: `1px solid ${oracle.nexusDelta > 0 ? 'rgba(16, 185, 129, 0.3)' : oracle.nexusDelta < 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  <TrendingUp size={11} />
+                                  NEXUS {oracle.nexusDelta > 0 ? `+$${oracle.nexusDelta.toFixed(2)}` : oracle.nexusDelta < 0 ? `-$${Math.abs(oracle.nexusDelta).toFixed(2)}` : '$0.00'}
+                                </span>
+                              )}
+                              {oracle.trendConfidence && (
+                                <span className="badge badge-ghost" style={{ fontSize: '11px' }}>
+                                  GRADE {oracle.trendConfidence}
+                                </span>
+                              )}
                               {oracle.isHyperLiquid && <span className="badge badge-cyan">HYPER LIQUID</span>}
                             </div>
                           </div>
@@ -210,6 +235,13 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                         </div>
                       </div>
 
+                      {/* 14-Day Historical Trend Intelligence Graph */}
+                      <TrendDetailedChart
+                        name={r.name}
+                        momentum={oracle.trendMomentum14d}
+                        height={115}
+                      />
+
                       {/* Centralized Buy & Listing Target Box */}
                       {(() => {
                         const itemPrices = marketListings.map(m => m.price).filter(p => p > 0);
@@ -227,7 +259,19 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                 ${buyTarget.toFixed(2)}
                               </div>
                               <div style={{ fontSize: '12px', color: 'var(--so-text-muted)', marginTop: '2px' }}>
-                                Maximum price to accept for buy orders
+                                {oracle.nexusDelta !== undefined && oracle.nexusDelta !== null ? (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                    <span>Base: ${oracle.v1Benchmark ? oracle.v1Benchmark.toFixed(2) : '—'}</span>
+                                    <span style={{ color: oracle.nexusDelta > 0 ? 'var(--so-success-text)' : oracle.nexusDelta < 0 ? 'var(--so-danger-text)' : 'var(--so-text-muted)', fontWeight: 700 }}>
+                                      {oracle.nexusDelta > 0 ? `+$${oracle.nexusDelta.toFixed(2)}` : oracle.nexusDelta < 0 ? `-$${Math.abs(oracle.nexusDelta).toFixed(2)}` : '$0.00'} Nexus
+                                    </span>
+                                    {oracle.trendAdjustment !== undefined && (
+                                      <span style={{ opacity: 0.8 }}>({(oracle.trendAdjustment * 100).toFixed(1)}%)</span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  'Maximum price to accept for buy orders'
+                                )}
                               </div>
                             </div>
 

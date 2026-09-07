@@ -30,6 +30,13 @@ export interface OracleStrategyProfile {
   outlierProtection: 'strict' | 'standard' | 'permissive';
 }
 
+export interface NexusStrategyProfile {
+  preset: 'capital_shield' | 'balanced' | 'aggressive' | 'custom';
+  trendWindow: 7 | 14 | 30;
+  downsideCut: 'strict' | 'standard' | 'light';
+  volatilityFilter: 'strict' | 'standard' | 'permissive';
+}
+
 export type ListingStrategyMode = 'lowest' | 'average' | 'undercut' | 'markup';
 
 export interface ListingPriceStrategy {
@@ -67,6 +74,13 @@ export const DEFAULT_STRATEGY_PROFILE: OracleStrategyProfile = {
   outlierProtection: 'standard',
 };
 
+export const DEFAULT_NEXUS_PROFILE: NexusStrategyProfile = {
+  preset: 'balanced',
+  trendWindow: 14,
+  downsideCut: 'standard',
+  volatilityFilter: 'standard',
+};
+
 export const DEFAULT_LISTING_STRATEGY: ListingPriceStrategy = {
   mode: 'lowest',
   offsetPercent: 2.0,
@@ -95,7 +109,9 @@ export const DEFAULT_SELECTED_MARKETS: SkinsnipeMarketId[] = [
 interface OracleStoreState {
   selectedMarkets: SkinsnipeMarketId[];
   preFilters: BuildPreFilters;
+  selectedEngine: 'standard' | 'nexus';
   strategyProfile: OracleStrategyProfile;
+  nexusProfile: NexusStrategyProfile;
   listingStrategy: ListingPriceStrategy;
 
   setSelectedMarkets: (markets: SkinsnipeMarketId[]) => void;
@@ -104,11 +120,14 @@ interface OracleStoreState {
   selectAllMarkets: (allIds: SkinsnipeMarketId[]) => void;
   resetDefaultMarkets: () => void;
 
+  setSelectedEngine: (engine: 'standard' | 'nexus') => void;
+
   setPreFilters: (filters: BuildPreFilters | ((prev: BuildPreFilters) => BuildPreFilters)) => void;
   toggleWear: (wearKey: keyof BuildPreFilters['allowedWears']) => void;
   resetPreFilters: () => void;
 
   setStrategyProfile: (profile: OracleStrategyProfile | ((prev: OracleStrategyProfile) => OracleStrategyProfile)) => void;
+  setNexusProfile: (profile: NexusStrategyProfile | ((prev: NexusStrategyProfile) => NexusStrategyProfile)) => void;
   setListingStrategy: (strategy: ListingPriceStrategy | ((prev: ListingPriceStrategy) => ListingPriceStrategy)) => void;
 }
 
@@ -117,7 +136,9 @@ export const useOracleStore = create<OracleStoreState>()(
     (set) => ({
       selectedMarkets: DEFAULT_SELECTED_MARKETS,
       preFilters: DEFAULT_PRE_FILTERS,
+      selectedEngine: 'standard',
       strategyProfile: DEFAULT_STRATEGY_PROFILE,
+      nexusProfile: DEFAULT_NEXUS_PROFILE,
       listingStrategy: DEFAULT_LISTING_STRATEGY,
 
       setSelectedMarkets: (markets) => set({ selectedMarkets: markets }),
@@ -132,6 +153,8 @@ export const useOracleStore = create<OracleStoreState>()(
       soloMarket: (marketId) => set({ selectedMarkets: [marketId] }),
       selectAllMarkets: (allIds) => set({ selectedMarkets: allIds }),
       resetDefaultMarkets: () => set({ selectedMarkets: DEFAULT_SELECTED_MARKETS }),
+
+      setSelectedEngine: (engine) => set({ selectedEngine: engine }),
 
       setPreFilters: (filters) =>
         set((state) => ({
@@ -152,6 +175,10 @@ export const useOracleStore = create<OracleStoreState>()(
       setStrategyProfile: (profile) =>
         set((state) => ({
           strategyProfile: typeof profile === 'function' ? profile(state.strategyProfile) : profile,
+        })),
+      setNexusProfile: (profile) =>
+        set((state) => ({
+          nexusProfile: typeof profile === 'function' ? profile(state.nexusProfile) : profile,
         })),
       setListingStrategy: (strategy) =>
         set((state) => ({

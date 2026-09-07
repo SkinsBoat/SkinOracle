@@ -102,7 +102,7 @@ export default function UpdateNotification() {
                   Update Available (v{updateState.info?.version})
                 </h4>
                 <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--so-text-muted)' }}>
-                  A new version of SkinOracle Trader is ready to download.
+                  A new version of SkinOracle is ready to download.
                 </p>
               </div>
             </div>

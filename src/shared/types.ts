@@ -44,6 +44,12 @@ export interface AcceptedPriceInfo {
   acceptedPrice: number;
   liquidityScore: number;
   isHyperLiquid: boolean;
+  nexusDelta?: number;
+  trendAdjustment?: number;
+  trendConfidence?: string;
+  trendMomentum14d?: number;
+  nexusConfidence?: string;
+  v1Benchmark?: number;
 }
 
 export interface CsFloatInventoryItem {
@@ -276,8 +282,14 @@ export interface ElectronAPI {
   };
   oracle: {
     startBatch: (totalItems: number) => Promise<OracleBatchStartResult>;
+    startNexusBatch: (totalItems: number) => Promise<OracleBatchStartResult>;
     finishBatch: (batchId: string, completedItems: number) => Promise<OracleBatchFinishResult>;
     evaluate: (items: string[], options?: object, batchId?: string) => Promise<{
+      results: Array<{ name: string; oracle: any | null }>;
+      usageCount: number;
+      dailyRemaining: number;
+    }>;
+    evaluateNexus: (items: string[], options?: object, nexusParams?: object, batchId?: string) => Promise<{
       results: Array<{ name: string; oracle: any | null }>;
       usageCount: number;
       dailyRemaining: number;
@@ -286,6 +298,24 @@ export interface ElectronAPI {
     getAcceptedPrices: () => Promise<{ map: Record<string, AcceptedPriceInfo>; itemCount: number; storedAt: string | null }>;
     storeListingPrices: (map: Record<string, ListingPriceInfo>) => Promise<{ stored: number; storedAt: string }>;
     getListingPrices: () => Promise<{ map: Record<string, ListingPriceInfo>; itemCount: number; storedAt: string | null }>;
+  };
+  trendStore: {
+    getStats: () => Promise<{
+      daysCount: number;
+      totalSnapshots: number;
+      itemCoverage: number;
+      latestDate: string | null;
+      oldestDate: string | null;
+    }>;
+    getHistoryBatch: (
+      itemNames: string[],
+      days?: number
+    ) => Promise<Record<string, { labels: string[]; overallAverages: number[] }>>;
+    prune: (retentionDays?: number) => Promise<number>;
+    seedMockHistory: (days?: number) => Promise<{ seededDays: number; totalSnapshots: number }>;
+    clear: () => Promise<number>;
+    setSimulatedDate: (date: string | null) => Promise<string | null>;
+    getSimulatedDate: () => Promise<string | null>;
   };
   csfloat: {
     getMe: () => Promise<any>;

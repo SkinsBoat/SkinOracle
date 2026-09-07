@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Sparkles } from 'lucide-react';
 import { useOracleStore, DEFAULT_SELECTED_MARKETS } from '../../store/useOracleStore';
-import { SkinsnipeMarketId } from '../../../shared/types';
-import { passesSmartPreFilters, calculateSuggestedListingPrice, mapStrategyToBackendOptions, roundToCsFloatStep } from './utils/oracleUtils';
+import { SkinsnipeMarketId, AcceptedPriceInfo } from '../../../shared/types';
+import { passesSmartPreFilters, calculateSuggestedListingPrice, mapStrategyToBackendOptions, mapNexusProfileToParams, roundToCsFloatStep } from './utils/oracleUtils';
 import { Step1MarketCache, SKINSNIPE_AVAILABLE_MARKETS } from './components/Step1MarketCache';
 import { Step2AcceptedPrices } from './components/Step2AcceptedPrices';
 import { Step3ListingPrices } from './components/Step3ListingPrices';
@@ -57,8 +57,12 @@ export default function OracleDashboard() {
     setPreFilters,
     toggleWear,
     resetPreFilters: storeResetPreFilters,
+    selectedEngine,
+    setSelectedEngine,
     strategyProfile,
     setStrategyProfile,
+    nexusProfile,
+    setNexusProfile,
     listingStrategy,
     setListingStrategy,
   } = useOracleStore();
@@ -213,7 +217,7 @@ export default function OracleDashboard() {
     let totalEvaluated = 0;
     let soClose = 0;
     let highLiq = 0;
-    const acceptedPriceMap: Record<string, { acceptedPrice: number; liquidityScore: number; isHyperLiquid: boolean }> = {};
+    const acceptedPriceMap: Record<string, AcceptedPriceInfo> = {};
 
     try {
       const fullCache: any = await window.electronAPI.skinsnipe.getCache();
@@ -240,15 +244,21 @@ export default function OracleDashboard() {
         batchProgress: { current: 0, total: filteredItemNames.length, percent: 0 },
       }));
 
-      const batchStartRes = await window.electronAPI.oracle.startBatch(filteredItemNames.length);
+      const isNexus = selectedEngine === 'nexus';
+      const batchStartRes = isNexus
+        ? await window.electronAPI.oracle.startNexusBatch(filteredItemNames.length)
+        : await window.electronAPI.oracle.startBatch(filteredItemNames.length);
       activeBatchId = batchStartRes.batchId;
 
       const evalOptions = mapStrategyToBackendOptions(strategyProfile);
+      const nexusParams = isNexus ? mapNexusProfileToParams(nexusProfile) : undefined;
       const chunkSize = 1500;
 
       for (let i = 0; i < filteredItemNames.length; i += chunkSize) {
         const chunk = filteredItemNames.slice(i, i + chunkSize);
-        const evalRes = await window.electronAPI.oracle.evaluate(chunk, evalOptions, activeBatchId || undefined);
+        const evalRes = isNexus
+          ? await window.electronAPI.oracle.evaluateNexus(chunk, evalOptions, nexusParams, activeBatchId || undefined)
+          : await window.electronAPI.oracle.evaluate(chunk, evalOptions, activeBatchId || undefined);
         totalEvaluated += chunk.length;
 
         if (evalRes?.results) {
@@ -259,6 +269,12 @@ export default function OracleDashboard() {
                 acceptedPrice,
                 liquidityScore: r.oracle.liquidityScore || 0,
                 isHyperLiquid: r.oracle.isHyperLiquid || false,
+                nexusDelta: r.oracle.nexusDelta,
+                trendAdjustment: r.oracle.trendAdjustment,
+                trendConfidence: r.oracle.trendConfidence,
+                trendMomentum14d: r.oracle.trendMomentum14d,
+                nexusConfidence: r.oracle.nexusConfidence,
+                v1Benchmark: r.oracle.v1Benchmark,
               };
               total++;
               if (r.oracle.liquidityScore >= 1.2) highLiq++;
@@ -287,7 +303,11 @@ export default function OracleDashboard() {
         await new Promise(resolve => setTimeout(resolve, 10));
       }
 
-      toast.success(`Computed accepted prices for ${total.toLocaleString()} items using ${strategyProfile.preset.toUpperCase()} strategy!`);
+      toast.success(
+        `Computed accepted prices for ${total.toLocaleString()} items using ${
+          isNexus ? 'ORACLENEXUS PRO' : strategyProfile.preset.toUpperCase()
+        } strategy!`
+      );
     } catch (err: any) {
       console.error('[Oracle Dashboard] Build Accepted Price error:', err);
       if (totalEvaluated > 0) {
@@ -539,6 +559,12 @@ export default function OracleDashboard() {
             benchmarkValue: avgPrice,
             marketCount: rawListings.length,
             isHyperLiquid: builtItem.isHyperLiquid || false,
+            nexusDelta: builtItem.nexusDelta,
+            trendAdjustment: builtItem.trendAdjustment,
+            trendConfidence: builtItem.trendConfidence,
+            trendMomentum14d: builtItem.trendMomentum14d,
+            nexusConfidence: builtItem.nexusConfidence,
+            v1Benchmark: builtItem.v1Benchmark,
           },
           listings: rawListings,
         }]);
@@ -602,9 +628,13 @@ export default function OracleDashboard() {
         preFilters={preFilters}
         setPreFilters={setPreFilters}
         toggleWear={toggleWear}
-        resetPreFilters={resetPreFilters}
+        resetPreFilters={storeResetPreFilters}
+        selectedEngine={selectedEngine}
+        setSelectedEngine={setSelectedEngine}
         strategyProfile={strategyProfile}
         setStrategyProfile={setStrategyProfile}
+        nexusProfile={nexusProfile}
+        setNexusProfile={setNexusProfile}
         onBuildAcceptedPrices={buildAcceptedPrices}
         canBuild={canBuild}
       />

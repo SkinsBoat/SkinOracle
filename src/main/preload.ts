@@ -78,10 +78,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ── Oracle (send price data to SaaS backend, store accepted & listing prices) ──
   oracle: {
     startBatch: (totalItems: number) => safeInvoke<{ batchId: string; totalItems: number; totalCostCents: number; freeCoveredCents: number; billableCents: number }>('oracle:batch-start', totalItems),
+    startNexusBatch: (totalItems: number) => safeInvoke<{ batchId: string; totalItems: number; totalCostCents: number; freeCoveredCents: number; billableCents: number }>('oracle:nexus-batch-start', totalItems),
     finishBatch: (batchId: string, completedItems: number) => safeInvoke<{ batchId: string; totalItems: number; completedItems: number; unusedItems: number; refundedCents: number }>('oracle:batch-finish', batchId, completedItems),
     evaluate: (items: any[], options?: any, batchId?: string) => safeInvoke('oracle:evaluate', items, options, batchId),
+    evaluateNexus: (items: any[], options?: any, nexusParams?: any, batchId?: string) => safeInvoke('oracle:evaluate-nexus', items, options, nexusParams, batchId),
     // Store the accepted price map (called by OracleDashboard after "Build Accepted Price")
-    storeAcceptedPrices: (map: Record<string, { acceptedPrice: number; liquidityScore: number; isHyperLiquid: boolean }>) =>
+    storeAcceptedPrices: (map: Record<string, { acceptedPrice: number; liquidityScore: number; isHyperLiquid: boolean; nexusDelta?: number; trendAdjustment?: number }>) =>
       safeInvoke('oracle:store-accepted-prices', map),
     // Get the accepted price map (called by market workstations like CSFloat, Skins.com)
     getAcceptedPrices: () => safeInvoke('oracle:get-accepted-prices'),
@@ -90,6 +92,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
       safeInvoke('oracle:store-listing-prices', map),
     // Get the listing price map (called when listing items)
     getListingPrices: () => safeInvoke('oracle:get-listing-prices'),
+  },
+
+  // ── Trend Store (Local SQLite Price Snapshots) ───────────────────
+  trendStore: {
+    getStats: () => safeInvoke<{ daysCount: number; totalSnapshots: number; itemCoverage: number; latestDate: string | null; oldestDate: string | null }>('trend-store:get-stats'),
+    getHistoryBatch: (itemNames: string[], days?: number) =>
+      safeInvoke<Record<string, { labels: string[]; overallAverages: number[] }>>('trend-store:get-history-batch', itemNames, days),
+    prune: (retentionDays?: number) => safeInvoke<number>('trend-store:prune', retentionDays),
+    seedMockHistory: (days?: number) => safeInvoke<{ seededDays: number; totalSnapshots: number }>('trend-store:seed-mock-history', days),
+    clear: () => safeInvoke<number>('trend-store:clear'),
+    setSimulatedDate: (date: string | null) => safeInvoke<string | null>('trend-store:set-simulated-date', date),
+    getSimulatedDate: () => safeInvoke<string | null>('trend-store:get-simulated-date'),
   },
 
   // ── CSFloat (buy orders & listings fired directly from user's device) ──

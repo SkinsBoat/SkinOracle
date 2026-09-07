@@ -3,6 +3,8 @@ import toast from 'react-hot-toast';
 import { Gem, RotateCw, Link as LinkIcon, Trash2, Loader2, KeyRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { skinsLogo } from '../../../../assets/images';
+import TrendSparkline from '../../components/TrendSparkline';
+import { useTrendStore } from '../../store/useTrendStore';
 
 interface AcceptedPriceEntry {
   acceptedPrice: number;
@@ -43,6 +45,7 @@ export default function SkinscomWorkstation() {
       const data: any = await window.electronAPI.skinscom.getOrders();
       const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
       setOrders(list);
+      useTrendStore.getState().fetchHistoryBatch(list.map((o: any) => o.market_hash_name || o.name));
       toast.success(`Loaded ${list.length} Skins.com buy orders`, { id: toastId });
     } catch (err: any) {
       toast.error(`Skins.com error: ${err.message}`, { id: toastId });
@@ -261,7 +264,11 @@ export default function SkinscomWorkstation() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                    <div style={{ width: 110, flexShrink: 0 }}>
+                      <TrendSparkline name={name} height={32} />
+                    </div>
+
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '10px', color: 'var(--so-text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>My Price</div>
                       <div className="tabular-nums" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--so-text-primary)' }}>

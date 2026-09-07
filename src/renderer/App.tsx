@@ -224,9 +224,6 @@ export default function App() {
                       <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--so-text-primary)', letterSpacing: '-0.3px' }}>
                         SkinOracle
                       </span>
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--so-text-muted)' }}>
-                        Trader Hands
-                      </span>
                     </div>
                   </div>
 
@@ -264,8 +261,8 @@ export default function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '2px 0' }}>
                   <img
                     src={oracleLogo}
-                    alt="SkinOracle Trader hands"
-                    title="SkinOracle Trader hands"
+                    alt="SkinOracle"
+                    title="SkinOracle"
                     style={{
                       width: '34px',
                       height: '34px',

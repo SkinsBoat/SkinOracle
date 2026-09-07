@@ -1,4 +1,4 @@
-import { BuildPreFilters, ListingPriceStrategy, OracleStrategyProfile } from '../../../store/useOracleStore';
+import { BuildPreFilters, ListingPriceStrategy, OracleStrategyProfile, NexusStrategyProfile } from '../../../store/useOracleStore';
 import {
   roundToCsFloatStep,
   snapCsFloatBuyOrderPriceCents,
@@ -133,5 +133,46 @@ export function mapStrategyToBackendOptions(strategy: OracleStrategyProfile) {
     useStdDevFilter,
     stdDevThreshold,
     outlierMode: strategy.outlierProtection,
+  };
+}
+
+export const NEXUS_PRESETS: Record<string, NexusStrategyProfile> = {
+  capital_shield: {
+    preset: 'capital_shield',
+    trendWindow: 14,
+    downsideCut: 'strict',
+    volatilityFilter: 'strict',
+  },
+  balanced: {
+    preset: 'balanced',
+    trendWindow: 14,
+    downsideCut: 'standard',
+    volatilityFilter: 'standard',
+  },
+  aggressive: {
+    preset: 'aggressive',
+    trendWindow: 7,
+    downsideCut: 'light',
+    volatilityFilter: 'permissive',
+  },
+};
+
+export function mapNexusProfileToParams(profile: NexusStrategyProfile) {
+  let maxTrendPenalty = -0.08;
+  if (profile.downsideCut === 'strict') maxTrendPenalty = -0.10;
+  if (profile.downsideCut === 'light') maxTrendPenalty = -0.05;
+
+  let volatilityThreshold = 0.50;
+  if (profile.volatilityFilter === 'strict') volatilityThreshold = 0.35;
+  if (profile.volatilityFilter === 'permissive') volatilityThreshold = 0.75;
+
+  return {
+    trendWindow: profile.trendWindow,
+    trendSensitivity: 0.20,
+    volatilityThreshold,
+    maxTrendPenalty,
+    maxTrendBonus: profile.preset === 'capital_shield' ? 0.01 : 0.03,
+    minTrendConfidence: 'C' as const,
+    maxDataAgeDays: 3,
   };
 }

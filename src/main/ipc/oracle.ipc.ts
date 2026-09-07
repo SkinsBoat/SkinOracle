@@ -1,13 +1,15 @@
 import { ipcMain } from 'electron';
 import { saasAxios } from '../services/saasAxios';
 
+import { trendStore } from '../services/trendStore';
+
 // In-memory merged price cache (from Skinsnipe fetch)
 // This is the same shape as SkinOracle priceCache: Record<name, { n, l[] }>
 let priceCache: Record<string, { n: string; l: { m: string; p: number; q?: number }[] }> = {};
 
 // In-memory accepted price map — populated by OracleDashboard "Build Accepted Price" action
 // Consumed by all market workstations (CSFloat, Skins.com) without re-hitting the saas-api
-let acceptedPriceMap: Record<string, { acceptedPrice: number; liquidityScore: number; isHyperLiquid: boolean }> = {};
+let acceptedPriceMap: Record<string, { acceptedPrice: number; liquidityScore: number; isHyperLiquid: boolean; nexusDelta?: number; trendAdjustment?: number }> = {};
 let cacheTimestamp: Date | null = null;
 let acceptedPriceTimestamp: Date | null = null;
 
@@ -25,6 +27,11 @@ let listingPriceTimestamp: Date | null = null;
 //
 ipcMain.handle('oracle:batch-start', async (_, totalItems: number) => {
   const res = await saasAxios.post('/oracle/batch/start', { totalItems });
+  return res.data;
+});
+
+ipcMain.handle('oracle:nexus-batch-start', async (_, totalItems: number) => {
+  const res = await saasAxios.post('/oracle/nexus/batch/start', { totalItems });
   return res.data;
 });
 
@@ -51,6 +58,67 @@ ipcMain.handle('oracle:evaluate', async (_, items: string[], options?: any, batc
   const res = await saasAxios.post('/oracle/evaluate', { items: requestItems, options, batchId });
   return res.data; // OracleEvaluateResponse
 });
+
+// ── Oracle Nexus v2: evaluate prices with local trend intelligence ──
+ipcMain.handle('oracle:evaluate-nexus', async (_, items: string[], options?: any, nexusParams?: any, batchId?: string) => {
+  const windowDays = nexusParams?.trendWindow || 14;
+  const trendHistoryMap = await trendStore.getTrendHistoryBatch(items, windowDays);
+
+  const requestItems = items.map(name => {
+    const cached = priceCache[name];
+    const listings = (cached?.l || []).map(l => ({
+      m: l.m,
+      p: l.p,
+      ...(l.q !== undefined ? { q: l.q } : {}),
+    }));
+    const trend = trendHistoryMap[name];
+    return {
+      name,
+      listings,
+      trendHistory: trend?.overallAverages || [],
+      trendLabels: trend?.labels || [],
+    };
+  });
+
+  const res = await saasAxios.post('/oracle/nexus/evaluate', {
+    items: requestItems,
+    options,
+    nexusParams,
+    batchId,
+  });
+  return res.data;
+});
+
+// ── Trend Store IPCs ──────────────────────────────────────────────
+ipcMain.handle('trend-store:get-stats', async () => {
+  return trendStore.getStats();
+});
+
+ipcMain.handle('trend-store:prune', async (_, retentionDays?: number) => {
+  return trendStore.pruneOldSnapshots(retentionDays || 30);
+});
+
+ipcMain.handle('trend-store:seed-mock-history', async (_, days?: number) => {
+  return trendStore.seedMockHistory(priceCache, days || 14);
+});
+
+ipcMain.handle('trend-store:clear', async () => {
+  return trendStore.clearAllSnapshots();
+});
+
+ipcMain.handle('trend-store:set-simulated-date', async (_, date: string | null) => {
+  trendStore.setSimulatedDate(date);
+  return trendStore.getSimulatedDate();
+});
+
+ipcMain.handle('trend-store:get-simulated-date', async () => {
+  return trendStore.getSimulatedDate();
+});
+
+ipcMain.handle('trend-store:get-history-batch', async (_, itemNames: string[], days?: number) => {
+  return trendStore.getTrendHistoryBatch(itemNames, days || 14);
+});
+
 
 // ── Oracle: store accepted prices (called by OracleDashboard after "Build Accepted Price") ──
 ipcMain.handle('oracle:store-accepted-prices', (_, map: typeof acceptedPriceMap) => {

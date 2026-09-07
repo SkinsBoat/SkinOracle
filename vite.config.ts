@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import electron from "vite-plugin-electron/simple";
@@ -8,6 +10,17 @@ export default defineConfig(({ mode }) => ({
   base: "./",
   plugins: [
     react(),
+    {
+      name: "copy-sql-wasm",
+      buildStart() {
+        const src = path.resolve(__dirname, "node_modules/sql.js/dist/sql-wasm.wasm");
+        const destDir = path.resolve(__dirname, "dist-electron");
+        if (fs.existsSync(src)) {
+          if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+          fs.copyFileSync(src, path.join(destDir, "sql-wasm.wasm"));
+        }
+      },
+    },
     electron({
       main: {
         entry: "src/main/main.ts",
