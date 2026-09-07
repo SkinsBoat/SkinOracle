@@ -210,6 +210,7 @@ export default function OracleDashboard() {
   };
 
   const buildAcceptedPrices = async () => {
+    if (evaluatedSummary.isBatchEvaluating) return;
     setEvaluatedSummary(prev => ({ ...prev, isBatchEvaluating: true, batchProgress: null }));
 
     let activeBatchId: string | null = null;

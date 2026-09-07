@@ -234,17 +234,19 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
           {/* Skinsnipe Fetch & Local Cache Loading Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <button className="btn btn-primary" onClick={onFetchPrices} disabled={cacheStatus.isFetching || isBatchEvaluating}>
-              {cacheStatus.isFetching ? (
-                <>
-                  <Loader2 size={16} className="spin" /> Fetching Skinsnipe Prices...
-                </>
-              ) : (
-                <>
-                  <Radio size={16} /> Fetch {selectedMarkets.length} Skinsnipe Markets
-                </>
-              )}
-            </button>
+            {hasApiKey && (
+              <button className="btn btn-primary" onClick={onFetchPrices} disabled={cacheStatus.isFetching || isBatchEvaluating}>
+                {cacheStatus.isFetching ? (
+                  <>
+                    <Loader2 size={16} className="spin" /> Fetching Skinsnipe Prices...
+                  </>
+                ) : (
+                  <>
+                    <Radio size={16} /> Fetch {selectedMarkets.length} Skinsnipe Markets
+                  </>
+                )}
+              </button>
+            )}
 
             {import.meta.env.DEV && (
               <label className="btn btn-cyan" style={{ cursor: 'pointer', margin: 0 }} title="Import an offline JSON price cache file">

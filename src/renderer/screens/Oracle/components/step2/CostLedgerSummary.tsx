@@ -105,7 +105,7 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
       <button
         type="button"
         onClick={onBuildAcceptedPrices}
-        disabled={!canBuild && !evaluatedSummary.isBatchEvaluating}
+        disabled={!canBuild || evaluatedSummary.isBatchEvaluating}
         className={`btn ${isNexus ? 'btn-primary' : 'btn-primary'} btn-lg ${evaluatedSummary.isBatchEvaluating ? 'btn-evaluating' : ''}`}
         style={{
           minWidth: '240px',
