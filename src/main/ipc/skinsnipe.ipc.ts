@@ -299,6 +299,11 @@ ipcMain.handle('skinsnipe:cancel-fetch', () => {
 // ── IPC: Get cached prices (already fetched) ───────────────────────
 ipcMain.handle('skinsnipe:get-cache', () => localPriceCache);
 
+ipcMain.handle('skinsnipe:get-item', (_, itemName: string) => {
+  if (!itemName || !localPriceCache) return null;
+  return localPriceCache[itemName] || localPriceCache[itemName.trim()] || null;
+});
+
 ipcMain.handle('skinsnipe:get-cache-status', () => ({
   itemCount: Object.keys(localPriceCache).length,
   isFetching,

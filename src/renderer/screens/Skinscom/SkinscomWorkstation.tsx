@@ -6,11 +6,7 @@ import { skinsLogo } from '../../../../assets/images';
 import TrendSparkline from '../../components/TrendSparkline';
 import { useTrendStore } from '../../store/useTrendStore';
 
-interface AcceptedPriceEntry {
-  acceptedPrice: number;
-  liquidityScore: number;
-  isHyperLiquid: boolean;
-}
+import { useAcceptedPrices } from '../../hooks/useAcceptedPrices';
 
 export default function SkinscomWorkstation() {
   const [hasToken, setHasToken] = useState<boolean | null>(null);
@@ -18,13 +14,14 @@ export default function SkinscomWorkstation() {
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Accepted prices (from Oracle Dashboard centralized build)
-  const [acceptedPriceMap, setAcceptedPriceMap] = useState<Record<string, AcceptedPriceEntry>>({});
-  const [acceptedPricesMeta, setAcceptedPricesMeta] = useState<{
-    itemCount: number;
-    storedAt: string | null;
-  } | null>(null);
-  const [loadingPrices, setLoadingPrices] = useState(false);
+  // Accepted prices (from shared hook)
+  const {
+    acceptedPriceMap,
+    acceptedPricesMeta,
+    loadingPrices,
+    pricesLoaded,
+    loadAcceptedPrices,
+  } = useAcceptedPrices();
 
   const checkTokenStatus = async (): Promise<boolean> => {
     const status = await window.electronAPI.settings.getKeysStatus();
@@ -54,29 +51,6 @@ export default function SkinscomWorkstation() {
     }
   };
 
-  const loadAcceptedPrices = async () => {
-    setLoadingPrices(true);
-    const toastId = toast.loading('Loading accepted prices...');
-    try {
-      const result: { map: Record<string, AcceptedPriceEntry>; itemCount: number; storedAt: string | null } =
-        await (window.electronAPI.oracle as any).getAcceptedPrices();
-
-      if (!result || result.itemCount === 0) {
-        toast.error('No accepted prices found. Please build prices in Oracle Workstation first.', { id: toastId });
-        setLoadingPrices(false);
-        return;
-      }
-
-      setAcceptedPricesMeta({ itemCount: result.itemCount, storedAt: result.storedAt });
-      setAcceptedPriceMap(result.map);
-      toast.success(`Loaded accepted prices for ${result.itemCount.toLocaleString()} items`, { id: toastId });
-    } catch (err: any) {
-      toast.error(`Failed to load prices: ${err.message}`, { id: toastId });
-    } finally {
-      setLoadingPrices(false);
-    }
-  };
-
   const handleDeleteOrder = async (id: string) => {
     setDeletingId(id);
     const toastId = toast.loading('Deleting Skins.com buy order...');
@@ -95,8 +69,6 @@ export default function SkinscomWorkstation() {
     // Only check token status on landing (DO NOT auto-fetch buy orders)
     checkTokenStatus();
   }, []);
-
-  const pricesLoaded = acceptedPricesMeta !== null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -190,7 +162,7 @@ export default function SkinscomWorkstation() {
             {loading ? <Loader2 size={14} className="spin" /> : <RotateCw size={14} />} Sync Orders
           </button>
           <button
-            onClick={loadAcceptedPrices}
+            onClick={() => loadAcceptedPrices()}
             disabled={loadingPrices}
             className={`btn ${pricesLoaded ? 'btn-secondary' : 'btn-outline'} btn-sm`}
           >

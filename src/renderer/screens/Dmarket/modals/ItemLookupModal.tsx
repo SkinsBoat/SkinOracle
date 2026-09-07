@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, ExternalLink } from 'lucide-react';
 import { getHumanMarketName } from '../dmarket-utils';
+import TrendDetailedChart from '../../../components/TrendDetailedChart';
 
 interface ItemLookupModalProps {
   item: {
@@ -185,6 +186,11 @@ export const ItemLookupModal: React.FC<ItemLookupModalProps> = ({ item, onClose,
               {cacheListings.length} Markets
             </div>
           </div>
+        </div>
+
+        {/* 14-Day Trend Chart */}
+        <div style={{ margin: '2px 0' }}>
+          <TrendDetailedChart name={item.name} height={125} />
         </div>
 
         {/* Marketplace Breakdown Table */}

@@ -245,6 +245,14 @@ export interface OracleBatchFinishResult {
   refundedCents: number;
 }
 
+export interface VersionGateState {
+  allowed: boolean;
+  reason?: string;
+  minVersion?: string;
+  latestVersion?: string;
+  currentVersion?: string;
+}
+
 export interface ElectronAPI {
   auth: {
     register: (email: string) => Promise<{ message: string }>;
@@ -276,6 +284,7 @@ export interface ElectronAPI {
     cancelFetch: () => Promise<{ success: boolean; message: string }>;
     onFetchProgress: (callback: (progress: SkinsnipeFetchProgress) => void) => () => void;
     getCache: () => Promise<SkinsnipePriceCache>;
+    getItem: (itemName: string) => Promise<{ n: string; l: { m: string; p: number; q?: number }[] } | null>;
     getCacheStatus: () => Promise<{ itemCount: number; isFetching: boolean; lastFetchedAt: string | null; marketCounts?: Record<string, number> }>;
     loadCacheJson: (jsonContent: string) => Promise<SkinsnipeFetchResult>;
     loadDemoCache: (options?: { forceRefresh?: boolean }) => Promise<SkinsnipeFetchResult>;
@@ -335,6 +344,9 @@ export interface ElectronAPI {
   system: {
     getConfig: () => Promise<any>;
     onForceMaintenance: (callback: () => void) => () => void;
+    getVersionGateStatus: () => Promise<VersionGateState>;
+    onForceVersionBlock: (callback: (state: VersionGateState) => void) => () => void;
+    openReleases: () => Promise<void>;
   };
   updater: {
     checkForUpdates: () => Promise<{ success: boolean; message?: string }>;

@@ -12,6 +12,8 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { getWearShortcut, SoCloseResultItem } from '../../dmarket-utils';
+import TrendSparkline from '../../../../components/TrendSparkline';
+import { useTrendStore } from '../../../../store/useTrendStore';
 
 export interface SoCloseTabProps {
   hasKey: boolean;
@@ -77,7 +79,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
     const toastId = toast.loading('Running DMarket So Close market scan...');
 
     try {
-      const acceptedRes: { map: Record<string, { acceptedPrice: number }>; itemCount: number } =
+      const acceptedRes: { map: Record<string, { acceptedPrice: number; trendMomentum14d?: number }>; itemCount: number } =
         await (window.electronAPI.oracle as any).getAcceptedPrices();
 
       if (!acceptedRes || !acceptedRes.map || Object.keys(acceptedRes.map).length === 0) {
@@ -141,6 +143,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             closenessPercent: parseFloat(((closeness - 1) * 100).toFixed(1)),
             hasExistingTarget: hasExisting,
             iconUrl: cacheItem?.icon_url,
+            trendMomentum14d: acceptedEntry.trendMomentum14d,
           });
         }
       }
@@ -148,7 +151,9 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
       results.sort((a, b) => a.closeness - b.closeness);
 
       // Safety limit: Never render more than 200 items
-      setSoCloseResults(results.slice(0, 200));
+      const sliced = results.slice(0, 200);
+      setSoCloseResults(sliced);
+      useTrendStore.getState().fetchHistoryBatch(sliced.map(r => r.name));
       toast.success(`Found ${Math.min(results.length, 200)} DMarket So Close market opportunities!`, { id: toastId });
     } catch (err: any) {
       toast.error(`So Close scan error: ${err.message}`, { id: toastId });
@@ -699,6 +704,16 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                       {wearShortcut}
                     </div>
                   )}
+                </div>
+
+                {/* 14-Day Trend Sparkline */}
+                <div onClick={(e) => e.stopPropagation()}>
+                  <TrendSparkline
+                    name={item.name}
+                    momentum={item.trendMomentum14d}
+                    height={30}
+                    onClick={() => onOpenLookupModal(item.name, item.acceptedPrice, item.currentMarketPrice, item.iconUrl)}
+                  />
                 </div>
 
                 {/* Pricing Info Box */}

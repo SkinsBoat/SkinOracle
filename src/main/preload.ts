@@ -70,6 +70,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       };
     },
     getCache: () => safeInvoke('skinsnipe:get-cache'),
+    getItem: (itemName: string) => safeInvoke('skinsnipe:get-item', itemName),
     getCacheStatus: () => safeInvoke('skinsnipe:get-cache-status'),
     loadCacheJson: (jsonContent: string) => safeInvoke('skinsnipe:load-cache-json', jsonContent),
     loadDemoCache: (options?: { forceRefresh?: boolean }) => safeInvoke('skinsnipe:load-demo-cache', options),
@@ -139,6 +140,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.removeListener('app:force-maintenance', subscription);
       };
     },
+    getVersionGateStatus: () => safeInvoke('system:get-version-gate'),
+    onForceVersionBlock: (callback: (state: any) => void) => {
+      const subscription = (_: any, data: any) => callback(data);
+      ipcRenderer.on('app:force-version-block', subscription);
+      return () => {
+        ipcRenderer.removeListener('app:force-version-block', subscription);
+      };
+    },
+    openReleases: () => safeInvoke('app:open-releases'),
   },
 
   // ── Auto Updater ──────────────────────────────────────────────

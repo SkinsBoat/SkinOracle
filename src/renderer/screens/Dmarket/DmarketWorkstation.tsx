@@ -3,6 +3,8 @@ import toast from 'react-hot-toast';
 import { Target, Zap, Tag } from 'lucide-react';
 import { DmarketTargetItem } from '../../../shared/types';
 import { safeGetItem } from '../../utils/storage';
+import { useLayoutStore } from '../../store/useLayoutStore';
+import { useTrendStore } from '../../store/useTrendStore';
 import {
   TargetAnalysis,
   MARKET_NAME_MAP,
@@ -55,23 +57,7 @@ export default function DmarketWorkstation() {
   const [mainTab, setMainTab] = useState<'target' | 'soclose' | 'listings'>('target');
 
   // Sidebar expand/collapse tracking for full-width floating panel positioning
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(() => {
-    const saved = safeGetItem('so_sidebar_expanded');
-    return saved !== null ? JSON.parse(saved) : false;
-  });
-
-  useEffect(() => {
-    const handleStorage = () => {
-      const saved = safeGetItem('so_sidebar_expanded');
-      setIsSidebarExpanded(saved !== null ? JSON.parse(saved) : false);
-    };
-    window.addEventListener('storage', handleStorage);
-    const interval = setInterval(handleStorage, 200);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      clearInterval(interval);
-    };
-  }, []);
+  const isSidebarExpanded = useLayoutStore((state) => state.isSidebarExpanded);
 
   // Single Item Lookup Modal State
   const [lookupModalItem, setLookupModalItem] = useState<{
@@ -167,13 +153,24 @@ export default function DmarketWorkstation() {
     });
   }, []);
 
-  // Open item inspection modal with Skinsnipe multi-market cache
+  useEffect(() => {
+    if (targets.length > 0) {
+      useTrendStore.getState().fetchHistoryBatch(targets.map(t => t.title));
+    }
+  }, [targets]);
+
+  // Open item inspection modal with fast single-item lookup
   const handleOpenLookupModal = async (title: string, acceptedPrice?: number, marketPrice?: number, iconUrl?: string) => {
     setLookupModalItem({ name: title, acceptedPrice, marketPrice, iconUrl });
     try {
-      const cache = await window.electronAPI.skinsnipe.getCache();
-      const cacheItem = cache ? cache[title] : null;
-      setLookupModalItem(prev => (prev ? { ...prev, cacheItem } : null));
+      const singleItem = await window.electronAPI.skinsnipe.getItem(title);
+      if (singleItem) {
+        setLookupModalItem(prev => (prev ? { ...prev, cacheItem: singleItem } : null));
+      } else {
+        const cache = await window.electronAPI.skinsnipe.getCache();
+        const cacheItem = cache ? cache[title] : null;
+        setLookupModalItem(prev => (prev ? { ...prev, cacheItem } : null));
+      }
     } catch (err) {
       console.error('Failed to load item cache for lookup:', err);
     }

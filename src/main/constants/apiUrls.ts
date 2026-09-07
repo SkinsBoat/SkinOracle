@@ -50,3 +50,7 @@ export const DMARKET_AGGREGATED_PRICES = `${DMARKET_API}/marketplace-api/v1/aggr
 export const SAAS_AUTH_REGISTER = `${SAAS_API}/auth/register`;
 export const SAAS_AUTH_VERIFY = `${SAAS_API}/auth/verify`;
 export const SAAS_APP_VERSION_CHECK = `${SAAS_API}/app/version-check`;
+
+// ── Application Releases ──────────────────────────────────────────
+export const APP_RELEASES_URL = 'https://github.com/SkinsBoat/SkinOracle/releases/latest';
+

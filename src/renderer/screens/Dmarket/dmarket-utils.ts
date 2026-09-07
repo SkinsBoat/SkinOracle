@@ -248,6 +248,7 @@ export interface TargetAnalysis {
   liquidityScore: number;
   isHyperLiquid: boolean;
   currentPrice: number;
+  trendMomentum14d?: number;
 }
 
 export interface SoCloseResultItem {
@@ -258,4 +259,5 @@ export interface SoCloseResultItem {
   closenessPercent: number;
   hasExistingTarget: boolean;
   iconUrl?: string;
+  trendMomentum14d?: number;
 }

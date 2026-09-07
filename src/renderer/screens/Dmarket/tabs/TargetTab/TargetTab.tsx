@@ -19,6 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { DmarketTargetItem, AcceptedPriceInfo } from '../../../../../shared/types';
+import TrendSparkline from '../../../../components/TrendSparkline';
 import {
   TargetAnalysis,
   getWearShortcut,
@@ -132,6 +133,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           liquidityScore: priceEntry.liquidityScore,
           isHyperLiquid: priceEntry.isHyperLiquid,
           currentPrice: currentPriceDollar,
+          trendMomentum14d: priceEntry.trendMomentum14d,
         };
       });
 
@@ -166,6 +168,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       isActionRequired,
       isOverbid,
       isUnderbid,
+      trendMomentum14d: analysis.trendMomentum14d,
     };
   };
 
@@ -1001,6 +1004,23 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                           </span>
                         )}
                       </div>
+                    </div>
+
+                    {/* 14-Day Trend Sparkline */}
+                    <div onClick={e => e.stopPropagation()}>
+                      <TrendSparkline
+                        name={target.title}
+                        momentum={driftDetails?.trendMomentum14d}
+                        height={30}
+                        onClick={() =>
+                          onOpenLookupModal(
+                            target.title,
+                            driftDetails?.acceptedPrice,
+                            currentPrice,
+                            target.attributes?.image
+                          )
+                        }
+                      />
                     </div>
 
                     {/* Pricing Block */}

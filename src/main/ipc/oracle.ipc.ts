@@ -1,4 +1,6 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
+import * as fs from 'fs';
+import * as path from 'path';
 import { saasAxios } from '../services/saasAxios';
 
 import { trendStore } from '../services/trendStore';
@@ -16,6 +18,43 @@ let acceptedPriceTimestamp: Date | null = null;
 // In-memory listing price map — populated by OracleDashboard "Build Listing Prices" action
 let listingPriceMap: Record<string, { listingPrice: number; mode: string; offsetPercent: number; lowestPrice: number; averagePrice: number }> = {};
 let listingPriceTimestamp: Date | null = null;
+
+function getStorePath(filename: string): string {
+  const baseDir = app?.getPath ? app.getPath('userData') : process.env.USER_DATA_PATH || process.cwd();
+  return path.join(baseDir, filename);
+}
+
+function loadPersistedPrices() {
+  try {
+    const acceptedFile = getStorePath('accepted-prices.json');
+    if (fs.existsSync(acceptedFile)) {
+      const raw = fs.readFileSync(acceptedFile, 'utf8');
+      const data = JSON.parse(raw);
+      if (data?.map && typeof data.map === 'object') {
+        acceptedPriceMap = data.map;
+        acceptedPriceTimestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+      }
+    }
+  } catch (e) {
+    console.warn('[OracleIPC] Could not load persisted accepted prices:', e);
+  }
+
+  try {
+    const listingFile = getStorePath('listing-prices.json');
+    if (fs.existsSync(listingFile)) {
+      const raw = fs.readFileSync(listingFile, 'utf8');
+      const data = JSON.parse(raw);
+      if (data?.map && typeof data.map === 'object') {
+        listingPriceMap = data.map;
+        listingPriceTimestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+      }
+    }
+  } catch (e) {
+    console.warn('[OracleIPC] Could not load persisted listing prices:', e);
+  }
+}
+
+loadPersistedPrices();
 
 // ── Oracle: evaluate prices via our SaaS backend ──────────────────
 //
@@ -124,6 +163,14 @@ ipcMain.handle('trend-store:get-history-batch', async (_, itemNames: string[], d
 ipcMain.handle('oracle:store-accepted-prices', (_, map: typeof acceptedPriceMap) => {
   acceptedPriceMap = map;
   acceptedPriceTimestamp = new Date();
+  try {
+    const file = getStorePath('accepted-prices.json');
+    fs.promises.writeFile(file, JSON.stringify({ timestamp: acceptedPriceTimestamp.toISOString(), map })).catch(e => {
+      console.warn('[OracleIPC] Failed to save accepted prices to disk:', e);
+    });
+  } catch (e) {
+    console.warn('[OracleIPC] Failed to schedule accepted prices disk write:', e);
+  }
   return { stored: Object.keys(map).length, storedAt: acceptedPriceTimestamp.toISOString() };
 });
 
@@ -132,12 +179,21 @@ ipcMain.handle('oracle:get-accepted-prices', () => ({
   map: acceptedPriceMap,
   itemCount: Object.keys(acceptedPriceMap).length,
   storedAt: acceptedPriceTimestamp?.toISOString() || null,
+  isRestoredFromDisk: true,
 }));
 
 // ── Oracle: store listing prices (called by OracleDashboard after "Build Listing Prices") ──
 ipcMain.handle('oracle:store-listing-prices', (_, map: typeof listingPriceMap) => {
   listingPriceMap = map;
   listingPriceTimestamp = new Date();
+  try {
+    const file = getStorePath('listing-prices.json');
+    fs.promises.writeFile(file, JSON.stringify({ timestamp: listingPriceTimestamp.toISOString(), map })).catch(e => {
+      console.warn('[OracleIPC] Failed to save listing prices to disk:', e);
+    });
+  } catch (e) {
+    console.warn('[OracleIPC] Failed to schedule listing prices disk write:', e);
+  }
   return { stored: Object.keys(map).length, storedAt: listingPriceTimestamp.toISOString() };
 });
 

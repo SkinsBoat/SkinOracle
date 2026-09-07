@@ -2,7 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, X, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { UpdateStatusState } from '../../shared/types';
 
-export default function UpdateNotification() {
+interface UpdateNotificationProps {
+  isMandatory?: boolean;
+}
+
+export default function UpdateNotification({ isMandatory = false }: UpdateNotificationProps) {
   const [updateState, setUpdateState] = useState<UpdateStatusState>({
     status: 'idle',
     info: null,
@@ -42,8 +46,8 @@ export default function UpdateNotification() {
     await window.electronAPI.updater.quitAndInstall();
   };
 
-  // If dismissed by user for current session, don't display
-  if (updateState.info?.version && dismissedVersion === updateState.info.version) {
+  // If dismissed by user for current session, don't display (unless mandatory)
+  if (!isMandatory && updateState.info?.version && dismissedVersion === updateState.info.version) {
     return null;
   }
 
@@ -69,10 +73,12 @@ export default function UpdateNotification() {
         width: 'calc(100% - 48px)',
         backgroundColor: 'rgba(15, 17, 26, 0.95)',
         backdropFilter: 'blur(12px)',
-        border: '1px solid var(--so-border-strong)',
+        border: isMandatory ? '1px solid rgba(244, 63, 94, 0.4)' : '1px solid var(--so-border-strong)',
         borderRadius: '12px',
         padding: '16px 20px',
-        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(37, 99, 235, 0.15)',
+        boxShadow: isMandatory
+          ? '0 12px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(244, 63, 94, 0.2)'
+          : '0 12px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(37, 99, 235, 0.15)',
         color: 'var(--so-text-primary)',
         animation: 'slideIn 0.3s ease-out',
       }}
@@ -87,52 +93,64 @@ export default function UpdateNotification() {
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  backgroundColor: 'rgba(37, 99, 235, 0.15)',
-                  border: '1px solid rgba(37, 99, 235, 0.3)',
+                  backgroundColor: isMandatory ? 'rgba(244, 63, 94, 0.15)' : 'rgba(37, 99, 235, 0.15)',
+                  border: isMandatory ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(37, 99, 235, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'var(--so-primary)',
+                  color: isMandatory ? '#f43f5e' : 'var(--so-primary)',
                 }}
               >
-                <Sparkles size={18} />
+                {isMandatory ? <AlertCircle size={18} /> : <Sparkles size={18} />}
               </div>
               <div>
                 <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
-                  Update Available (v{updateState.info?.version})
+                  {isMandatory ? `Mandatory Update (v${updateState.info?.version})` : `Update Available (v${updateState.info?.version})`}
                 </h4>
                 <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--so-text-muted)' }}>
-                  A new version of SkinOracle is ready to download.
+                  {isMandatory
+                    ? 'This update is required to connect to SkinOracle services.'
+                    : 'A new version of SkinOracle is ready to download.'}
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setDismissedVersion(updateState.info?.version || '1.0')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--so-text-muted)',
-                cursor: 'pointer',
-                padding: '4px',
-              }}
-              title="Dismiss for now"
-            >
-              <X size={16} />
-            </button>
+            {!isMandatory && (
+              <button
+                onClick={() => setDismissedVersion(updateState.info?.version || '1.0')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--so-text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                }}
+                title="Dismiss for now"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => setDismissedVersion(updateState.info?.version || '1.0')}
-            >
-              Later
-            </button>
+            {!isMandatory && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setDismissedVersion(updateState.info?.version || '1.0')}
+              >
+                Later
+              </button>
+            )}
             <button
               className="btn btn-primary btn-sm"
               onClick={handleDownload}
               disabled={isStartingDownload}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                width: isMandatory ? '100%' : 'auto',
+                justifyContent: 'center',
+              }}
             >
               <Download size={14} />
               {isStartingDownload ? 'Starting Download...' : 'Download Update'}

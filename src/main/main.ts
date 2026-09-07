@@ -1,6 +1,9 @@
 import { app, BrowserWindow, Menu, shell, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { checkVersionGate, showUpdateRequiredWindow, refreshSystemConfig } from './services/versionGate';
+import { APP_RELEASES_URL } from './constants/apiUrls';
+import { checkVersionGate, refreshSystemConfig, VersionCheckResponse } from './services/versionGate';
+
+let currentGateResult: VersionCheckResponse | null = null;
 
 // ─────────────────────────────────────────────────────────────────
 // IPC Handlers (imported separately for clarity)
@@ -92,12 +95,15 @@ function createWindow() {
   // Initialize auto-updater service & check for updates on startup
   win.webContents.on('did-finish-load', () => {
     autoUpdateService.init();
-    if (!isDev) {
+    // In production or if the version is blocked, check for updates immediately
+    const shouldCheck = !isDev || !currentGateResult?.allowed;
+    if (shouldCheck) {
+      const delay = !currentGateResult?.allowed ? 500 : 2500;
       setTimeout(() => {
         autoUpdateService.checkForUpdates().catch(err => {
           console.warn('[AutoUpdate] Startup check skipped/failed:', err);
         });
-      }, 2500);
+      }, delay);
     }
   });
 }
@@ -108,8 +114,22 @@ ipcMain.handle('app:open-external', async (_, url: string) => {
   }
 });
 
+ipcMain.handle('app:open-releases', async () => {
+  await shell.openExternal(APP_RELEASES_URL);
+});
+
 ipcMain.handle('system:get-config', async () => {
   return await refreshSystemConfig();
+});
+
+ipcMain.handle('system:get-version-gate', async () => {
+  if (!currentGateResult) {
+    currentGateResult = await checkVersionGate();
+  }
+  return {
+    ...currentGateResult,
+    currentVersion: app.getVersion(),
+  };
 });
 
 app.whenReady().then(async () => {
@@ -117,12 +137,7 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
   // Perform startup version check gate
-  const gateResult = await checkVersionGate();
-
-  if (!gateResult.allowed) {
-    showUpdateRequiredWindow(gateResult);
-    return;
-  }
+  currentGateResult = await checkVersionGate();
 
   createWindow();
   app.on('activate', () => {

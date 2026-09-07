@@ -59,6 +59,15 @@ saasAxios.interceptors.response.use(
     }
 
     if (status === 426) {
+      // Broadcast to all renderer windows to immediately switch to VersionBlockedScreen
+      BrowserWindow.getAllWindows().forEach(w => {
+        w.webContents.send('app:force-version-block', {
+          allowed: false,
+          reason: message,
+          minVersion: body?.error?.minVersion || body?.minVersion,
+          currentVersion: app.getVersion(),
+        });
+      });
       return Promise.reject(new Error(message));
     }
 

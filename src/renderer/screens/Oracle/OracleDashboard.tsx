@@ -518,15 +518,23 @@ export default function OracleDashboard() {
     setEvaluating(true);
     const toastId = toast.loading(`Searching market data for "${hashName}"...`);
     try {
-      const fullCache: any = await window.electronAPI.skinsnipe.getCache();
-      let cachedItem = fullCache?.[hashName];
+      let cachedItem: any = null;
       let exactName = hashName;
+
+      if (window.electronAPI.skinsnipe.getItem) {
+        cachedItem = await window.electronAPI.skinsnipe.getItem(hashName);
+      }
+
       if (!cachedItem) {
-        const lower = hashName.toLowerCase();
-        const matchKey = Object.keys(fullCache || {}).find(k => k.toLowerCase() === lower);
-        if (matchKey) {
-          cachedItem = fullCache[matchKey];
-          exactName = matchKey;
+        const fullCache: any = await window.electronAPI.skinsnipe.getCache();
+        cachedItem = fullCache?.[hashName];
+        if (!cachedItem) {
+          const lower = hashName.toLowerCase();
+          const matchKey = Object.keys(fullCache || {}).find(k => k.toLowerCase() === lower);
+          if (matchKey) {
+            cachedItem = fullCache[matchKey];
+            exactName = matchKey;
+          }
         }
       }
 

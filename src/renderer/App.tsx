@@ -13,38 +13,46 @@ import SkinscomWorkstation from './screens/Skinscom/SkinscomWorkstation';
 import BalanceDashboard from './screens/Balance/BalanceDashboard';
 import UpdateNotification from './components/UpdateNotification';
 import MaintenanceScreen from './screens/MaintenanceScreen';
+import VersionBlockedScreen from './screens/VersionBlockedScreen';
+import { VersionGateState } from '../shared/types';
 import { safeGetItem, safeSetItem } from './utils/storage';
+import { useLayoutStore } from './store/useLayoutStore';
 import './App.css';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [systemConfig, setSystemConfig] = useState<any>(null);
+  const [versionGateState, setVersionGateState] = useState<VersionGateState | null>(null);
   const [userBalance, setUserBalance] = useState<string>('');
   const [encryptionWarning, setEncryptionWarning] = useState<boolean>(false);
   const [encryptionWarningDismissed, setEncryptionWarningDismissed] = useState<boolean>(() =>
     safeGetItem('so_enc_warn_dismissed') === 'true'
   );
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(() => {
-    const saved = safeGetItem('so_sidebar_expanded');
-    return saved !== null ? JSON.parse(saved) : false;
-  });
-
-  const toggleSidebar = () => {
-    setIsSidebarExpanded(prev => {
-      const next = !prev;
-      safeSetItem('so_sidebar_expanded', JSON.stringify(next));
-      return next;
-    });
-  };
+  const { isSidebarExpanded, toggleSidebar } = useLayoutStore();
 
   useEffect(() => {
     let unsubMaintenance: (() => void) | undefined;
     let unsubSessionExpired: (() => void) | undefined;
+    let unsubVersionBlock: (() => void) | undefined;
 
     if (window.electronAPI?.system) {
       window.electronAPI.system.getConfig().then(config => {
         setSystemConfig(config);
       }).catch(() => { });
+
+      if (window.electronAPI.system.getVersionGateStatus) {
+        window.electronAPI.system.getVersionGateStatus().then(gate => {
+          if (gate && !gate.allowed) {
+            setVersionGateState(gate);
+          }
+        }).catch(() => { });
+      }
+
+      if (window.electronAPI.system.onForceVersionBlock) {
+        unsubVersionBlock = window.electronAPI.system.onForceVersionBlock((gate) => {
+          setVersionGateState(gate);
+        });
+      }
 
       // Global listener: if backend kicks us with 503 Maintenance Mode, immediately show screen
       if (window.electronAPI.system.onForceMaintenance) {
@@ -85,8 +93,26 @@ export default function App() {
     return () => {
       if (unsubMaintenance) unsubMaintenance();
       if (unsubSessionExpired) unsubSessionExpired();
+      if (unsubVersionBlock) unsubVersionBlock();
     };
   }, []);
+
+  // Immediate Version Gate Interception: if version is blocked, render VersionBlockedScreen immediately
+  if (versionGateState && !versionGateState.allowed) {
+    return (
+      <HashRouter>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            className: 'toast-custom',
+            duration: 3500,
+          }}
+        />
+        <UpdateNotification isMandatory={true} />
+        <VersionBlockedScreen gateState={versionGateState} />
+      </HashRouter>
+    );
+  }
 
   if (isLoggedIn === null) {
     return (
@@ -108,7 +134,7 @@ export default function App() {
           duration: 3500,
         }}
       />
-      <UpdateNotification />
+      <UpdateNotification isMandatory={Boolean(versionGateState && !versionGateState.allowed)} />
 
       {systemConfig?.globalBannerMessage && (
         <div style={{
@@ -173,7 +199,9 @@ export default function App() {
         </div>
       )}
 
-      {systemConfig?.isMaintenanceMode ? (
+      {versionGateState && !versionGateState.allowed ? (
+        <VersionBlockedScreen gateState={versionGateState} />
+      ) : systemConfig?.isMaintenanceMode ? (
         <MaintenanceScreen />
       ) : isLoggedIn ? (
         <div className="app-container" style={{ display: 'flex', height: systemConfig?.globalBannerMessage ? 'calc(100vh - 34px)' : '100vh', width: '100vw', overflow: 'hidden' }}>
