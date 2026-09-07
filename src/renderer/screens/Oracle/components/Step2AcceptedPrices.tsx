@@ -251,16 +251,6 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             Takes cached pricing data from active price providers (Skinsnipe) and evaluates target accepted prices across CSFloat and Skins.com workstations.
           </p>
 
-          {/* Engine Selection & Section 2 Valuation Strategy Profile */}
-          <EngineStrategyPanel
-            selectedEngine={selectedEngine}
-            setSelectedEngine={setSelectedEngine}
-            unitCostCents={unitCostCents}
-            nexusUnitCostCents={nexusUnitCostCents}
-            strategyProfile={strategyProfile}
-            setStrategyProfile={setStrategyProfile}
-          />
-
           {/* Section 1: Smart Pre-Evaluation Filters */}
           <PreFiltersPanel
             preFilters={preFilters}
@@ -269,6 +259,16 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             resetPreFilters={resetPreFilters}
             passingFilterCount={passingFilterCount}
             totalCacheCount={cacheStatus.itemCount}
+          />
+
+          {/* Engine Selection & Section 2 Valuation Strategy Profile */}
+          <EngineStrategyPanel
+            selectedEngine={selectedEngine}
+            setSelectedEngine={setSelectedEngine}
+            unitCostCents={unitCostCents}
+            nexusUnitCostCents={nexusUnitCostCents}
+            strategyProfile={strategyProfile}
+            setStrategyProfile={setStrategyProfile}
           />
 
           {/* Section 3: Nexus Trend & Capital Shield Protection (Nexus Mode Only) */}

@@ -201,7 +201,7 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
           <span>
             Nexus Pro requires at least <strong>3 days</strong> of price trend history (Recommended: <strong>7 days</strong>) to compute linear momentum and volatility.
             Currently recorded: <strong>{trendDaysCount}/3 days</strong>.
-            Accumulate daily price snapshots in Step 1, seed mock trend history in the Dev Simulator below, or switch to <strong>Standard</strong> engine.
+           
           </span>
         </div>
       )}
