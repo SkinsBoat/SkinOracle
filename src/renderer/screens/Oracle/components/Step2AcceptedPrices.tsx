@@ -175,6 +175,18 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
   };
 
   const activeUnitCost = selectedEngine === 'nexus' ? nexusUnitCostCents : unitCostCents;
+  const isNexusTrendBlocked = selectedEngine === 'nexus' && (trendStats === null || trendStats.daysCount < 3);
+  const effectiveCanBuild = canBuild && !isNexusTrendBlocked;
+
+  const handleBuildAcceptedPrices = () => {
+    if (isNexusTrendBlocked) {
+      toast.error(
+        `Cannot build with Nexus Pro: Minimum 3 days of trend history required (Recommended: 7 days). Currently have ${trendStats?.daysCount ?? 0} day(s).`
+      );
+      return;
+    }
+    onBuildAcceptedPrices();
+  };
 
   return (
     <div className="card" style={{ border: '1px solid var(--so-border-medium)', padding: 0, overflow: 'hidden' }}>
@@ -212,6 +224,20 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             {selectedEngine === 'nexus' ? <TrendingUp size={12} /> : <Cpu size={12} />}
             {selectedEngine === 'nexus' ? 'Nexus Pro' : 'Standard'}
           </span>
+          {selectedEngine === 'nexus' && trendStats && (
+            <span
+              className={`badge ${trendStats.daysCount >= 7 ? 'badge-primary' : trendStats.daysCount >= 3 ? 'badge-primary' : trendStats.daysCount > 0 ? 'badge-warning' : 'badge-ghost'}`}
+              style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              {trendStats.daysCount >= 7
+                ? `● Verified (${trendStats.daysCount}d)`
+                : trendStats.daysCount >= 3
+                  ? `● Verified (${trendStats.daysCount}d — Recommended 7d)`
+                  : trendStats.daysCount > 0
+                    ? `▲ Baseline Building (${trendStats.daysCount}/3 Days — Recommended 7 Days)`
+                    : `○ No History (0/3 Days — Recommended 7 Days)`}
+            </span>
+          )}
           <span className={`badge ${evaluatedSummary.lastBuiltAt ? 'badge-cyan' : 'badge-ghost'}`} style={{ fontSize: '11px' }}>
             {evaluatedSummary.lastBuiltAt ? `✓ Built (${evaluatedSummary.totalEvaluated.toLocaleString()} Items)` : 'Not Built Yet'}
           </span>
@@ -276,8 +302,10 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             cacheStatus={cacheStatus}
             evaluatedSummary={evaluatedSummary}
             strategyProfilePreset={strategyProfile.preset}
-            canBuild={canBuild}
-            onBuildAcceptedPrices={onBuildAcceptedPrices}
+            canBuild={effectiveCanBuild}
+            onBuildAcceptedPrices={handleBuildAcceptedPrices}
+            isNexusTrendBlocked={isNexusTrendBlocked}
+            trendDaysCount={trendStats?.daysCount ?? 0}
           />
         </div>
       )}

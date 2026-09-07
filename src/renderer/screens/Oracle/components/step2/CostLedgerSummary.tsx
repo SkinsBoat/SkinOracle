@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, RotateCw, Loader2 } from 'lucide-react';
+import { Zap, RotateCw, Loader2, AlertTriangle, Lock } from 'lucide-react';
 
 interface CostLedgerSummaryProps {
   passingFilterCount: number;
@@ -21,6 +21,8 @@ interface CostLedgerSummaryProps {
   strategyProfilePreset: string;
   canBuild: boolean;
   onBuildAcceptedPrices: () => void;
+  isNexusTrendBlocked?: boolean;
+  trendDaysCount?: number;
 }
 
 export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
@@ -32,10 +34,13 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
   strategyProfilePreset,
   canBuild,
   onBuildAcceptedPrices,
+  isNexusTrendBlocked = false,
+  trendDaysCount = 0,
 }) => {
   const estimatedCostCents = passingFilterCount * activeUnitCost;
   const formattedCost = `$${(estimatedCostCents / 100).toFixed(2)}`;
   const isNexus = selectedEngine === 'nexus';
+  const isBlocked = isNexus && isNexusTrendBlocked;
 
   return (
     <div
@@ -105,14 +110,21 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
       <button
         type="button"
         onClick={onBuildAcceptedPrices}
-        disabled={!canBuild || evaluatedSummary.isBatchEvaluating}
+        disabled={!canBuild || evaluatedSummary.isBatchEvaluating || isBlocked}
         className={`btn ${isNexus ? 'btn-primary' : 'btn-primary'} btn-lg ${evaluatedSummary.isBatchEvaluating ? 'btn-evaluating' : ''}`}
         style={{
           minWidth: '240px',
           position: 'relative',
           overflow: 'hidden',
+          opacity: isBlocked ? 0.6 : 1,
+          cursor: isBlocked ? 'not-allowed' : undefined,
         }}
         aria-busy={evaluatedSummary.isBatchEvaluating}
+        title={
+          isBlocked
+            ? `Nexus Pro requires at least 3 days of trend data (Recommended: 7 days). Currently available: ${trendDaysCount} day(s).`
+            : undefined
+        }
       >
         {/* Real-time Progress Bar fill inside button */}
         {evaluatedSummary.isBatchEvaluating && evaluatedSummary.batchProgress && (
@@ -153,6 +165,10 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
                 : `Building… (${evaluatedSummary.totalEvaluated.toLocaleString()})`}
             </span>
           </span>
+        ) : isBlocked ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <Lock size={18} /> Min 3 Days Trends Required (Nexus Pro)
+          </span>
         ) : evaluatedSummary.lastBuiltAt ? (
           <>
             <RotateCw size={18} /> Rebuild Accepted Prices ({isNexus ? 'Nexus Pro' : 'Standard'})
@@ -163,6 +179,32 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
           </>
         )}
       </button>
+
+      {/* Notice Banner when Nexus is blocked due to insufficient trend history */}
+      {isBlocked && (
+        <div
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 14px',
+            borderRadius: 'var(--so-radius-sm)',
+            backgroundColor: 'rgba(234, 179, 8, 0.08)',
+            border: '1px solid rgba(234, 179, 8, 0.3)',
+            color: 'var(--so-warning-text, #f59e0b)',
+            fontSize: '12px',
+            fontWeight: 600,
+          }}
+        >
+          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+          <span>
+            Nexus Pro requires at least <strong>3 days</strong> of price trend history (Recommended: <strong>7 days</strong>) to compute linear momentum and volatility.
+            Currently recorded: <strong>{trendDaysCount}/3 days</strong>.
+            Accumulate daily price snapshots in Step 1, seed mock trend history in the Dev Simulator below, or switch to <strong>Standard</strong> engine.
+          </span>
+        </div>
+      )}
     </div>
   );
 };

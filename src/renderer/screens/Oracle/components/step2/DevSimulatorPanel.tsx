@@ -61,14 +61,16 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
           </span>
           {trendStats ? (
             <span
-              className={`badge ${trendStats.daysCount >= 3 ? 'badge-primary' : trendStats.daysCount > 0 ? 'badge-warning' : 'badge-ghost'}`}
+              className={`badge ${trendStats.daysCount >= 7 ? 'badge-primary' : trendStats.daysCount >= 3 ? 'badge-primary' : trendStats.daysCount > 0 ? 'badge-warning' : 'badge-ghost'}`}
               style={{ fontSize: '11px', padding: '2px 8px' }}
             >
-              {trendStats.daysCount >= 3
+              {trendStats.daysCount >= 7
                 ? `● Verified (${trendStats.daysCount} Snapshot Days)`
-                : trendStats.daysCount > 0
-                  ? `▲ Baseline Building (${trendStats.daysCount}/3 Days)`
-                  : `○ No History (0 Days)`}
+                : trendStats.daysCount >= 3
+                  ? `● Verified (${trendStats.daysCount} Days — Recommended 7 Days)`
+                  : trendStats.daysCount > 0
+                    ? `▲ Baseline Building (${trendStats.daysCount}/3 Days — Recommended 7 Days)`
+                    : `○ No History (0/3 Days — Recommended 7 Days)`}
             </span>
           ) : (
             <span style={{ fontSize: '12px', color: 'var(--so-text-muted)' }}>
@@ -117,13 +119,19 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
       {trendStats && trendStats.daysCount < 3 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--so-warning-text)', fontSize: '11.5px', fontWeight: 600, marginTop: '2px' }}>
           <AlertTriangle size={14} />
-          <span>Baseline building: Items without 3 days of trend will lock to $0.00 for capital safety. Build price cache in Step 1 daily to accumulate history.</span>
+          <span>Baseline building: Minimum 3 days of trend required for Nexus engine (Recommended: 7 days). Items without 3 days of trend lock to $0.00 for capital safety. Build price cache in Step 1 daily to accumulate history.</span>
         </div>
       )}
-      {trendStats && trendStats.daysCount >= 3 && (
+      {trendStats && trendStats.daysCount >= 3 && trendStats.daysCount < 7 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '11.5px', fontWeight: 600, marginTop: '2px' }}>
           <Check size={14} />
-          <span>Ready for AI Momentum Valuation: Slope linear regression & volatility cut filters are active.</span>
+          <span>Minimum 3 days met for Nexus Pro pricing (7+ days recommended for optimal linear regression & volatility accuracy).</span>
+        </div>
+      )}
+      {trendStats && trendStats.daysCount >= 7 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '11.5px', fontWeight: 600, marginTop: '2px' }}>
+          <Check size={14} />
+          <span>Ready for AI Momentum Valuation: Slope linear regression & volatility cut filters are active with verified history.</span>
         </div>
       )}
 

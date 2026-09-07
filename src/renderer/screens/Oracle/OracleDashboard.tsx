@@ -246,6 +246,22 @@ export default function OracleDashboard() {
       }));
 
       const isNexus = selectedEngine === 'nexus';
+
+      if (isNexus && window.electronAPI?.trendStore) {
+        try {
+          const stats = await window.electronAPI.trendStore.getStats();
+          if (!stats || stats.daysCount < 3) {
+            toast.error(
+              `Cannot build with Nexus Pro: Minimum 3 days of trend history required (Recommended: 7 days). Currently have ${stats?.daysCount ?? 0} day(s).`
+            );
+            setEvaluatedSummary(prev => ({ ...prev, isBatchEvaluating: false, batchProgress: null }));
+            return;
+          }
+        } catch (trendErr) {
+          console.warn('[OracleDashboard] Failed to verify trend stats:', trendErr);
+        }
+      }
+
       const batchStartRes = isNexus
         ? await window.electronAPI.oracle.startNexusBatch(filteredItemNames.length)
         : await window.electronAPI.oracle.startBatch(filteredItemNames.length);
