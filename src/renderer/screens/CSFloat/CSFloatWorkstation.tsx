@@ -42,6 +42,7 @@ import { ListingsTab } from './tabs/ListingsTab';
 import { CSFloatLookupModal } from './modals/CSFloatLookupModal';
 
 import { roundToCsFloatStep, snapCsFloatBuyOrderPriceCents } from '../Oracle/utils/oracleUtils';
+import { getCsfloatSearchUrl } from '../../utils/csfloatUrls';
 
 const getWearShortcut = (wear?: string) => {
   if (!wear) return '';
@@ -216,7 +217,7 @@ export default function CSFloatWorkstation() {
   };
 
   const handleOpenCsfloatMarket = (name: string) => {
-    const url = `https://csfloat.com/search?market_hash_name=${encodeURIComponent(name)}`;
+    const url = getCsfloatSearchUrl(name);
     if (window.electronAPI?.app?.openExternal) {
       window.electronAPI.app.openExternal(url);
     } else {
