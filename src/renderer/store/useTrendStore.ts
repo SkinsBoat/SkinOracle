@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 export interface TrendHistoryEntry {
   labels: string[];
@@ -19,7 +19,10 @@ interface TrendStoreState {
  */
 const MAX_TREND_CACHE_ITEMS = 2000;
 
-function pruneCache(map: Record<string, TrendHistoryEntry>, max: number): Record<string, TrendHistoryEntry> {
+function pruneCache(
+  map: Record<string, TrendHistoryEntry>,
+  max: number,
+): Record<string, TrendHistoryEntry> {
   const keys = Object.keys(map);
   if (keys.length <= max) return map;
   const toRemove = keys.length - max;
@@ -39,7 +42,7 @@ export const useTrendStore = create<TrendStoreState>((set, get) => ({
     const currentMap = get().trendHistoryMap;
     // Filter to unique valid names that aren't already cached
     const missing = Array.from(
-      new Set(itemNames.filter(name => Boolean(name) && !currentMap[name]))
+      new Set(itemNames.filter((name) => Boolean(name) && !currentMap[name])),
     );
 
     if (missing.length === 0) return;
@@ -49,9 +52,12 @@ export const useTrendStore = create<TrendStoreState>((set, get) => ({
       const chunkSize = 200;
       for (let i = 0; i < missing.length; i += chunkSize) {
         const chunk = missing.slice(i, i + chunkSize);
-        const history = await window.electronAPI.trendStore.getHistoryBatch(chunk, days);
+        const history = await window.electronAPI.trendStore.getHistoryBatch(
+          chunk,
+          days,
+        );
         if (history && Object.keys(history).length > 0) {
-          set(state => {
+          set((state) => {
             const merged = { ...state.trendHistoryMap, ...history };
             return {
               trendHistoryMap: pruneCache(merged, MAX_TREND_CACHE_ITEMS),
@@ -60,7 +66,7 @@ export const useTrendStore = create<TrendStoreState>((set, get) => ({
         }
       }
     } catch (err) {
-      console.warn('[useTrendStore] Failed to fetch trend history batch:', err);
+      console.warn("[useTrendStore] Failed to fetch trend history batch:", err);
     }
   },
 

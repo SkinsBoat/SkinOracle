@@ -65,8 +65,11 @@
   --so-radius-sm: 6px;
   --so-radius-md: 8px;
   --so-radius-lg: 12px;
-  --so-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --so-font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', Consolas, monospace;
+  --so-font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  --so-font-mono:
+    "JetBrains Mono", "Fira Code", "Roboto Mono", Consolas, monospace;
 
   --so-transition-fast: all 0.12s ease-in-out;
   --so-transition-normal: all 0.2s ease-in-out;
@@ -97,7 +100,8 @@ body {
 }
 
 /* App Container Layout */
-.app-container, .app-layout-horizontal {
+.app-container,
+.app-layout-horizontal {
   display: flex;
   height: 100vh;
   width: 100vw;

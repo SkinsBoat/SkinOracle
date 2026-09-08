@@ -3,14 +3,14 @@
  */
 
 const WEAR_PHRASES = [
-  'Factory New',
-  'Minimal Wear',
-  'Field-Tested',
-  'Field Tested',
-  'Well-Worn',
-  'Well Worn',
-  'Battle-Scarred',
-  'Battle Scarred',
+  "Factory New",
+  "Minimal Wear",
+  "Field-Tested",
+  "Field Tested",
+  "Well-Worn",
+  "Well Worn",
+  "Battle-Scarred",
+  "Battle Scarred",
 ];
 
 /**
@@ -21,30 +21,30 @@ const WEAR_PHRASES = [
  * - Wear properly parenthesized (e.g. '(Minimal Wear)')
  */
 export function formatCsfloatItemName(name: string | undefined | null): string {
-  if (!name) return '';
+  if (!name) return "";
 
   let trimmed = name.trim();
-  if (!trimmed) return '';
+  if (!trimmed) return "";
 
-  const hasStar = trimmed.includes('★');
+  const hasStar = trimmed.includes("★");
   const hasStatTrak = /StatTrak/i.test(trimmed);
   const hasSouvenir = /Souvenir/i.test(trimmed);
 
   // Strip prefix markers to isolate clean base item name
   let base = trimmed
-    .replace(/★/g, '')
-    .replace(/StatTrak™?/gi, '')
-    .replace(/Souvenir/gi, '')
+    .replace(/★/g, "")
+    .replace(/StatTrak™?/gi, "")
+    .replace(/Souvenir/gi, "")
     .trim();
 
   // Normalize pipe spacing
-  base = base.replace(/\s*\|\s*/g, ' | ');
+  base = base.replace(/\s*\|\s*/g, " | ");
 
   // Add parentheses around wear phrases if not present
   const hasParentheses = /\(.*\)/.test(base);
   if (!hasParentheses) {
     for (const phrase of WEAR_PHRASES) {
-      const regex = new RegExp(`\\b${phrase}\\b`, 'i');
+      const regex = new RegExp(`\\b${phrase}\\b`, "i");
       if (regex.test(base)) {
         base = base.replace(regex, `(${phrase})`);
         break;
@@ -54,9 +54,9 @@ export function formatCsfloatItemName(name: string | undefined | null): string {
 
   // Normalize parentheses spacing
   base = base
-    .replace(/\s*\(\s*/g, ' (')
-    .replace(/\s*\)\s*/g, ') ')
-    .replace(/\s+/g, ' ')
+    .replace(/\s*\(\s*/g, " (")
+    .replace(/\s*\)\s*/g, ") ")
+    .replace(/\s+/g, " ")
     .trim();
 
   // Re-assemble in canonical CS2 / Steam Market Hash Name order
@@ -71,7 +71,7 @@ export function formatCsfloatItemName(name: string | undefined | null): string {
     result = `Souvenir ${base}`;
   }
 
-  return result.replace(/\s+/g, ' ').trim();
+  return result.replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -80,7 +80,7 @@ export function formatCsfloatItemName(name: string | undefined | null): string {
 export function getCsfloatSearchUrl(name: string | undefined | null): string {
   const canonicalName = formatCsfloatItemName(name);
   if (!canonicalName) {
-    return 'https://csfloat.com/search?sort_by=lowest_price';
+    return "https://csfloat.com/search?sort_by=lowest_price";
   }
   return `https://csfloat.com/search?market_hash_name=${encodeURIComponent(canonicalName)}&sort_by=lowest_price`;
 }

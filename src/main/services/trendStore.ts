@@ -1,7 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { app } from 'electron';
-import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
+import * as fs from "fs";
+import * as path from "path";
+import { app } from "electron";
+import initSqlJs, { Database, SqlJsStatic } from "sql.js";
 
 export interface TrendStats {
   daysCount: number;
@@ -18,17 +18,21 @@ export interface TrendSeries {
 
 function getSqlWasmBuffer(): Buffer {
   const candidates: (string | undefined)[] = [
-    process.resourcesPath ? path.join(process.resourcesPath, 'sql-wasm.wasm') : undefined,
-    path.join(__dirname, 'sql-wasm.wasm'),
-    typeof app !== 'undefined' && app?.getAppPath ? path.join(app.getAppPath(), 'dist-electron', 'sql-wasm.wasm') : undefined,
+    process.resourcesPath
+      ? path.join(process.resourcesPath, "sql-wasm.wasm")
+      : undefined,
+    path.join(__dirname, "sql-wasm.wasm"),
+    typeof app !== "undefined" && app?.getAppPath
+      ? path.join(app.getAppPath(), "dist-electron", "sql-wasm.wasm")
+      : undefined,
     (() => {
       try {
-        return require.resolve('sql.js/dist/sql-wasm.wasm');
+        return require.resolve("sql.js/dist/sql-wasm.wasm");
       } catch {
         return undefined;
       }
     })(),
-    path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm'),
+    path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm"),
   ];
 
   for (const candidate of candidates) {
@@ -37,7 +41,9 @@ function getSqlWasmBuffer(): Buffer {
     }
   }
 
-  throw new Error(`Could not locate sql-wasm.wasm in candidate paths: ${candidates.filter(Boolean).join(', ')}`);
+  throw new Error(
+    `Could not locate sql-wasm.wasm in candidate paths: ${candidates.filter(Boolean).join(", ")}`,
+  );
 }
 
 export class TrendStore {
@@ -53,15 +59,17 @@ export class TrendStore {
     const baseDir = customDbPath
       ? path.dirname(customDbPath)
       : app?.getPath
-      ? app.getPath('userData')
-      : process.env.USER_DATA_PATH || process.cwd();
+        ? app.getPath("userData")
+        : process.env.USER_DATA_PATH || process.cwd();
 
-    this.dbPath = customDbPath || path.join(baseDir, 'analytics.sqlite');
+    this.dbPath = customDbPath || path.join(baseDir, "analytics.sqlite");
   }
 
   public setSimulatedDate(date: string | null): void {
     this.simulatedDate = date ? date.trim().slice(0, 10) : null;
-    console.log(`[TrendStore] Simulated snapshot date set to: ${this.simulatedDate || 'LIVE (Today)'}`);
+    console.log(
+      `[TrendStore] Simulated snapshot date set to: ${this.simulatedDate || "LIVE (Today)"}`,
+    );
   }
 
   public getSimulatedDate(): string | null {
@@ -104,7 +112,10 @@ export class TrendStore {
         this.db = new this.SQL.Database();
       }
     } catch (err) {
-      console.warn('[TrendStore] Corrupt or unreadable database, creating fresh:', err);
+      console.warn(
+        "[TrendStore] Corrupt or unreadable database, creating fresh:",
+        err,
+      );
       this.db = new this.SQL.Database();
     }
 
@@ -138,7 +149,7 @@ export class TrendStore {
       }
       fs.writeFileSync(this.dbPath, buffer);
     } catch (err) {
-      console.error('[TrendStore] Failed to write database to disk:', err);
+      console.error("[TrendStore] Failed to write database to disk:", err);
     }
   }
 
@@ -148,10 +159,15 @@ export class TrendStore {
     if (!values || values.length === 0) return 0;
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    return sorted.length % 2 !== 0
+      ? sorted[mid]
+      : (sorted[mid - 1] + sorted[mid]) / 2;
   }
 
-  private calculateIQR(values: number[]): { lowerFence: number; upperFence: number } {
+  private calculateIQR(values: number[]): {
+    lowerFence: number;
+    upperFence: number;
+  } {
     if (!values || values.length < 4) {
       return { lowerFence: 0, upperFence: Number.MAX_SAFE_INTEGER };
     }
@@ -177,8 +193,13 @@ export class TrendStore {
   /**
    * Filter raw listings per item and compute the representative daily price.
    */
-  public computeDailyItemMedian(listings: { p?: number; price?: number }[]): { medianPrice: number; count: number } {
-    const validPrices = listings.map(l => l.p ?? l.price ?? 0).filter(p => p > 0);
+  public computeDailyItemMedian(listings: { p?: number; price?: number }[]): {
+    medianPrice: number;
+    count: number;
+  } {
+    const validPrices = listings
+      .map((l) => l.p ?? l.price ?? 0)
+      .filter((p) => p > 0);
     if (validPrices.length === 0) return { medianPrice: 0, count: 0 };
 
     let filteredPrices = validPrices;
@@ -186,15 +207,17 @@ export class TrendStore {
     if (validPrices.length >= 6) {
       // High density: IQR fence
       const { lowerFence, upperFence } = this.calculateIQR(validPrices);
-      filteredPrices = validPrices.filter(p => p >= lowerFence && p <= upperFence);
+      filteredPrices = validPrices.filter(
+        (p) => p >= lowerFence && p <= upperFence,
+      );
     } else if (validPrices.length >= 3) {
       // Medium density: Median with 1.8x spike cap
       const median = this.calculateMedian(validPrices);
-      filteredPrices = validPrices.filter(p => p <= median * 1.8);
+      filteredPrices = validPrices.filter((p) => p <= median * 1.8);
     } else {
       // Low density: Min price + 10%
       const minPrice = Math.min(...validPrices);
-      filteredPrices = validPrices.filter(p => p <= minPrice * 1.1);
+      filteredPrices = validPrices.filter((p) => p <= minPrice * 1.1);
     }
 
     if (filteredPrices.length === 0) {
@@ -212,11 +235,14 @@ export class TrendStore {
    * Saves or updates today's snapshot for all items currently in the priceCache.
    */
   public async saveDailySnapshots(
-    priceCache: Record<string, { n?: string; l?: { m: string; p: number; q?: number }[] }>,
+    priceCache: Record<
+      string,
+      { n?: string; l?: { m: string; p: number; q?: number }[] }
+    >,
     customDate?: string,
   ): Promise<{ inserted: number; snapshotDate: string }> {
     await this.init();
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
     const today = customDate || this.getEffectiveDate();
     let inserted = 0;
@@ -227,7 +253,7 @@ export class TrendStore {
     `);
 
     try {
-      this.db.run('BEGIN TRANSACTION;');
+      this.db.run("BEGIN TRANSACTION;");
 
       for (const [itemName, itemData] of Object.entries(priceCache)) {
         const listings = itemData?.l || [];
@@ -240,14 +266,16 @@ export class TrendStore {
         inserted++;
       }
 
-      this.db.run('COMMIT;');
+      this.db.run("COMMIT;");
       stmt.free();
       this.persist();
 
-      console.log(`[TrendStore] Recorded ${inserted} snapshots for date: ${today}`);
+      console.log(
+        `[TrendStore] Recorded ${inserted} snapshots for date: ${today}`,
+      );
       return { inserted, snapshotDate: today };
     } catch (err) {
-      this.db.run('ROLLBACK;');
+      this.db.run("ROLLBACK;");
       stmt.free();
       throw err;
     }
@@ -264,12 +292,12 @@ export class TrendStore {
     if (!this.db || itemNames.length === 0) return {};
 
     const effectiveDateStr = this.getEffectiveDate();
-    const cutoff = new Date(effectiveDateStr + 'T00:00:00.000Z');
+    const cutoff = new Date(effectiveDateStr + "T00:00:00.000Z");
     cutoff.setDate(cutoff.getDate() - (days + 2)); // Give a small buffer of days
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
     const result: Record<string, TrendSeries> = {};
-    itemNames.forEach(name => {
+    itemNames.forEach((name) => {
       result[name] = { labels: [], overallAverages: [] };
     });
 
@@ -277,7 +305,7 @@ export class TrendStore {
     const chunkSize = 200;
     for (let i = 0; i < itemNames.length; i += chunkSize) {
       const chunk = itemNames.slice(i, i + chunkSize);
-      const placeholders = chunk.map(() => '?').join(',');
+      const placeholders = chunk.map(() => "?").join(",");
 
       const sql = `
         SELECT item_name, snapshot_date, median_price
@@ -291,7 +319,11 @@ export class TrendStore {
       stmt.bind([...chunk, cutoffDate]);
 
       while (stmt.step()) {
-        const row = stmt.getAsObject() as { item_name: string; snapshot_date: string; median_price: number };
+        const row = stmt.getAsObject() as {
+          item_name: string;
+          snapshot_date: string;
+          median_price: number;
+        };
         if (result[row.item_name]) {
           result[row.item_name].labels.push(row.snapshot_date);
           result[row.item_name].overallAverages.push(row.median_price);
@@ -309,7 +341,13 @@ export class TrendStore {
   public async getStats(): Promise<TrendStats> {
     await this.init();
     if (!this.db) {
-      return { daysCount: 0, totalSnapshots: 0, itemCoverage: 0, latestDate: null, oldestDate: null };
+      return {
+        daysCount: 0,
+        totalSnapshots: 0,
+        itemCoverage: 0,
+        latestDate: null,
+        oldestDate: null,
+      };
     }
 
     const res = this.db.exec(`
@@ -322,11 +360,23 @@ export class TrendStore {
       FROM price_snapshots;
     `);
 
-    if (!res || res.length === 0 || !res[0].values || res[0].values.length === 0) {
-      return { daysCount: 0, totalSnapshots: 0, itemCoverage: 0, latestDate: null, oldestDate: null };
+    if (
+      !res ||
+      res.length === 0 ||
+      !res[0].values ||
+      res[0].values.length === 0
+    ) {
+      return {
+        daysCount: 0,
+        totalSnapshots: 0,
+        itemCoverage: 0,
+        latestDate: null,
+        oldestDate: null,
+      };
     }
 
-    const [daysCount, totalSnapshots, itemCoverage, latestDate, oldestDate] = res[0].values[0];
+    const [daysCount, totalSnapshots, itemCoverage, latestDate, oldestDate] =
+      res[0].values[0];
 
     return {
       daysCount: Number(daysCount || 0),
@@ -348,11 +398,15 @@ export class TrendStore {
     cutoff.setDate(cutoff.getDate() - retentionDays);
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
-    this.db.run(`DELETE FROM price_snapshots WHERE snapshot_date < ?;`, [cutoffDate]);
+    this.db.run(`DELETE FROM price_snapshots WHERE snapshot_date < ?;`, [
+      cutoffDate,
+    ]);
     const changes = this.db.getRowsModified();
     if (changes > 0) {
       this.persist();
-      console.log(`[TrendStore] Pruned ${changes} snapshots older than ${cutoffDate}`);
+      console.log(
+        `[TrendStore] Pruned ${changes} snapshots older than ${cutoffDate}`,
+      );
     }
     return changes;
   }
@@ -363,7 +417,7 @@ export class TrendStore {
   public async clearAllSnapshots(): Promise<number> {
     await this.init();
     if (!this.db) return 0;
-    this.db.run('DELETE FROM price_snapshots;');
+    this.db.run("DELETE FROM price_snapshots;");
     const rows = this.db.getRowsModified();
     this.persist();
     console.log(`[TrendStore] Wiped all ${rows} snapshots from SQLite.`);
@@ -374,19 +428,24 @@ export class TrendStore {
    * Dev Mode: Seeds realistic synthetic multi-day trend history for testing OracleNexus.
    */
   public async seedMockHistory(
-    priceCache: Record<string, { n?: string; l?: { m: string; p: number; q?: number }[] }>,
+    priceCache: Record<
+      string,
+      { n?: string; l?: { m: string; p: number; q?: number }[] }
+    >,
     days: number = 14,
   ): Promise<{ seededDays: number; totalSnapshots: number }> {
     await this.init();
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
     const entries = Object.entries(priceCache);
     if (entries.length === 0) {
-      throw new Error('Price cache is empty. Please fetch prices or load cache first.');
+      throw new Error(
+        "Price cache is empty. Please fetch prices or load cache first.",
+      );
     }
 
     const effectiveDateStr = this.getEffectiveDate();
-    const now = new Date(effectiveDateStr + 'T00:00:00.000Z');
+    const now = new Date(effectiveDateStr + "T00:00:00.000Z");
     const dates: string[] = [];
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(now);
@@ -401,14 +460,15 @@ export class TrendStore {
     `);
 
     try {
-      this.db.run('BEGIN TRANSACTION;');
+      this.db.run("BEGIN TRANSACTION;");
 
       for (let itemIdx = 0; itemIdx < entries.length; itemIdx++) {
         const [itemName, itemData] = entries[itemIdx];
         const listings = itemData?.l || [];
         if (listings.length === 0) continue;
 
-        const { medianPrice: baseMedian, count } = this.computeDailyItemMedian(listings);
+        const { medianPrice: baseMedian, count } =
+          this.computeDailyItemMedian(listings);
         if (baseMedian <= 0) continue;
 
         // 4 realistic trajectory archetypes:
@@ -429,7 +489,7 @@ export class TrendStore {
             dayPrice = baseMedian * (1 + change);
           } else if (patternType === 1) {
             // Crashing: drops -15% over the window
-            const change = 0.08 - progress * 0.20;
+            const change = 0.08 - progress * 0.2;
             dayPrice = baseMedian * (1 + change);
           } else if (patternType === 2) {
             // Volatile: sinusoidal noise
@@ -447,14 +507,16 @@ export class TrendStore {
         }
       }
 
-      this.db.run('COMMIT;');
+      this.db.run("COMMIT;");
       stmt.free();
       this.persist();
 
-      console.log(`[TrendStore] Seeded mock trend data: ${dates.length} days, ${inserted} snapshots.`);
+      console.log(
+        `[TrendStore] Seeded mock trend data: ${dates.length} days, ${inserted} snapshots.`,
+      );
       return { seededDays: dates.length, totalSnapshots: inserted };
     } catch (err) {
-      this.db.run('ROLLBACK;');
+      this.db.run("ROLLBACK;");
       stmt.free();
       throw err;
     }

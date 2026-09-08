@@ -1,11 +1,15 @@
-import React from 'react';
-import { Zap, RotateCw, Loader2, AlertTriangle, Lock } from 'lucide-react';
+import React from "react";
+import { Zap, RotateCw, Loader2, AlertTriangle, Lock } from "lucide-react";
 
 interface CostLedgerSummaryProps {
   passingFilterCount: number;
   activeUnitCost: number;
-  selectedEngine: 'standard' | 'nexus';
-  cacheStatus: { itemCount: number; isFetching: boolean; lastFetchedAt: string | null };
+  selectedEngine: "standard" | "nexus";
+  cacheStatus: {
+    itemCount: number;
+    isFetching: boolean;
+    lastFetchedAt: string | null;
+  };
   evaluatedSummary: {
     totalEvaluated: number;
     soCloseCount: number;
@@ -39,33 +43,51 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
 }) => {
   const estimatedCostCents = passingFilterCount * activeUnitCost;
   const formattedCost = `$${(estimatedCostCents / 100).toFixed(2)}`;
-  const isNexus = selectedEngine === 'nexus';
+  const isNexus = selectedEngine === "nexus";
   const isBlocked = isNexus && isNexusTrendBlocked;
 
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        padding: '16px 20px',
-        backgroundColor: 'var(--so-surface-panel)',
-        border: isNexus ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid var(--so-border-medium)',
-        borderRadius: 'var(--so-radius-md)',
-        flexWrap: 'wrap',
+        display: "flex",
+        alignItems: "center",
+        gap: "16px",
+        padding: "16px 20px",
+        backgroundColor: "var(--so-surface-panel)",
+        border: isNexus
+          ? "1px solid rgba(99, 102, 241, 0.4)"
+          : "1px solid var(--so-border-medium)",
+        borderRadius: "var(--so-radius-md)",
+        flexWrap: "wrap",
       }}
     >
-      <div style={{ flex: 1, minWidth: '260px' }}>
-        <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--so-text-primary)', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Zap size={16} style={{ color: isNexus ? 'var(--so-primary)' : 'var(--so-cyan-text)' }} />
-          Compute Target Workstation Accepted Prices ({isNexus ? 'Nexus Pro Dynamic' : 'Standard Baseline'})
+      <div style={{ flex: 1, minWidth: "260px" }}>
+        <div
+          style={{
+            fontWeight: 800,
+            fontSize: "14px",
+            color: "var(--so-text-primary)",
+            marginBottom: "3px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
+          <Zap
+            size={16}
+            style={{
+              color: isNexus ? "var(--so-primary)" : "var(--so-cyan-text)",
+            }}
+          />
+          Compute Target Workstation Accepted Prices (
+          {isNexus ? "Nexus Pro Dynamic" : "Standard Baseline"})
         </div>
-        <div style={{ fontSize: '12.5px', color: 'var(--so-text-muted)' }}>
+        <div style={{ fontSize: "12.5px", color: "var(--so-text-muted)" }}>
           {cacheStatus.itemCount === 0
-            ? 'Fetch or load price cache above to activate pricing generation'
+            ? "Fetch or load price cache above to activate pricing generation"
             : evaluatedSummary.lastBuiltAt
-              ? `Last built at ${evaluatedSummary.lastBuiltAt} — ${evaluatedSummary.totalEvaluated.toLocaleString()} items generated using ${isNexus ? 'NEXUS PRO' : strategyProfilePreset.toUpperCase()} strategy`
-              : `Send merged price cache to SaaS Backend (${isNexus ? 'OracleNexus v2' : 'SkinOracle v20'}) → stores accepted prices in local memory`}
+              ? `Last built at ${evaluatedSummary.lastBuiltAt} — ${evaluatedSummary.totalEvaluated.toLocaleString()} items generated using ${isNexus ? "NEXUS PRO" : strategyProfilePreset.toUpperCase()} strategy`
+              : `Send merged price cache to SaaS Backend (${isNexus ? "OracleNexus v2" : "SkinOracle v20"}) → stores accepted prices in local memory`}
         </div>
       </div>
 
@@ -73,34 +95,64 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
       {passingFilterCount > 0 && (
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            padding: '8px 20px',
-            borderRadius: '30px',
-            backgroundColor: 'rgba(0, 0, 0, 0.3)',
-            border: isNexus ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid rgba(14, 165, 233, 0.25)',
-            boxShadow: isNexus ? '0 0 16px rgba(99, 102, 241, 0.15)' : 'none',
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            padding: "8px 20px",
+            borderRadius: "30px",
+            backgroundColor: "rgba(0, 0, 0, 0.3)",
+            border: isNexus
+              ? "1px solid rgba(99, 102, 241, 0.4)"
+              : "1px solid rgba(14, 165, 233, 0.25)",
+            boxShadow: isNexus ? "0 0 16px rgba(99, 102, 241, 0.15)" : "none",
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div
               style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: isNexus ? '#818cf8' : '#38bdf8',
-                boxShadow: isNexus ? '0 0 8px #818cf8' : '0 0 8px #38bdf8',
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                backgroundColor: isNexus ? "#818cf8" : "#38bdf8",
+                boxShadow: isNexus ? "0 0 8px #818cf8" : "0 0 8px #38bdf8",
               }}
             />
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--so-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {isNexus ? 'Nexus Cost' : 'Est. Cost'}
+            <span
+              style={{
+                fontSize: "11.5px",
+                fontWeight: 700,
+                color: "var(--so-text-muted)",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              {isNexus ? "Nexus Cost" : "Est. Cost"}
             </span>
           </div>
-          <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--so-border-subtle)' }} />
-          <div style={{ fontSize: '14px', fontWeight: 800, color: '#f3f4f6', letterSpacing: '0.5px' }}>
+          <div
+            style={{
+              width: "1px",
+              height: "14px",
+              backgroundColor: "var(--so-border-subtle)",
+            }}
+          />
+          <div
+            style={{
+              fontSize: "14px",
+              fontWeight: 800,
+              color: "#f3f4f6",
+              letterSpacing: "0.5px",
+            }}
+          >
             {formattedCost}
-            <span style={{ fontSize: '11px', color: 'var(--so-text-muted)', fontWeight: 500, marginLeft: '6px' }}>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "var(--so-text-muted)",
+                fontWeight: 500,
+                marginLeft: "6px",
+              }}
+            >
               ({activeUnitCost}¢ / item)
             </span>
           </div>
@@ -111,13 +163,13 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
         type="button"
         onClick={onBuildAcceptedPrices}
         disabled={!canBuild || evaluatedSummary.isBatchEvaluating || isBlocked}
-        className={`btn ${isNexus ? 'btn-primary' : 'btn-primary'} btn-lg ${evaluatedSummary.isBatchEvaluating ? 'btn-evaluating' : ''}`}
+        className={`btn ${isNexus ? "btn-primary" : "btn-primary"} btn-lg ${evaluatedSummary.isBatchEvaluating ? "btn-evaluating" : ""}`}
         style={{
-          minWidth: '240px',
-          position: 'relative',
-          overflow: 'hidden',
+          minWidth: "240px",
+          position: "relative",
+          overflow: "hidden",
           opacity: isBlocked ? 0.6 : 1,
-          cursor: isBlocked ? 'not-allowed' : undefined,
+          cursor: isBlocked ? "not-allowed" : undefined,
         }}
         aria-busy={evaluatedSummary.isBatchEvaluating}
         title={
@@ -127,37 +179,47 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
         }
       >
         {/* Real-time Progress Bar fill inside button */}
-        {evaluatedSummary.isBatchEvaluating && evaluatedSummary.batchProgress && (
-          <>
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: `${evaluatedSummary.batchProgress.percent}%`,
-                backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                transition: 'width 0.25s ease-out',
-                pointerEvents: 'none',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                bottom: 0,
-                height: '3px',
-                width: `${evaluatedSummary.batchProgress.percent}%`,
-                backgroundColor: isNexus ? 'var(--so-primary)' : 'var(--so-accent-cyan, #0284c7)',
-                transition: 'width 0.25s ease-out',
-                pointerEvents: 'none',
-              }}
-            />
-          </>
-        )}
+        {evaluatedSummary.isBatchEvaluating &&
+          evaluatedSummary.batchProgress && (
+            <>
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: `${evaluatedSummary.batchProgress.percent}%`,
+                  backgroundColor: "rgba(255, 255, 255, 0.12)",
+                  transition: "width 0.25s ease-out",
+                  pointerEvents: "none",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  bottom: 0,
+                  height: "3px",
+                  width: `${evaluatedSummary.batchProgress.percent}%`,
+                  backgroundColor: isNexus
+                    ? "var(--so-primary)"
+                    : "var(--so-accent-cyan, #0284c7)",
+                  transition: "width 0.25s ease-out",
+                  pointerEvents: "none",
+                }}
+              />
+            </>
+          )}
 
         {evaluatedSummary.isBatchEvaluating ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', zIndex: 1 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              zIndex: 1,
+            }}
+          >
             <Loader2 size={18} className="spin" style={{ flexShrink: 0 }} />
             <span>
               {evaluatedSummary.batchProgress
@@ -166,16 +228,20 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
             </span>
           </span>
         ) : isBlocked ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+          >
             <Lock size={18} /> Min 3 Days Trends Required (Nexus Pro)
           </span>
         ) : evaluatedSummary.lastBuiltAt ? (
           <>
-            <RotateCw size={18} /> Rebuild Accepted Prices ({isNexus ? 'Nexus Pro' : 'Standard'})
+            <RotateCw size={18} /> Rebuild Accepted Prices (
+            {isNexus ? "Nexus Pro" : "Standard"})
           </>
         ) : (
           <>
-            <Zap size={18} /> Build Accepted Price ({isNexus ? 'Nexus Pro' : 'Standard'})
+            <Zap size={18} /> Build Accepted Price (
+            {isNexus ? "Nexus Pro" : "Standard"})
           </>
         )}
       </button>
@@ -184,24 +250,25 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
       {isBlocked && (
         <div
           style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '10px 14px',
-            borderRadius: 'var(--so-radius-sm)',
-            backgroundColor: 'rgba(234, 179, 8, 0.08)',
-            border: '1px solid rgba(234, 179, 8, 0.3)',
-            color: 'var(--so-warning-text, #f59e0b)',
-            fontSize: '12px',
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "10px 14px",
+            borderRadius: "var(--so-radius-sm)",
+            backgroundColor: "rgba(234, 179, 8, 0.08)",
+            border: "1px solid rgba(234, 179, 8, 0.3)",
+            color: "var(--so-warning-text, #f59e0b)",
+            fontSize: "12px",
             fontWeight: 600,
           }}
         >
           <AlertTriangle size={16} style={{ flexShrink: 0 }} />
           <span>
-            Nexus Pro requires at least <strong>3 days</strong> of price trend history (Recommended: <strong>7 days</strong>) to compute linear momentum and volatility.
-            Currently recorded: <strong>{trendDaysCount}/3 days</strong>.
-           
+            Nexus Pro requires at least <strong>3 days</strong> of price trend
+            history (Recommended: <strong>7 days</strong>) to compute linear
+            momentum and volatility. Currently recorded:{" "}
+            <strong>{trendDaysCount}/3 days</strong>.
           </span>
         </div>
       )}

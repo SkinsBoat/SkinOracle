@@ -1,14 +1,19 @@
-import { ipcMain, IpcMainInvokeEvent } from 'electron';
-import axios from 'axios';
-import * as readline from 'readline';
-import { Readable } from 'stream';
-import { secureGet, STORAGE_KEYS } from '../../storage/secure-store';
-import { CS2CAP_PRICES_STREAM } from '../constants/apiUrls';
-import { setPriceCache } from './oracle.ipc';
-import { setLocalPriceCache } from './skinsnipe.ipc';
-import { trendStore } from '../services/trendStore';
-import { Cs2CapStreamProgress, Cs2CapFetchResult } from '../../shared/types';
-import { parseCs2CapLine, getMarketCounts, PriceCache, CS2CAP_PROVIDERS } from '../services/cs2capParser';
+import { ipcMain, IpcMainInvokeEvent } from "electron";
+import axios from "axios";
+import * as readline from "readline";
+import { Readable } from "stream";
+import { secureGet, STORAGE_KEYS } from "../../storage/secure-store";
+import { CS2CAP_PRICES_STREAM } from "../constants/apiUrls";
+import { setPriceCache } from "./oracle.ipc";
+import { setLocalPriceCache } from "./skinsnipe.ipc";
+import { trendStore } from "../services/trendStore";
+import { Cs2CapStreamProgress, Cs2CapFetchResult } from "../../shared/types";
+import {
+  parseCs2CapLine,
+  getMarketCounts,
+  PriceCache,
+  CS2CAP_PROVIDERS,
+} from "../services/cs2capParser";
 
 let isFetching = false;
 let cancelRequested = false;
@@ -17,12 +22,15 @@ let activeAbortController: AbortController | null = null;
 /**
  * Parses user-friendly error messages from CS2Cap HTTP responses.
  */
-function parseCs2CapError(err: any): { message: string; statusCode: number | null } {
+function parseCs2CapError(err: any): {
+  message: string;
+  statusCode: number | null;
+} {
   const status = err.response?.status;
   if (!status) {
     return {
       statusCode: null,
-      message: err.message || 'Network error connecting to CS2Cap API',
+      message: err.message || "Network error connecting to CS2Cap API",
     };
   }
 
@@ -30,16 +38,20 @@ function parseCs2CapError(err: any): { message: string; statusCode: number | nul
     case 401:
       return {
         statusCode: 401,
-        message: '❌ 401 Unauthorized: Invalid or missing CS2Cap API Key. Please verify in Settings.',
+        message:
+          "❌ 401 Unauthorized: Invalid or missing CS2Cap API Key. Please verify in Settings.",
       };
     case 403:
       return {
         statusCode: 403,
-        message: '❌ 403 Forbidden: Pro or Quant tier subscription required for live full prices streaming snapshot.',
+        message:
+          "❌ 403 Forbidden: Pro or Quant tier subscription required for live full prices streaming snapshot.",
       };
     case 409: {
-      const retryAfter = err.response?.headers?.['retry-after'];
-      const retryMsg = retryAfter ? ` Wait ${retryAfter}s before starting a new stream.` : ' Wait for it to complete.';
+      const retryAfter = err.response?.headers?.["retry-after"];
+      const retryMsg = retryAfter
+        ? ` Wait ${retryAfter}s before starting a new stream.`
+        : " Wait for it to complete.";
       return {
         statusCode: 409,
         message: `❌ 409 Conflict: Another active stream is already in progress for this API key.${retryMsg}`,
@@ -47,10 +59,13 @@ function parseCs2CapError(err: any): { message: string; statusCode: number | nul
     }
     case 422: {
       const detail = err.response?.data?.detail;
-      let detailMsg = 'Invalid request parameters or unsupported provider identifier.';
+      let detailMsg =
+        "Invalid request parameters or unsupported provider identifier.";
       if (Array.isArray(detail)) {
-        detailMsg = detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join('; ');
-      } else if (typeof detail === 'string') {
+        detailMsg = detail
+          .map((d: any) => d.msg || d.message || JSON.stringify(d))
+          .join("; ");
+      } else if (typeof detail === "string") {
         detailMsg = detail;
       } else if (err.response?.data?.message) {
         detailMsg = err.response.data.message;
@@ -63,7 +78,8 @@ function parseCs2CapError(err: any): { message: string; statusCode: number | nul
     case 429:
       return {
         statusCode: 429,
-        message: '❌ 429 Too Many Requests: CS2Cap 24h streaming quota exceeded (50/day on Pro, 300/day on Quant).',
+        message:
+          "❌ 429 Too Many Requests: CS2Cap 24h streaming quota exceeded (50/day on Pro, 300/day on Quant).",
       };
     case 500:
     case 502:
@@ -86,7 +102,7 @@ function parseCs2CapError(err: any): { message: string; statusCode: number | nul
 async function streamCs2CapCatalog(
   event: IpcMainInvokeEvent,
   apiKey: string,
-  options?: { providers?: string[] }
+  options?: { providers?: string[] },
 ): Promise<{ cache: PriceCache; linesRead: number; elapsedMs: number }> {
   cancelRequested = false;
   activeAbortController = new AbortController();
@@ -97,7 +113,10 @@ async function streamCs2CapCatalog(
   const startTime = Date.now();
   let lastProgressSend = 0;
 
-  const sendProgress = (status: Cs2CapStreamProgress['status'], lastError: string | null = null) => {
+  const sendProgress = (
+    status: Cs2CapStreamProgress["status"],
+    lastError: string | null = null,
+  ) => {
     if (event?.sender && !event.sender.isDestroyed()) {
       const itemsCount = Object.keys(tempCache).length;
       const counts = getMarketCounts(tempCache);
@@ -111,40 +130,45 @@ async function streamCs2CapCatalog(
         lastError,
         marketCounts: counts,
       };
-      event.sender.send('cs2cap:fetch-progress', progress);
+      event.sender.send("cs2cap:fetch-progress", progress);
     }
   };
 
-  sendProgress('connecting');
+  sendProgress("connecting");
 
   // Sanitize providers against authoritative CS2Cap enum identifiers
-  const validProviderIds = new Set(CS2CAP_PROVIDERS.map(p => p.id));
+  const validProviderIds = new Set(CS2CAP_PROVIDERS.map((p) => p.id));
   const sanitizedProviders = Array.isArray(options?.providers)
-    ? options.providers.filter(p => validProviderIds.has(p))
+    ? options.providers.filter((p) => validProviderIds.has(p))
     : [];
 
   const searchParams = new URLSearchParams();
   // Only append ?providers= if a strict subset of providers is requested
-  if (sanitizedProviders.length > 0 && sanitizedProviders.length < CS2CAP_PROVIDERS.length) {
+  if (
+    sanitizedProviders.length > 0 &&
+    sanitizedProviders.length < CS2CAP_PROVIDERS.length
+  ) {
     for (const p of sanitizedProviders) {
-      searchParams.append('providers', p);
+      searchParams.append("providers", p);
     }
   }
   const queryString = searchParams.toString();
-  const streamUrl = queryString ? `${CS2CAP_PRICES_STREAM}?${queryString}` : CS2CAP_PRICES_STREAM;
+  const streamUrl = queryString
+    ? `${CS2CAP_PRICES_STREAM}?${queryString}`
+    : CS2CAP_PRICES_STREAM;
 
   const response = await axios.post(streamUrl, null, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      Accept: 'application/x-ndjson, */*',
+      Accept: "application/x-ndjson, */*",
     },
-    responseType: 'stream',
+    responseType: "stream",
     signal: activeAbortController.signal,
     timeout: 120000,
   });
 
   const stream: Readable = response.data;
-  sendProgress('streaming');
+  sendProgress("streaming");
 
   const rl = readline.createInterface({
     input: stream,
@@ -152,11 +176,12 @@ async function streamCs2CapCatalog(
   });
 
   return new Promise((resolve, reject) => {
-    stream.on('data', (chunk: Buffer | string) => {
-      bytesReceived += typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.length;
+    stream.on("data", (chunk: Buffer | string) => {
+      bytesReceived +=
+        typeof chunk === "string" ? Buffer.byteLength(chunk) : chunk.length;
     });
 
-    rl.on('line', (line: string) => {
+    rl.on("line", (line: string) => {
       if (cancelRequested) {
         rl.close();
         if (activeAbortController) activeAbortController.abort();
@@ -169,104 +194,116 @@ async function streamCs2CapCatalog(
       const now = Date.now();
       if (now - lastProgressSend > 250) {
         lastProgressSend = now;
-        sendProgress('streaming');
+        sendProgress("streaming");
       }
     });
 
-    rl.on('close', () => {
+    rl.on("close", () => {
       const elapsedMs = Date.now() - startTime;
       if (cancelRequested) {
-        sendProgress('aborted', 'Stream cancelled by user.');
-        reject(new Error('Stream cancelled by user.'));
+        sendProgress("aborted", "Stream cancelled by user.");
+        reject(new Error("Stream cancelled by user."));
       } else {
-        sendProgress('completed');
+        sendProgress("completed");
         resolve({ cache: tempCache, linesRead, elapsedMs });
       }
     });
 
-    rl.on('error', (err: any) => {
-      sendProgress('error', err.message);
+    rl.on("error", (err: any) => {
+      sendProgress("error", err.message);
       reject(err);
     });
 
-    stream.on('error', (err: any) => {
-      sendProgress('error', err.message);
+    stream.on("error", (err: any) => {
+      sendProgress("error", err.message);
       reject(err);
     });
   });
 }
 
 // ── IPC: Stream full prices from CS2Cap ────────────────────────────
-ipcMain.handle('cs2cap:fetch-prices', async (event: IpcMainInvokeEvent, options?: { providers?: string[] }): Promise<Cs2CapFetchResult> => {
-  const apiKey = secureGet(STORAGE_KEYS.CS2CAP);
-  if (!apiKey) {
-    throw new Error('CS2Cap API key not set. Please add it in Settings.');
-  }
-
-  if (isFetching) {
-    throw new Error('A CS2Cap price stream is already in progress.');
-  }
-
-  isFetching = true;
-
-  try {
-    const { cache, elapsedMs } = await streamCs2CapCatalog(event, apiKey, options);
-    const itemCount = Object.keys(cache).length;
-    const marketCounts = getMarketCounts(cache);
-    const providersCount = Object.keys(marketCounts).length;
-
-    if (itemCount > 0) {
-      // Commit directly to local price cache and trend store
-      setLocalPriceCache(cache);
-      trendStore.saveDailySnapshots(cache).catch(err => {
-        console.warn('[TrendStore] CS2Cap Auto-snapshot error:', err);
-      });
+ipcMain.handle(
+  "cs2cap:fetch-prices",
+  async (
+    event: IpcMainInvokeEvent,
+    options?: { providers?: string[] },
+  ): Promise<Cs2CapFetchResult> => {
+    const apiKey = secureGet(STORAGE_KEYS.CS2CAP);
+    if (!apiKey) {
+      throw new Error("CS2Cap API key not set. Please add it in Settings.");
     }
 
-    return {
-      success: true,
-      itemCount,
-      providersCount,
-      fetchedAt: new Date().toISOString(),
-      elapsedMs,
-      marketCounts,
-    };
-  } catch (err: any) {
-    if (cancelRequested) {
+    if (isFetching) {
+      throw new Error("A CS2Cap price stream is already in progress.");
+    }
+
+    isFetching = true;
+
+    try {
+      const { cache, elapsedMs } = await streamCs2CapCatalog(
+        event,
+        apiKey,
+        options,
+      );
+      const itemCount = Object.keys(cache).length;
+      const marketCounts = getMarketCounts(cache);
+      const providersCount = Object.keys(marketCounts).length;
+
+      if (itemCount > 0) {
+        // Commit directly to local price cache and trend store
+        setLocalPriceCache(cache);
+        trendStore.saveDailySnapshots(cache).catch((err) => {
+          console.warn("[TrendStore] CS2Cap Auto-snapshot error:", err);
+        });
+      }
+
       return {
-        success: false,
-        itemCount: 0,
-        providersCount: 0,
+        success: true,
+        itemCount,
+        providersCount,
         fetchedAt: new Date().toISOString(),
-        elapsedMs: 0,
-        aborted: true,
-        error: 'Stream cancelled by user.',
+        elapsedMs,
+        marketCounts,
       };
-    }
+    } catch (err: any) {
+      if (cancelRequested) {
+        return {
+          success: false,
+          itemCount: 0,
+          providersCount: 0,
+          fetchedAt: new Date().toISOString(),
+          elapsedMs: 0,
+          aborted: true,
+          error: "Stream cancelled by user.",
+        };
+      }
 
-    const parsed = parseCs2CapError(err);
-    console.error(`[CS2Cap] Stream failed (HTTP ${parsed.statusCode}): ${parsed.message}`);
-    throw new Error(parsed.message);
-  } finally {
-    isFetching = false;
-    cancelRequested = false;
-    activeAbortController = null;
-  }
-});
+      const parsed = parseCs2CapError(err);
+      console.error(
+        `[CS2Cap] Stream failed (HTTP ${parsed.statusCode}): ${parsed.message}`,
+      );
+      throw new Error(parsed.message);
+    } finally {
+      isFetching = false;
+      cancelRequested = false;
+      activeAbortController = null;
+    }
+  },
+);
 
 // ── IPC: Cancel active stream ─────────────────────────────────────
-ipcMain.handle('cs2cap:cancel-fetch', () => {
+ipcMain.handle("cs2cap:cancel-fetch", () => {
   if (isFetching) {
     cancelRequested = true;
     if (activeAbortController) {
       activeAbortController.abort();
     }
-    return { success: true, message: 'CS2Cap stream cancellation requested.' };
+    return { success: true, message: "CS2Cap stream cancellation requested." };
   }
-  return { success: false, message: 'No active CS2Cap stream running.' };
+  return { success: false, message: "No active CS2Cap stream running." };
 });
 
 // ── IPC: Get fetch status ─────────────────────────────────────────
-ipcMain.handle('cs2cap:get-status', () => ({
+ipcMain.handle("cs2cap:get-status", () => ({
   isFetching,
 }));

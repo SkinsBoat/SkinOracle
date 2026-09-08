@@ -2,30 +2,30 @@
 // Import this in any renderer component to get full TypeScript intellisense.
 
 export type SkinsnipeMarketId =
-  | 'avanmarket'
-  | 'csgofloat'
-  | 'csmoney_p2p'
-  | 'csmoney_trade'
-  | 'cstrade'
-  | 'dmarket'
-  | 'exeskins'
-  | 'itradegg'
-  | 'lisskins'
-  | 'manncostore'
-  | 'market_csgo'
-  | 'merchanttf'
-  | 'rustskins'
-  | 'shadowpay'
-  | 'skinbaron'
-  | 'skinflow'
-  | 'skinland'
-  | 'skinport'
-  | 'skinsmonkey'
-  | 'skinswap'
-  | 'tradeitgg'
-  | 'tradeitgg_store'
-  | 'waxpeer'
-  | 'whitemarket';
+  | "avanmarket"
+  | "csgofloat"
+  | "csmoney_p2p"
+  | "csmoney_trade"
+  | "cstrade"
+  | "dmarket"
+  | "exeskins"
+  | "itradegg"
+  | "lisskins"
+  | "manncostore"
+  | "market_csgo"
+  | "merchanttf"
+  | "rustskins"
+  | "shadowpay"
+  | "skinbaron"
+  | "skinflow"
+  | "skinland"
+  | "skinport"
+  | "skinsmonkey"
+  | "skinswap"
+  | "tradeitgg"
+  | "tradeitgg_store"
+  | "waxpeer"
+  | "whitemarket";
 
 export interface PriceListing {
   m: string;
@@ -166,7 +166,6 @@ export interface DmarketInventoryItem {
   [key: string]: any;
 }
 
-
 export interface SkinsnipeFetchProgress {
   currentMarket: string;
   currentMarketIndex: number;
@@ -175,7 +174,7 @@ export interface SkinsnipeFetchProgress {
   errorCount: number;
   lastError: string | null;
   criticalError: string | null;
-  status: 'fetching' | 'waiting' | 'completed' | 'aborted' | 'error';
+  status: "fetching" | "waiting" | "completed" | "aborted" | "error";
   sleepRemaining?: number;
   marketCounts?: Record<string, number>;
 }
@@ -196,7 +195,7 @@ export interface SkinsnipeFetchResult {
   aborted?: boolean;
   criticalError?: string | null;
   marketCounts?: Record<string, number>;
-  source?: 'local_cache' | 'cloud_download' | 'cloud_refreshed';
+  source?: "local_cache" | "cloud_download" | "cloud_refreshed";
 }
 
 export interface Cs2CapStreamProgress {
@@ -205,7 +204,7 @@ export interface Cs2CapStreamProgress {
   providersCount: number;
   bytesReceived: number;
   elapsedMs: number;
-  status: 'connecting' | 'streaming' | 'completed' | 'aborted' | 'error';
+  status: "connecting" | "streaming" | "completed" | "aborted" | "error";
   lastError: string | null;
   marketCounts?: Record<string, number>;
 }
@@ -235,13 +234,13 @@ export interface UpdateProgressInfo {
 }
 
 export type UpdateStateStatus =
-  | 'idle'
-  | 'checking'
-  | 'available'
-  | 'not-available'
-  | 'downloading'
-  | 'downloaded'
-  | 'error';
+  | "idle"
+  | "checking"
+  | "available"
+  | "not-available"
+  | "downloading"
+  | "downloaded"
+  | "error";
 
 export interface UpdateStatusState {
   status: UpdateStateStatus;
@@ -288,7 +287,10 @@ export interface ElectronAPI {
     setCs2capKey: (key: string) => Promise<{ success: boolean }>;
     setCsfloatKey: (key: string) => Promise<{ success: boolean }>;
     setSkinscomToken: (token: string) => Promise<{ success: boolean }>;
-    setDmarketKeys: (publicKey: string, secretKey: string) => Promise<{ success: boolean }>;
+    setDmarketKeys: (
+      publicKey: string,
+      secretKey: string,
+    ) => Promise<{ success: boolean }>;
     revokeSkinsnipeKey: () => Promise<{ success: boolean }>;
     revokeCs2capKey: () => Promise<{ success: boolean }>;
     revokeCsfloatKey: () => Promise<{ success: boolean }>;
@@ -305,39 +307,83 @@ export interface ElectronAPI {
     getEncryptionStatus: () => Promise<{ isEncrypted: boolean }>;
   };
   skinsnipe: {
-    fetchPrices: (targetMarkets?: SkinsnipeMarketId[]) => Promise<SkinsnipeFetchResult>;
+    fetchPrices: (
+      targetMarkets?: SkinsnipeMarketId[],
+    ) => Promise<SkinsnipeFetchResult>;
     cancelFetch: () => Promise<{ success: boolean; message: string }>;
-    onFetchProgress: (callback: (progress: SkinsnipeFetchProgress) => void) => () => void;
+    onFetchProgress: (
+      callback: (progress: SkinsnipeFetchProgress) => void,
+    ) => () => void;
     getCache: () => Promise<SkinsnipePriceCache>;
-    getItem: (itemName: string) => Promise<{ n: string; l: { m: string; p: number; q?: number }[] } | null>;
-    getCacheStatus: () => Promise<{ itemCount: number; isFetching: boolean; lastFetchedAt: string | null; marketCounts?: Record<string, number> }>;
+    getItem: (
+      itemName: string,
+    ) => Promise<{
+      n: string;
+      l: { m: string; p: number; q?: number }[];
+    } | null>;
+    getCacheStatus: () => Promise<{
+      itemCount: number;
+      isFetching: boolean;
+      lastFetchedAt: string | null;
+      marketCounts?: Record<string, number>;
+    }>;
     loadCacheJson: (jsonContent: string) => Promise<SkinsnipeFetchResult>;
-    loadDemoCache: (options?: { forceRefresh?: boolean }) => Promise<SkinsnipeFetchResult>;
+    loadDemoCache: (options?: {
+      forceRefresh?: boolean;
+    }) => Promise<SkinsnipeFetchResult>;
   };
   cs2cap: {
-    fetchPrices: (options?: { providers?: string[] }) => Promise<Cs2CapFetchResult>;
+    fetchPrices: (options?: {
+      providers?: string[];
+    }) => Promise<Cs2CapFetchResult>;
     cancelFetch: () => Promise<{ success: boolean; message: string }>;
-    onStreamProgress: (callback: (progress: Cs2CapStreamProgress) => void) => () => void;
+    onStreamProgress: (
+      callback: (progress: Cs2CapStreamProgress) => void,
+    ) => () => void;
     getStatus: () => Promise<{ isFetching: boolean }>;
   };
   oracle: {
     startBatch: (totalItems: number) => Promise<OracleBatchStartResult>;
     startNexusBatch: (totalItems: number) => Promise<OracleBatchStartResult>;
-    finishBatch: (batchId: string, completedItems: number) => Promise<OracleBatchFinishResult>;
-    evaluate: (items: string[], options?: object, batchId?: string) => Promise<{
+    finishBatch: (
+      batchId: string,
+      completedItems: number,
+    ) => Promise<OracleBatchFinishResult>;
+    evaluate: (
+      items: string[],
+      options?: object,
+      batchId?: string,
+    ) => Promise<{
       results: Array<{ name: string; oracle: any | null }>;
       usageCount: number;
       dailyRemaining: number;
     }>;
-    evaluateNexus: (items: string[], options?: object, nexusParams?: object, batchId?: string) => Promise<{
+    evaluateNexus: (
+      items: string[],
+      options?: object,
+      nexusParams?: object,
+      batchId?: string,
+    ) => Promise<{
       results: Array<{ name: string; oracle: any | null }>;
       usageCount: number;
       dailyRemaining: number;
     }>;
-    storeAcceptedPrices: (map: Record<string, AcceptedPriceInfo>) => Promise<{ stored: number; storedAt: string }>;
-    getAcceptedPrices: () => Promise<{ map: Record<string, AcceptedPriceInfo>; itemCount: number; storedAt: string | null }>;
-    storeListingPrices: (map: Record<string, ListingPriceInfo>) => Promise<{ stored: number; storedAt: string }>;
-    getListingPrices: () => Promise<{ map: Record<string, ListingPriceInfo>; itemCount: number; storedAt: string | null }>;
+    storeAcceptedPrices: (
+      map: Record<string, AcceptedPriceInfo>,
+    ) => Promise<{ stored: number; storedAt: string }>;
+    getAcceptedPrices: () => Promise<{
+      map: Record<string, AcceptedPriceInfo>;
+      itemCount: number;
+      storedAt: string | null;
+    }>;
+    storeListingPrices: (
+      map: Record<string, ListingPriceInfo>,
+    ) => Promise<{ stored: number; storedAt: string }>;
+    getListingPrices: () => Promise<{
+      map: Record<string, ListingPriceInfo>;
+      itemCount: number;
+      storedAt: string | null;
+    }>;
   };
   trendStore: {
     getStats: () => Promise<{
@@ -349,10 +395,14 @@ export interface ElectronAPI {
     }>;
     getHistoryBatch: (
       itemNames: string[],
-      days?: number
-    ) => Promise<Record<string, { labels: string[]; overallAverages: number[] }>>;
+      days?: number,
+    ) => Promise<
+      Record<string, { labels: string[]; overallAverages: number[] }>
+    >;
     prune: (retentionDays?: number) => Promise<number>;
-    seedMockHistory: (days?: number) => Promise<{ seededDays: number; totalSnapshots: number }>;
+    seedMockHistory: (
+      days?: number,
+    ) => Promise<{ seededDays: number; totalSnapshots: number }>;
     clear: () => Promise<number>;
     setSimulatedDate: (date: string | null) => Promise<string | null>;
     getSimulatedDate: () => Promise<string | null>;
@@ -360,13 +410,29 @@ export interface ElectronAPI {
   csfloat: {
     getMe: () => Promise<any>;
     getOrders: () => Promise<any>;
-    createBuyOrder: (marketHashName: string, maxPriceCents: number, quantity: number) => Promise<any>;
-    updateOrder: (orderId: string, marketHashName: string, maxPriceCents: number) => Promise<any>;
+    createBuyOrder: (
+      marketHashName: string,
+      maxPriceCents: number,
+      quantity: number,
+    ) => Promise<any>;
+    updateOrder: (
+      orderId: string,
+      marketHashName: string,
+      maxPriceCents: number,
+    ) => Promise<any>;
     deleteOrder: (orderId: string) => Promise<{ success: boolean }>;
     getInventory: () => Promise<CsFloatInventoryItem[]>;
-    createListing: (assetId: string, priceCents: number, privateMode: boolean) => Promise<any>;
+    createListing: (
+      assetId: string,
+      priceCents: number,
+      privateMode: boolean,
+    ) => Promise<any>;
     deleteListing: (listingId: string) => Promise<{ success: boolean }>;
-    updateListing: (listingId: string, priceCents: number, privateMode?: boolean) => Promise<any>;
+    updateListing: (
+      listingId: string,
+      priceCents: number,
+      privateMode?: boolean,
+    ) => Promise<any>;
   };
 
   app: {
@@ -376,14 +442,18 @@ export interface ElectronAPI {
     getConfig: () => Promise<any>;
     onForceMaintenance: (callback: () => void) => () => void;
     getVersionGateStatus: () => Promise<VersionGateState>;
-    onForceVersionBlock: (callback: (state: VersionGateState) => void) => () => void;
+    onForceVersionBlock: (
+      callback: (state: VersionGateState) => void,
+    ) => () => void;
     openReleases: () => Promise<void>;
   };
   updater: {
     checkForUpdates: () => Promise<{ success: boolean; message?: string }>;
     downloadUpdate: () => Promise<{ success: boolean; message?: string }>;
     quitAndInstall: () => Promise<void>;
-    onUpdateStatus: (callback: (state: UpdateStatusState) => void) => () => void;
+    onUpdateStatus: (
+      callback: (state: UpdateStatusState) => void,
+    ) => () => void;
   };
   skinscom: {
     getOrders: () => Promise<any>;
@@ -402,15 +472,35 @@ export interface ElectronAPI {
       priceTo?: number;
       orderBy?: string;
       orderDir?: string;
-    }) => Promise<{ items: DmarketTargetItem[]; total: string; cursor: string }>;
-    createTarget: (title: string, priceInUsd: number, amount?: number, attrs?: any) => Promise<any>;
-    deleteTarget: (targetId: string) => Promise<{ success: boolean; result: any }>;
-    updateTarget: (oldTargetId: string, title: string, newPriceInUsd: number, amount?: number, attrs?: any) => Promise<{
+    }) => Promise<{
+      items: DmarketTargetItem[];
+      total: string;
+      cursor: string;
+    }>;
+    createTarget: (
+      title: string,
+      priceInUsd: number,
+      amount?: number,
+      attrs?: any,
+    ) => Promise<any>;
+    deleteTarget: (
+      targetId: string,
+    ) => Promise<{ success: boolean; result: any }>;
+    updateTarget: (
+      oldTargetId: string,
+      title: string,
+      newPriceInUsd: number,
+      amount?: number,
+      attrs?: any,
+    ) => Promise<{
       success: boolean;
       newTargetId?: string;
       oldTargetId: string;
     }>;
-    getClosedTargets: (limit?: number, cursor?: string) => Promise<{ trades: any[]; total: string; cursor: string }>;
+    getClosedTargets: (
+      limit?: number,
+      cursor?: string,
+    ) => Promise<{ trades: any[]; total: string; cursor: string }>;
     getTargetsByTitle: (title: string) => Promise<any[]>;
     getOffers: (params?: {
       fetchAll?: boolean;
@@ -425,23 +515,44 @@ export interface ElectronAPI {
       limit?: number;
       title?: string;
       treeFilters?: string;
-    }) => Promise<{ items: DmarketInventoryItem[]; total: string; cursor: string }>;
-    createOffers: (requests: Array<{ assetId: string; priceCents?: number | string; priceUsd?: number | string }>) => Promise<{
+    }) => Promise<{
+      items: DmarketInventoryItem[];
+      total: string;
+      cursor: string;
+    }>;
+    createOffers: (
+      requests: Array<{
+        assetId: string;
+        priceCents?: number | string;
+        priceUsd?: number | string;
+      }>,
+    ) => Promise<{
       offers: any[];
       failed: any[];
       success: boolean;
     }>;
-    updateOffers: (requests: Array<{ id: string; priceCents?: number | string; priceUsd?: number | string }>) => Promise<{
+    updateOffers: (
+      requests: Array<{
+        id: string;
+        priceCents?: number | string;
+        priceUsd?: number | string;
+      }>,
+    ) => Promise<{
       offers: any[];
       failed: any[];
       success: boolean;
     }>;
-    deleteOffers: (requests: Array<{ id: string; assetId?: string }>) => Promise<{
+    deleteOffers: (
+      requests: Array<{ id: string; assetId?: string }>,
+    ) => Promise<{
       offers: any[];
       failed: any[];
       success: boolean;
     }>;
-    getClosedOffers: (limit?: number, cursor?: string) => Promise<{ trades: any[]; total: string; cursor: string }>;
+    getClosedOffers: (
+      limit?: number,
+      cursor?: string,
+    ) => Promise<{ trades: any[]; total: string; cursor: string }>;
     depositAssets: (assetIds: string[]) => Promise<{ DepositID: string }>;
     getDepositStatus: (depositId: string) => Promise<{
       DepositID: string;
@@ -459,10 +570,14 @@ export interface ElectronAPI {
       dailyFreeAllowanceCents: number;
       dailyFreeRemainingCents: number;
     }>;
-    getHistory: (page?: number, limit?: number, filters?: any) => Promise<{
+    getHistory: (
+      page?: number,
+      limit?: number,
+      filters?: any,
+    ) => Promise<{
       transactions: Array<{
         id: string;
-        type: 'credit' | 'debit';
+        type: "credit" | "debit";
         category: string;
         amountCents: number;
         balanceAfterCents: number;

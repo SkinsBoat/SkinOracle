@@ -1,7 +1,7 @@
-import { app, BrowserWindow } from 'electron';
-import * as fs from 'fs';
-import * as path from 'path';
-import { SAAS_APP_VERSION_CHECK } from '../constants/apiUrls';
+import { app, BrowserWindow } from "electron";
+import * as fs from "fs";
+import * as path from "path";
+import { SAAS_APP_VERSION_CHECK } from "../constants/apiUrls";
 
 // ─────────────────────────────────────────────────────────────────
 // Local persistence for version block state.
@@ -16,19 +16,19 @@ import { SAAS_APP_VERSION_CHECK } from '../constants/apiUrls';
 // allowed: true response from the server can clear it.
 // ─────────────────────────────────────────────────────────────────
 
-const GATE_STATE_FILE = path.join(app.getPath('userData'), 'version-gate.json');
+const GATE_STATE_FILE = path.join(app.getPath("userData"), "version-gate.json");
 
 interface PersistedGateState {
-  blockedVersion: string;  // The exact version string that was blocked
+  blockedVersion: string; // The exact version string that was blocked
   reason: string;
   minVersion: string;
-  blockedAt: string;       // ISO timestamp for auditability
+  blockedAt: string; // ISO timestamp for auditability
 }
 
 function readPersistedBlock(): PersistedGateState | null {
   try {
     if (!fs.existsSync(GATE_STATE_FILE)) return null;
-    const raw = fs.readFileSync(GATE_STATE_FILE, 'utf8');
+    const raw = fs.readFileSync(GATE_STATE_FILE, "utf8");
     return JSON.parse(raw) as PersistedGateState;
   } catch {
     return null;
@@ -39,7 +39,7 @@ function persistBlock(state: PersistedGateState) {
   try {
     fs.writeFileSync(GATE_STATE_FILE, JSON.stringify(state, null, 2));
   } catch (err) {
-    console.warn('[VersionGate] Failed to persist block state:', err);
+    console.warn("[VersionGate] Failed to persist block state:", err);
   }
 }
 
@@ -47,7 +47,7 @@ function clearPersistedBlock() {
   try {
     if (fs.existsSync(GATE_STATE_FILE)) fs.unlinkSync(GATE_STATE_FILE);
   } catch (err) {
-    console.warn('[VersionGate] Failed to clear block state:', err);
+    console.warn("[VersionGate] Failed to clear block state:", err);
   }
 }
 
@@ -66,17 +66,20 @@ let cachedSystemConfig: any = null;
 export async function refreshSystemConfig() {
   try {
     const currentVersion = app.getVersion();
-    const response = await fetch(`${SAAS_APP_VERSION_CHECK}?v=${encodeURIComponent(currentVersion)}`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(5000),
-    });
+    const response = await fetch(
+      `${SAAS_APP_VERSION_CHECK}?v=${encodeURIComponent(currentVersion)}`,
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(5000),
+      },
+    );
     if (response.ok) {
       const data = (await response.json()) as VersionCheckResponse;
       if (data.systemConfig) cachedSystemConfig = data.systemConfig;
     }
   } catch (err) {
-    console.warn('[VersionGate] Failed to refresh system config:', err);
+    console.warn("[VersionGate] Failed to refresh system config:", err);
   }
   return cachedSystemConfig;
 }
@@ -96,11 +99,14 @@ export async function checkVersionGate(): Promise<VersionCheckResponse> {
     // We still try the network to see if it has been un-blocked,
     // but we do not fail open if the network is unavailable.
     try {
-      const response = await fetch(`${SAAS_APP_VERSION_CHECK}?v=${encodeURIComponent(currentVersion)}`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      });
+      const response = await fetch(
+        `${SAAS_APP_VERSION_CHECK}?v=${encodeURIComponent(currentVersion)}`,
+        {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(5000), // 5 second timeout
+        },
+      );
 
       if (response.ok) {
         const data = (await response.json()) as VersionCheckResponse;
@@ -108,14 +114,16 @@ export async function checkVersionGate(): Promise<VersionCheckResponse> {
         if (data.allowed) {
           // Server says we're OK now — clear the local block
           clearPersistedBlock();
-          console.info('[VersionGate] Previously blocked version now allowed by server. Block cleared.');
+          console.info(
+            "[VersionGate] Previously blocked version now allowed by server. Block cleared.",
+          );
           return { allowed: true };
         } else {
           // Server still blocking — refresh the persisted state
           persistBlock({
             blockedVersion: currentVersion,
-            reason: data.reason || 'Version blocked.',
-            minVersion: data.minVersion || '',
+            reason: data.reason || "Version blocked.",
+            minVersion: data.minVersion || "",
             blockedAt: new Date().toISOString(),
           });
           return data;
@@ -123,7 +131,9 @@ export async function checkVersionGate(): Promise<VersionCheckResponse> {
       }
     } catch {
       // Network unavailable — enforce the locally persisted block
-      console.warn('[VersionGate] Network unavailable and version is locally blocked. Enforcing block.');
+      console.warn(
+        "[VersionGate] Network unavailable and version is locally blocked. Enforcing block.",
+      );
     }
 
     // Fall through: enforce local block (server unreachable or non-200)
@@ -136,11 +146,14 @@ export async function checkVersionGate(): Promise<VersionCheckResponse> {
 
   // ── Step 2: No local block — standard network check ──────────────
   try {
-    const response = await fetch(`${SAAS_APP_VERSION_CHECK}?v=${encodeURIComponent(currentVersion)}`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(5000),
-    });
+    const response = await fetch(
+      `${SAAS_APP_VERSION_CHECK}?v=${encodeURIComponent(currentVersion)}`,
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(5000),
+      },
+    );
 
     if (!response.ok) {
       // Fail open only when there's no local block (server error / unreachable)
@@ -154,22 +167,29 @@ export async function checkVersionGate(): Promise<VersionCheckResponse> {
       // Server just blocked this version — persist it immediately
       persistBlock({
         blockedVersion: currentVersion,
-        reason: data.reason || 'Version blocked.',
-        minVersion: data.minVersion || '',
+        reason: data.reason || "Version blocked.",
+        minVersion: data.minVersion || "",
         blockedAt: new Date().toISOString(),
       });
-      console.warn(`[VersionGate] Version ${currentVersion} blocked by server. Persisted locally.`);
+      console.warn(
+        `[VersionGate] Version ${currentVersion} blocked by server. Persisted locally.`,
+      );
     }
 
     return data;
   } catch (err) {
     // Network error with no local block — fail open
-    console.warn('[VersionGate] Network check failed, no local block, allowing startup:', err);
+    console.warn(
+      "[VersionGate] Network check failed, no local block, allowing startup:",
+      err,
+    );
     return { allowed: true };
   }
 }
 
-export function showUpdateRequiredWindow(details: VersionCheckResponse): BrowserWindow {
+export function showUpdateRequiredWindow(
+  details: VersionCheckResponse,
+): BrowserWindow {
   const currentVersion = app.getVersion();
   const blockedWin = new BrowserWindow({
     width: 600,
@@ -178,9 +198,9 @@ export function showUpdateRequiredWindow(details: VersionCheckResponse): Browser
     movable: true,
     minimizable: true,
     maximizable: false,
-    backgroundColor: '#050505',
-    titleBarStyle: 'hiddenInset',
-    frame: process.platform !== 'darwin',
+    backgroundColor: "#050505",
+    titleBarStyle: "hiddenInset",
+    frame: process.platform !== "darwin",
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
@@ -287,20 +307,24 @@ export function showUpdateRequiredWindow(details: VersionCheckResponse): Browser
             </svg>
           </div>
           <h1>Update Required</h1>
-          <p class="reason">${details.reason || 'This version of SkinOracle is no longer supported.'}</p>
+          <p class="reason">${details.reason || "This version of SkinOracle is no longer supported."}</p>
 
           <div class="version-box">
             <div class="version-tag">
               <span>Your Version:</span>
               <span class="badge-disabled">v${currentVersion}</span>
             </div>
-            ${details.minVersion ? `
+            ${
+              details.minVersion
+                ? `
               <div style="width: 1px; background: #2d3748;"></div>
               <div class="version-tag">
                 <span>Required:</span>
                 <span class="badge-required">v${details.minVersion}+</span>
               </div>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
 
           <p class="subtext">Please download and install the latest update to continue using the workstation.</p>
@@ -309,6 +333,8 @@ export function showUpdateRequiredWindow(details: VersionCheckResponse): Browser
     </html>
   `;
 
-  blockedWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+  blockedWin.loadURL(
+    `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`,
+  );
   return blockedWin;
 }

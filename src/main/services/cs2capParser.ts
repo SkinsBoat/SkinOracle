@@ -1,8 +1,15 @@
-import { CS2CAP_PROVIDERS, Cs2CapProviderInfo, DEFAULT_CS2CAP_PROVIDERS } from '../../shared/cs2capProviders';
-import { toCanonicalMarketId } from '../../shared/canonicalMarkets';
+import {
+  CS2CAP_PROVIDERS,
+  Cs2CapProviderInfo,
+  DEFAULT_CS2CAP_PROVIDERS,
+} from "../../shared/cs2capProviders";
+import { toCanonicalMarketId } from "../../shared/canonicalMarkets";
 
 // Standard internal PriceCache representation
-export type PriceCache = Record<string, { n: string; l: { m: string; p: number; q?: number }[] }>;
+export type PriceCache = Record<
+  string,
+  { n: string; l: { m: string; p: number; q?: number }[] }
+>;
 
 export { CS2CAP_PROVIDERS, DEFAULT_CS2CAP_PROVIDERS };
 export type { Cs2CapProviderInfo };
@@ -22,7 +29,12 @@ export function parseCs2CapLine(line: string, cache: PriceCache): boolean {
     const lowestAskCents = raw.lowest_ask;
 
     // Validate required fields and price sanity
-    if (!name || typeof name !== 'string' || !provider || typeof lowestAskCents !== 'number') {
+    if (
+      !name ||
+      typeof name !== "string" ||
+      !provider ||
+      typeof lowestAskCents !== "number"
+    ) {
       return false;
     }
 
@@ -44,9 +56,10 @@ export function parseCs2CapLine(line: string, cache: PriceCache): boolean {
 
     // Normalize incoming provider identifier to canonical market ID
     const providerKey = toCanonicalMarketId(String(provider));
-    const quantity = typeof raw.quantity === 'number' && raw.quantity > 0 ? raw.quantity : 1;
+    const quantity =
+      typeof raw.quantity === "number" && raw.quantity > 0 ? raw.quantity : 1;
 
-    const existing = cache[name].l.find(l => l.m === providerKey);
+    const existing = cache[name].l.find((l) => l.m === providerKey);
     if (existing) {
       if (priceUsd < existing.p) {
         existing.p = priceUsd;

@@ -1,7 +1,10 @@
-import { ipcMain } from 'electron';
-import axios from 'axios';
-import { secureGet, STORAGE_KEYS } from '../../storage/secure-store';
-import { SKINSCOM_BUY_ORDERS, SKINSCOM_BUY_ORDER_BY_ID } from '../constants/apiUrls';
+import { ipcMain } from "electron";
+import axios from "axios";
+import { secureGet, STORAGE_KEYS } from "../../storage/secure-store";
+import {
+  SKINSCOM_BUY_ORDERS,
+  SKINSCOM_BUY_ORDER_BY_ID,
+} from "../constants/apiUrls";
 
 // ─────────────────────────────────────────────────────────────────
 // Skins.com buy order IPC handlers
@@ -13,13 +16,13 @@ import { SKINSCOM_BUY_ORDERS, SKINSCOM_BUY_ORDER_BY_ID } from '../constants/apiU
 function getHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 }
 
-ipcMain.handle('skinscom:get-orders', async () => {
+ipcMain.handle("skinscom:get-orders", async () => {
   const token = secureGet(STORAGE_KEYS.SKINSCOM);
-  if (!token) throw new Error('Skins.com token not set');
+  if (!token) throw new Error("Skins.com token not set");
 
   const res = await axios.get(SKINSCOM_BUY_ORDERS, {
     headers: getHeaders(token),
@@ -27,21 +30,24 @@ ipcMain.handle('skinscom:get-orders', async () => {
   return res.data;
 });
 
-ipcMain.handle('skinscom:create-buy-order', async (_, marketHashName: string, price: number) => {
-  const token = secureGet(STORAGE_KEYS.SKINSCOM);
-  if (!token) throw new Error('Skins.com token not set');
+ipcMain.handle(
+  "skinscom:create-buy-order",
+  async (_, marketHashName: string, price: number) => {
+    const token = secureGet(STORAGE_KEYS.SKINSCOM);
+    if (!token) throw new Error("Skins.com token not set");
 
-  const res = await axios.post(
-    SKINSCOM_BUY_ORDERS,
-    { market_hash_name: marketHashName, price },
-    { headers: getHeaders(token) },
-  );
-  return res.data;
-});
+    const res = await axios.post(
+      SKINSCOM_BUY_ORDERS,
+      { market_hash_name: marketHashName, price },
+      { headers: getHeaders(token) },
+    );
+    return res.data;
+  },
+);
 
-ipcMain.handle('skinscom:delete-order', async (_, orderId: string) => {
+ipcMain.handle("skinscom:delete-order", async (_, orderId: string) => {
   const token = secureGet(STORAGE_KEYS.SKINSCOM);
-  if (!token) throw new Error('Skins.com token not set');
+  if (!token) throw new Error("Skins.com token not set");
 
   await axios.delete(SKINSCOM_BUY_ORDER_BY_ID(orderId), {
     headers: getHeaders(token),

@@ -1,5 +1,5 @@
-import React, { useId } from 'react';
-import { useTrendStore } from '../store/useTrendStore';
+import React, { useId } from "react";
+import { useTrendStore } from "../store/useTrendStore";
 
 export interface TrendSparklineProps {
   name: string;
@@ -25,19 +25,21 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
   data,
   labels,
   momentum,
-  width = '100%',
+  width = "100%",
   height = 34,
   showBadge = true,
-  className = '',
+  className = "",
   onClick,
 }) => {
-  const gradientId = useId().replace(/:/g, '_');
-  const storeEntry = useTrendStore(s => s.trendHistoryMap[name]);
+  const gradientId = useId().replace(/:/g, "_");
+  const storeEntry = useTrendStore((s) => s.trendHistoryMap[name]);
 
   const rawData = data || storeEntry?.overallAverages;
   const rawLabels = labels || storeEntry?.labels;
 
-  const validData = Array.isArray(rawData) ? rawData.filter(v => typeof v === 'number' && !isNaN(v) && v > 0) : [];
+  const validData = Array.isArray(rawData)
+    ? rawData.filter((v) => typeof v === "number" && !isNaN(v) && v > 0)
+    : [];
 
   // Empty / Pending Fallback State
   if (validData.length < 2) {
@@ -46,50 +48,56 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
         className={className}
         title={`${name} — Awaiting 14-day trend history`}
         style={{
-          width: typeof width === 'number' ? `${width}px` : width,
+          width: typeof width === "number" ? `${width}px` : width,
           height: `${height}px`,
-          backgroundColor: 'rgba(0, 0, 0, 0.18)',
-          border: '1px dashed var(--so-border-subtle)',
-          borderRadius: 'var(--so-radius-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--so-text-muted)',
-          fontSize: '9.5px',
+          backgroundColor: "rgba(0, 0, 0, 0.18)",
+          border: "1px dashed var(--so-border-subtle)",
+          borderRadius: "var(--so-radius-sm)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--so-text-muted)",
+          fontSize: "9.5px",
           fontWeight: 600,
-          userSelect: 'none',
-          padding: '0 6px',
+          userSelect: "none",
+          padding: "0 6px",
         }}
       >
-        <span style={{ opacity: 0.5, letterSpacing: '0.2px' }}>— 14D Trend Pending —</span>
+        <span style={{ opacity: 0.5, letterSpacing: "0.2px" }}>
+          — 14D Trend Pending —
+        </span>
       </div>
     );
   }
 
   const min = Math.min(...validData);
   const max = Math.max(...validData);
-  const range = max - min || (min * 0.05 || 1);
+  const range = max - min || min * 0.05 || 1;
 
   const firstVal = validData[0];
   const lastVal = validData[validData.length - 1];
 
   // Calculate percentage movement
-  const calculatedDelta = firstVal > 0 ? ((lastVal - firstVal) / firstVal) * 100 : 0;
-  const effectiveMomentum = typeof momentum === 'number' && !isNaN(momentum) ? momentum : calculatedDelta / 100;
+  const calculatedDelta =
+    firstVal > 0 ? ((lastVal - firstVal) / firstVal) * 100 : 0;
+  const effectiveMomentum =
+    typeof momentum === "number" && !isNaN(momentum)
+      ? momentum
+      : calculatedDelta / 100;
   const displayPercent = effectiveMomentum * 100;
 
   // Momentum Color Logic:
   // > +3% or momentum > 0.05: Emerald Green (Bullish)
   // < -3% or momentum < -0.05: Danger Red (Bearish)
   // Else: Solid Cyan / Slate (Neutral)
-  let color = '#38bdf8'; // Neutral cyan
-  let badgeIcon = '●';
+  let color = "#38bdf8"; // Neutral cyan
+  let badgeIcon = "●";
   if (displayPercent >= 3.0 || effectiveMomentum > 0.05) {
-    color = '#10b981'; // Green
-    badgeIcon = '▲';
+    color = "#10b981"; // Green
+    badgeIcon = "▲";
   } else if (displayPercent <= -3.0 || effectiveMomentum < -0.05) {
-    color = '#ef4444'; // Red
-    badgeIcon = '▼';
+    color = "#ef4444"; // Red
+    badgeIcon = "▼";
   }
 
   const svgWidth = 100;
@@ -105,18 +113,24 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
     return { x, y, val };
   });
 
-  const lineD = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)},${p.y.toFixed(1)}`, '');
+  const lineD = points.reduce(
+    (acc, p, i) =>
+      `${acc} ${i === 0 ? "M" : "L"} ${p.x.toFixed(1)},${p.y.toFixed(1)}`,
+    "",
+  );
   const areaD = `${lineD} L ${svgWidth},${svgHeight} L 0,${svgHeight} Z`;
 
   const lastPoint = points[points.length - 1];
 
   const tooltipLines = [
     `${name}`,
-    `14D Movement: ${displayPercent >= 0 ? '+' : ''}${displayPercent.toFixed(1)}%`,
+    `14D Movement: ${displayPercent >= 0 ? "+" : ""}${displayPercent.toFixed(1)}%`,
     `Current Median: $${lastVal.toFixed(2)}`,
     `Range: $${min.toFixed(2)} - $${max.toFixed(2)}`,
-    rawLabels && rawLabels.length >= 2 ? `Period: ${rawLabels[0]} → ${rawLabels[rawLabels.length - 1]}` : `${validData.length} daily snapshots`,
-  ].join('\n');
+    rawLabels && rawLabels.length >= 2
+      ? `Period: ${rawLabels[0]} → ${rawLabels[rawLabels.length - 1]}`
+      : `${validData.length} daily snapshots`,
+  ].join("\n");
 
   return (
     <div
@@ -124,24 +138,24 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
       title={tooltipLines}
       onClick={onClick}
       style={{
-        width: typeof width === 'number' ? `${width}px` : width,
+        width: typeof width === "number" ? `${width}px` : width,
         height: `${height}px`,
-        backgroundColor: 'rgba(0, 0, 0, 0.25)',
-        border: '1px solid var(--so-border-subtle)',
-        borderRadius: 'var(--so-radius-sm)',
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        overflow: 'hidden',
-        cursor: onClick ? 'pointer' : 'default',
-        padding: '1px 2px',
-        boxSizing: 'border-box',
+        backgroundColor: "rgba(0, 0, 0, 0.25)",
+        border: "1px solid var(--so-border-subtle)",
+        borderRadius: "var(--so-radius-sm)",
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        overflow: "hidden",
+        cursor: onClick ? "pointer" : "default",
+        padding: "1px 2px",
+        boxSizing: "border-box",
       }}
     >
       <svg
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         preserveAspectRatio="none"
-        style={{ width: '100%', height: '100%', display: 'block' }}
+        style={{ width: "100%", height: "100%", display: "block" }}
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -166,7 +180,13 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
         {/* End Beacon Dot */}
         {lastPoint && (
           <>
-            <circle cx={lastPoint.x} cy={lastPoint.y} r="3.5" fill={color} opacity="0.3" />
+            <circle
+              cx={lastPoint.x}
+              cy={lastPoint.y}
+              r="3.5"
+              fill={color}
+              opacity="0.3"
+            />
             <circle cx={lastPoint.x} cy={lastPoint.y} r="2" fill={color} />
           </>
         )}
@@ -176,27 +196,31 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
       {showBadge && (
         <div
           style={{
-            position: 'absolute',
-            top: '2px',
-            right: '4px',
-            fontSize: '8.5px',
+            position: "absolute",
+            top: "2px",
+            right: "4px",
+            fontSize: "8.5px",
             fontWeight: 800,
             color,
-            backgroundColor: 'rgba(10, 14, 23, 0.88)',
-            padding: '1px 4px',
-            borderRadius: '3px',
-            lineHeight: '1.2',
-            pointerEvents: 'none',
-            backdropFilter: 'blur(2px)',
+            backgroundColor: "rgba(10, 14, 23, 0.88)",
+            padding: "1px 4px",
+            borderRadius: "3px",
+            lineHeight: "1.2",
+            pointerEvents: "none",
+            backdropFilter: "blur(2px)",
             border: `1px solid ${color}33`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            fontFamily: 'monospace',
+            display: "flex",
+            alignItems: "center",
+            gap: "2px",
+            fontFamily: "monospace",
           }}
         >
           <span>{badgeIcon}</span>
-          <span>{displayPercent >= 0 ? `+${displayPercent.toFixed(1)}%` : `${displayPercent.toFixed(1)}%`}</span>
+          <span>
+            {displayPercent >= 0
+              ? `+${displayPercent.toFixed(1)}%`
+              : `${displayPercent.toFixed(1)}%`}
+          </span>
         </div>
       )}
     </div>

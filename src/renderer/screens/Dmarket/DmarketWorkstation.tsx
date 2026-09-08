@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import toast from 'react-hot-toast';
-import { Target, Zap, Tag } from 'lucide-react';
-import { DmarketTargetItem } from '../../../shared/types';
-import { safeGetItem } from '../../utils/storage';
-import { useLayoutStore } from '../../store/useLayoutStore';
-import { useTrendStore } from '../../store/useTrendStore';
+import React, { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
+import { Target, Zap, Tag } from "lucide-react";
+import { DmarketTargetItem } from "../../../shared/types";
+import { safeGetItem } from "../../utils/storage";
+import { useLayoutStore } from "../../store/useLayoutStore";
+import { useTrendStore } from "../../store/useTrendStore";
 import {
   TargetAnalysis,
   MARKET_NAME_MAP,
@@ -15,14 +15,14 @@ import {
   getTradePrice,
   getTradeAmount,
   getTradeDate,
-} from './dmarket-utils';
+} from "./dmarket-utils";
 
-import { DmarketHeader } from './components/DmarketHeader';
-import { TargetTab } from './tabs/TargetTab/TargetTab';
-import { SoCloseTab } from './tabs/SoCloseTab/SoCloseTab';
-import { ListingsTab } from './tabs/ListingsTab/ListingsTab';
-import { ItemLookupModal } from './modals/ItemLookupModal';
-import { EditTargetModal } from './modals/EditTargetModal';
+import { DmarketHeader } from "./components/DmarketHeader";
+import { TargetTab } from "./tabs/TargetTab/TargetTab";
+import { SoCloseTab } from "./tabs/SoCloseTab/SoCloseTab";
+import { ListingsTab } from "./tabs/ListingsTab/ListingsTab";
+import { ItemLookupModal } from "./modals/ItemLookupModal";
+import { EditTargetModal } from "./modals/EditTargetModal";
 
 // Re-export utility functions for unit tests & backward compatibility
 export {
@@ -54,7 +54,9 @@ export default function DmarketWorkstation() {
   const [balanceLoading, setBalanceLoading] = useState(false);
 
   // Main Tab Navigation ('target' | 'soclose' | 'listings')
-  const [mainTab, setMainTab] = useState<'target' | 'soclose' | 'listings'>('target');
+  const [mainTab, setMainTab] = useState<"target" | "soclose" | "listings">(
+    "target",
+  );
 
   // Sidebar expand/collapse tracking for full-width floating panel positioning
   const isSidebarExpanded = useLayoutStore((state) => state.isSidebarExpanded);
@@ -69,8 +71,12 @@ export default function DmarketWorkstation() {
   } | null>(null);
 
   // Edit Target Modal State
-  const [editingTarget, setEditingTarget] = useState<DmarketTargetItem | null>(null);
-  const [editingTargetAnalysis, setEditingTargetAnalysis] = useState<TargetAnalysis | undefined>(undefined);
+  const [editingTarget, setEditingTarget] = useState<DmarketTargetItem | null>(
+    null,
+  );
+  const [editingTargetAnalysis, setEditingTargetAnalysis] = useState<
+    TargetAnalysis | undefined
+  >(undefined);
 
   // Prevent duplicate concurrent / double-invoked fetches on mount
   const isFetchingTargetsRef = useRef(false);
@@ -95,19 +101,19 @@ export default function DmarketWorkstation() {
         window.electronAPI.dmarket.getProfile(),
       ]);
 
-      if (balanceRes.status === 'fulfilled') {
+      if (balanceRes.status === "fulfilled") {
         setBalanceData(balanceRes.value);
       }
-      if (profileRes.status === 'fulfilled') {
+      if (profileRes.status === "fulfilled") {
         const prof = profileRes.value;
         setProfileData({
-          username: prof?.username || 'Trader',
+          username: prof?.username || "Trader",
           targetsLimit: prof?.settings?.targetsLimit,
           imageUrl: prof?.imageUrl,
         });
       }
     } catch (err: any) {
-      console.warn('[DMarket Workstation] Balance/Profile error:', err.message);
+      console.warn("[DMarket Workstation] Balance/Profile error:", err.message);
     } finally {
       setBalanceLoading(false);
     }
@@ -119,22 +125,30 @@ export default function DmarketWorkstation() {
 
     const keyOk = await checkApiKey();
     if (!keyOk) {
-      toast.error('DMarket API keys not configured. Please add your keys in Settings.');
+      toast.error(
+        "DMarket API keys not configured. Please add your keys in Settings.",
+      );
       isFetchingTargetsRef.current = false;
       return;
     }
 
     setLoading(true);
-    const toastId = 'dmarket-sync-targets';
-    toast.loading('Syncing DMarket targets...', { id: toastId });
+    const toastId = "dmarket-sync-targets";
+    toast.loading("Syncing DMarket targets...", { id: toastId });
     try {
-      const res = await window.electronAPI.dmarket.getTargets({ fetchAll: true });
-      const list: DmarketTargetItem[] = Array.isArray(res?.items) ? res.items : [];
+      const res = await window.electronAPI.dmarket.getTargets({
+        fetchAll: true,
+      });
+      const list: DmarketTargetItem[] = Array.isArray(res?.items)
+        ? res.items
+        : [];
       setTargets(list);
-      toast.success(`Loaded ${list.length} active DMarket targets`, { id: toastId });
+      toast.success(`Loaded ${list.length} active DMarket targets`, {
+        id: toastId,
+      });
       fetchUserData();
     } catch (err: any) {
-      console.error('[DMarket Workstation] Error fetching targets:', err);
+      console.error("[DMarket Workstation] Error fetching targets:", err);
       toast.error(`DMarket error: ${err.message}`, { id: toastId });
     } finally {
       setLoading(false);
@@ -146,7 +160,7 @@ export default function DmarketWorkstation() {
     if (initialFetchDoneRef.current) return;
     initialFetchDoneRef.current = true;
 
-    checkApiKey().then(ok => {
+    checkApiKey().then((ok) => {
       if (ok) {
         fetchTargets();
       }
@@ -155,24 +169,31 @@ export default function DmarketWorkstation() {
 
   useEffect(() => {
     if (targets.length > 0) {
-      useTrendStore.getState().fetchHistoryBatch(targets.map(t => t.title));
+      useTrendStore.getState().fetchHistoryBatch(targets.map((t) => t.title));
     }
   }, [targets]);
 
   // Open item inspection modal with fast single-item lookup
-  const handleOpenLookupModal = async (title: string, acceptedPrice?: number, marketPrice?: number, iconUrl?: string) => {
+  const handleOpenLookupModal = async (
+    title: string,
+    acceptedPrice?: number,
+    marketPrice?: number,
+    iconUrl?: string,
+  ) => {
     setLookupModalItem({ name: title, acceptedPrice, marketPrice, iconUrl });
     try {
       const singleItem = await window.electronAPI.skinsnipe.getItem(title);
       if (singleItem) {
-        setLookupModalItem(prev => (prev ? { ...prev, cacheItem: singleItem } : null));
+        setLookupModalItem((prev) =>
+          prev ? { ...prev, cacheItem: singleItem } : null,
+        );
       } else {
         const cache = await window.electronAPI.skinsnipe.getCache();
         const cacheItem = cache ? cache[title] : null;
-        setLookupModalItem(prev => (prev ? { ...prev, cacheItem } : null));
+        setLookupModalItem((prev) => (prev ? { ...prev, cacheItem } : null));
       }
     } catch (err) {
-      console.error('Failed to load item cache for lookup:', err);
+      console.error("Failed to load item cache for lookup:", err);
     }
   };
 
@@ -182,12 +203,18 @@ export default function DmarketWorkstation() {
     if (window.electronAPI?.app?.openExternal) {
       window.electronAPI.app.openExternal(url);
     } else {
-      window.open(url, '_blank');
+      window.open(url, "_blank");
     }
   };
 
-  const handleUpdateTarget = async (target: DmarketTargetItem, newPriceUsd: number, newAmount: number) => {
-    const toastId = toast.loading(`Updating target for ${target.title} to $${newPriceUsd.toFixed(2)}...`);
+  const handleUpdateTarget = async (
+    target: DmarketTargetItem,
+    newPriceUsd: number,
+    newAmount: number,
+  ) => {
+    const toastId = toast.loading(
+      `Updating target for ${target.title} to $${newPriceUsd.toFixed(2)}...`,
+    );
     try {
       const res = await window.electronAPI.dmarket.updateTarget(
         target.targetId,
@@ -198,8 +225,8 @@ export default function DmarketWorkstation() {
       const newTargetId = res?.newTargetId || target.targetId;
       const updatedPriceCents = String(Math.round(newPriceUsd * 100));
 
-      setTargets(prev =>
-        prev.map(t =>
+      setTargets((prev) =>
+        prev.map((t) =>
           t.targetId === target.targetId
             ? {
                 ...t,
@@ -210,7 +237,9 @@ export default function DmarketWorkstation() {
             : t,
         ),
       );
-      toast.success(`Target updated to $${newPriceUsd.toFixed(2)}`, { id: toastId });
+      toast.success(`Target updated to $${newPriceUsd.toFixed(2)}`, {
+        id: toastId,
+      });
       fetchUserData();
     } catch (err: any) {
       toast.error(`Update failed: ${err.message}`, { id: toastId });
@@ -219,7 +248,14 @@ export default function DmarketWorkstation() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '70px' }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "14px",
+        paddingBottom: "70px",
+      }}
+    >
       {/* ── WORKSTATION HEADER ────────────────────────────────────────── */}
       <DmarketHeader
         profileData={profileData}
@@ -231,26 +267,58 @@ export default function DmarketWorkstation() {
       />
 
       {/* ── MAIN WORKSTATION TABS (Mirroring CSFloat Navigation) ──────── */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--so-border-medium)', gap: '6px', paddingBottom: '2px' }}>
+      <div
+        style={{
+          display: "flex",
+          borderBottom: "1px solid var(--so-border-medium)",
+          gap: "6px",
+          paddingBottom: "2px",
+        }}
+      >
         <button
-          onClick={() => setMainTab('target')}
-          className={`btn ${mainTab === 'target' ? 'btn-primary' : 'btn-outline'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '5px 14px' }}
+          onClick={() => setMainTab("target")}
+          className={`btn ${mainTab === "target" ? "btn-primary" : "btn-outline"} btn-sm`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "12px",
+            padding: "5px 14px",
+          }}
         >
           <Target size={13} /> Targets
         </button>
         <button
-          onClick={() => setMainTab('soclose')}
-          className={`btn ${mainTab === 'soclose' ? 'btn-primary' : 'btn-outline'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '5px 14px' }}
+          onClick={() => setMainTab("soclose")}
+          className={`btn ${mainTab === "soclose" ? "btn-primary" : "btn-outline"} btn-sm`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "12px",
+            padding: "5px 14px",
+          }}
         >
-          <Zap size={13} style={{ color: mainTab === 'soclose' ? '#ffffff' : 'var(--so-accent-cyan)' }} /> So Close Opportunities
+          <Zap
+            size={13}
+            style={{
+              color:
+                mainTab === "soclose" ? "#ffffff" : "var(--so-accent-cyan)",
+            }}
+          />{" "}
+          So Close Opportunities
         </button>
         {import.meta.env.DEV && (
           <button
-            onClick={() => setMainTab('listings')}
-            className={`btn ${mainTab === 'listings' ? 'btn-primary' : 'btn-outline'} btn-sm`}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '5px 14px' }}
+            onClick={() => setMainTab("listings")}
+            className={`btn ${mainTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "12px",
+              padding: "5px 14px",
+            }}
           >
             <Tag size={13} /> Listings & Inventory
           </button>
@@ -258,7 +326,7 @@ export default function DmarketWorkstation() {
       </div>
 
       {/* ── TAB VIEWS ─────────────────────────────────────────────────── */}
-      {mainTab === 'target' && (
+      {mainTab === "target" && (
         <TargetTab
           hasKey={hasKey}
           targets={targets}
@@ -276,7 +344,7 @@ export default function DmarketWorkstation() {
         />
       )}
 
-      {mainTab === 'soclose' && (
+      {mainTab === "soclose" && (
         <SoCloseTab
           hasKey={!!hasKey}
           targets={targets}
@@ -288,7 +356,7 @@ export default function DmarketWorkstation() {
         />
       )}
 
-      {import.meta.env.DEV && mainTab === 'listings' && (
+      {import.meta.env.DEV && mainTab === "listings" && (
         <ListingsTab
           hasKey={!!hasKey}
           isSidebarExpanded={isSidebarExpanded}

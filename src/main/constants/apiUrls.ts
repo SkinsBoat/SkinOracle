@@ -6,32 +6,37 @@
 // ─────────────────────────────────────────────────────────────────
 
 // Base API Roots
-export const CSFLOAT_API = 'https://csfloat.com/api/v1';
-export const SKINSCOM_API = 'https://api.skins.com/v1';
-export const SKINSNIPE_API = 'https://pricing.tradeupspy.com/public';
-export const CS2CAP_API = 'https://api.cs2c.app/v1';
-export const DMARKET_API = 'https://api.dmarket.com';
-export const DMARKET_CS2_GAME_ID = 'a8db';
+export const CSFLOAT_API = "https://csfloat.com/api/v1";
+export const SKINSCOM_API = "https://api.skins.com/v1";
+export const SKINSNIPE_API = "https://pricing.tradeupspy.com/public";
+export const CS2CAP_API = "https://api.cs2c.app/v1";
+export const DMARKET_API = "https://api.dmarket.com";
+export const DMARKET_CS2_GAME_ID = "a8db";
 
-const isProd = process.env.NODE_ENV === 'production' || !process.env.VITE_DEV_SERVER_URL;
+const isProd =
+  process.env.NODE_ENV === "production" || !process.env.VITE_DEV_SERVER_URL;
 
 export const SAAS_API =
   process.env.SAAS_API_URL ||
-  (isProd ? 'https://saas.skinsboat.com/api/v1' : 'http://localhost:3100/api/v1');
+  (isProd
+    ? "https://saas.skinsboat.com/api/v1"
+    : "http://localhost:3100/api/v1");
 
 // ── CSFloat Endpoints ─────────────────────────────────────────────
 export const CSFLOAT_ME = `${CSFLOAT_API}/me`;
 export const CSFLOAT_BUY_ORDERS = `${CSFLOAT_API}/buy-orders`;
 export const CSFLOAT_ME_BUY_ORDERS = `${CSFLOAT_API}/me/buy-orders`;
-export const CSFLOAT_BUY_ORDER_BY_ID = (orderId: string) => `${CSFLOAT_API}/buy-orders/${orderId}`;
+export const CSFLOAT_BUY_ORDER_BY_ID = (orderId: string) =>
+  `${CSFLOAT_API}/buy-orders/${orderId}`;
 export const CSFLOAT_ME_INVENTORY = `${CSFLOAT_API}/me/inventory`;
 export const CSFLOAT_LISTINGS = `${CSFLOAT_API}/listings`;
-export const CSFLOAT_LISTING_BY_ID = (listingId: string) => `${CSFLOAT_API}/listings/${listingId}`;
-
+export const CSFLOAT_LISTING_BY_ID = (listingId: string) =>
+  `${CSFLOAT_API}/listings/${listingId}`;
 
 // ── Skins.com Endpoints ───────────────────────────────────────────
 export const SKINSCOM_BUY_ORDERS = `${SKINSCOM_API}/buy-orders`;
-export const SKINSCOM_BUY_ORDER_BY_ID = (orderId: string) => `${SKINSCOM_API}/buy-orders/${orderId}`;
+export const SKINSCOM_BUY_ORDER_BY_ID = (orderId: string) =>
+  `${SKINSCOM_API}/buy-orders/${orderId}`;
 
 // ── Skinsnipe Endpoints ───────────────────────────────────────────
 export const SKINSNIPE_LOWEST_PRICES = `${SKINSNIPE_API}/lowest-prices`;
@@ -56,5 +61,5 @@ export const SAAS_AUTH_VERIFY = `${SAAS_API}/auth/verify`;
 export const SAAS_APP_VERSION_CHECK = `${SAAS_API}/app/version-check`;
 
 // ── Application Releases ──────────────────────────────────────────
-export const APP_RELEASES_URL = 'https://github.com/SkinsBoat/SkinOracle/releases/latest';
-
+export const APP_RELEASES_URL =
+  "https://github.com/SkinsBoat/SkinOracle/releases/latest";

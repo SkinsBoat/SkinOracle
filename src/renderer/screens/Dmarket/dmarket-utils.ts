@@ -1,8 +1,11 @@
-import { ListingPriceInfo } from '../../../shared/types';
-import { getMarketDisplayName, CANONICAL_MARKETS } from '../../../shared/canonicalMarkets';
+import { ListingPriceInfo } from "../../../shared/types";
+import {
+  getMarketDisplayName,
+  CANONICAL_MARKETS,
+} from "../../../shared/canonicalMarkets";
 
 export const MARKET_NAME_MAP: Record<string, string> = Object.fromEntries(
-  CANONICAL_MARKETS.map(m => [m.id, m.name])
+  CANONICAL_MARKETS.map((m) => [m.id, m.name]),
 );
 
 export const getHumanMarketName = (marketId: string): string => {
@@ -10,18 +13,22 @@ export const getHumanMarketName = (marketId: string): string => {
 };
 
 export const getWearShortcut = (wear?: string): string => {
-  if (!wear) return '';
+  if (!wear) return "";
   const w = wear.toLowerCase();
-  if (w.includes('factory new') || w.includes('exterior_factory_new')) return 'FN';
-  if (w.includes('minimal wear') || w.includes('exterior_minimal_wear')) return 'MW';
-  if (w.includes('field-tested') || w.includes('exterior_field_tested')) return 'FT';
-  if (w.includes('well-worn') || w.includes('exterior_well_worn')) return 'WW';
-  if (w.includes('battle-scarred') || w.includes('exterior_battle_scarred')) return 'BS';
+  if (w.includes("factory new") || w.includes("exterior_factory_new"))
+    return "FN";
+  if (w.includes("minimal wear") || w.includes("exterior_minimal_wear"))
+    return "MW";
+  if (w.includes("field-tested") || w.includes("exterior_field_tested"))
+    return "FT";
+  if (w.includes("well-worn") || w.includes("exterior_well_worn")) return "WW";
+  if (w.includes("battle-scarred") || w.includes("exterior_battle_scarred"))
+    return "BS";
   return wear;
 };
 
 export const getTradeTitle = (trade: any): string => {
-  if (!trade) return 'CS2 Item';
+  if (!trade) return "CS2 Item";
   let title =
     trade.Title ||
     trade.title ||
@@ -41,11 +48,11 @@ export const getTradeTitle = (trade: any): string => {
     trade.attributes?.market_hash_name ||
     trade.attributes?.name ||
     trade.attributes?.assetTitle ||
-    'CS2 Item';
+    "CS2 Item";
 
   title = String(title).trim();
-  if (!title || title.toLowerCase() === 'cs2 item') {
-    return 'CS2 Item';
+  if (!title || title.toLowerCase() === "cs2 item") {
+    return "CS2 Item";
   }
 
   // Reconstruct wear condition in parentheses if missing
@@ -56,14 +63,42 @@ export const getTradeTitle = (trade: any): string => {
       trade.extra?.exterior ||
       trade.exterior ||
       trade.attributes?.Exterior ||
-      '';
+      "";
     const extStr = String(rawExt).toLowerCase().trim();
-    let wearSuffix = '';
-    if (extStr.includes('factory new') || extStr.includes('exterior_factory_new') || extStr === 'fn') wearSuffix = '(Factory New)';
-    else if (extStr.includes('minimal wear') || extStr.includes('exterior_minimal_wear') || extStr === 'mw') wearSuffix = '(Minimal Wear)';
-    else if (extStr.includes('field-tested') || extStr.includes('field tested') || extStr.includes('exterior_field_tested') || extStr === 'ft') wearSuffix = '(Field-Tested)';
-    else if (extStr.includes('well-worn') || extStr.includes('well worn') || extStr.includes('exterior_well_worn') || extStr === 'ww') wearSuffix = '(Well-Worn)';
-    else if (extStr.includes('battle-scarred') || extStr.includes('battle scarred') || extStr.includes('exterior_battle_scarred') || extStr === 'bs') wearSuffix = '(Battle-Scarred)';
+    let wearSuffix = "";
+    if (
+      extStr.includes("factory new") ||
+      extStr.includes("exterior_factory_new") ||
+      extStr === "fn"
+    )
+      wearSuffix = "(Factory New)";
+    else if (
+      extStr.includes("minimal wear") ||
+      extStr.includes("exterior_minimal_wear") ||
+      extStr === "mw"
+    )
+      wearSuffix = "(Minimal Wear)";
+    else if (
+      extStr.includes("field-tested") ||
+      extStr.includes("field tested") ||
+      extStr.includes("exterior_field_tested") ||
+      extStr === "ft"
+    )
+      wearSuffix = "(Field-Tested)";
+    else if (
+      extStr.includes("well-worn") ||
+      extStr.includes("well worn") ||
+      extStr.includes("exterior_well_worn") ||
+      extStr === "ww"
+    )
+      wearSuffix = "(Well-Worn)";
+    else if (
+      extStr.includes("battle-scarred") ||
+      extStr.includes("battle scarred") ||
+      extStr.includes("exterior_battle_scarred") ||
+      extStr === "bs"
+    )
+      wearSuffix = "(Battle-Scarred)";
 
     if (wearSuffix) {
       title = `${title} ${wearSuffix}`;
@@ -72,15 +107,15 @@ export const getTradeTitle = (trade: any): string => {
 
   // Reconstruct StatTrak prefix if flagged in attributes
   const isStatTrak =
-    trade.attributes?.cs2?.category === 'CATEGORY_STATTRACK' ||
-    trade.attributes?.category === 'CATEGORY_STATTRACK' ||
+    trade.attributes?.cs2?.category === "CATEGORY_STATTRACK" ||
+    trade.attributes?.category === "CATEGORY_STATTRACK" ||
     trade.attributes?.isStatTrak ||
     trade.attributes?.isStattrak ||
     trade.extra?.isStatTrak ||
     trade.extra?.isStattrak ||
     trade.isStatTrak;
 
-  if (isStatTrak && !title.includes('StatTrak™')) {
+  if (isStatTrak && !title.includes("StatTrak™")) {
     title = `StatTrak™ ${title}`;
   }
 
@@ -95,7 +130,8 @@ export const getItemListingPriceWithMap = (
   item: any,
   priceMap?: Record<string, ListingPriceInfo>,
 ): ListingPriceInfo | undefined => {
-  if (!item || !priceMap || Object.keys(priceMap).length === 0) return undefined;
+  if (!item || !priceMap || Object.keys(priceMap).length === 0)
+    return undefined;
 
   const possibleTitles = [
     item.title,
@@ -127,14 +163,42 @@ export const getItemListingPriceWithMap = (
         item.extra?.exterior ||
         item.exterior ||
         item.attributes?.Exterior ||
-        '';
+        "";
       const extStr = String(rawExt).toLowerCase().trim();
-      let wearSuffix = '';
-      if (extStr.includes('factory new') || extStr.includes('exterior_factory_new') || extStr === 'fn') wearSuffix = '(Factory New)';
-      else if (extStr.includes('minimal wear') || extStr.includes('exterior_minimal_wear') || extStr === 'mw') wearSuffix = '(Minimal Wear)';
-      else if (extStr.includes('field-tested') || extStr.includes('field tested') || extStr.includes('exterior_field_tested') || extStr === 'ft') wearSuffix = '(Field-Tested)';
-      else if (extStr.includes('well-worn') || extStr.includes('well worn') || extStr.includes('exterior_well_worn') || extStr === 'ww') wearSuffix = '(Well-Worn)';
-      else if (extStr.includes('battle-scarred') || extStr.includes('battle scarred') || extStr.includes('exterior_battle_scarred') || extStr === 'bs') wearSuffix = '(Battle-Scarred)';
+      let wearSuffix = "";
+      if (
+        extStr.includes("factory new") ||
+        extStr.includes("exterior_factory_new") ||
+        extStr === "fn"
+      )
+        wearSuffix = "(Factory New)";
+      else if (
+        extStr.includes("minimal wear") ||
+        extStr.includes("exterior_minimal_wear") ||
+        extStr === "mw"
+      )
+        wearSuffix = "(Minimal Wear)";
+      else if (
+        extStr.includes("field-tested") ||
+        extStr.includes("field tested") ||
+        extStr.includes("exterior_field_tested") ||
+        extStr === "ft"
+      )
+        wearSuffix = "(Field-Tested)";
+      else if (
+        extStr.includes("well-worn") ||
+        extStr.includes("well worn") ||
+        extStr.includes("exterior_well_worn") ||
+        extStr === "ww"
+      )
+        wearSuffix = "(Well-Worn)";
+      else if (
+        extStr.includes("battle-scarred") ||
+        extStr.includes("battle scarred") ||
+        extStr.includes("exterior_battle_scarred") ||
+        extStr === "bs"
+      )
+        wearSuffix = "(Battle-Scarred)";
 
       if (wearSuffix) {
         const reconstructed = `${raw} ${wearSuffix}`;
@@ -147,7 +211,7 @@ export const getItemListingPriceWithMap = (
   const mapKeys = Object.keys(priceMap);
   for (const t of possibleTitles) {
     const lower = String(t).toLowerCase().trim();
-    const foundKey = mapKeys.find(k => k.toLowerCase() === lower);
+    const foundKey = mapKeys.find((k) => k.toLowerCase() === lower);
     if (foundKey) return priceMap[foundKey];
   }
 
@@ -155,13 +219,13 @@ export const getItemListingPriceWithMap = (
 };
 
 export const getTradePrice = (trade: any): string => {
-  if (!trade) return '—';
-  if (trade.priceUSD && trade.priceUSD !== '—') return trade.priceUSD;
+  if (!trade) return "—";
+  if (trade.priceUSD && trade.priceUSD !== "—") return trade.priceUSD;
 
   const priceObj = trade.Price || trade.price;
   let raw: any = undefined;
 
-  if (priceObj && typeof priceObj === 'object') {
+  if (priceObj && typeof priceObj === "object") {
     raw =
       priceObj.Amount ??
       priceObj.amount ??
@@ -169,11 +233,11 @@ export const getTradePrice = (trade: any): string => {
       priceObj.usd ??
       priceObj.price ??
       priceObj.Price;
-  } else if (typeof priceObj === 'number' || typeof priceObj === 'string') {
+  } else if (typeof priceObj === "number" || typeof priceObj === "string") {
     raw = priceObj;
   }
 
-  if (raw === undefined || raw === null || raw === '') {
+  if (raw === undefined || raw === null || raw === "") {
     raw =
       trade.PriceCents ??
       trade.priceCents ??
@@ -183,13 +247,13 @@ export const getTradePrice = (trade: any): string => {
       trade.amountCents;
   }
 
-  if (raw === undefined || raw === null || raw === '') return '—';
+  if (raw === undefined || raw === null || raw === "") return "—";
 
-  const num = typeof raw === 'number' ? raw : parseFloat(String(raw));
-  if (isNaN(num)) return '—';
+  const num = typeof raw === "number" ? raw : parseFloat(String(raw));
+  if (isNaN(num)) return "—";
 
   const str = String(raw);
-  if (str.includes('.')) return num.toFixed(2);
+  if (str.includes(".")) return num.toFixed(2);
   if (priceObj?.USD !== undefined || priceObj?.usd !== undefined || num >= 50) {
     return (num / 100).toFixed(2);
   }
@@ -197,7 +261,7 @@ export const getTradePrice = (trade: any): string => {
 };
 
 export const getTradeAmount = (trade: any): string => {
-  return String(trade?.Amount || trade?.amount || '1');
+  return String(trade?.Amount || trade?.amount || "1");
 };
 
 export const getTradeDate = (trade: any): string => {
@@ -208,8 +272,8 @@ export const getTradeDate = (trade: any): string => {
     trade?.closedTime ??
     trade?.CreatedAt ??
     trade?.createdAt;
-  if (!ts) return 'Recent';
-  const num = typeof ts === 'number' ? ts : parseInt(String(ts), 10);
+  if (!ts) return "Recent";
+  const num = typeof ts === "number" ? ts : parseInt(String(ts), 10);
   if (isNaN(num)) return String(ts);
   const sec = num > 1e11 ? Math.floor(num / 1000) : num;
   return new Date(sec * 1000).toLocaleString();
