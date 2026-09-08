@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { DmarketTargetItem, AcceptedPriceInfo } from '../../../../../shared/types';
 import TrendSparkline from '../../../../components/TrendSparkline';
+import { CopyMarketHashButton } from '../../../../components/CopyMarketHashButton';
 import {
   TargetAnalysis,
   getWearShortcut,
@@ -759,26 +760,26 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                   >
                     {/* Top Header Row */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '20px' }}>
-                      {isSelected ? (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            backgroundColor: 'var(--so-primary)',
-                            color: '#ffffff',
-                            padding: '1px 6px',
-                            borderRadius: '10px',
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            letterSpacing: '0.4px',
-                            lineHeight: '1.2',
-                          }}
-                        >
-                          <Check size={10} /> SELECTED
-                        </span>
-                      ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          {isSelected && (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                backgroundColor: 'var(--so-primary)',
+                                color: '#ffffff',
+                                padding: '1px 6px',
+                                borderRadius: '10px',
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                letterSpacing: '0.4px',
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              <Check size={10} /> SELECTED
+                            </span>
+                          )}
                           <button
                             onClick={e => {
                               e.stopPropagation();
@@ -824,8 +825,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                           >
                             <Eye size={13} />
                           </button>
+                          <CopyMarketHashButton name={target.title} />
                         </div>
-                      )}
 
                       {/* Drift Status Badge */}
                       {driftDetails ? (
@@ -1117,7 +1118,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
                       {/* My Target Price */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ color: 'var(--so-text-muted)' }}>My Price</span>
+                        <span style={{ color: 'var(--so-text-muted)' }}>Current Bid</span>
                         <span
                           className="tabular-nums"
                           style={{

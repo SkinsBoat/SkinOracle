@@ -209,7 +209,7 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--so-text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Zap size={18} style={{ color: selectedEngine === 'nexus' ? 'var(--so-primary)' : 'var(--so-cyan-text)' }} />
-              Builder Accepted Price for Purchasing Decisions and Buy Orders
+              Calculate Accepted Prices (Buy Ceilings)
             </div>
             {!isOpen && (
               <div style={{ fontSize: '12px', color: 'var(--so-text-muted)', marginTop: '2px' }}>

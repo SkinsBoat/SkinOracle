@@ -14,6 +14,7 @@ import {
 import { getWearShortcut, SoCloseResultItem } from '../../dmarket-utils';
 import { isMarketMatch } from '../../../../../shared/canonicalMarkets';
 import TrendSparkline from '../../../../components/TrendSparkline';
+import { CopyMarketHashButton } from '../../../../components/CopyMarketHashButton';
 import { useTrendStore } from '../../../../store/useTrendStore';
 
 export interface SoCloseTabProps {
@@ -46,7 +47,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
     ft: true,
     ww: true,
     bs: true,
-    souvenir: false,
+    souvenir: true,
     sticker: true,
   });
   const [selectedSoCloseItems, setSelectedSoCloseItems] = useState<Record<string, boolean>>({});
@@ -91,8 +92,8 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
 
       const priceCache: Record<string, any> = await window.electronAPI.skinsnipe.getCache();
 
-      const minP = parseFloat(soCloseMinPrice) || 0;
-      const maxP = parseFloat(soCloseMaxPrice) || 9999;
+      const minP = Math.max(0, parseFloat(soCloseMinPrice) || 0);
+      const maxP = Math.max(0, parseFloat(soCloseMaxPrice) || 9999);
       const results: SoCloseResultItem[] = [];
 
       const activeTargetTitlesSet = new Set(
@@ -270,12 +271,29 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             <span style={{ fontWeight: 700, color: 'var(--so-text-secondary)' }}>Price Range ($):</span>
             <input
               type="number"
+              min="0"
+              step="any"
               value={soCloseMinPrice}
-              onChange={e => setSoCloseMinPrice(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                if (val === '') {
+                  setSoCloseMinPrice('');
+                  return;
+                }
+                if (val.includes('-')) return;
+                const num = parseFloat(val);
+                if (!isNaN(num) && num < 0) return;
+                setSoCloseMinPrice(val);
+              }}
+              onKeyDown={e => {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Min"
               style={{
-                width: '42px',
-                padding: '1px 4px',
+                width: '72px',
+                padding: '2px 6px',
                 fontSize: '11px',
                 fontWeight: 800,
                 textAlign: 'center',
@@ -288,12 +306,29 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             <span style={{ color: 'var(--so-text-muted)' }}>-</span>
             <input
               type="number"
+              min="0"
+              step="any"
               value={soCloseMaxPrice}
-              onChange={e => setSoCloseMaxPrice(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                if (val === '') {
+                  setSoCloseMaxPrice('');
+                  return;
+                }
+                if (val.includes('-')) return;
+                const num = parseFloat(val);
+                if (!isNaN(num) && num < 0) return;
+                setSoCloseMaxPrice(val);
+              }}
+              onKeyDown={e => {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Max"
               style={{
-                width: '48px',
-                padding: '1px 4px',
+                width: '72px',
+                padding: '2px 6px',
                 fontSize: '11px',
                 fontWeight: 800,
                 textAlign: 'center',
@@ -625,6 +660,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                     >
                       <Eye size={14} />
                     </button>
+                    <CopyMarketHashButton name={item.name} />
                   </div>
 
                   {/* Distance / Closeness Badge */}

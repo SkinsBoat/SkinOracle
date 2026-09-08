@@ -1331,10 +1331,16 @@ ipcMain.handle('dmarket:get-deposit-status', async (_, depositId: string) => {
 
 // 17. Sync User Inventory with Steam
 ipcMain.handle('dmarket:sync-user-inventory', async () => {
-  console.log('[DMarket IPC] Syncing inventory with Steam...');
-  const body = { Type: 'Inventory', GameID: 'CSGO' };
-  const res = await dmarketRequest('POST', '/marketplace-api/v1/user-inventory/sync', undefined, body);
-  return res;
+  console.log('[DMarket IPC] Requesting Steam inventory sync from DMarket...');
+  const body = { Type: 'Inventory', GameID: DMARKET_CS2_GAME_ID, gameId: DMARKET_CS2_GAME_ID };
+  try {
+    const res = await dmarketRequest('POST', '/marketplace-api/v1/user-inventory/sync', undefined, body);
+    console.log('[DMarket IPC] ✅ Steam inventory sync requested successfully:', res);
+    return res;
+  } catch (err: any) {
+    console.error('[DMarket IPC] ❌ Steam inventory sync request failed:', err.message || err);
+    throw err;
+  }
 });
 }
 

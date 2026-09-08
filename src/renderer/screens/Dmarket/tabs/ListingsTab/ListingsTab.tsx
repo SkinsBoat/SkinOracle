@@ -19,6 +19,7 @@ import {
   Zap,
   Search,
   X,
+  Info,
 } from 'lucide-react';
 import {
   DmarketOfferItem,
@@ -33,6 +34,7 @@ import {
 } from '../../dmarket-utils';
 import { EditOfferModal } from '../../modals/EditOfferModal';
 import { CreateListingModal } from '../../modals/CreateListingModal';
+import { CopyMarketHashButton } from '../../../../components/CopyMarketHashButton';
 
 export interface ListingsTabProps {
   hasKey: boolean;
@@ -56,6 +58,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
   const [offersLoading, setOffersLoading] = useState(false);
   const [inventory, setInventory] = useState<DmarketInventoryItem[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [steamSyncing, setSteamSyncing] = useState(false);
   const [closedOffers, setClosedOffers] = useState<any[]>([]);
   const [closedOffersLoading, setClosedOffersLoading] = useState(false);
   const [listingAnalysis, setListingAnalysis] = useState<Record<string, ListingAnalysis>>({});
@@ -202,6 +205,20 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
       toast.error(`Error fetching inventory: ${err.message}`, { id: toastId });
     } finally {
       setInventoryLoading(false);
+    }
+  };
+
+  const handleSteamResync = async () => {
+    setSteamSyncing(true);
+    const toastId = toast.loading('Requesting DMarket to re-sync Steam inventory...');
+    try {
+      await window.electronAPI.dmarket.syncUserInventory();
+      toast.success('Sync request sent to DMarket! Refreshing inventory in 4s...', { id: toastId });
+      setTimeout(fetchInventory, 4000);
+    } catch (e: any) {
+      toast.error(`Steam sync error: ${e.message}`, { id: toastId });
+    } finally {
+      setSteamSyncing(false);
     }
   };
 
@@ -915,25 +932,18 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                 disabled={inventoryLoading}
                 className="btn btn-primary btn-sm"
                 style={{ fontSize: '12px', padding: '5px 12px' }}
+                title="Fetch currently cached inventory from DMarket"
               >
                 {inventoryLoading ? <Loader2 size={13} className="spin" /> : <RotateCw size={13} />} Sync Inventory
               </button>
               <button
-                onClick={async () => {
-                  const toastId = toast.loading('Requesting DMarket to re-sync Steam inventory...');
-                  try {
-                    await window.electronAPI.dmarket.syncUserInventory();
-                    toast.success('Sync triggered with Steam! Refreshing in 3s...', { id: toastId });
-                    setTimeout(fetchInventory, 3000);
-                  } catch (e: any) {
-                    toast.error(`Steam sync error: ${e.message}`, { id: toastId });
-                  }
-                }}
+                onClick={handleSteamResync}
+                disabled={steamSyncing}
                 className="btn btn-outline btn-sm"
                 style={{ fontSize: '12px', padding: '5px 10px' }}
-                title="Ask DMarket to re-index your Steam inventory"
+                title="Tell DMarket to re-crawl your Steam inventory for newly received items"
               >
-                <RefreshCw size={13} /> Steam Re-sync
+                {steamSyncing ? <Loader2 size={13} className="spin" /> : <RefreshCw size={13} />} Steam Re-sync
               </button>
             </div>
           )}
@@ -1065,67 +1075,67 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                   >
                     {/* Top Header Row */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '20px' }}>
-                      {isSelected ? (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            backgroundColor: 'var(--so-primary)',
-                            color: '#ffffff',
-                            padding: '1px 6px',
-                            borderRadius: '10px',
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            letterSpacing: '0.4px',
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        {isSelected && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              backgroundColor: 'var(--so-primary)',
+                              color: '#ffffff',
+                              padding: '1px 6px',
+                              borderRadius: '10px',
+                              fontSize: '9px',
+                              fontWeight: 800,
+                              letterSpacing: '0.4px',
+                            }}
+                          >
+                            <Check size={10} /> SELECTED
+                          </span>
+                        )}
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            onOpenMarket(offer.title);
                           }}
+                          className="btn btn-sm"
+                          style={{
+                            padding: '3px 6px',
+                            background: 'var(--so-surface-panel)',
+                            border: '1px solid var(--so-border-subtle)',
+                            borderRadius: '4px',
+                            color: 'var(--so-text-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Open on DMarket Market (Browser)"
                         >
-                          <Check size={10} /> SELECTED
-                        </span>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              onOpenMarket(offer.title);
-                            }}
-                            className="btn btn-sm"
-                            style={{
-                              padding: '3px 6px',
-                              background: 'var(--so-surface-panel)',
-                              border: '1px solid var(--so-border-subtle)',
-                              borderRadius: '4px',
-                              color: 'var(--so-text-secondary)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                            title="Open on DMarket Market (Browser)"
-                          >
-                            <ExternalLink size={13} />
-                          </button>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              onOpenLookupModal(offer.title, analysis?.targetListingPrice, currentPriceDollar);
-                            }}
-                            className="btn btn-sm"
-                            style={{
-                              padding: '3px 6px',
-                              background: 'var(--so-surface-panel)',
-                              border: '1px solid var(--so-border-subtle)',
-                              borderRadius: '4px',
-                              color: 'var(--so-accent-cyan)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                            title="Inspect Market Price & Details"
-                          >
-                            <Eye size={13} />
-                          </button>
-                        </div>
-                      )}
+                          <ExternalLink size={13} />
+                        </button>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            onOpenLookupModal(offer.title, analysis?.targetListingPrice, currentPriceDollar);
+                          }}
+                          className="btn btn-sm"
+                          style={{
+                            padding: '3px 6px',
+                            background: 'var(--so-surface-panel)',
+                            border: '1px solid var(--so-border-subtle)',
+                            borderRadius: '4px',
+                            color: 'var(--so-accent-cyan)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Inspect Market Price & Details"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <CopyMarketHashButton name={offer.title} />
+                      </div>
 
                       {/* Analysis Drift Badge */}
                       {analysis ? (
@@ -1353,6 +1363,38 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
       {/* ── SUB-VIEW: INVENTORY (UNLISTED) ────────────────────────────── */}
       {listingSubTab === 'inventory' && (
         <div style={{ flex: 1, minHeight: 0 }}>
+          {/* Helpful Steam Sync Hint Banner */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              backgroundColor: 'rgba(59, 130, 246, 0.08)',
+              border: '1px solid rgba(59, 130, 246, 0.22)',
+              borderRadius: 'var(--so-radius-md)',
+              padding: '9px 14px',
+              marginBottom: '12px',
+              fontSize: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px', color: 'var(--so-text-secondary)', lineHeight: '1.4' }}>
+              <Info size={16} style={{ color: 'var(--so-accent-cyan)', flexShrink: 0 }} />
+              <span>
+                <strong style={{ color: '#ffffff' }}>Steam Sync Notice:</strong> DMarket caches your Steam inventory to avoid Valve rate limits. If newly bought or traded CS2 items aren&apos;t showing, click <strong style={{ color: 'var(--so-accent-cyan)' }}>Steam Re-sync</strong> to instruct DMarket to re-crawl your Steam account.
+              </span>
+            </div>
+            <button
+              onClick={handleSteamResync}
+              disabled={steamSyncing}
+              className="btn btn-outline btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}
+              title="Tell DMarket to re-crawl Steam for your newly acquired items"
+            >
+              {steamSyncing ? <Loader2 size={12} className="spin" /> : <RefreshCw size={12} />} Steam Re-sync
+            </button>
+          </div>
+
           {inventory.length === 0 ? (
             <div
               className="card"
@@ -1373,12 +1415,17 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                   <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--so-text-primary)', marginBottom: '4px' }}>
                     No unlisted inventory items found
                   </div>
-                  <div style={{ fontSize: '12px', marginBottom: '14px' }}>
-                    You currently have no unlisted inventory items in your DMarket account.
+                  <div style={{ fontSize: '12px', marginBottom: '16px', maxWidth: '420px', margin: '0 auto 16px', lineHeight: '1.4' }}>
+                    No unlisted items currently cached by DMarket. If you recently traded or bought items on Steam, trigger a Steam Re-sync so DMarket can index them.
                   </div>
-                  <button onClick={fetchInventory} className="btn btn-primary btn-sm" style={{ padding: '6px 16px' }}>
-                    <RotateCw size={13} /> Sync Inventory
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <button onClick={fetchInventory} disabled={inventoryLoading} className="btn btn-primary btn-sm" style={{ padding: '6px 16px' }}>
+                      <RotateCw size={13} /> Sync Inventory
+                    </button>
+                    <button onClick={handleSteamResync} disabled={steamSyncing} className="btn btn-outline btn-sm" style={{ padding: '6px 16px' }}>
+                      {steamSyncing ? <Loader2 size={13} className="spin" /> : <RefreshCw size={13} />} Steam Re-sync
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1448,7 +1495,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                     {/* Header Row */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {isSelected ? (
+                        {isSelected && (
                           <span
                             style={{
                               display: 'inline-flex',
@@ -1465,22 +1512,21 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                           >
                             <Check size={10} /> SELECTED
                           </span>
-                        ) : (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              padding: '1px 5px',
-                              fontSize: '8.5px',
-                              color: 'var(--so-text-muted)',
-                              backgroundColor: 'var(--so-surface-panel)',
-                              borderRadius: '3px',
-                              fontWeight: 800,
-                            }}
-                          >
-                            UNLISTED
-                          </span>
                         )}
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '1px 5px',
+                            fontSize: '8.5px',
+                            color: 'var(--so-text-muted)',
+                            backgroundColor: 'var(--so-surface-panel)',
+                            borderRadius: '3px',
+                            fontWeight: 800,
+                          }}
+                        >
+                          UNLISTED
+                        </span>
 
                         {item.inMarket ? (
                           <span className="badge badge-success" style={{ fontSize: '8.5px', padding: '1px 5px' }}>
@@ -1503,15 +1549,18 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                         )}
                       </div>
 
-                      {targetPrice ? (
-                        <span className="badge badge-success" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                          READY TO LIST
-                        </span>
-                      ) : (
-                        <span className="badge badge-secondary" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                          NO ORACLE PRICE
-                        </span>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <CopyMarketHashButton name={title} />
+                        {targetPrice ? (
+                          <span className="badge badge-success" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                            READY TO LIST
+                          </span>
+                        ) : (
+                          <span className="badge badge-secondary" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                            NO ORACLE PRICE
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Image Showcase */}

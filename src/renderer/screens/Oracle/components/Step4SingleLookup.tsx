@@ -48,7 +48,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--so-text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Search size={18} style={{ color: 'var(--so-warning-text)' }} /> Single Item Price Lookup & Live Analysis
+              <Search size={18} style={{ color: 'var(--so-warning-text)' }} /> Single Item Deep-Dive & Market Inspection
             </div>
             {!isOpen && (
               <div style={{ fontSize: '12px', color: 'var(--so-text-muted)', marginTop: '2px' }}>

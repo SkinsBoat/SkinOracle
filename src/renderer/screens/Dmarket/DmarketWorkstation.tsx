@@ -246,16 +246,15 @@ export default function DmarketWorkstation() {
         >
           <Zap size={13} style={{ color: mainTab === 'soclose' ? '#ffffff' : 'var(--so-accent-cyan)' }} /> So Close Opportunities
         </button>
-        {/* Commented out for production until testing and development are completed */}
-        {/*
-        <button
-          onClick={() => setMainTab('listings')}
-          className={`btn ${mainTab === 'listings' ? 'btn-primary' : 'btn-outline'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '5px 14px' }}
-        >
-          <Tag size={13} /> Listings & Inventory
-        </button>
-        */}
+        {import.meta.env.DEV && (
+          <button
+            onClick={() => setMainTab('listings')}
+            className={`btn ${mainTab === 'listings' ? 'btn-primary' : 'btn-outline'} btn-sm`}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '5px 14px' }}
+          >
+            <Tag size={13} /> Listings & Inventory
+          </button>
+        )}
       </div>
 
       {/* ── TAB VIEWS ─────────────────────────────────────────────────── */}
@@ -289,9 +288,7 @@ export default function DmarketWorkstation() {
         />
       )}
 
-      {/* Commented out for production until testing and development are completed */}
-      {/*
-      {mainTab === 'listings' && (
+      {import.meta.env.DEV && mainTab === 'listings' && (
         <ListingsTab
           hasKey={!!hasKey}
           isSidebarExpanded={isSidebarExpanded}
@@ -300,7 +297,6 @@ export default function DmarketWorkstation() {
           onOpenMarket={handleOpenDmarketMarket}
         />
       )}
-      */}
 
       {/* ── SHARED MODALS ─────────────────────────────────────────────── */}
       <ItemLookupModal

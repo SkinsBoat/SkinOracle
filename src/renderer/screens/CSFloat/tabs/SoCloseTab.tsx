@@ -8,6 +8,7 @@ import {
   RefreshCw,
   X,
   PlusCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { CSFloatSoCloseCard, SoCloseResultItem } from '../components/CSFloatSoCloseCard';
 
@@ -43,6 +44,9 @@ interface SoCloseTabProps {
   handleOpenLookupModal: (name: string, acceptedPrice?: number, currentMarketPrice?: number, iconUrl?: string) => void;
   getWearShortcut: (wearText?: string) => string;
   isSidebarExpanded: boolean;
+  selectedSoCloseTotal?: number;
+  activeOrdersTotal?: number;
+  maxLimitValue?: number;
 }
 
 export const SoCloseTab: React.FC<SoCloseTabProps> = ({
@@ -69,8 +73,13 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   handleOpenLookupModal,
   getWearShortcut,
   isSidebarExpanded,
+  selectedSoCloseTotal = 0,
+  activeOrdersTotal = 0,
+  maxLimitValue = 0,
 }) => {
   const selectedSoCloseCount = Object.values(selectedSoCloseItems).filter(Boolean).length;
+  const projectedTotalValue = activeOrdersTotal + selectedSoCloseTotal;
+  const isLimitExceeded = maxLimitValue > 0 && projectedTotalValue > maxLimitValue;
 
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
@@ -131,12 +140,29 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             <span style={{ fontWeight: 700, color: 'var(--so-text-secondary)' }}>Price Range ($):</span>
             <input
               type="number"
+              min="0"
+              step="any"
               value={soCloseMinPrice}
-              onChange={(e) => setSoCloseMinPrice(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  setSoCloseMinPrice('');
+                  return;
+                }
+                if (val.includes('-')) return;
+                const num = parseFloat(val);
+                if (!isNaN(num) && num < 0) return;
+                setSoCloseMinPrice(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Min"
               style={{
-                width: '42px',
-                padding: '1px 4px',
+                width: '72px',
+                padding: '2px 6px',
                 fontSize: '11px',
                 fontWeight: 800,
                 textAlign: 'center',
@@ -149,12 +175,29 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             <span style={{ color: 'var(--so-text-muted)' }}>-</span>
             <input
               type="number"
+              min="0"
+              step="any"
               value={soCloseMaxPrice}
-              onChange={(e) => setSoCloseMaxPrice(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  setSoCloseMaxPrice('');
+                  return;
+                }
+                if (val.includes('-')) return;
+                const num = parseFloat(val);
+                if (!isNaN(num) && num < 0) return;
+                setSoCloseMaxPrice(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Max"
               style={{
-                width: '48px',
-                padding: '1px 4px',
+                width: '72px',
+                padding: '2px 6px',
                 fontSize: '11px',
                 fontWeight: 800,
                 textAlign: 'center',
@@ -327,15 +370,55 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Value & Limit Indicator in Floating Bar */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                backgroundColor: 'var(--so-surface-panel)',
+                padding: '4px 10px',
+                borderRadius: 'var(--so-radius-sm)',
+                border: '1px solid var(--so-border-subtle)',
+              }}
+            >
+              <span style={{ color: 'var(--so-text-muted)' }}>
+                Selected: <strong className="tabular-nums" style={{ color: '#ffffff' }}>${selectedSoCloseTotal.toFixed(2)}</strong>
+              </span>
+
+              {maxLimitValue > 0 && (
+                <>
+                  <span style={{ color: 'var(--so-border-subtle)' }}>•</span>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      color: isLimitExceeded ? '#ef4444' : 'var(--so-text-secondary)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {isLimitExceeded && <AlertTriangle size={12} style={{ color: '#ef4444' }} />}
+                    <span>
+                      Projected: <strong className="tabular-nums" style={{ color: isLimitExceeded ? '#ef4444' : 'var(--so-accent-cyan)' }}>${projectedTotalValue.toFixed(2)}</strong>
+                      <span style={{ color: 'var(--so-text-muted)' }}> / ${maxLimitValue.toFixed(2)}</span>
+                    </span>
+                  </span>
+                </>
+              )}
+            </div>
+
             <button
               onClick={handleBatchCreateSoCloseOrders}
               disabled={batchSoCloseProcessing}
-              className="btn btn-primary btn-sm"
+              className={`btn ${isLimitExceeded ? 'btn-danger' : 'btn-primary'} btn-sm`}
               style={{ fontWeight: 800, fontSize: '12px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title={isLimitExceeded ? `Warning: Total buy order exposure ($${projectedTotalValue.toFixed(2)}) exceeds 10x balance limit ($${maxLimitValue.toFixed(2)})` : undefined}
             >
               {batchSoCloseProcessing ? <Loader2 size={13} className="spin" /> : <PlusCircle size={13} />}
-              Place Orders for Selected ({selectedSoCloseCount})
+              Place Buy Orders for Selected ({selectedSoCloseCount})
             </button>
             <button
               onClick={handleDeselectAll}
@@ -366,10 +449,10 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
               <div>
                 <Zap size={32} style={{ marginBottom: '10px', opacity: 0.5, color: 'var(--so-accent-cyan)' }} />
                 <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--so-text-primary)', marginBottom: '4px' }}>
-                  No So Close opportunities loaded
+                  No Opportunities Found
                 </div>
                 <div style={{ fontSize: '12px' }}>
-                  Click "Run SoClose Scan" above to evaluate Step 1 CSFloat market prices against Oracle Accepted Prices
+                  Click "Run So Close Scan" above to evaluate CSFloat market prices against your Oracle Accepted Prices.
                 </div>
               </div>
             )}

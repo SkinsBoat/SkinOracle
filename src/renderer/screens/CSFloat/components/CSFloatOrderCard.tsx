@@ -9,6 +9,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import TrendSparkline from '../../../components/TrendSparkline';
+import { CopyMarketHashButton } from '../../../components/CopyMarketHashButton';
 
 export interface OrderDriftDetails {
   acceptedPrice: number;
@@ -81,50 +82,50 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
     >
       {/* Top Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '20px' }}>
-        {isSelected ? (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              backgroundColor: 'var(--so-primary)',
-              color: '#ffffff',
-              padding: '1px 6px',
-              borderRadius: '10px',
-              fontSize: '9px',
-              fontWeight: 800,
-              letterSpacing: '0.4px',
-              lineHeight: '1.2',
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          {isSelected && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                backgroundColor: 'var(--so-primary)',
+                color: '#ffffff',
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '9px',
+                fontWeight: 800,
+                letterSpacing: '0.4px',
+                lineHeight: '1.2',
+              }}
+            >
+              <Check size={10} /> SELECTED
+            </span>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenMarket(order.market_hash_name);
             }}
+            className="btn btn-sm"
+            style={{ padding: '3px 6px', background: 'var(--so-surface-panel)', border: '1px solid var(--so-border-subtle)', borderRadius: '4px', color: 'var(--so-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title="Open on CSFloat Market (Browser)"
           >
-            <Check size={10} /> SELECTED
-          </span>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenMarket(order.market_hash_name);
-              }}
-              className="btn btn-sm"
-              style={{ padding: '3px 6px', background: 'var(--so-surface-panel)', border: '1px solid var(--so-border-subtle)', borderRadius: '4px', color: 'var(--so-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              title="Open on CSFloat Market (Browser)"
-            >
-              <ExternalLink size={14} />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenLookup(order.market_hash_name, driftDetails?.acceptedPrice, currentPrice);
-              }}
-              className="btn btn-sm"
-              style={{ padding: '3px 6px', background: 'var(--so-surface-panel)', border: '1px solid var(--so-border-subtle)', borderRadius: '4px', color: 'var(--so-accent-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              title="Inspect Item Details"
-            >
-              <Eye size={14} />
-            </button>
-          </div>
-        )}
+            <ExternalLink size={14} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenLookup(order.market_hash_name, driftDetails?.acceptedPrice, currentPrice);
+            }}
+            className="btn btn-sm"
+            style={{ padding: '3px 6px', background: 'var(--so-surface-panel)', border: '1px solid var(--so-border-subtle)', borderRadius: '4px', color: 'var(--so-accent-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title="Inspect Item Details"
+          >
+            <Eye size={14} />
+          </button>
+          <CopyMarketHashButton name={order.market_hash_name} />
+        </div>
 
         {driftDetails ? (
           driftDetails.isOverbid ? (
@@ -306,7 +307,7 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ color: 'var(--so-text-muted)' }}>My Price</span>
+          <span style={{ color: 'var(--so-text-muted)' }}>Current Bid</span>
           <span
             className="tabular-nums"
             style={{

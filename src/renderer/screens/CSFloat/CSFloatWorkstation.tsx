@@ -40,6 +40,7 @@ import { BuyOrdersTab } from './tabs/BuyOrdersTab';
 import { SoCloseTab } from './tabs/SoCloseTab';
 import { ListingsTab } from './tabs/ListingsTab';
 import { CSFloatLookupModal } from './modals/CSFloatLookupModal';
+import { CSFloatBuyLimitIndicator } from './components/CSFloatBuyLimitIndicator';
 
 import { roundToCsFloatStep, snapCsFloatBuyOrderPriceCents } from '../Oracle/utils/oracleUtils';
 import { getCsfloatSearchUrl } from '../../utils/csfloatUrls';
@@ -246,7 +247,7 @@ export default function CSFloatWorkstation() {
         await (window.electronAPI.oracle as any).getAcceptedPrices();
 
       if (!result || result.itemCount === 0) {
-        toast.error('No accepted prices found in memory. Please build prices in Oracle Dashboard first.', { id: toastId });
+        toast.error('No accepted prices found in memory. Calculate accepted prices in Oracle Dashboard Step 2 first.', { id: toastId });
         setLoadingPrices(false);
         return;
       }
@@ -463,15 +464,15 @@ export default function CSFloatWorkstation() {
         await (window.electronAPI.oracle as any).getAcceptedPrices();
 
       if (!acceptedRes || !acceptedRes.map || Object.keys(acceptedRes.map).length === 0) {
-        toast.error('No accepted prices found in memory. Please build Step 2 Accepted Prices in Oracle Dashboard first.', { id: toastId });
+        toast.error('No accepted prices found in memory. Calculate Step 2 Accepted Prices in Oracle Dashboard first.', { id: toastId });
         setIsSoCloseRunning(false);
         return;
       }
 
       const priceCache: Record<string, any> = await window.electronAPI.skinsnipe.getCache();
 
-      const minP = parseFloat(soCloseMinPrice) || 0;
-      const maxP = parseFloat(soCloseMaxPrice) || 9999;
+      const minP = Math.max(0, parseFloat(soCloseMinPrice) || 0);
+      const maxP = Math.max(0, parseFloat(soCloseMaxPrice) || 9999);
       const results: SoCloseResultItem[] = [];
 
       const activeOrderNamesSet = new Set(orders.map(o => o.market_hash_name));
@@ -530,7 +531,7 @@ export default function CSFloatWorkstation() {
       const sliced = results.slice(0, 200);
       setSoCloseResults(sliced);
       fetchTrendHistoryForItems(sliced.map(s => s.name));
-      toast.success(`Found ${Math.min(results.length, 200)} So Close market opportunities!`, { id: toastId });
+      toast.success(`Found ${Math.min(results.length, 200)} So Close opportunities matching your criteria!`, { id: toastId });
     } catch (err: any) {
       toast.error(`So Close scan error: ${err.message}`, { id: toastId });
     } finally {
@@ -585,7 +586,7 @@ export default function CSFloatWorkstation() {
     }
 
     setBatchSoCloseProcessing(false);
-    toast.success(`Completed batch buy order creation for ${createdCount} items`, { id: toastId });
+    toast.success(`Successfully created ${createdCount} buy orders`, { id: toastId });
   };
 
   const selectAllSoCloseAvailable = () => {
@@ -616,7 +617,7 @@ export default function CSFloatWorkstation() {
       setSoCloseMaxPrice(dollarVal);
       toast.success(`Max price set to CSFloat balance ($${dollarVal})`);
     } else {
-      toast.error('CSFloat balance is unavailable or $0.00');
+      toast.error('CSFloat balance is $0.00 or unavailable');
     }
   };
 
@@ -652,7 +653,7 @@ export default function CSFloatWorkstation() {
         await window.electronAPI.oracle.getListingPrices();
 
       if (!result || result.itemCount === 0) {
-        toast.error('No listing prices found in memory. Please build listing prices in Step 3 of Oracle Dashboard first.', { id: toastId });
+        toast.error('No listing prices found in memory. Generate listing prices in Oracle Dashboard Step 3 first.', { id: toastId });
         setLoadingListingPrices(false);
         return;
       }
@@ -1004,6 +1005,7 @@ export default function CSFloatWorkstation() {
       setHasKey(status.hasCsfloatKey);
       if (status.hasCsfloatKey) {
         fetchUserData();
+        fetchOrders();
       }
     });
   }, []);
@@ -1014,14 +1016,35 @@ export default function CSFloatWorkstation() {
     }
   }, [orders]);
 
-  // Counts for Buy Orders
+  // Counts & Totals for Buy Orders & Limit
   const selectedCount = Object.values(selectedItems).filter(Boolean).length;
   const pricesLoaded = acceptedPricesMeta !== null;
   const matchedCount = Object.keys(itemAnalysis).length;
   const actionRequiredCount = orders.filter(o => getOrderDriftDetails(o)?.isActionRequired).length;
 
-  // Counts for So Close
+  // Totals for Buy Limit Indicator (CSFloat 10x balance rule & 1,000 orders max limit)
+  const selectedOrdersTotal = orders
+    .filter(order => selectedItems[order.id])
+    .reduce((sum, order) => {
+      const price = (order.price || 0) / 100;
+      const qty = order.qty || order.quantity || 1;
+      return sum + price * qty;
+    }, 0);
+
+  const activeOrdersTotal = orders.reduce((sum, order) => {
+    const price = (order.price || 0) / 100;
+    const qty = order.qty || order.quantity || 1;
+    return sum + price * qty;
+  }, 0);
+
+  // Counts & Totals for So Close Opportunities
   const selectedSoCloseCount = Object.values(selectedSoCloseItems).filter(Boolean).length;
+  const selectedSoCloseTotal = soCloseResults
+    .filter(item => selectedSoCloseItems[item.name])
+    .reduce((sum, item) => sum + (item.acceptedPrice || 0), 0);
+
+  // Maximum buy order exposure limit: 10x balance
+  const maxLimitValue = userData?.balance && userData.balance > 0 ? userData.balance * 10 : 0;
 
   // Counts for Listings & Inventory
   const listingPricesLoaded = listingPricesMeta !== null;
@@ -1078,14 +1101,15 @@ export default function CSFloatWorkstation() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '12px 18px',
+            padding: '10px 16px',
             backgroundColor: 'var(--so-surface-header)',
             border: '1px solid var(--so-border-medium)',
             borderRadius: 'var(--so-radius-md)',
+            gap: '12px',
           }}
         >
           {/* Brand & Status */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <img src={csfloatLogo} alt="CSFloat" style={{ height: 22, width: 'auto', objectFit: 'contain' }} />
               <span style={{ color: 'var(--so-text-primary)', fontWeight: 800, fontSize: '15px', letterSpacing: '-0.3px' }}>
@@ -1116,14 +1140,29 @@ export default function CSFloatWorkstation() {
               >
                 {activeTab === 'listings'
                   ? listingPricesLoaded
-                    ? `ORACLE STEP 3 LISTING PRICES LOADED (${listingPricesMeta!.itemCount.toLocaleString()} ITEMS)`
-                    : 'NO LISTING PRICES LOADED — BUILD IN STEP 3 OF ORACLE DASHBOARD'
+                    ? `ORACLE LISTING PRICES LOADED (${listingPricesMeta!.itemCount.toLocaleString()} ITEMS)`
+                    : 'NO LISTING PRICES IN MEMORY — GENERATE IN ORACLE STEP 3'
                   : pricesLoaded
                     ? `ORACLE ACCEPTED PRICES LOADED (${acceptedPricesMeta!.itemCount.toLocaleString()} ITEMS)`
-                    : 'NO ACCEPTED PRICES LOADED — BUILD IN STEP 2 OF ORACLE DASHBOARD'}
+                    : 'NO ACCEPTED PRICES IN MEMORY — CALCULATE IN ORACLE STEP 2'}
               </span>
             </div>
           </div>
+
+          {/* CSFloat Buy Order 10x Balance & Count Limit Indicator (Active on Buy Tabs) */}
+          {activeTab !== 'listings' && (
+            <CSFloatBuyLimitIndicator
+              balance={userData?.balance}
+              balanceLoading={balanceLoading}
+              orders={orders}
+              ordersLoading={loading}
+              activeTab={activeTab}
+              selectedSoCloseTotal={selectedSoCloseTotal}
+              selectedSoCloseCount={selectedSoCloseCount}
+              selectedOrdersTotal={selectedOrdersTotal}
+              selectedOrdersCount={selectedCount}
+            />
+          )}
 
           {/* Balance Widget */}
           <div
@@ -1135,6 +1174,7 @@ export default function CSFloatWorkstation() {
               border: '1px solid var(--so-border-medium)',
               padding: '5px 12px',
               borderRadius: 'var(--so-radius-md)',
+              flexShrink: 0,
             }}
           >
             {userData?.avatar && (
@@ -1218,6 +1258,8 @@ export default function CSFloatWorkstation() {
           handleOpenCsfloatMarket={handleOpenCsfloatMarket}
           handleOpenLookupModal={handleOpenLookupModal}
           isSidebarExpanded={isSidebarExpanded}
+          selectedOrdersTotal={selectedOrdersTotal}
+          maxLimitValue={maxLimitValue}
         />
       )}
 
@@ -1246,6 +1288,9 @@ export default function CSFloatWorkstation() {
           handleOpenLookupModal={handleOpenLookupModal}
           getWearShortcut={getWearShortcut}
           isSidebarExpanded={isSidebarExpanded}
+          selectedSoCloseTotal={selectedSoCloseTotal}
+          activeOrdersTotal={activeOrdersTotal}
+          maxLimitValue={maxLimitValue}
         />
       )}
 

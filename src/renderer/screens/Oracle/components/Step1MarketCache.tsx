@@ -114,7 +114,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--so-text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Radio size={18} style={{ color: 'var(--so-primary)' }} /> Market Price Cache Engine & Data Sources
+              <Radio size={18} style={{ color: 'var(--so-primary)' }} /> Market Price Aggregation & Cache
             </div>
             {!isOpen && (
               <div style={{ fontSize: '12px', color: 'var(--so-text-muted)', marginTop: '2px' }}>

@@ -39,6 +39,8 @@ interface BuyOrdersTabProps {
   handleOpenCsfloatMarket: (name: string) => void;
   handleOpenLookupModal: (name: string, acceptedPrice?: number, currentPrice?: number) => void;
   isSidebarExpanded: boolean;
+  selectedOrdersTotal?: number;
+  maxLimitValue?: number;
 }
 
 export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
@@ -64,6 +66,8 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
   handleOpenCsfloatMarket,
   handleOpenLookupModal,
   isSidebarExpanded,
+  selectedOrdersTotal = 0,
+  maxLimitValue = 0,
 }) => {
   const [showExtraActions, setShowExtraActions] = useState(false);
 
@@ -137,7 +141,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               </span>
               {actionRequiredCount > 0 && (
                 <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <AlertTriangle size={12} /> Action Req: <strong>{actionRequiredCount}</strong>
+                  <AlertTriangle size={12} /> Action Required: <strong>{actionRequiredCount}</strong>
                 </span>
               )}
             </div>
@@ -209,7 +213,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                     textAlign: 'center',
                     fontWeight: 700,
                   }}
-                  title="Drift tolerance % before flagging order as overbid or underbid"
+                  title="Drift tolerance percentage before flagging an order as overbid or underbid"
                 />
                 <span style={{ fontSize: '10px', color: 'var(--so-text-muted)' }}>%</span>
               </div>
@@ -228,7 +232,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                     gap: '4px',
                     whiteSpace: 'nowrap',
                   }}
-                  title="Bulk Delete All Active CSFloat Buy Orders"
+                  title="Bulk cancel all active CSFloat buy orders"
                 >
                   <Trash2 size={11} /> Delete All
                 </button>
@@ -280,7 +284,14 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <CheckSquare size={16} style={{ color: 'var(--so-primary)' }} />
-              <span>{selectedCount} Selected</span>
+              <span>
+                {selectedCount} Selected
+                {selectedOrdersTotal > 0 && (
+                  <span style={{ color: 'var(--so-accent-cyan)', marginLeft: '6px' }}>
+                    (${selectedOrdersTotal.toFixed(2)})
+                  </span>
+                )}
+              </span>
             </span>
             <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--so-border-subtle)' }} />
             <button
@@ -354,9 +365,9 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <div>
                 <Package size={32} style={{ marginBottom: '10px', opacity: 0.5 }} />
                 <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--so-text-primary)', marginBottom: '4px' }}>
-                  No active buy orders loaded
+                  No Active Buy Orders Found
                 </div>
-                <div style={{ fontSize: '12px' }}>Click "Sync Buy Orders" above to sync your active buy orders from CSFloat</div>
+                <div style={{ fontSize: '12px' }}>Click "Sync Buy Orders" above to fetch your current active orders from CSFloat.</div>
               </div>
             )}
           </div>

@@ -46,7 +46,7 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--so-text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Tag size={18} style={{ color: 'var(--so-success-text)' }} /> Inventory Selling & Listing Price Engine
+              <Tag size={18} style={{ color: 'var(--so-success-text)' }} /> Generate Listing Prices (Sell Targets)
             </div>
             {!isOpen && (
               <div style={{ fontSize: '12px', color: 'var(--so-text-muted)', marginTop: '2px' }}>
@@ -58,7 +58,7 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span className={`badge ${listingSummary.lastBuiltAt ? 'badge-success' : 'badge-ghost'}`} style={{ fontSize: '11px' }}>
-            {listingSummary.lastBuiltAt ? `✓ Built (${listingSummary.totalEvaluated.toLocaleString()} Items - ${listingStrategy.mode.toUpperCase()})` : 'Not Built Yet'}
+            {listingSummary.lastBuiltAt ? `✓ Built (${listingSummary.totalEvaluated.toLocaleString()} Items - ${listingStrategy.mode.toUpperCase()})` : 'Not Generated Yet'}
           </span>
           {isOpen ? <ChevronUp size={18} style={{ color: 'var(--so-text-muted)' }} /> : <ChevronDown size={18} style={{ color: 'var(--so-text-muted)' }} />}
         </div>

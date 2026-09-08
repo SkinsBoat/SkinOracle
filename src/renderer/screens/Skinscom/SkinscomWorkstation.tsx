@@ -242,7 +242,7 @@ export default function SkinscomWorkstation() {
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '10px', color: 'var(--so-text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>My Price</div>
+                      <div style={{ fontSize: '10px', color: 'var(--so-text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Current Bid</div>
                       <div className="tabular-nums" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--so-text-primary)' }}>
                         ${currentPrice.toFixed(2)}
                       </div>
