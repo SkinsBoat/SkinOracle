@@ -461,10 +461,10 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
-                color: "var(--so-text-muted)",
+                color: "var(--so-text-primary)",
               }}
             >
-              <Square size={12} /> Deselect
+              <Square size={12} /> Clear Selection
             </button>
           </div>
 
@@ -539,6 +539,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
+                color: "#ffffff",
               }}
               title={
                 isLimitExceeded
@@ -559,7 +560,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
               style={{
                 padding: "6px",
                 borderRadius: "50%",
-                color: "var(--so-text-muted)",
+                color: "var(--so-text-primary)",
               }}
               title="Clear selection"
             >

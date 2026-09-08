@@ -1148,13 +1148,14 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             justifyContent: "space-between",
             alignItems: "center",
             gap: "16px",
-            backgroundColor: "var(--so-primary)",
+            backgroundColor: "rgba(17, 24, 39, 0.96)",
+            backdropFilter: "blur(12px)",
             color: "#ffffff",
             padding: "12px 20px",
             borderRadius: "var(--so-radius-md)",
-            border: "1px solid var(--so-primary-hover)",
+            border: "1px solid var(--so-border-medium)",
             boxShadow:
-              "0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(37, 99, 235, 0.4)",
+              "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(37, 99, 235, 0.25)",
             boxSizing: "border-box",
             transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
@@ -1170,8 +1171,9 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           >
             <span
               style={{
-                backgroundColor: "#ffffff",
-                color: "var(--so-primary)",
+                backgroundColor: "rgba(37, 99, 235, 0.2)",
+                color: "var(--so-accent-cyan)",
+                border: "1px solid var(--so-primary)",
                 padding: "2px 9px",
                 borderRadius: "4px",
                 fontWeight: 900,
@@ -1186,14 +1188,12 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
               onClick={clearSoCloseSelection}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-sm btn-ghost"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
                 fontWeight: 700,
                 padding: "6px 14px",
                 fontSize: "12px",
+                color: "#ffffff",
               }}
             >
               Clear Selection
@@ -1202,15 +1202,15 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             <button
               onClick={executeBatchSoCloseCreate}
               disabled={batchSoCloseProcessing}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               style={{
-                backgroundColor: "#ffffff",
-                color: "var(--so-primary)",
-                border: "none",
-                fontWeight: 900,
+                fontWeight: 800,
                 padding: "6px 18px",
                 fontSize: "12px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "#ffffff",
               }}
             >
               {batchSoCloseProcessing ? (

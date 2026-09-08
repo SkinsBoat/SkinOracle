@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Check,
   ExternalLink,
   Eye,
   CheckCircle2,
@@ -92,26 +91,7 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
           height: "20px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          {isSelected && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "3px",
-                backgroundColor: "var(--so-primary)",
-                color: "#ffffff",
-                padding: "1px 6px",
-                borderRadius: "10px",
-                fontSize: "9px",
-                fontWeight: 800,
-                letterSpacing: "0.4px",
-                lineHeight: "1.2",
-              }}
-            >
-              <Check size={10} /> SELECTED
-            </span>
-          )}
+        <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
           <button
             onClick={(e) => {
               e.stopPropagation();

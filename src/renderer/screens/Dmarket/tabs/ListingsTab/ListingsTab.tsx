@@ -6,7 +6,6 @@ import {
   History,
   AlertTriangle,
   CheckCircle2,
-  Check,
   ExternalLink,
   Eye,
   Edit3,
@@ -1375,26 +1374,9 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                           display: "flex",
                           alignItems: "center",
                           gap: "5px",
+                          flexShrink: 0,
                         }}
                       >
-                        {isSelected && (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "3px",
-                              backgroundColor: "var(--so-primary)",
-                              color: "#ffffff",
-                              padding: "1px 6px",
-                              borderRadius: "10px",
-                              fontSize: "9px",
-                              fontWeight: 800,
-                              letterSpacing: "0.4px",
-                            }}
-                          >
-                            <Check size={10} /> SELECTED
-                          </span>
-                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2023,26 +2005,9 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                           display: "flex",
                           alignItems: "center",
                           gap: "4px",
+                          flexShrink: 0,
                         }}
                       >
-                        {isSelected && (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "3px",
-                              backgroundColor: "var(--so-primary)",
-                              color: "#ffffff",
-                              padding: "1px 6px",
-                              borderRadius: "10px",
-                              fontSize: "9px",
-                              fontWeight: 800,
-                              letterSpacing: "0.4px",
-                            }}
-                          >
-                            <Check size={10} /> SELECTED
-                          </span>
-                        )}
                         <span
                           style={{
                             display: "inline-flex",
@@ -2586,13 +2551,14 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
             justifyContent: "space-between",
             alignItems: "center",
             gap: "16px",
-            backgroundColor: "var(--so-primary)",
+            backgroundColor: "rgba(17, 24, 39, 0.96)",
+            backdropFilter: "blur(12px)",
             color: "#ffffff",
             padding: "12px 20px",
             borderRadius: "var(--so-radius-md)",
-            border: "1px solid var(--so-primary-hover)",
+            border: "1px solid var(--so-border-medium)",
             boxShadow:
-              "0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(37, 99, 235, 0.4)",
+              "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(37, 99, 235, 0.25)",
             boxSizing: "border-box",
             transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
@@ -2608,8 +2574,9 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
           >
             <span
               style={{
-                backgroundColor: "#ffffff",
-                color: "var(--so-primary)",
+                backgroundColor: "rgba(37, 99, 235, 0.2)",
+                color: "var(--so-accent-cyan)",
+                border: "1px solid var(--so-primary)",
                 padding: "2px 9px",
                 borderRadius: "4px",
                 fontWeight: 900,
@@ -2624,14 +2591,12 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
               onClick={() => setSelectedOffers({})}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-sm btn-ghost"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
                 fontWeight: 700,
                 padding: "6px 14px",
                 fontSize: "12px",
+                color: "#ffffff",
               }}
             >
               Clear Selection
@@ -2640,17 +2605,15 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
             <button
               onClick={handleBatchDelistOffers}
               disabled={batchListingProcessing}
-              className="btn btn-sm"
+              className="btn btn-danger btn-sm"
               style={{
-                backgroundColor: "rgba(239, 68, 68, 0.85)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                fontWeight: 700,
+                fontWeight: 800,
                 padding: "6px 14px",
                 fontSize: "12px",
                 display: "flex",
                 alignItems: "center",
-                gap: "5px",
+                gap: "6px",
+                color: "#ffffff",
               }}
             >
               {batchListingProcessing ? (
@@ -2664,18 +2627,15 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
             <button
               onClick={handleBatchUpdateOffersToOracle}
               disabled={batchListingProcessing}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               style={{
-                backgroundColor: "#ffffff",
-                color: "var(--so-primary)",
-                border: "none",
-                fontWeight: 900,
+                fontWeight: 800,
                 padding: "6px 18px",
                 fontSize: "12px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
+                color: "#ffffff",
               }}
             >
               {batchListingProcessing ? (
@@ -2702,13 +2662,14 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
             justifyContent: "space-between",
             alignItems: "center",
             gap: "16px",
-            backgroundColor: "var(--so-primary)",
+            backgroundColor: "rgba(17, 24, 39, 0.96)",
+            backdropFilter: "blur(12px)",
             color: "#ffffff",
             padding: "12px 20px",
             borderRadius: "var(--so-radius-md)",
-            border: "1px solid var(--so-primary-hover)",
+            border: "1px solid var(--so-border-medium)",
             boxShadow:
-              "0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(37, 99, 235, 0.4)",
+              "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(37, 99, 235, 0.25)",
             boxSizing: "border-box",
             transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
@@ -2724,8 +2685,9 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
           >
             <span
               style={{
-                backgroundColor: "#ffffff",
-                color: "var(--so-primary)",
+                backgroundColor: "rgba(37, 99, 235, 0.2)",
+                color: "var(--so-accent-cyan)",
+                border: "1px solid var(--so-primary)",
                 padding: "2px 9px",
                 borderRadius: "4px",
                 fontWeight: 900,
@@ -2747,14 +2709,12 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
               onClick={() => setSelectedInventory({})}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-sm btn-ghost"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
                 fontWeight: 700,
                 padding: "6px 14px",
                 fontSize: "12px",
+                color: "#ffffff",
               }}
             >
               Clear Selection
@@ -2764,18 +2724,15 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
               <button
                 onClick={handleBatchDepositSteamItems}
                 disabled={batchDepositing}
-                className="btn btn-secondary btn-sm"
+                className="btn btn-primary btn-sm"
                 style={{
-                  backgroundColor: "#1d4ed8",
-                  color: "#ffffff",
-                  border: "1px solid rgba(255, 255, 255, 0.3)",
                   fontWeight: 800,
                   padding: "6px 16px",
                   fontSize: "12px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
+                  color: "#ffffff",
                 }}
               >
                 {batchDepositing ? (
@@ -2791,18 +2748,15 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
               <button
                 onClick={handleBatchListInventoryAtOracle}
                 disabled={batchListingProcessing}
-                className="btn btn-secondary btn-sm"
+                className="btn btn-cyan btn-sm"
                 style={{
-                  backgroundColor: "#ffffff",
-                  color: "var(--so-primary)",
-                  border: "none",
-                  fontWeight: 900,
+                  fontWeight: 800,
                   padding: "6px 18px",
                   fontSize: "12px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
+                  color: "#ffffff",
                 }}
               >
                 {batchListingProcessing ? (

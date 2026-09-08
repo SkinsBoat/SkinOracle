@@ -1,5 +1,5 @@
 import { KeyRound, Loader2, Package, RefreshCw, Tag, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { csfloatLogo } from "../../../../assets/images";
@@ -87,6 +87,8 @@ export default function CSFloatWorkstation() {
   const [driftThresholdPercent, setDriftThresholdPercent] = useState<number>(2);
 
   // ── BUY ORDERS STATE ──────────────────────────────────────────────
+  const initialFetchDoneRef = useRef(false);
+  const isFetchingOrdersRef = useRef(false);
   const [itemAnalysis, setItemAnalysis] = useState<
     Record<string, OrderAnalysis>
   >({});
@@ -213,17 +215,22 @@ export default function CSFloatWorkstation() {
 
   // ── BUY ORDERS METHODS ───────────────────────────────────────────
   const fetchOrders = async () => {
+    if (isFetchingOrdersRef.current) return;
+    isFetchingOrdersRef.current = true;
+
     const keyOk = await checkApiKey();
     if (!keyOk) {
       toast.error(
         "CSFloat API key is not configured. Please set your key in Settings first.",
       );
+      isFetchingOrdersRef.current = false;
       return;
     }
 
     setLoading(true);
     setSelectedItems({});
-    const toastId = toast.loading("Syncing CSFloat buy orders...");
+    const toastId = "csfloat-sync-buy-orders";
+    toast.loading("Syncing CSFloat buy orders...", { id: toastId });
     try {
       const data: any = await window.electronAPI.csfloat.getOrders();
       const list = Array.isArray(data)
@@ -243,6 +250,7 @@ export default function CSFloatWorkstation() {
       toast.error(`CSFloat error: ${err.message}`, { id: toastId });
     } finally {
       setLoading(false);
+      isFetchingOrdersRef.current = false;
     }
   };
 
@@ -1242,6 +1250,9 @@ export default function CSFloatWorkstation() {
   const clearListingSelection = () => setSelectedListingItems({});
 
   useEffect(() => {
+    if (initialFetchDoneRef.current) return;
+    initialFetchDoneRef.current = true;
+
     window.electronAPI.settings.getKeysStatus().then((status) => {
       setHasKey(status.hasCsfloatKey);
       if (status.hasCsfloatKey) {

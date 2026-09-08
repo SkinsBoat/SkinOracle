@@ -451,10 +451,10 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
-                color: "var(--so-text-muted)",
+                color: "var(--so-text-primary)",
               }}
             >
-              <Square size={12} /> Deselect
+              <Square size={12} /> Clear Selection
             </button>
           </div>
 
@@ -470,6 +470,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
+                color: "#ffffff",
               }}
             >
               {batchProcessing ? (
@@ -490,14 +491,16 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
+                color: "#ffffff",
               }}
+              title="Permanently delete the selected active buy orders from CSFloat"
             >
               {batchProcessing ? (
                 <Loader2 size={13} className="spin" />
               ) : (
                 <Trash2 size={13} />
               )}
-              Cancel Selected ({selectedCount})
+              Delete Selected ({selectedCount})
             </button>
             <button
               onClick={handleDeselectAll}
@@ -505,7 +508,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               style={{
                 padding: "6px",
                 borderRadius: "50%",
-                color: "var(--so-text-muted)",
+                color: "var(--so-text-primary)",
               }}
               title="Clear selection"
             >

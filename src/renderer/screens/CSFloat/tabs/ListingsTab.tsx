@@ -440,10 +440,10 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
-                color: "var(--so-text-muted)",
+                color: "var(--so-text-primary)",
               }}
             >
-              <Square size={12} /> Deselect
+              <Square size={12} /> Clear Selection
             </button>
           </div>
 
@@ -514,7 +514,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
               style={{
                 padding: "6px",
                 borderRadius: "50%",
-                color: "var(--so-text-muted)",
+                color: "var(--so-text-primary)",
               }}
               title="Clear selection"
             >

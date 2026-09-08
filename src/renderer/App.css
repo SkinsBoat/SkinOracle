@@ -397,6 +397,18 @@ body {
   border-color: var(--so-text-secondary);
 }
 
+.btn-ghost {
+  background-color: rgba(255, 255, 255, 0.07);
+  color: var(--so-text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;

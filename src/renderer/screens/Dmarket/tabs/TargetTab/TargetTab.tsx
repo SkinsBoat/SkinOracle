@@ -8,7 +8,6 @@ import {
   Sliders,
   AlertTriangle,
   CheckCircle2,
-  Check,
   ChevronLeft,
   ChevronRight,
   Edit3,
@@ -981,27 +980,9 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                           display: "flex",
                           alignItems: "center",
                           gap: "5px",
+                          flexShrink: 0,
                         }}
                       >
-                        {isSelected && (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "3px",
-                              backgroundColor: "var(--so-primary)",
-                              color: "#ffffff",
-                              padding: "1px 6px",
-                              borderRadius: "10px",
-                              fontSize: "9px",
-                              fontWeight: 800,
-                              letterSpacing: "0.4px",
-                              lineHeight: "1.2",
-                            }}
-                          >
-                            <Check size={10} /> SELECTED
-                          </span>
-                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1828,13 +1809,14 @@ export const TargetTab: React.FC<TargetTabProps> = ({
             justifyContent: "space-between",
             alignItems: "center",
             gap: "16px",
-            backgroundColor: "var(--so-primary)",
+            backgroundColor: "rgba(17, 24, 39, 0.96)",
+            backdropFilter: "blur(12px)",
             color: "#ffffff",
             padding: "12px 20px",
             borderRadius: "var(--so-radius-md)",
-            border: "1px solid var(--so-primary-hover)",
+            border: "1px solid var(--so-border-medium)",
             boxShadow:
-              "0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(37, 99, 235, 0.4)",
+              "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(37, 99, 235, 0.25)",
             boxSizing: "border-box",
             transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
@@ -1850,8 +1832,9 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           >
             <span
               style={{
-                backgroundColor: "#ffffff",
-                color: "var(--so-primary)",
+                backgroundColor: "rgba(37, 99, 235, 0.2)",
+                color: "var(--so-accent-cyan)",
+                border: "1px solid var(--so-primary)",
                 padding: "2px 9px",
                 borderRadius: "4px",
                 fontWeight: 900,
@@ -1866,14 +1849,12 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
               onClick={clearSelection}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-sm btn-ghost"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
                 fontWeight: 700,
                 padding: "6px 14px",
                 fontSize: "12px",
+                color: "#ffffff",
               }}
             >
               Clear Selection
@@ -1882,17 +1863,15 @@ export const TargetTab: React.FC<TargetTabProps> = ({
             <button
               onClick={handleBatchDelete}
               disabled={batchProcessing}
-              className="btn btn-sm"
+              className="btn btn-danger btn-sm"
               style={{
-                backgroundColor: "rgba(239, 68, 68, 0.85)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                fontWeight: 700,
+                fontWeight: 800,
                 padding: "6px 14px",
                 fontSize: "12px",
                 display: "flex",
                 alignItems: "center",
-                gap: "5px",
+                gap: "6px",
+                color: "#ffffff",
               }}
             >
               <Trash2 size={13} />
@@ -1902,18 +1881,15 @@ export const TargetTab: React.FC<TargetTabProps> = ({
             <button
               onClick={handleBatchUpdateToOracle}
               disabled={batchProcessing}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               style={{
-                backgroundColor: "#ffffff",
-                color: "var(--so-primary)",
-                border: "none",
-                fontWeight: 900,
+                fontWeight: 800,
                 padding: "6px 18px",
                 fontSize: "12px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
+                color: "#ffffff",
               }}
             >
               {batchProcessing ? (
