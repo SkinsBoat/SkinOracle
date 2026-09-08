@@ -199,6 +199,28 @@ export interface SkinsnipeFetchResult {
   source?: 'local_cache' | 'cloud_download' | 'cloud_refreshed';
 }
 
+export interface Cs2CapStreamProgress {
+  linesRead: number;
+  itemsCount: number;
+  providersCount: number;
+  bytesReceived: number;
+  elapsedMs: number;
+  status: 'connecting' | 'streaming' | 'completed' | 'aborted' | 'error';
+  lastError: string | null;
+  marketCounts?: Record<string, number>;
+}
+
+export interface Cs2CapFetchResult {
+  success: boolean;
+  itemCount: number;
+  providersCount: number;
+  fetchedAt: string;
+  elapsedMs: number;
+  aborted?: boolean;
+  error?: string | null;
+  marketCounts?: Record<string, number>;
+}
+
 export interface UpdateInfo {
   version: string;
   releaseDate?: string;
@@ -263,15 +285,18 @@ export interface ElectronAPI {
   };
   settings: {
     setSkinsnipeKey: (key: string) => Promise<{ success: boolean }>;
+    setCs2capKey: (key: string) => Promise<{ success: boolean }>;
     setCsfloatKey: (key: string) => Promise<{ success: boolean }>;
     setSkinscomToken: (token: string) => Promise<{ success: boolean }>;
     setDmarketKeys: (publicKey: string, secretKey: string) => Promise<{ success: boolean }>;
     revokeSkinsnipeKey: () => Promise<{ success: boolean }>;
+    revokeCs2capKey: () => Promise<{ success: boolean }>;
     revokeCsfloatKey: () => Promise<{ success: boolean }>;
     revokeSkinscomToken: () => Promise<{ success: boolean }>;
     revokeDmarketKeys: () => Promise<{ success: boolean }>;
     getKeysStatus: () => Promise<{
       hasSkinsnipeKey: boolean;
+      hasCs2capKey: boolean;
       hasCsfloatKey: boolean;
       hasSkinscomToken: boolean;
       hasDmarketKeys: boolean;
@@ -288,6 +313,12 @@ export interface ElectronAPI {
     getCacheStatus: () => Promise<{ itemCount: number; isFetching: boolean; lastFetchedAt: string | null; marketCounts?: Record<string, number> }>;
     loadCacheJson: (jsonContent: string) => Promise<SkinsnipeFetchResult>;
     loadDemoCache: (options?: { forceRefresh?: boolean }) => Promise<SkinsnipeFetchResult>;
+  };
+  cs2cap: {
+    fetchPrices: (options?: { providers?: string[] }) => Promise<Cs2CapFetchResult>;
+    cancelFetch: () => Promise<{ success: boolean; message: string }>;
+    onStreamProgress: (callback: (progress: Cs2CapStreamProgress) => void) => () => void;
+    getStatus: () => Promise<{ isFetching: boolean }>;
   };
   oracle: {
     startBatch: (totalItems: number) => Promise<OracleBatchStartResult>;

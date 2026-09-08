@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Settings, ShieldCheck, Lock, Zap, Save, Trash2 } from 'lucide-react';
-import { skinSnipeLogo, csfloatLogo, skinsLogo, dmarketLogo } from '../../../../assets/images';
+import { skinSnipeLogo, cs2capLogo, csfloatLogo, skinsLogo, dmarketLogo } from '../../../../assets/images';
 
 export default function ApiKeysScreen() {
   const [keysStatus, setKeysStatus] = useState({
     hasSkinsnipeKey: false,
+    hasCs2capKey: false,
     hasCsfloatKey: false,
     hasSkinscomToken: false,
     hasDmarketKeys: false,
   });
 
   const [skinsnipeKey, setSkinsnipeKey] = useState('');
+  const [cs2capKey, setCs2capKey] = useState('');
   const [csfloatKey, setCsfloatKey] = useState('');
   const [skinscomToken, setSkinscomToken] = useState('');
   const [dmarketPublicKey, setDmarketPublicKey] = useState('');
@@ -23,13 +25,17 @@ export default function ApiKeysScreen() {
     window.electronAPI.settings.getKeysStatus().then(setKeysStatus);
   }, []);
 
-  const saveKey = async (type: 'skinsnipe' | 'csfloat' | 'skinscom' | 'dmarket') => {
+  const saveKey = async (type: 'skinsnipe' | 'cs2cap' | 'csfloat' | 'skinscom' | 'dmarket') => {
     setSaving(type);
     try {
       if (type === 'skinsnipe') {
         await window.electronAPI.settings.setSkinsnipeKey(skinsnipeKey);
         setSkinsnipeKey('');
         toast.success('Skinsnipe API key encrypted & saved!');
+      } else if (type === 'cs2cap') {
+        await window.electronAPI.settings.setCs2capKey(cs2capKey);
+        setCs2capKey('');
+        toast.success('CS2Cap API key encrypted & saved!');
       } else if (type === 'csfloat') {
         await window.electronAPI.settings.setCsfloatKey(csfloatKey);
         setCsfloatKey('');
@@ -57,10 +63,12 @@ export default function ApiKeysScreen() {
     }
   };
 
-  const revokeKey = async (type: 'skinsnipe' | 'csfloat' | 'skinscom' | 'dmarket') => {
+  const revokeKey = async (type: 'skinsnipe' | 'cs2cap' | 'csfloat' | 'skinscom' | 'dmarket') => {
     const label =
       type === 'skinsnipe'
         ? 'Skinsnipe API key'
+        : type === 'cs2cap'
+        ? 'CS2Cap API key'
         : type === 'csfloat'
         ? 'CSFloat API key'
         : type === 'dmarket'
@@ -73,6 +81,9 @@ export default function ApiKeysScreen() {
       if (type === 'skinsnipe') {
         await window.electronAPI.settings.revokeSkinsnipeKey();
         setSkinsnipeKey('');
+      } else if (type === 'cs2cap') {
+        await window.electronAPI.settings.revokeCs2capKey();
+        setCs2capKey('');
       } else if (type === 'csfloat') {
         await window.electronAPI.settings.revokeCsfloatKey();
         setCsfloatKey('');
@@ -199,6 +210,55 @@ export default function ApiKeysScreen() {
               }}
             >
               <Trash2 size={14} /> {saving === 'revoke_skinsnipe' ? 'Revoking...' : 'Revoke'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* CS2Cap API Key Card */}
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--so-text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src={cs2capLogo} alt="CS2Cap" style={{ height: 20, width: 'auto', objectFit: 'contain' }} /> CS2Cap API Key
+            <span className="badge badge-cyan" style={{ fontSize: '10px' }}>PRO / QUANT STREAMING</span>
+          </div>
+          {keysStatus.hasCs2capKey ? (
+            <span className="badge badge-success">CONFIGURED</span>
+          ) : (
+            <span className="badge badge-warning">NOT SET</span>
+          )}
+        </div>
+        <p className="card-desc">
+          Enables high-speed live NDJSON streaming of full CS2 market catalogs across 40+ providers (Buff163, C5, CSFloat, AvanMarket, etc.).
+        </p>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <input
+            type="password"
+            value={cs2capKey}
+            onChange={e => setCs2capKey(e.target.value)}
+            placeholder={keysStatus.hasCs2capKey ? '••••••••••••••••••••••••' : 'sk_live_...'}
+            style={{ flex: 1 }}
+          />
+          <button
+            className="btn btn-primary"
+            onClick={() => saveKey('cs2cap')}
+            disabled={saving === 'cs2cap' || !cs2capKey}
+          >
+            <Save size={14} /> {saving === 'cs2cap' ? 'Saving...' : 'Save Key'}
+          </button>
+          {keysStatus.hasCs2capKey && (
+            <button
+              className="btn"
+              onClick={() => revokeKey('cs2cap')}
+              disabled={saving === 'revoke_cs2cap'}
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                fontWeight: 700,
+              }}
+            >
+              <Trash2 size={14} /> {saving === 'revoke_cs2cap' ? 'Revoking...' : 'Revoke'}
             </button>
           )}
         </div>

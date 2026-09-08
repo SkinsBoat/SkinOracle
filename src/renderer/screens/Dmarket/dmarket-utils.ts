@@ -1,40 +1,12 @@
 import { ListingPriceInfo } from '../../../shared/types';
+import { getMarketDisplayName, CANONICAL_MARKETS } from '../../../shared/canonicalMarkets';
 
-export const MARKET_NAME_MAP: Record<string, string> = {
-  csgofloat: 'CSFloat',
-  csmoney: 'CS.MONEY',
-  csmoney_p2p: 'CS.MONEY P2P',
-  csmoney_trade: 'CS.MONEY Trade',
-  skinport: 'Skinport',
-  dmarket: 'DMarket',
-  waxpeer: 'Waxpeer',
-  shadowpay: 'ShadowPay',
-  bitskins: 'BitSkins',
-  buff163: 'BUFF163',
-  skinbaron: 'SkinBaron',
-  tradeitgg: 'Tradeit.GG',
-  tradeitgg_store: 'Tradeit.GG Store',
-  cstrade: 'CSTrade',
-  exeskins: 'ExeSkins',
-  itradegg: 'iTradeGG',
-  lisskins: 'LisSkins',
-  manncostore: 'ManncoStore',
-  market_csgo: 'Market CSGO',
-  merchanttf: 'Merchant TF',
-  skinflow: 'SkinFlow',
-  skinland: 'SkinLand',
-  skinsmonkey: 'SkinsMonkey',
-  skinswap: 'SkinSwap',
-  whitemarket: 'WhiteMarket',
-  avanmarket: 'AvanMarket',
-  gamerpay: 'GamerPay',
-  skinout: 'Skinout',
-};
+export const MARKET_NAME_MAP: Record<string, string> = Object.fromEntries(
+  CANONICAL_MARKETS.map(m => [m.id, m.name])
+);
 
 export const getHumanMarketName = (marketId: string): string => {
-  if (!marketId) return 'Market';
-  const idLower = marketId.toLowerCase();
-  return MARKET_NAME_MAP[idLower] || MARKET_NAME_MAP[marketId] || marketId;
+  return getMarketDisplayName(marketId);
 };
 
 export const getWearShortcut = (wear?: string): string => {

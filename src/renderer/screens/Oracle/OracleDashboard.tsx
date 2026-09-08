@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Sparkles } from 'lucide-react';
 import { useOracleStore, DEFAULT_SELECTED_MARKETS } from '../../store/useOracleStore';
 import { SkinsnipeMarketId, AcceptedPriceInfo } from '../../../shared/types';
+import { isMarketMatch } from '../../../shared/canonicalMarkets';
 import { passesSmartPreFilters, calculateSuggestedListingPrice, mapStrategyToBackendOptions, mapNexusProfileToParams, roundToCsFloatStep } from './utils/oracleUtils';
 import { Step1MarketCache, SKINSNIPE_AVAILABLE_MARKETS } from './components/Step1MarketCache';
 import { Step2AcceptedPrices } from './components/Step2AcceptedPrices';
@@ -32,7 +33,10 @@ export default function OracleDashboard() {
   const [cachedItemNames, setCachedItemNames] = useState<string[]>([]);
   const [fullCache, setFullCache] = useState<any>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  const [hasCs2capKey, setHasCs2capKey] = useState<boolean>(false);
   const [isDemoCache, setIsDemoCache] = useState<boolean>(false);
+  const [isCs2capStreaming, setIsCs2capStreaming] = useState<boolean>(false);
+  const [cs2capProgress, setCs2capProgress] = useState<any>(null);
 
   // Accordion Step Collapsed/Expanded State
   const [openSteps, setOpenSteps] = useState<{ [key: string]: boolean }>({
@@ -48,11 +52,18 @@ export default function OracleDashboard() {
 
   // Persistent Oracle Dashboard State powered by Zustand
   const {
+    pricingProvider,
+    setPricingProvider,
     selectedMarkets,
     toggleMarket: storeToggleMarket,
     soloMarket: storeSoloMarket,
     selectAllMarkets: storeSelectAllMarkets,
     resetDefaultMarkets,
+    selectedCs2capProviders,
+    toggleCs2capProvider: storeToggleCs2capProvider,
+    soloCs2capProvider: storeSoloCs2capProvider,
+    selectAllCs2capProviders: storeSelectAllCs2capProviders,
+    resetDefaultCs2capProviders: storeResetDefaultCs2capProviders,
     preFilters,
     setPreFilters,
     toggleWear,
@@ -120,7 +131,10 @@ export default function OracleDashboard() {
 
     if (window.electronAPI?.settings) {
       window.electronAPI.settings.getKeysStatus().then(keys => {
-        if (keys) setHasApiKey(!!keys.hasSkinsnipeKey);
+        if (keys) {
+          setHasApiKey(!!keys.hasSkinsnipeKey);
+          setHasCs2capKey(!!keys.hasCs2capKey);
+        }
       }).catch(() => {});
     }
 
@@ -150,29 +164,110 @@ export default function OracleDashboard() {
       }).catch(() => {});
     }
 
-    if (window.electronAPI?.skinsnipe?.onFetchProgress) {
-      const unsubscribe = window.electronAPI.skinsnipe.onFetchProgress((progress: any) => {
-        setFetchProgress(progress);
-        if (progress.marketCounts) {
-          setMarketCounts(progress.marketCounts);
-        }
-        if (progress.status === 'fetching' || progress.status === 'waiting') {
-          setCacheStatus(prev => ({ ...prev, isFetching: true }));
-        } else if (progress.status === 'completed' || progress.status === 'aborted') {
-          setCacheStatus(prev => ({ ...prev, isFetching: false }));
-        }
-      });
-      return () => unsubscribe();
-    }
+    const unsubSkinsnipe = window.electronAPI?.skinsnipe?.onFetchProgress?.((progress: any) => {
+      setFetchProgress(progress);
+      if (progress.marketCounts) {
+        setMarketCounts(progress.marketCounts);
+      }
+      if (progress.status === 'fetching' || progress.status === 'waiting') {
+        setCacheStatus(prev => ({ ...prev, isFetching: true }));
+      } else if (progress.status === 'completed' || progress.status === 'aborted') {
+        setCacheStatus(prev => ({ ...prev, isFetching: false }));
+      }
+    });
+
+    const unsubCs2cap = window.electronAPI?.cs2cap?.onStreamProgress?.((progress: any) => {
+      setCs2capProgress(progress);
+      if (progress.marketCounts) {
+        setMarketCounts(progress.marketCounts);
+      }
+      if (progress.status === 'streaming' || progress.status === 'connecting') {
+        setIsCs2capStreaming(true);
+        setCacheStatus(prev => ({ ...prev, isFetching: true }));
+      } else if (progress.status === 'completed' || progress.status === 'aborted' || progress.status === 'error') {
+        setIsCs2capStreaming(false);
+        setCacheStatus(prev => ({ ...prev, isFetching: false }));
+      }
+    });
+
+    return () => {
+      unsubSkinsnipe?.();
+      unsubCs2cap?.();
+    };
   }, []);
 
   const handleCancelFetch = async () => {
     try {
       await window.electronAPI.skinsnipe.cancelFetch();
-      toast('Stopping Skinsnipe fetch...', { icon: '🛑' });
-    } catch (e: any) {
-      console.warn('Failed to cancel Skinsnipe fetch:', e);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to cancel fetch');
     }
+  };
+
+  const handleStreamCs2cap = async () => {
+    if (isCs2capStreaming) return;
+    setIsCs2capStreaming(true);
+    setCs2capProgress(null);
+    setCacheStatus(prev => ({ ...prev, isFetching: true }));
+    const toastId = toast.loading('Connecting to CS2Cap prices stream...');
+    try {
+      const res = await window.electronAPI.cs2cap.fetchPrices({
+        providers: selectedCs2capProviders,
+      });
+      if (res.success) {
+        setIsDemoCache(false);
+        setCacheStatus({
+          itemCount: res.itemCount,
+          isFetching: false,
+          lastFetchedAt: res.fetchedAt,
+        });
+        if (res.marketCounts) {
+          setMarketCounts(res.marketCounts);
+        }
+        await loadCacheKeys();
+        toast.success(
+          `Streamed ${res.itemCount.toLocaleString()} items across ${res.providersCount} providers in ${(res.elapsedMs / 1000).toFixed(1)}s!`,
+          { id: toastId }
+        );
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'CS2Cap stream failed', { id: toastId });
+    } finally {
+      setIsCs2capStreaming(false);
+      setCacheStatus(prev => ({ ...prev, isFetching: false }));
+    }
+  };
+
+  const handleCancelCs2capStream = async () => {
+    try {
+      await window.electronAPI.cs2cap.cancelFetch();
+      toast('CS2Cap stream cancellation requested.', { icon: '🛑' });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to cancel CS2Cap stream');
+    }
+  };
+
+  const toggleCs2capProvider = (providerId: string) => {
+    if (selectedCs2capProviders.includes(providerId) && selectedCs2capProviders.length === 1) {
+      toast.error('At least one CS2Cap provider must remain selected');
+      return;
+    }
+    storeToggleCs2capProvider(providerId);
+  };
+
+  const soloCs2capProvider = (providerId: string) => {
+    storeSoloCs2capProvider(providerId);
+    toast.success(`Solo CS2Cap provider set to ${providerId}`);
+  };
+
+  const selectAllCs2capProviders = () => {
+    storeSelectAllCs2capProviders();
+    toast.success('All CS2Cap providers selected');
+  };
+
+  const resetDefaultCs2capProviders = () => {
+    storeResetDefaultCs2capProviders();
+    toast.success('Reset CS2Cap providers to default');
   };
 
   // Compute live count of items passing smart pre-filters
@@ -296,7 +391,7 @@ export default function OracleDashboard() {
               total++;
               if (r.oracle.liquidityScore >= 1.2) highLiq++;
 
-              const csfloatListing = fullCache[r.name]?.l?.find((l: any) => l.m === 'csgofloat');
+              const csfloatListing = fullCache[r.name]?.l?.find((l: any) => isMarketMatch(l.m, 'csfloat'));
               const csfloatPrice = csfloatListing?.p || 0;
               if (csfloatPrice > 0 && (csfloatPrice / acceptedPrice) <= 1.10) {
                 soClose++;
@@ -628,6 +723,18 @@ export default function OracleDashboard() {
         onToggle={() => toggleStep('step1')}
         cacheStatus={cacheStatus}
         hasApiKey={hasApiKey}
+        hasCs2capKey={hasCs2capKey}
+        pricingProvider={pricingProvider}
+        onChangePricingProvider={setPricingProvider}
+        isCs2capStreaming={isCs2capStreaming}
+        cs2capProgress={cs2capProgress}
+        onStreamCs2cap={handleStreamCs2cap}
+        onCancelCs2capStream={handleCancelCs2capStream}
+        selectedCs2capProviders={selectedCs2capProviders}
+        onToggleCs2capProvider={toggleCs2capProvider}
+        onSoloCs2capProvider={soloCs2capProvider}
+        onSelectAllCs2capProviders={selectAllCs2capProviders}
+        onResetDefaultCs2capProviders={resetDefaultCs2capProviders}
         selectedMarkets={selectedMarkets}
         marketCounts={marketCounts}
         fetchProgress={fetchProgress}

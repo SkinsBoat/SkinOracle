@@ -12,6 +12,7 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { getWearShortcut, SoCloseResultItem } from '../../dmarket-utils';
+import { isMarketMatch } from '../../../../../shared/canonicalMarkets';
 import TrendSparkline from '../../../../components/TrendSparkline';
 import { useTrendStore } from '../../../../store/useTrendStore';
 
@@ -121,7 +122,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
         const cacheItem = priceCache ? priceCache[name] : null;
         let dmarketPrice = 0;
         if (cacheItem?.l && Array.isArray(cacheItem.l)) {
-          const dmarketEntry = cacheItem.l.find((m: any) => m.m === 'dmarket');
+          const dmarketEntry = cacheItem.l.find((m: any) => isMarketMatch(m.m, 'dmarket'));
           if (dmarketEntry && dmarketEntry.p) dmarketPrice = Number(dmarketEntry.p);
         }
 

@@ -46,10 +46,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ── Settings / API Keys (stored on device, never sent to our server) ──
   settings: {
     setSkinsnipeKey: (key: string) => safeInvoke('settings:set-skinsnipe-key', key),
+    setCs2capKey: (key: string) => safeInvoke('settings:set-cs2cap-key', key),
     setCsfloatKey: (key: string) => safeInvoke('settings:set-csfloat-key', key),
     setSkinscomToken: (token: string) => safeInvoke('settings:set-skinscom-token', token),
     setDmarketKeys: (publicKey: string, secretKey: string) => safeInvoke('settings:set-dmarket-keys', publicKey, secretKey),
     revokeSkinsnipeKey: () => safeInvoke('settings:revoke-skinsnipe-key'),
+    revokeCs2capKey: () => safeInvoke('settings:revoke-cs2cap-key'),
     revokeCsfloatKey: () => safeInvoke('settings:revoke-csfloat-key'),
     revokeSkinscomToken: () => safeInvoke('settings:revoke-skinscom-token'),
     revokeDmarketKeys: () => safeInvoke('settings:revoke-dmarket-keys'),
@@ -74,6 +76,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getCacheStatus: () => safeInvoke('skinsnipe:get-cache-status'),
     loadCacheJson: (jsonContent: string) => safeInvoke('skinsnipe:load-cache-json', jsonContent),
     loadDemoCache: (options?: { forceRefresh?: boolean }) => safeInvoke('skinsnipe:load-demo-cache', options),
+  },
+
+  // ── CS2Cap (stream prices snapshot using trader's own key, from trader's device) ──
+  cs2cap: {
+    fetchPrices: (options?: { providers?: string[] }) => safeInvoke('cs2cap:fetch-prices', options),
+    cancelFetch: () => safeInvoke('cs2cap:cancel-fetch'),
+    onStreamProgress: (callback: (progress: any) => void) => {
+      const subscription = (_: any, data: any) => callback(data);
+      ipcRenderer.on('cs2cap:fetch-progress', subscription);
+      return () => {
+        ipcRenderer.removeListener('cs2cap:fetch-progress', subscription);
+      };
+    },
+    getStatus: () => safeInvoke('cs2cap:get-status'),
   },
 
   // ── Oracle (send price data to SaaS backend, store accepted & listing prices) ──

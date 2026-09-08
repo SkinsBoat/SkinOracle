@@ -80,10 +80,15 @@ ipcMain.handle('oracle:batch-finish', async (_, batchId: string, completedItems:
 });
 
 ipcMain.handle('oracle:evaluate', async (_, items: string[], options?: any, batchId?: string) => {
-  // Build request items from local price cache (strip any redundant/raw listing metadata)
+  // Build request items from local price cache (strip redundant metadata & enforce max 100 listings)
   const requestItems = items.map(name => {
     const cached = priceCache[name];
-    const listings = (cached?.l || []).map(l => ({
+    const rawListings = cached?.l || [];
+    const cappedListings = rawListings.length > 100
+      ? [...rawListings].sort((a, b) => (a.p || 0) - (b.p || 0)).slice(0, 100)
+      : rawListings;
+
+    const listings = cappedListings.map(l => ({
       m: l.m,
       p: l.p,
       ...(l.q !== undefined ? { q: l.q } : {}),
@@ -105,7 +110,12 @@ ipcMain.handle('oracle:evaluate-nexus', async (_, items: string[], options?: any
 
   const requestItems = items.map(name => {
     const cached = priceCache[name];
-    const listings = (cached?.l || []).map(l => ({
+    const rawListings = cached?.l || [];
+    const cappedListings = rawListings.length > 100
+      ? [...rawListings].sort((a, b) => (a.p || 0) - (b.p || 0)).slice(0, 100)
+      : rawListings;
+
+    const listings = cappedListings.map(l => ({
       m: l.m,
       p: l.p,
       ...(l.q !== undefined ? { q: l.q } : {}),

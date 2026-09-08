@@ -16,6 +16,7 @@ const KEYS_FILE = path.join(
 
 const STORAGE_KEYS = {
   SKINSNIPE: 'skinsnipe_api_key',
+  CS2CAP: 'cs2cap_api_key',
   CSFLOAT: 'csfloat_api_key',
   SKINSCOM: 'skinscom_token',
   DMARKET_PUBLIC: 'dmarket_public_key',
@@ -97,6 +98,11 @@ if (ipcMain?.handle) {
     return { success: true };
   });
 
+  ipcMain.handle('settings:set-cs2cap-key', (_, key: string) => {
+    secureSet(STORAGE_KEYS.CS2CAP, key);
+    return { success: true };
+  });
+
   ipcMain.handle('settings:set-csfloat-key', (_, key: string) => {
     secureSet(STORAGE_KEYS.CSFLOAT, key);
     return { success: true };
@@ -109,6 +115,11 @@ if (ipcMain?.handle) {
 
   ipcMain.handle('settings:revoke-skinsnipe-key', () => {
     secureDelete(STORAGE_KEYS.SKINSNIPE);
+    return { success: true };
+  });
+
+  ipcMain.handle('settings:revoke-cs2cap-key', () => {
+    secureDelete(STORAGE_KEYS.CS2CAP);
     return { success: true };
   });
 
@@ -137,6 +148,7 @@ if (ipcMain?.handle) {
   ipcMain.handle('settings:get-keys-status', () => {
     return {
       hasSkinsnipeKey: !!secureGet(STORAGE_KEYS.SKINSNIPE),
+      hasCs2capKey: !!secureGet(STORAGE_KEYS.CS2CAP),
       hasCsfloatKey: !!secureGet(STORAGE_KEYS.CSFLOAT),
       hasSkinscomToken: !!secureGet(STORAGE_KEYS.SKINSCOM),
       hasDmarketKeys: !!secureGet(STORAGE_KEYS.DMARKET_PUBLIC) && !!secureGet(STORAGE_KEYS.DMARKET_SECRET),

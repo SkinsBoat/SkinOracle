@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { SkinsnipeMarketId } from '../../shared/types';
+import { DEFAULT_CS2CAP_PROVIDERS } from '../../shared/cs2capProviders';
 
 export interface BuildPreFilters {
   excludeSouvenir: boolean;
@@ -107,18 +108,27 @@ export const DEFAULT_SELECTED_MARKETS: SkinsnipeMarketId[] = [
 ];
 
 interface OracleStoreState {
+  pricingProvider: 'skinsnipe' | 'cs2cap';
   selectedMarkets: SkinsnipeMarketId[];
+  selectedCs2capProviders: string[];
   preFilters: BuildPreFilters;
   selectedEngine: 'standard' | 'nexus';
   strategyProfile: OracleStrategyProfile;
   nexusProfile: NexusStrategyProfile;
   listingStrategy: ListingPriceStrategy;
 
+  setPricingProvider: (provider: 'skinsnipe' | 'cs2cap') => void;
   setSelectedMarkets: (markets: SkinsnipeMarketId[]) => void;
   toggleMarket: (marketId: SkinsnipeMarketId) => void;
   soloMarket: (marketId: SkinsnipeMarketId) => void;
   selectAllMarkets: (allIds: SkinsnipeMarketId[]) => void;
   resetDefaultMarkets: () => void;
+
+  setSelectedCs2capProviders: (providers: string[]) => void;
+  toggleCs2capProvider: (providerId: string) => void;
+  soloCs2capProvider: (providerId: string) => void;
+  selectAllCs2capProviders: () => void;
+  resetDefaultCs2capProviders: () => void;
 
   setSelectedEngine: (engine: 'standard' | 'nexus') => void;
 
@@ -134,13 +144,16 @@ interface OracleStoreState {
 export const useOracleStore = create<OracleStoreState>()(
   persist(
     (set) => ({
+      pricingProvider: 'skinsnipe',
       selectedMarkets: DEFAULT_SELECTED_MARKETS,
+      selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS,
       preFilters: DEFAULT_PRE_FILTERS,
       selectedEngine: 'standard',
       strategyProfile: DEFAULT_STRATEGY_PROFILE,
       nexusProfile: DEFAULT_NEXUS_PROFILE,
       listingStrategy: DEFAULT_LISTING_STRATEGY,
 
+      setPricingProvider: (provider) => set({ pricingProvider: provider }),
       setSelectedMarkets: (markets) => set({ selectedMarkets: markets }),
       toggleMarket: (marketId) =>
         set((state) => {
@@ -153,6 +166,19 @@ export const useOracleStore = create<OracleStoreState>()(
       soloMarket: (marketId) => set({ selectedMarkets: [marketId] }),
       selectAllMarkets: (allIds) => set({ selectedMarkets: allIds }),
       resetDefaultMarkets: () => set({ selectedMarkets: DEFAULT_SELECTED_MARKETS }),
+
+      setSelectedCs2capProviders: (providers) => set({ selectedCs2capProviders: providers }),
+      toggleCs2capProvider: (providerId) =>
+        set((state) => {
+          if (state.selectedCs2capProviders.includes(providerId)) {
+            if (state.selectedCs2capProviders.length === 1) return state;
+            return { selectedCs2capProviders: state.selectedCs2capProviders.filter((p) => p !== providerId) };
+          }
+          return { selectedCs2capProviders: [...state.selectedCs2capProviders, providerId] };
+        }),
+      soloCs2capProvider: (providerId) => set({ selectedCs2capProviders: [providerId] }),
+      selectAllCs2capProviders: () => set({ selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS }),
+      resetDefaultCs2capProviders: () => set({ selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS }),
 
       setSelectedEngine: (engine) => set({ selectedEngine: engine }),
 
@@ -187,6 +213,20 @@ export const useOracleStore = create<OracleStoreState>()(
     }),
     {
       name: 'oracle_dashboard_store',
+      version: 2,
+      migrate: (persistedState: any, version: number) => {
+        if (!persistedState || typeof persistedState !== 'object') {
+          return persistedState;
+        }
+        if (version < 2 || !Array.isArray(persistedState.selectedCs2capProviders)) {
+          persistedState.selectedCs2capProviders = DEFAULT_CS2CAP_PROVIDERS;
+        } else {
+          const validSet = new Set(DEFAULT_CS2CAP_PROVIDERS);
+          const filtered = persistedState.selectedCs2capProviders.filter((p: string) => validSet.has(p));
+          persistedState.selectedCs2capProviders = filtered.length > 0 ? filtered : DEFAULT_CS2CAP_PROVIDERS;
+        }
+        return persistedState;
+      },
     }
   )
 );

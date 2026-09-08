@@ -43,6 +43,7 @@ import { CSFloatLookupModal } from './modals/CSFloatLookupModal';
 
 import { roundToCsFloatStep, snapCsFloatBuyOrderPriceCents } from '../Oracle/utils/oracleUtils';
 import { getCsfloatSearchUrl } from '../../utils/csfloatUrls';
+import { isMarketMatch, getMarketDisplayName } from '../../../shared/canonicalMarkets';
 
 const getWearShortcut = (wear?: string) => {
   if (!wear) return '';
@@ -81,41 +82,8 @@ interface SoCloseResultItem {
   trendMomentum14d?: number;
 }
 
-const MARKET_NAME_MAP: Record<string, string> = {
-  csgofloat: 'CSFloat',
-  csmoney: 'CS.MONEY',
-  csmoney_p2p: 'CS.MONEY P2P',
-  csmoney_trade: 'CS.MONEY Trade',
-  skinport: 'Skinport',
-  dmarket: 'DMarket',
-  waxpeer: 'Waxpeer',
-  shadowpay: 'ShadowPay',
-  bitskins: 'BitSkins',
-  buff163: 'BUFF163',
-  skinbaron: 'SkinBaron',
-  tradeitgg: 'Tradeit.GG',
-  tradeitgg_store: 'Tradeit.GG Store',
-  cstrade: 'CSTrade',
-  exeskins: 'ExeSkins',
-  itradegg: 'iTradeGG',
-  lisskins: 'LisSkins',
-  manncostore: 'ManncoStore',
-  market_csgo: 'Market CSGO',
-  merchanttf: 'Merchant TF',
-  skinflow: 'SkinFlow',
-  skinland: 'SkinLand',
-  skinsmonkey: 'SkinsMonkey',
-  skinswap: 'SkinSwap',
-  whitemarket: 'WhiteMarket',
-  avanmarket: 'AvanMarket',
-  gamerpay: 'GamerPay',
-  skinout: 'Skinout',
-};
-
 const getHumanMarketName = (marketId: string): string => {
-  if (!marketId) return 'Market';
-  const idLower = marketId.toLowerCase();
-  return MARKET_NAME_MAP[idLower] || MARKET_NAME_MAP[marketId] || marketId;
+  return getMarketDisplayName(marketId);
 };
 
 export default function CSFloatWorkstation() {
@@ -529,7 +497,7 @@ export default function CSFloatWorkstation() {
         const cacheItem = priceCache ? priceCache[name] : null;
         let csfloatPrice = 0;
         if (cacheItem?.l && Array.isArray(cacheItem.l)) {
-          const csfloatEntry = cacheItem.l.find((m: any) => m.m === 'csgofloat');
+          const csfloatEntry = cacheItem.l.find((m: any) => isMarketMatch(m.m, 'csfloat'));
           if (csfloatEntry) csfloatPrice = csfloatEntry.p;
         }
 

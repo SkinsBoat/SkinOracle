@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, ExternalLink } from 'lucide-react';
 import { getHumanMarketName } from '../dmarket-utils';
+import { isMarketMatch } from '../../../../shared/canonicalMarkets';
 import TrendDetailedChart from '../../../components/TrendDetailedChart';
 
 interface ItemLookupModalProps {
@@ -26,7 +27,7 @@ export const ItemLookupModal: React.FC<ItemLookupModalProps> = ({ item, onClose,
     .filter((p: number) => !isNaN(p) && p > 0);
 
   const calculatedLowestPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
-  const dmarketEntry = cacheListings.find((m: any) => m.m === 'dmarket');
+  const dmarketEntry = cacheListings.find((m: any) => isMarketMatch(m.m, 'dmarket'));
   const resolvedDmarketPrice = item.marketPrice || (dmarketEntry?.p ? Number(dmarketEntry.p) : null);
 
   return (

@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, ExternalLink } from 'lucide-react';
+import { isMarketMatch, getMarketDisplayName } from '../../../../shared/canonicalMarkets';
 import TrendDetailedChart from '../../../components/TrendDetailedChart';
 
 export interface LookupModalItemData {
@@ -14,14 +15,14 @@ interface CSFloatLookupModalProps {
   item: LookupModalItemData | null;
   onClose: () => void;
   onOpenMarket: (name: string) => void;
-  getHumanMarketName: (marketId: string) => string;
+  getHumanMarketName?: (marketId: string) => string;
 }
 
 export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
   item,
   onClose,
   onOpenMarket,
-  getHumanMarketName,
+  getHumanMarketName = getMarketDisplayName,
 }) => {
   if (!item) return null;
 
@@ -33,7 +34,7 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
     .filter((p: number) => !isNaN(p) && p > 0);
 
   const calculatedLowestPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
-  const csfloatEntry = cacheListings.find((m: any) => m.m === 'csgofloat' || m.m === 'csfloat');
+  const csfloatEntry = cacheListings.find((m: any) => isMarketMatch(m.m, 'csfloat'));
   const resolvedCsfloatPrice = item.marketPrice || (csfloatEntry?.p ? Number(csfloatEntry.p) : null);
 
   return (

@@ -9,6 +9,7 @@
 export const CSFLOAT_API = 'https://csfloat.com/api/v1';
 export const SKINSCOM_API = 'https://api.skins.com/v1';
 export const SKINSNIPE_API = 'https://pricing.tradeupspy.com/public';
+export const CS2CAP_API = 'https://api.cs2c.app/v1';
 export const DMARKET_API = 'https://api.dmarket.com';
 export const DMARKET_CS2_GAME_ID = 'a8db';
 
@@ -34,6 +35,9 @@ export const SKINSCOM_BUY_ORDER_BY_ID = (orderId: string) => `${SKINSCOM_API}/bu
 
 // ── Skinsnipe Endpoints ───────────────────────────────────────────
 export const SKINSNIPE_LOWEST_PRICES = `${SKINSNIPE_API}/lowest-prices`;
+
+// ── CS2Cap Endpoints ─────────────────────────────────────────────
+export const CS2CAP_PRICES_STREAM = `${CS2CAP_API}/prices`;
 
 // ── DMarket Endpoints ─────────────────────────────────────────────
 export const DMARKET_USER_PROFILE = `${DMARKET_API}/account/v1/user`;

@@ -2,6 +2,7 @@ import oracleLogo from '../icon.png';
 import csfloatLogo from './csfloat.png';
 import skinsLogo from './skins-logo.png';
 import skinSnipeLogo from './skinssnipe.svg';
+import cs2capLogo from './cs2caplogo.svg';
 import lisSkinsLogo from './lis-skins.svg';
 
 import dmarketLogo from './dmarket-logo.png';
@@ -24,6 +25,7 @@ export {
   csfloatLogo,
   skinsLogo,
   skinSnipeLogo,
+  cs2capLogo,
   lisSkinsLogo,
 
   dmarketLogo,

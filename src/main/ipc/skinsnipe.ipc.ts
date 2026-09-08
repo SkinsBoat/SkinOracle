@@ -4,10 +4,11 @@ import * as path from 'path';
 import axios from 'axios';
 import * as https from 'https';
 import { secureGet, STORAGE_KEYS } from '../../storage/secure-store';
-import { setPriceCache } from './oracle.ipc';
+import { setPriceCache, priceCache } from './oracle.ipc';
 import { SKINSNIPE_LOWEST_PRICES } from '../constants/apiUrls';
 import { saasAxios } from '../services/saasAxios';
 import { trendStore } from '../services/trendStore';
+import { toCanonicalMarketId } from '../../shared/canonicalMarkets';
 
 // ─────────────────────────────────────────────────────────────────
 // Skinsnipe price fetching — runs on the trader's device using the
@@ -39,6 +40,19 @@ let localPriceCache: PriceCache = {};
 let isFetching = false;
 let cancelRequested = false;
 let lastFetchedAt: Date | null = null;
+
+export function setLocalPriceCache(cache: PriceCache, fetchedAt?: Date) {
+  localPriceCache = cache;
+  lastFetchedAt = fetchedAt || new Date();
+  setPriceCache(cache);
+}
+
+export function getActivePriceCache(): PriceCache {
+  if (localPriceCache && Object.keys(localPriceCache).length > 0) {
+    return localPriceCache;
+  }
+  return priceCache || {};
+}
 
 function sleep(ms: number) {
   return new Promise(r => setTimeout(r, ms));
@@ -191,7 +205,12 @@ async function mergeAndBuild(event: IpcMainInvokeEvent, apiKey: string, targetMa
         if (!tempCache[name]) tempCache[name] = { n: name, l: [] };
 
         if (item.l) {
-          const valid = item.l.filter((l: any) => l.p > 0.20);
+          const valid = item.l
+            .filter((l: any) => l.p > 0.20)
+            .map((l: any) => ({
+              ...l,
+              m: toCanonicalMarketId(l.m || market),
+            }));
           tempCache[name].l.push(...valid);
         }
       }
@@ -297,19 +316,23 @@ ipcMain.handle('skinsnipe:cancel-fetch', () => {
 });
 
 // ── IPC: Get cached prices (already fetched) ───────────────────────
-ipcMain.handle('skinsnipe:get-cache', () => localPriceCache);
+ipcMain.handle('skinsnipe:get-cache', () => getActivePriceCache());
 
 ipcMain.handle('skinsnipe:get-item', (_, itemName: string) => {
-  if (!itemName || !localPriceCache) return null;
-  return localPriceCache[itemName] || localPriceCache[itemName.trim()] || null;
+  const active = getActivePriceCache();
+  if (!itemName || !active) return null;
+  return active[itemName] || active[itemName.trim()] || null;
 });
 
-ipcMain.handle('skinsnipe:get-cache-status', () => ({
-  itemCount: Object.keys(localPriceCache).length,
-  isFetching,
-  lastFetchedAt: lastFetchedAt?.toISOString() || null,
-  marketCounts: getMarketCounts(localPriceCache),
-}));
+ipcMain.handle('skinsnipe:get-cache-status', () => {
+  const active = getActivePriceCache();
+  return {
+    itemCount: Object.keys(active).length,
+    isFetching,
+    lastFetchedAt: lastFetchedAt?.toISOString() || null,
+    marketCounts: getMarketCounts(active),
+  };
+});
 
 // ── IPC: Load pricing JSON file directly into local priceCache ─────
 ipcMain.handle('skinsnipe:load-cache-json', async (_, jsonContent: string) => {
@@ -321,7 +344,14 @@ ipcMain.handle('skinsnipe:load-cache-json', async (_, jsonContent: string) => {
       const cleanCache: PriceCache = {};
       for (const [key, val] of Object.entries(cacheData)) {
         if (val && typeof val === 'object' && ('l' in (val as any) || 'n' in (val as any))) {
-          cleanCache[key] = val as any;
+          const rawItem = val as any;
+          cleanCache[key] = {
+            n: rawItem.n || key,
+            l: (rawItem.l || []).map((l: any) => ({
+              ...l,
+              m: toCanonicalMarketId(l.m),
+            })),
+          };
         }
       }
 
@@ -401,7 +431,14 @@ ipcMain.handle('skinsnipe:load-demo-cache', async (_event: IpcMainInvokeEvent, o
       const cleanCache: PriceCache = {};
       for (const [key, val] of Object.entries(cacheData)) {
         if (val && typeof val === 'object' && ('l' in (val as any) || 'n' in (val as any))) {
-          cleanCache[key] = val as any;
+          const rawItem = val as any;
+          cleanCache[key] = {
+            n: rawItem.n || key,
+            l: (rawItem.l || []).map((l: any) => ({
+              ...l,
+              m: toCanonicalMarketId(l.m),
+            })),
+          };
         }
       }
 

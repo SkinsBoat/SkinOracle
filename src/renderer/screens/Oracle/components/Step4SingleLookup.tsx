@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, ChevronUp, ChevronDown, Loader2, Zap, BarChart3, AlertCircle, Tag, Layers, TrendingUp } from 'lucide-react';
 import { ListingPriceStrategy } from '../../../store/useOracleStore';
-import { SKINSNIPE_AVAILABLE_MARKETS } from './Step1MarketCache';
+import { getMarketDisplayName } from '../../../../shared/canonicalMarkets';
 import { calculateSuggestedListingPrice } from '../utils/oracleUtils';
 import { S } from '../OracleDashboard.styles';
 import { TrendDetailedChart } from '../../../components/TrendDetailedChart';
@@ -306,8 +306,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               </thead>
                               <tbody>
                                 {marketListings.map((m, idx) => {
-                                  const marketObj = SKINSNIPE_AVAILABLE_MARKETS.find(sm => sm.id === m.marketId);
-                                  const marketName = marketObj ? marketObj.name : m.marketId;
+                                  const marketName = getMarketDisplayName(m.marketId);
                                   return (
                                     <tr
                                       key={m.marketId + idx}
