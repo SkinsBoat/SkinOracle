@@ -610,6 +610,9 @@ export default function OracleDashboard() {
         return;
       }
 
+      const acceptedPricesRes = await window.electronAPI.oracle.getAcceptedPrices();
+      const acceptedMap = acceptedPricesRes?.map || {};
+
       const listingPriceMap: Record<
         string,
         {
@@ -618,6 +621,7 @@ export default function OracleDashboard() {
           offsetPercent: number;
           lowestPrice: number;
           averagePrice: number;
+          trendMomentum14d?: number;
         }
       > = {};
       let total = 0;
@@ -641,12 +645,15 @@ export default function OracleDashboard() {
           listingStrategy,
         );
 
+        const acceptedEntry = acceptedMap[name];
+
         listingPriceMap[name] = {
           listingPrice,
           mode: listingStrategy.mode,
           offsetPercent: listingStrategy.offsetPercent,
           lowestPrice,
           averagePrice,
+          trendMomentum14d: acceptedEntry?.trendMomentum14d,
         };
         total++;
       }

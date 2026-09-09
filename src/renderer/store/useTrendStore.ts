@@ -33,25 +33,29 @@ function pruneCache(
   return pruned;
 }
 
-export const useTrendStore = create<TrendStoreState>((set, get) => ({
-  trendHistoryMap: {},
+const inFlight = new Set<string>();
+const pendingItems = new Set<string>();
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  fetchHistoryBatch: async (itemNames: string[], days: number = 14) => {
-    if (!window.electronAPI?.trendStore?.getHistoryBatch) return;
+export const useTrendStore = create<TrendStoreState>((set, get) => {
+  const flushBatch = async (days: number = 14) => {
+    if (!window.electronAPI?.trendStore?.getHistoryBatch) {
+      pendingItems.clear();
+      return;
+    }
 
-    const currentMap = get().trendHistoryMap;
-    // Filter to unique valid names that aren't already cached
-    const missing = Array.from(
-      new Set(itemNames.filter((name) => Boolean(name) && !currentMap[name])),
-    );
+    const itemsToFetch = Array.from(pendingItems);
+    pendingItems.clear();
 
-    if (missing.length === 0) return;
+    if (itemsToFetch.length === 0) return;
+
+    itemsToFetch.forEach((name) => inFlight.add(name));
 
     try {
       // Chunk queries to SQLite in batches of 200 items
       const chunkSize = 200;
-      for (let i = 0; i < missing.length; i += chunkSize) {
-        const chunk = missing.slice(i, i + chunkSize);
+      for (let i = 0; i < itemsToFetch.length; i += chunkSize) {
+        const chunk = itemsToFetch.slice(i, i + chunkSize);
         const history = await window.electronAPI.trendStore.getHistoryBatch(
           chunk,
           days,
@@ -63,12 +67,63 @@ export const useTrendStore = create<TrendStoreState>((set, get) => ({
               trendHistoryMap: pruneCache(merged, MAX_TREND_CACHE_ITEMS),
             };
           });
+        } else {
+          set((state) => {
+            const emptyEntries: Record<string, TrendHistoryEntry> = {};
+            chunk.forEach((c) => {
+              emptyEntries[c] = { labels: [], overallAverages: [] };
+            });
+            const merged = { ...state.trendHistoryMap, ...emptyEntries };
+            return {
+              trendHistoryMap: pruneCache(merged, MAX_TREND_CACHE_ITEMS),
+            };
+          });
         }
       }
     } catch (err) {
       console.warn("[useTrendStore] Failed to fetch trend history batch:", err);
+    } finally {
+      itemsToFetch.forEach((name) => inFlight.delete(name));
     }
-  },
+  };
 
-  clearCache: () => set({ trendHistoryMap: {} }),
-}));
+  return {
+    trendHistoryMap: {},
+
+    fetchHistoryBatch: async (itemNames: string[], days: number = 14) => {
+      const currentMap = get().trendHistoryMap;
+      const missing = itemNames.filter(
+        (name) =>
+          Boolean(name) &&
+          !currentMap[name] &&
+          !inFlight.has(name) &&
+          !pendingItems.has(name),
+      );
+
+      if (missing.length === 0) return;
+
+      missing.forEach((name) => pendingItems.add(name));
+
+      // If large batch (e.g. from tab sync), flush sooner, otherwise debounce to group mounting components
+      if (pendingItems.size >= 50) {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = null;
+        flushBatch(days);
+      } else {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          flushBatch(days);
+        }, 40);
+      }
+    },
+
+    clearCache: () => {
+      inFlight.clear();
+      pendingItems.clear();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = null;
+      set({ trendHistoryMap: {} });
+    },
+  };
+});

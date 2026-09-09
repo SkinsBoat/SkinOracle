@@ -308,21 +308,19 @@ export default function DmarketWorkstation() {
           />{" "}
           So Close Opportunities
         </button>
-        {import.meta.env.DEV && (
-          <button
-            onClick={() => setMainTab("listings")}
-            className={`btn ${mainTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              padding: "5px 14px",
-            }}
-          >
-            <Tag size={13} /> Listings & Inventory
-          </button>
-        )}
+        <button
+          onClick={() => setMainTab("listings")}
+          className={`btn ${mainTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "12px",
+            padding: "5px 14px",
+          }}
+        >
+          <Tag size={13} /> Listings & Inventory
+        </button>
       </div>
 
       {/* ── TAB VIEWS ─────────────────────────────────────────────────── */}
@@ -356,7 +354,7 @@ export default function DmarketWorkstation() {
         />
       )}
 
-      {import.meta.env.DEV && mainTab === "listings" && (
+      {mainTab === "listings" && (
         <ListingsTab
           hasKey={!!hasKey}
           isSidebarExpanded={isSidebarExpanded}

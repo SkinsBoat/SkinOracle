@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ListingAnalysis } from "../../../../shared/types";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
+import TrendSparkline from "../../../components/TrendSparkline";
 
 export type { ListingAnalysis };
 
@@ -344,6 +345,23 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
             </span>
           )}
         </div>
+      </div>
+
+      {/* 14-Day Trend Sparkline */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <TrendSparkline
+          name={name}
+          momentum={analysis?.trendMomentum14d}
+          height={32}
+          onClick={() =>
+            onOpenLookup(
+              name,
+              analysis?.targetListingPrice,
+              currentListedPriceDollar || undefined,
+              item.icon_url,
+            )
+          }
+        />
       </div>
 
       {/* Pricing Info */}

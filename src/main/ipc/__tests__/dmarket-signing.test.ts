@@ -6,6 +6,11 @@ import {
   getNormalizedSecretKey,
   generateDmarketSignature,
   buildDmarketHeaders,
+  buildDmarketSyncPayload,
+  formatDmarketError,
+  formatCreateOfferRequest,
+  formatUpdateOfferRequest,
+  formatDeleteOfferRequest,
 } from "../dmarket.ipc";
 
 describe("DMarket Ed25519 Signing Engine", () => {
@@ -124,5 +129,77 @@ describe("DMarket Ed25519 Signing Engine", () => {
     expect(headers["X-Sign-Date"]).toBeDefined();
     expect(headers["X-Request-Sign"]).toMatch(/^dmar ed25519 [0-9a-f]{128}$/);
     expect(headers["Content-Type"]).toBe("application/json");
+  });
+
+  it("should generate the correct Steam inventory sync payload with GameID CSGO and Type Inventory", () => {
+    const payload = buildDmarketSyncPayload();
+    expect(payload).toEqual({
+      Type: "Inventory",
+      GameID: "CSGO",
+    });
+    // Ensure no invalid gameId or a8db is present in sync payload
+    expect((payload as any).gameId).toBeUndefined();
+  });
+
+  it("should correctly extract error details from DMarket error responses", () => {
+    // Stringified JSON inside Message field (as observed in DMarket 400 response)
+    const errObj1 = {
+      Code: "BadRequest",
+      Message: '{"id":"BadRequest","code":400,"detail":"Bad request","status":"Bad Request"}',
+    };
+    expect(formatDmarketError(errObj1)).toBe("Bad request");
+
+    // Standard message field
+    expect(formatDmarketError({ message: "Invalid API key" })).toBe("Invalid API key");
+
+    // Plain string error
+    expect(formatDmarketError("Server error")).toBe("Server error");
+
+    // Fallback when error data is empty
+    expect(formatDmarketError(null, "Fallback error")).toBe("Fallback error");
+  });
+
+  it("should format batch create offer requests according to DMarket OpenAPI v2 schema without duplicate fields", () => {
+    const assetUuid = "bc7773d0-707e-5ec8-84be-9c269eddf003";
+    const req = formatCreateOfferRequest(assetUuid, 138);
+
+    expect(req).toEqual({
+      assetId: "bc7773d0-707e-5ec8-84be-9c269eddf003",
+      priceCents: "138",
+    });
+
+    // Verify absence of duplicate snake_case proto fields
+    expect((req as any).asset_id).toBeUndefined();
+    expect((req as any).price_cents).toBeUndefined();
+
+    // Rejects non-deposited steam IDs
+    expect(() => formatCreateOfferRequest("8810763607:7993037582:53572993286:730", 100)).toThrow(
+      /Item is currently in your Steam inventory/,
+    );
+  });
+
+  it("should format batch update offer requests with offerId and priceCents", () => {
+    const offerId = "c3d4e5f6-a7b8-9012-cdef-345678901234";
+    const req = formatUpdateOfferRequest(offerId, 1799);
+
+    expect(req).toEqual({
+      offerId: "c3d4e5f6-a7b8-9012-cdef-345678901234",
+      priceCents: "1799",
+    });
+
+    expect((req as any).offer_id).toBeUndefined();
+    expect((req as any).price_cents).toBeUndefined();
+  });
+
+  it("should format batch delete offer requests with offerId", () => {
+    const offerId = "c3d4e5f6-a7b8-9012-cdef-345678901234";
+    const req = formatDeleteOfferRequest(offerId);
+
+    expect(req).toEqual({
+      offerId: "c3d4e5f6-a7b8-9012-cdef-345678901234",
+    });
+
+    expect((req as any).offer_id).toBeUndefined();
+    expect((req as any).asset_id).toBeUndefined();
   });
 });

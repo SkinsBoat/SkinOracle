@@ -12,6 +12,7 @@ export const SKINSNIPE_API = "https://pricing.tradeupspy.com/public";
 export const CS2CAP_API = "https://api.cs2c.app/v1";
 export const DMARKET_API = "https://api.dmarket.com";
 export const DMARKET_CS2_GAME_ID = "a8db";
+export const DMARKET_SYNC_CSGO_GAME_ID = "CSGO";
 
 const isProd =
   process.env.NODE_ENV === "production" || !process.env.VITE_DEV_SERVER_URL;
@@ -54,6 +55,10 @@ export const DMARKET_CLOSED_TARGETS = `${DMARKET_API}/marketplace-api/v1/user-ta
 export const DMARKET_TARGETS_BY_TITLE = (gameId: string, title: string) =>
   `${DMARKET_API}/marketplace-api/v1/targets-by-title/${gameId}/${encodeURIComponent(title)}`;
 export const DMARKET_AGGREGATED_PRICES = `${DMARKET_API}/marketplace-api/v1/aggregated-prices`;
+export const DMARKET_USER_INVENTORY_SYNC = `${DMARKET_API}/marketplace-api/v1/user-inventory/sync`;
+export const DMARKET_BATCH_CREATE_OFFERS = `${DMARKET_API}/marketplace-api/v2/offers:batchCreate`;
+export const DMARKET_BATCH_UPDATE_OFFERS = `${DMARKET_API}/marketplace-api/v2/offers:batchUpdate`;
+export const DMARKET_BATCH_DELETE_OFFERS = `${DMARKET_API}/marketplace-api/v2/offers:batchDelete`;
 
 // ── SaaS Auth Endpoints ───────────────────────────────────────────
 export const SAAS_AUTH_REGISTER = `${SAAS_API}/auth/register`;

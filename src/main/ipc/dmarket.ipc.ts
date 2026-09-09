@@ -5,6 +5,7 @@ import { secureGet, STORAGE_KEYS } from "../../storage/secure-store";
 import {
   DMARKET_API,
   DMARKET_CS2_GAME_ID,
+  DMARKET_SYNC_CSGO_GAME_ID,
   DMARKET_USER_PROFILE,
   DMARKET_USER_BALANCE,
   DMARKET_USER_TARGETS,
@@ -168,29 +169,76 @@ async function dmarketRequest(
       errorData || err.message,
     );
 
-    let errorMsg = "DMarket API request failed";
-    if (errorData) {
-      if (typeof errorData === "string") {
-        errorMsg = errorData;
-      } else if (errorData.message) {
-        errorMsg = errorData.message;
-      } else if (errorData.error) {
-        errorMsg =
-          typeof errorData.error === "string"
-            ? errorData.error
-            : JSON.stringify(errorData.error);
-      } else if (
-        Array.isArray(errorData.Result) &&
-        errorData.Result[0]?.Error?.Message
-      ) {
-        errorMsg = errorData.Result[0].Error.Message;
-      }
-    } else if (err.message) {
-      errorMsg = err.message;
-    }
-
+    const errorMsg = formatDmarketError(errorData, err.message);
     throw new Error(errorMsg);
   }
+}
+
+export function formatDmarketError(
+  errorData: any,
+  fallbackMessage?: string,
+): string {
+  if (errorData) {
+    if (typeof errorData === "string") {
+      try {
+        const parsed = JSON.parse(errorData);
+        return (
+          parsed.detail ||
+          parsed.message ||
+          parsed.Message ||
+          parsed.error ||
+          errorData
+        );
+      } catch {
+        return errorData;
+      }
+    }
+    if (errorData.detail && typeof errorData.detail === "string") {
+      return errorData.detail;
+    }
+    if (errorData.message && typeof errorData.message === "string") {
+      return errorData.message;
+    }
+    if (errorData.Message && typeof errorData.Message === "string") {
+      try {
+        const parsed = JSON.parse(errorData.Message);
+        return (
+          parsed.detail ||
+          parsed.message ||
+          parsed.Message ||
+          parsed.error ||
+          errorData.Message
+        );
+      } catch {
+        return errorData.Message;
+      }
+    }
+    if (errorData.description && typeof errorData.description === "string") {
+      return errorData.description;
+    }
+    if (errorData.error) {
+      return typeof errorData.error === "string"
+        ? errorData.error
+        : JSON.stringify(errorData.error);
+    }
+    if (
+      Array.isArray(errorData.Result) &&
+      errorData.Result[0]?.Error?.Message
+    ) {
+      return errorData.Result[0].Error.Message;
+    }
+    if (errorData.Code && typeof errorData.Code === "string") {
+      return errorData.Code;
+    }
+  }
+  return fallbackMessage || "DMarket API request failed";
+}
+
+export function buildDmarketSyncPayload(): { Type: string; GameID: string } {
+  return {
+    Type: "Inventory",
+    GameID: DMARKET_SYNC_CSGO_GAME_ID,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -374,6 +422,38 @@ export function formatAsUuid(val?: any): string | null {
       .toLowerCase();
   }
   return null;
+}
+
+export function formatCreateOfferRequest(
+  rawId: string,
+  priceCents: number,
+): { assetId: string; priceCents: string } {
+  const resolvedUuid = formatAsUuid(rawId);
+  if (!resolvedUuid) {
+    throw new Error(
+      `Item is currently in your Steam inventory (not deposited to DMarket). Please deposit the item to DMarket first before creating sell listings.`,
+    );
+  }
+  return {
+    assetId: resolvedUuid,
+    priceCents: String(priceCents),
+  };
+}
+
+export function formatUpdateOfferRequest(
+  offerId: string,
+  priceCents: number,
+): { offerId: string; priceCents: string } {
+  return {
+    offerId,
+    priceCents: String(priceCents),
+  };
+}
+
+export function formatDeleteOfferRequest(offerId: string): { offerId: string } {
+  return {
+    offerId,
+  };
 }
 
 /**
@@ -986,8 +1066,9 @@ if (ipcMain?.handle) {
       if (params?.treeFilters) baseParams.treeFilters = params.treeFilters;
 
       const normalizeOffer = (item: any) => {
-        const id =
-          item.id || item.offerId || item.offer_id || item.OfferID || "";
+        const offerId =
+          item.offerId || item.offer_id || item.OfferID || item.id || "";
+        const id = offerId;
         const assetId = resolveDmarketAssetId(item);
         const title = resolveDmarketTitle(item);
         const priceCents = resolveDmarketPriceCents(item);
@@ -1001,6 +1082,7 @@ if (ipcMain?.handle) {
         return {
           ...item,
           id,
+          offerId,
           assetId,
           title,
           Title: title,
@@ -1240,7 +1322,7 @@ if (ipcMain?.handle) {
         throw new Error("No items provided for listing creation");
       }
 
-      const formattedRequests = requests.map((r, idx) => {
+      const formattedRequests = requests.map((r) => {
         let cents = 0;
         if (r.priceCents !== undefined && r.priceCents !== null) {
           cents = Math.round(Number(r.priceCents));
@@ -1253,23 +1335,7 @@ if (ipcMain?.handle) {
             `Invalid price for asset ${rawId}: price must be greater than 0`,
           );
         }
-
-        const resolvedUuid = formatAsUuid(rawId);
-        if (!resolvedUuid) {
-          console.error(
-            `[DMarket IPC] ❌ Error: Asset ID "${rawId}" is not a valid DMarket UUID (inMarket: false).`,
-          );
-          throw new Error(
-            `Item is currently in your Steam inventory (not deposited to DMarket). Please deposit the item to DMarket first before creating sell listings.`,
-          );
-        }
-
-        return {
-          assetId: resolvedUuid,
-          asset_id: resolvedUuid,
-          priceCents: String(cents),
-          price_cents: cents,
-        };
+        return formatCreateOfferRequest(rawId, cents);
       });
 
       console.log(
@@ -1323,7 +1389,8 @@ if (ipcMain?.handle) {
       }>,
     ) => {
       console.log(
-        `[DMarket IPC] Batch updating ${requests?.length || 0} offers...`,
+        `[DMarket IPC] Batch updating ${requests?.length || 0} offers. Raw requests:`,
+        JSON.stringify(requests, null, 2),
       );
       if (!Array.isArray(requests) || requests.length === 0) {
         throw new Error("No offers provided for price update");
@@ -1341,11 +1408,13 @@ if (ipcMain?.handle) {
             `Invalid price for offer ${r.id}: price must be greater than 0`,
           );
         }
-        return {
-          offer_id: r.id,
-          price_cents: cents,
-        };
+        return formatUpdateOfferRequest(r.id, cents);
       });
+
+      console.log(
+        `[DMarket IPC] Formatted ${formattedRequests.length} offer(s) for update:`,
+        JSON.stringify(formattedRequests, null, 2),
+      );
 
       const chunkSize = 100;
       const allUpdated: any[] = [];
@@ -1354,11 +1423,19 @@ if (ipcMain?.handle) {
       for (let i = 0; i < formattedRequests.length; i += chunkSize) {
         const chunk = formattedRequests.slice(i, i + chunkSize);
         const body = { requests: chunk };
+        console.log(
+          `[DMarket IPC] Sending POST /marketplace-api/v2/offers:batchUpdate:`,
+          JSON.stringify(body, null, 2),
+        );
         const res = await dmarketRequest(
           "POST",
           "/marketplace-api/v2/offers:batchUpdate",
           undefined,
           body,
+        );
+        console.log(
+          `[DMarket IPC] batchUpdate response:`,
+          JSON.stringify(res, null, 2),
         );
 
         if (Array.isArray(res?.offers)) allUpdated.push(...res.offers);
@@ -1367,6 +1444,13 @@ if (ipcMain?.handle) {
         if (i + chunkSize < formattedRequests.length) {
           await new Promise((r) => setTimeout(r, 300));
         }
+      }
+
+      if (allFailed.length > 0) {
+        console.error(
+          `[DMarket IPC] ❌ Batch update failed items:`,
+          JSON.stringify(allFailed, null, 2),
+        );
       }
 
       console.log(
@@ -1392,11 +1476,7 @@ if (ipcMain?.handle) {
       }
 
       const formattedRequests = requests.map((r) => {
-        const uuid = formatAsUuid(r.assetId);
-        return {
-          offer_id: r.id,
-          ...(uuid ? { asset_id: uuid } : {}),
-        };
+        return formatDeleteOfferRequest(r.id);
       });
 
       const chunkSize = 100;
@@ -1603,11 +1683,7 @@ if (ipcMain?.handle) {
     console.log(
       "[DMarket IPC] Requesting Steam inventory sync from DMarket...",
     );
-    const body = {
-      Type: "Inventory",
-      GameID: DMARKET_CS2_GAME_ID,
-      gameId: DMARKET_CS2_GAME_ID,
-    };
+    const body = buildDmarketSyncPayload();
     try {
       const res = await dmarketRequest(
         "POST",

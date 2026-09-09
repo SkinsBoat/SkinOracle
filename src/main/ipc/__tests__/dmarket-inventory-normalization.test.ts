@@ -11,6 +11,7 @@ import {
   getItemListingPriceWithMap,
   getTradeTitle,
 } from "../../../renderer/screens/Dmarket/DmarketWorkstation";
+import { formatItemFloat } from "../../../renderer/screens/Dmarket/dmarket-utils";
 import { ListingPriceInfo } from "../../../shared/types";
 
 describe("DMarket Inventory & Offer Normalization Engine", () => {
@@ -302,6 +303,47 @@ describe("DMarket Inventory & Offer Normalization Engine", () => {
           attributes: { exterior: "Minimal Wear" },
         }),
       ).toBe("M4A4 | Buzz Kill (Minimal Wear)");
+    });
+  });
+
+  describe("formatItemFloat", () => {
+    it("should format direct decimal float from attributes.cs2.float", () => {
+      const item = {
+        attributes: {
+          cs2: {
+            float: "0.049684781581163406",
+            floatPart: "FLOAT_PART_FN_4",
+          },
+        },
+      };
+      // Must return numeric 4-digit float, NOT raw "FLOAT_" or "FLOAT_PART_FN_4"
+      expect(formatItemFloat(item)).toBe("0.0497");
+    });
+
+    it("should format direct decimal float from attributes.float or number", () => {
+      expect(formatItemFloat({ attributes: { float: 0.2356003 } })).toBe("0.2356");
+      expect(formatItemFloat({ attributes: { float: "0.1500" } })).toBe("0.1500");
+    });
+
+    it("should fallback cleanly to sub-range bucket without 'FLOAT_PART_' prefix when float number is missing", () => {
+      const item = {
+        attributes: {
+          cs2: {
+            floatPart: "FLOAT_PART_FN_4",
+          },
+        },
+      };
+      expect(formatItemFloat(item)).toBe("FN-4");
+    });
+
+    it("should return null for unspecified float part or empty item", () => {
+      expect(
+        formatItemFloat({
+          attributes: { cs2: { floatPart: "FLOAT_PART_UNSPECIFIED" } },
+        }),
+      ).toBeNull();
+      expect(formatItemFloat({})).toBeNull();
+      expect(formatItemFloat(null)).toBeNull();
     });
   });
 });

@@ -859,6 +859,7 @@ export default function CSFloatWorkstation() {
           isActionRequired,
           isOverpriced,
           isUnderpriced,
+          trendMomentum14d: priceEntry.trendMomentum14d,
         };
       });
 
@@ -1267,6 +1268,14 @@ export default function CSFloatWorkstation() {
       fetchTrendHistoryForItems(orders.map((o) => o.market_hash_name));
     }
   }, [orders]);
+
+  useEffect(() => {
+    if (inventory.length > 0) {
+      fetchTrendHistoryForItems(
+        inventory.map((i) => i.market_hash_name || i.item_name || ""),
+      );
+    }
+  }, [inventory]);
 
   // Counts & Totals for Buy Orders & Limit
   const selectedCount = Object.values(selectedItems).filter(Boolean).length;

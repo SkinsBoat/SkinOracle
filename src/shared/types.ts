@@ -83,6 +83,7 @@ export interface ListingAnalysis {
   isActionRequired: boolean;
   isOverpriced: boolean;
   isUnderpriced: boolean;
+  trendMomentum14d?: number;
 }
 
 export interface ListingPriceInfo {
@@ -91,6 +92,7 @@ export interface ListingPriceInfo {
   offsetPercent: number;
   lowestPrice: number;
   averagePrice: number;
+  trendMomentum14d?: number;
 }
 
 export interface DmarketTargetAttributes {

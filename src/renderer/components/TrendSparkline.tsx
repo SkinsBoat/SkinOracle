@@ -34,6 +34,12 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
   const gradientId = useId().replace(/:/g, "_");
   const storeEntry = useTrendStore((s) => s.trendHistoryMap[name]);
 
+  React.useEffect(() => {
+    if (name && !data && storeEntry === undefined) {
+      useTrendStore.getState().fetchHistoryBatch([name], 14);
+    }
+  }, [name, data, storeEntry]);
+
   const rawData = data || storeEntry?.overallAverages;
   const rawLabels = labels || storeEntry?.labels;
 

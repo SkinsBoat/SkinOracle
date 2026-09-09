@@ -297,3 +297,51 @@ export interface SoCloseResultItem {
   iconUrl?: string;
   trendMomentum14d?: number;
 }
+
+export const formatItemFloat = (item: any): string | null => {
+  if (!item) return null;
+  const attr = item.attributes || {};
+  const cs2 = attr.cs2 || {};
+  const extra = item.extra || {};
+
+  // 1. Direct decimal float value (e.g. "0.049684781581163406" or 0.04968)
+  const candidateFloat =
+    cs2.float ??
+    attr.float ??
+    item.float ??
+    extra.floatValue ??
+    attr.floatValue;
+
+  if (
+    candidateFloat !== undefined &&
+    candidateFloat !== null &&
+    candidateFloat !== ""
+  ) {
+    const num =
+      typeof candidateFloat === "number"
+        ? candidateFloat
+        : parseFloat(String(candidateFloat));
+    if (!isNaN(num) && num >= 0 && num <= 1) {
+      return num.toFixed(4);
+    }
+  }
+
+  // 2. Float Part / Sub-range bucket fallback (e.g. "FLOAT_PART_FN_4" -> "FN-4")
+  const candidatePart =
+    cs2.floatPart ??
+    attr.floatPart ??
+    attr.floatPartValue ??
+    extra.floatPartValue;
+
+  if (candidatePart && typeof candidatePart === "string") {
+    const cleanPart = candidatePart
+      .replace(/^FLOAT_PART_/i, "")
+      .replace(/_/g, "-")
+      .trim();
+    if (cleanPart && !cleanPart.toLowerCase().includes("unspecified")) {
+      return cleanPart;
+    }
+  }
+
+  return null;
+};

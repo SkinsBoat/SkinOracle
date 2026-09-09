@@ -30,10 +30,13 @@ import {
   getWearShortcut,
   getTradeTitle,
   getItemListingPriceWithMap,
+  formatItemFloat,
 } from "../../dmarket-utils";
 import { EditOfferModal } from "../../modals/EditOfferModal";
 import { CreateListingModal } from "../../modals/CreateListingModal";
 import { CopyMarketHashButton } from "../../../../components/CopyMarketHashButton";
+import TrendSparkline from "../../../../components/TrendSparkline";
+import { useTrendStore } from "../../../../store/useTrendStore";
 
 export interface ListingsTabProps {
   hasKey: boolean;
@@ -181,6 +184,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
         isActionRequired,
         isOverpriced,
         isUnderpriced,
+        trendMomentum14d: priceEntry.trendMomentum14d,
       };
     });
     return newAnalysis;
@@ -431,12 +435,19 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
       `Updating "${offer.title}" to $${targetPriceUsd.toFixed(2)}...`,
     );
     try {
+      const targetOfferId = offer.offerId || offer.id;
+      console.log(
+        `[ListingsTab] Quick updating offer "${offer.title}" (offerId: ${targetOfferId}) to $${targetPriceUsd}...`,
+      );
       const res = await window.electronAPI.dmarket.updateOffers([
-        { id: offer.id, priceUsd: targetPriceUsd },
+        { id: targetOfferId, priceUsd: targetPriceUsd },
       ]);
+      console.log("[ListingsTab] Quick update response:", res);
       if (res.failed && res.failed.length > 0) {
+        const failItem = res.failed[0];
         const failMsg =
-          res.failed[0]?.message || res.failed[0]?.code || "Update failed";
+          failItem?.message || failItem?.code || JSON.stringify(failItem) || "Update failed";
+        console.error("[ListingsTab] ❌ Quick update failed:", failItem);
         toast.error(`Failed to update offer: ${failMsg}`, { id: toastId });
         return;
       }
@@ -583,18 +594,23 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
     );
     try {
       const requests = toUpdate.map((u) => ({
-        id: u.id,
+        id: (u as any).offerId || u.id,
         priceUsd: u.priceUsd,
       }));
+      console.log("[ListingsTab] Batch update requests:", requests);
       const res = await window.electronAPI.dmarket.updateOffers(requests);
-      const successCount =
-        res.offers?.length || toUpdate.length - (res.failed?.length || 0);
+      console.log("[ListingsTab] Batch update response:", res);
+      const successCount = res.offers?.length || 0;
       const failCount = res.failed?.length || 0;
 
       if (failCount > 0) {
-        toast.error(`Updated ${successCount} offers, ${failCount} failed`, {
-          id: toastId,
-        });
+        const firstFail = res.failed[0];
+        const failReason = firstFail?.message || firstFail?.code || "";
+        console.error("[ListingsTab] ❌ Batch update failures:", res.failed);
+        toast.error(
+          `Updated ${successCount} offers, ${failCount} failed${failReason ? `: ${failReason}` : ""}`,
+          { id: toastId },
+        );
       } else {
         toast.success(
           `Successfully updated all ${successCount} offers to Oracle prices!`,
@@ -724,6 +740,22 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
       fetchInventory();
     }
   }, [hasKey]);
+
+  // Fetch 14-day trend history for active sell offers
+  useEffect(() => {
+    if (offers.length > 0) {
+      const titles = offers.map((o) => getTradeTitle(o)).filter(Boolean);
+      useTrendStore.getState().fetchHistoryBatch(titles);
+    }
+  }, [offers]);
+
+  // Fetch 14-day trend history for inventory items
+  useEffect(() => {
+    if (inventory.length > 0) {
+      const titles = inventory.map((i) => getTradeTitle(i)).filter(Boolean);
+      useTrendStore.getState().fetchHistoryBatch(titles);
+    }
+  }, [inventory]);
 
   // Listings stats
   const {
@@ -1304,20 +1336,16 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                 const isSelected = !!selectedOffers[offer.id];
                 const isProcessing = listingProcessingId === offer.id;
 
-                const match = offer.title.match(/^(.+?)\s*\(([^)]+)\)$/);
-                const cleanTitle = match ? match[1] : offer.title;
+                const fullTitle = getTradeTitle(offer);
+                const match = fullTitle.match(/^(.+?)\s*\(([^)]+)\)$/);
+                const cleanTitle = match ? match[1] : fullTitle;
                 const wearText = match
                   ? match[2]
                   : offer.attributes?.exterior ||
                     offer.attributes?.cs2?.exterior ||
                     "";
                 const wearShortcut = getWearShortcut(wearText);
-                const floatVal =
-                  offer.attributes?.floatPartValue ||
-                  offer.attributes?.floatPart ||
-                  offer.attributes?.float ||
-                  offer.attributes?.cs2?.floatPart ||
-                  null;
+                const floatVal = formatItemFloat(offer);
 
                 const currentPriceDollar = offer.priceCents
                   ? offer.priceCents / 100
@@ -1352,6 +1380,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                       cursor: "pointer",
                       userSelect: "none",
                       transition: "all 0.15s ease",
+                      overflow: "hidden",
                     }}
                     onClick={() =>
                       setSelectedOffers((prev) => ({
@@ -1574,13 +1603,27 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                               fontWeight: 700,
                             }}
                           >
-                            F:{" "}
-                            {typeof floatVal === "number"
-                              ? floatVal.toFixed(4)
-                              : String(floatVal).slice(0, 6)}
+                            F: {floatVal}
                           </span>
                         )}
                       </div>
+                    </div>
+
+                    {/* 14-Day Trend Sparkline */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <TrendSparkline
+                        name={fullTitle}
+                        momentum={analysis?.trendMomentum14d}
+                        height={30}
+                        onClick={() =>
+                          onOpenLookupModal(
+                            fullTitle,
+                            analysis?.targetListingPrice,
+                            currentPriceDollar,
+                            offer.imageUrl,
+                          )
+                        }
+                      />
                     </div>
 
                     {/* Pricing Info Box */}
@@ -1783,7 +1826,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
               />
               <span>
                 <strong style={{ color: "#ffffff" }}>Steam Sync Notice:</strong>{" "}
-                DMarket caches your Steam inventory to avoid Valve rate limits.
+                DMarket caches your Steam inventory.
                 If newly bought or traded CS2 items aren&apos;t showing, click{" "}
                 <strong style={{ color: "var(--so-accent-cyan)" }}>
                   Steam Re-sync
@@ -1948,13 +1991,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                     item.extra?.exterior ||
                     "";
                 const wearShortcut = getWearShortcut(wearText);
-                const floatVal =
-                  item.attributes?.floatPartValue ||
-                  item.attributes?.floatPart ||
-                  item.attributes?.float ||
-                  item.extra?.floatPartValue ||
-                  item.extra?.floatValue ||
-                  null;
+                const floatVal = formatItemFloat(item);
 
                 const itemImageUrl =
                   item.imageUrl ||
@@ -1983,6 +2020,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                       cursor: "pointer",
                       userSelect: "none",
                       transition: "all 0.15s ease",
+                      overflow: "hidden",
                     }}
                     onClick={() =>
                       setSelectedInventory((prev) => ({
@@ -1997,7 +2035,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        height: "20px",
+                        height: "22px",
                       }}
                     >
                       <div
@@ -2008,25 +2046,71 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                           flexShrink: 0,
                         }}
                       >
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            padding: "1px 5px",
-                            fontSize: "8.5px",
-                            color: "var(--so-text-muted)",
-                            backgroundColor: "var(--so-surface-panel)",
-                            borderRadius: "3px",
-                            fontWeight: 800,
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenMarket(title);
                           }}
+                          className="btn btn-sm"
+                          style={{
+                            padding: "3px 6px",
+                            background: "var(--so-surface-panel)",
+                            border: "1px solid var(--so-border-subtle)",
+                            borderRadius: "4px",
+                            color: "var(--so-text-secondary)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          title="Open on DMarket Market (Browser)"
                         >
-                          UNLISTED
-                        </span>
+                          <ExternalLink size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenLookupModal(
+                              title,
+                              targetPrice || undefined,
+                              undefined,
+                              itemImageUrl,
+                            );
+                          }}
+                          className="btn btn-sm"
+                          style={{
+                            padding: "3px 6px",
+                            background: "var(--so-surface-panel)",
+                            border: "1px solid var(--so-border-subtle)",
+                            borderRadius: "4px",
+                            color: "var(--so-accent-cyan)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          title="Inspect Item Details & Trends"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <CopyMarketHashButton name={title} />
+                      </div>
 
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          flexShrink: 0,
+                        }}
+                      >
                         {item.inMarket ? (
                           <span
                             className="badge badge-success"
-                            style={{ fontSize: "8.5px", padding: "1px 5px" }}
+                            style={{
+                              fontSize: "8.5px",
+                              padding: "1px 6px",
+                              fontWeight: 800,
+                              whiteSpace: "nowrap",
+                            }}
                           >
                             ON DMARKET
                           </span>
@@ -2034,40 +2118,16 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                           <span
                             style={{
                               fontSize: "8.5px",
-                              padding: "1px 5px",
+                              padding: "1px 6px",
                               borderRadius: "3px",
                               backgroundColor: "rgba(59, 130, 246, 0.15)",
                               color: "#60a5fa",
                               border: "1px solid rgba(59, 130, 246, 0.3)",
-                              fontWeight: 700,
+                              fontWeight: 800,
+                              whiteSpace: "nowrap",
                             }}
                           >
                             IN STEAM
-                          </span>
-                        )}
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "5px",
-                        }}
-                      >
-                        <CopyMarketHashButton name={title} />
-                        {targetPrice ? (
-                          <span
-                            className="badge badge-success"
-                            style={{ fontSize: "9px", padding: "1px 5px" }}
-                          >
-                            READY TO LIST
-                          </span>
-                        ) : (
-                          <span
-                            className="badge badge-secondary"
-                            style={{ fontSize: "9px", padding: "1px 5px" }}
-                          >
-                            NO ORACLE PRICE
                           </span>
                         )}
                       </div>
@@ -2163,13 +2223,26 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                               fontWeight: 700,
                             }}
                           >
-                            F:{" "}
-                            {typeof floatVal === "number"
-                              ? floatVal.toFixed(4)
-                              : String(floatVal).slice(0, 6)}
+                            F: {floatVal}
                           </span>
                         )}
                       </div>
+                    </div>
+
+                    {/* 14-Day Trend Sparkline */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <TrendSparkline
+                        name={title}
+                        height={30}
+                        onClick={() =>
+                          onOpenLookupModal(
+                            title,
+                            undefined,
+                            undefined,
+                            itemImageUrl,
+                          )
+                        }
+                      />
                     </div>
 
                     {/* Pricing Info Box */}
