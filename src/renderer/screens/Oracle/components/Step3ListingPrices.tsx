@@ -338,26 +338,26 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
               gap: "10px",
               padding: "10px 14px",
               borderRadius: "var(--so-radius-sm)",
-              backgroundColor: "rgba(239, 68, 68, 0.12)",
-              border: "1px solid rgba(239, 68, 68, 0.4)",
+              backgroundColor: "var(--so-surface-input)",
+              border: "1px solid var(--so-border-subtle)",
               marginTop: "16px",
               marginBottom: "16px",
             }}
           >
             <Check
               size={14}
-              style={{ color: "var(--so-danger-text)", flexShrink: 0 }}
+              style={{ color: "var(--so-text-muted)", flexShrink: 0 }}
             />
             <div
               style={{
                 fontSize: "12px",
-                fontWeight: 700,
-                color: "var(--so-danger-text)",
+                fontWeight: 600,
+                color: "var(--so-text-muted)",
               }}
             >
-              Forced Excluded Categories: Charms, Cases, Keys, Music Kits &
-              Agents are automatically filtered out from listing price
-              calculation.
+              Forced Excluded Categories: Charms, Cases, Keys, Music Kits, Agents,
+              Patches & Graffiti are automatically filtered out from listing
+              price calculation.
             </div>
           </div>
 

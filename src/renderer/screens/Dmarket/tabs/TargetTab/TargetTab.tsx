@@ -525,6 +525,25 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     }).length;
   }, [targets, targetAnalysis, driftThresholdPercent]);
 
+  const handleSelectActionRequired = () => {
+    const next: Record<string, boolean> = {};
+    targets.forEach((t) => {
+      const d = getTargetDriftDetails(t);
+      if (d?.isActionRequired) {
+        next[t.targetId] = true;
+      }
+    });
+    setSelectedTargets(next);
+  };
+
+  const handleSelectAll = () => {
+    const next: Record<string, boolean> = {};
+    targets.forEach((t) => {
+      next[t.targetId] = true;
+    });
+    setSelectedTargets(next);
+  };
+
   const selectedCount = Object.values(selectedTargets).filter(Boolean).length;
 
   return (
@@ -639,17 +658,29 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                 </strong>
               </span>
               {actionRequiredCount > 0 && (
-                <span
+                <button
+                  type="button"
+                  onClick={handleSelectActionRequired}
+                  className="btn btn-sm"
                   style={{
+                    backgroundColor: "rgba(239, 68, 68, 0.12)",
                     color: "#ef4444",
+                    border: "1px solid rgba(239, 68, 68, 0.4)",
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    fontWeight: 700,
                     display: "flex",
                     alignItems: "center",
-                    gap: "3px",
+                    gap: "4px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
                   }}
+                  title="Click to select all targets requiring action"
                 >
                   <AlertTriangle size={12} /> Action Req:{" "}
                   <strong>{actionRequiredCount}</strong>
-                </span>
+                </button>
               )}
             </div>
           )}
@@ -1847,6 +1878,40 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button
+              onClick={handleSelectAll}
+              className="btn btn-sm btn-ghost"
+              style={{
+                fontWeight: 700,
+                padding: "6px 14px",
+                fontSize: "12px",
+                color: "#ffffff",
+              }}
+            >
+              Select All ({targets.length})
+            </button>
+
+            {actionRequiredCount > 0 && (
+              <button
+                onClick={handleSelectActionRequired}
+                className="btn btn-sm btn-ghost"
+                style={{
+                  fontWeight: 700,
+                  padding: "6px 14px",
+                  fontSize: "12px",
+                  color: "#ef4444",
+                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+                title="Select all targets requiring action"
+              >
+                <AlertTriangle size={13} /> Action Req ({actionRequiredCount})
+              </button>
+            )}
+
             <button
               onClick={clearSelection}
               className="btn btn-sm btn-ghost"

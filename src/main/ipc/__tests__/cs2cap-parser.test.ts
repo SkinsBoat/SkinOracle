@@ -172,8 +172,8 @@ describe("CS2Cap NDJSON Line Parser", () => {
     });
   });
 
-  it("should maintain authoritative list of all 41 supported CS2Cap market providers", () => {
-    expect(CS2CAP_PROVIDERS).toHaveLength(41);
+  it("should maintain authoritative list of all 39 supported CS2Cap market providers", () => {
+    expect(CS2CAP_PROVIDERS).toHaveLength(39);
     const providerIds = CS2CAP_PROVIDERS.map((p) => p.id);
     expect(providerIds).toContain("buff163");
     expect(providerIds).toContain("c5");

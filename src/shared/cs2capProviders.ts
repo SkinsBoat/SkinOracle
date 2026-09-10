@@ -14,8 +14,6 @@ export const CS2CAP_PROVIDERS: Cs2CapProviderInfo[] = [
   { id: "c5", name: "C5GAME" },
   { id: "csdeals", name: "CS.Deals" },
   { id: "csfloat", name: "CSFloat" },
-  { id: "csgo500", name: "CSGO500" },
-  { id: "csgoempire", name: "CSGOEmpire" },
   { id: "csmoney_m", name: "CS.MONEY - Market" },
   { id: "csmoney_t", name: "CS.MONEY - Trade" },
   { id: "cstrade", name: "CS.Trade" },

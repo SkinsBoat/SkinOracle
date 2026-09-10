@@ -21,7 +21,9 @@ export function passesSmartPreFilters(
   filters: BuildPreFilters,
   itemData?: any,
 ): boolean {
-  const lower = itemName.toLowerCase();
+  if (!itemName || typeof itemName !== "string") return false;
+  const trimmed = itemName.trim();
+  const lower = trimmed.toLowerCase();
 
   // 1. Souvenir check
   if (filters.excludeSouvenir && lower.includes("souvenir")) {
@@ -31,39 +33,36 @@ export function passesSmartPreFilters(
   // 2. StatTrak check
   if (
     filters.excludeStatTrak &&
-    (itemName.includes("StatTrak™") || lower.includes("stattrak"))
+    (trimmed.includes("StatTrak™") || lower.includes("stattrak"))
   ) {
     return false;
   }
 
-  // 3. Sticker Check (Stickers, Patches, Sealed Graffiti)
-  const isSticker =
-    lower.startsWith("sticker |") ||
-    lower.startsWith("patch |") ||
-    lower.startsWith("sealed graffiti |");
+  // 3. Sticker Check (Standalone Stickers ONLY — Patches and Graffiti are excluded)
+  const isSticker = lower.startsWith("sticker |");
   if (isSticker) {
     if (filters.excludeStickers) return false;
   } else {
     // 4. Wear Condition Check (Weapons, Knives, Gloves)
     const hasWearInName =
       /\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i.test(
-        itemName,
+        trimmed,
       );
     if (hasWearInName) {
-      if (itemName.includes("(Factory New)") && !filters.allowedWears.fn)
+      if (trimmed.includes("(Factory New)") && !filters.allowedWears.fn)
         return false;
-      if (itemName.includes("(Minimal Wear)") && !filters.allowedWears.mw)
+      if (trimmed.includes("(Minimal Wear)") && !filters.allowedWears.mw)
         return false;
-      if (itemName.includes("(Field-Tested)") && !filters.allowedWears.ft)
+      if (trimmed.includes("(Field-Tested)") && !filters.allowedWears.ft)
         return false;
-      if (itemName.includes("(Well-Worn)") && !filters.allowedWears.ww)
+      if (trimmed.includes("(Well-Worn)") && !filters.allowedWears.ww)
         return false;
-      if (itemName.includes("(Battle-Scarred)") && !filters.allowedWears.bs)
+      if (trimmed.includes("(Battle-Scarred)") && !filters.allowedWears.bs)
         return false;
     } else {
       // Vanilla Knives / Weapons (no wear in name, e.g. ★ Karambit, ★ Bayonet) are automatically allowed as valid items
       const isVanillaWeapon =
-        itemName.includes("★") || lower.startsWith("vanilla");
+        trimmed.includes("★") || lower.startsWith("vanilla");
       if (!isVanillaWeapon) {
         // 5. Reject all non-wear items (Cases, Capsules, Packages, Charms, Keys, Music Kits, Agents, Collectibles, etc.)
         return false;

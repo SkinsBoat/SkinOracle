@@ -67,9 +67,16 @@ function getMarketCounts(cache: PriceCache): Record<string, number> {
     if (item?.l && Array.isArray(item.l)) {
       const marketsSeen = new Set<string>();
       for (const listing of item.l) {
-        if (listing.m && !marketsSeen.has(listing.m)) {
-          marketsSeen.add(listing.m);
-          marketCounts[listing.m] = (marketCounts[listing.m] || 0) + 1;
+        if (listing.m) {
+          const raw = listing.m;
+          const canonical = toCanonicalMarketId(raw);
+          if (!marketsSeen.has(canonical)) {
+            marketsSeen.add(canonical);
+            marketCounts[canonical] = (marketCounts[canonical] || 0) + 1;
+            if (raw && raw !== canonical) {
+              marketCounts[raw] = (marketCounts[raw] || 0) + 1;
+            }
+          }
         }
       }
     }

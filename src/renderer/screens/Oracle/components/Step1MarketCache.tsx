@@ -22,6 +22,10 @@ import {
 import { skinSnipeLogo, cs2capLogo } from "../../../../../assets/images";
 import { SkinsnipeMarketId } from "../../../../shared/types";
 import { CS2CAP_PROVIDERS } from "../../../../shared/cs2capProviders";
+import {
+  toCanonicalMarketId,
+  isMarketMatch,
+} from "../../../../shared/canonicalMarkets";
 
 export const SKINSNIPE_AVAILABLE_MARKETS: {
   id: SkinsnipeMarketId;
@@ -120,6 +124,30 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   onCancelFetch,
 }) => {
   const estimatedFetchSeconds = Math.max(0, (selectedMarkets.length - 1) * 32);
+
+  const getMarketCount = (marketId: string): number => {
+    if (!marketCounts || Object.keys(marketCounts).length === 0) return 0;
+    // Direct key match
+    if (marketCounts[marketId] !== undefined && marketCounts[marketId] > 0) {
+      return marketCounts[marketId];
+    }
+    // Canonical market ID match (e.g. csgofloat -> csfloat, csmoney_p2p -> csmoney_market)
+    const canonicalId = toCanonicalMarketId(marketId);
+    if (
+      canonicalId &&
+      marketCounts[canonicalId] !== undefined &&
+      marketCounts[canonicalId] > 0
+    ) {
+      return marketCounts[canonicalId];
+    }
+    // Fallback: search all keys in marketCounts that alias-match this market
+    for (const [key, count] of Object.entries(marketCounts)) {
+      if (isMarketMatch(key, marketId) && typeof count === "number" && count > 0) {
+        return count;
+      }
+    }
+    return 0;
+  };
 
   return (
     <div
@@ -524,7 +552,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         >
                           {provider.name}
                         </span>
-                        {marketCounts[provider.id] > 0 && (
+                        {getMarketCount(provider.id) > 0 && (
                           <span
                             style={{
                               fontSize: "10.5px",
@@ -542,7 +570,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                               flexShrink: 0,
                             }}
                           >
-                            {marketCounts[provider.id].toLocaleString()}
+                            {getMarketCount(provider.id).toLocaleString()}
                           </span>
                         )}
                       </div>
@@ -1133,7 +1161,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         >
                           {market.name}
                         </span>
-                        {marketCounts[market.id] > 0 && (
+                        {getMarketCount(market.id) > 0 && (
                           <span
                             style={{
                               fontSize: "10.5px",
@@ -1150,7 +1178,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                               flexShrink: 0,
                             }}
                           >
-                            {marketCounts[market.id].toLocaleString()}
+                            {getMarketCount(market.id).toLocaleString()}
                           </span>
                         )}
                       </div>

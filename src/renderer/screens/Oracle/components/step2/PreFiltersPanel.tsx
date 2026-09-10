@@ -267,12 +267,12 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
               Exclude Stickers
             </div>
             <div style={{ fontSize: "11px", color: "var(--so-text-muted)" }}>
-              Removes standalone stickers & patches
+              Removes standalone stickers
             </div>
           </div>
         </div>
 
-        {/* Forced Group Exclusions: Charms, Cases, Keys, Music Kits, Agents */}
+        {/* Forced Group Exclusions: Charms, Cases, Keys, Music Kits, Agents, Patches, Graffiti */}
         <div
           style={{
             display: "flex",
@@ -286,7 +286,7 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
             userSelect: "none",
             opacity: 0.75,
           }}
-          title="Forced Excluded Category Group (Locked)"
+          title="Forced Excluded Commodity Group (Locked)"
         >
           <div
             style={{
@@ -310,7 +310,7 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
                 color: "var(--so-text-muted)",
               }}
             >
-              Exclude Charms, Cases, Keys, Music Kits & Agents
+              Exclude Charms, Cases, Keys, Music Kits, Agents, Patches & Graffiti
             </div>
             <div
               style={{
@@ -325,63 +325,150 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
         </div>
       </div>
 
-      {/* Wear Condition Selector */}
-      <div>
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 700,
-            color: "var(--so-text-secondary)",
-            marginBottom: "8px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
-          <Tag size={14} /> Allowed Wear Conditions:
+      {/* Wear Condition & Price Filters Row */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: "16px",
+        }}
+      >
+        {/* Wear Condition Selector */}
+        <div style={{ flex: 1, minWidth: "300px" }}>
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "var(--so-text-secondary)",
+              marginBottom: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <Tag size={14} /> Allowed Wear Conditions:
+          </div>
+
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {[
+              { key: "fn", label: "Factory New (FN)" },
+              { key: "mw", label: "Minimal Wear (MW)" },
+              { key: "ft", label: "Field-Tested (FT)" },
+              { key: "ww", label: "Well-Worn (WW)" },
+              { key: "bs", label: "Battle-Scarred (BS)" },
+            ].map((wear) => {
+              const isSelected =
+                preFilters.allowedWears[
+                  wear.key as keyof BuildPreFilters["allowedWears"]
+                ];
+              return (
+                <button
+                  key={wear.key}
+                  type="button"
+                  onClick={() =>
+                    toggleWear(wear.key as keyof BuildPreFilters["allowedWears"])
+                  }
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: "var(--so-radius-sm)",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    backgroundColor: isSelected
+                      ? "rgba(99, 102, 241, 0.18)"
+                      : "var(--so-surface-input)",
+                    border: isSelected
+                      ? "1px solid var(--so-primary)"
+                      : "1px solid var(--so-border-subtle)",
+                    color: isSelected
+                      ? "var(--so-text-primary)"
+                      : "var(--so-text-muted)",
+                  }}
+                >
+                  {isSelected ? "✓ " : "✕ "} {wear.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          {[
-            { key: "fn", label: "Factory New (FN)" },
-            { key: "mw", label: "Minimal Wear (MW)" },
-            { key: "ft", label: "Field-Tested (FT)" },
-            { key: "ww", label: "Well-Worn (WW)" },
-            { key: "bs", label: "Battle-Scarred (BS)" },
-          ].map((wear) => {
-            const isSelected =
-              preFilters.allowedWears[
-                wear.key as keyof BuildPreFilters["allowedWears"]
-              ];
-            return (
-              <button
-                key={wear.key}
-                type="button"
-                onClick={() =>
-                  toggleWear(wear.key as keyof BuildPreFilters["allowedWears"])
-                }
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: "var(--so-radius-sm)",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  backgroundColor: isSelected
-                    ? "rgba(99, 102, 241, 0.18)"
-                    : "var(--so-surface-input)",
-                  border: isSelected
-                    ? "1px solid var(--so-primary)"
-                    : "1px solid var(--so-border-subtle)",
-                  color: isSelected
-                    ? "var(--so-text-primary)"
-                    : "var(--so-text-muted)",
-                }}
-              >
-                {isSelected ? "✓ " : "✕ "} {wear.label}
-              </button>
-            );
-          })}
+        {/* Compact Inline Price Filters */}
+        <div>
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "var(--so-text-secondary)",
+              marginBottom: "8px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Price Range ($):
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="Min $"
+              value={preFilters.minPrice ? preFilters.minPrice : ""}
+              onChange={(e) => {
+                const val =
+                  e.target.value === "" ? 0 : parseFloat(e.target.value);
+                setPreFilters((p) => ({
+                  ...p,
+                  minPrice: isNaN(val) ? 0 : val,
+                }));
+              }}
+              style={{
+                width: "85px",
+                height: "29px",
+                padding: "4px 8px",
+                borderRadius: "var(--so-radius-sm)",
+                border: "1px solid var(--so-border-medium)",
+                backgroundColor: "var(--so-surface-input)",
+                color: "var(--so-text-primary)",
+                fontSize: "12px",
+                fontWeight: 600,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+            <span style={{ color: "var(--so-text-muted)", fontSize: "12px" }}>
+              —
+            </span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              placeholder="Max $"
+              value={preFilters.maxPrice ? preFilters.maxPrice : ""}
+              onChange={(e) => {
+                const val =
+                  e.target.value === "" ? 0 : parseFloat(e.target.value);
+                setPreFilters((p) => ({
+                  ...p,
+                  maxPrice: isNaN(val) ? 0 : val,
+                }));
+              }}
+              style={{
+                width: "85px",
+                height: "29px",
+                padding: "4px 8px",
+                borderRadius: "var(--so-radius-sm)",
+                border: "1px solid var(--so-border-medium)",
+                backgroundColor: "var(--so-surface-input)",
+                color: "var(--so-text-primary)",
+                fontSize: "12px",
+                fontWeight: 600,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

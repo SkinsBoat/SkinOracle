@@ -91,8 +91,6 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
   { id: "c5", name: "C5GAME", aliases: ["c5", "c5game"] },
   { id: "cstrade", name: "CS.Trade", aliases: ["cstrade", "cs_trade"] },
   { id: "csdeals", name: "CS.Deals", aliases: ["csdeals", "cs_deals"] },
-  { id: "csgo500", name: "CSGO500", aliases: ["csgo500", "500"] },
-  { id: "csgoempire", name: "CSGOEmpire", aliases: ["csgoempire", "empire"] },
   { id: "ecosteam", name: "ECOSteam", aliases: ["ecosteam", "eco_steam"] },
   { id: "youpin", name: "Youpin898", aliases: ["youpin", "youpin898"] },
   {

@@ -114,6 +114,17 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
     setSelectedItems(next);
   };
 
+  const handleSelectActionRequired = () => {
+    const next: Record<string, boolean> = {};
+    orders.forEach((o) => {
+      const d = getOrderDriftDetails(o);
+      if (d?.isOverbid || d?.isUnderbid) {
+        next[o.id] = true;
+      }
+    });
+    setSelectedItems(next);
+  };
+
   const handleUpdateQuantity = (orderId: string, newQty: number) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, qty: newQty } : o)),
@@ -187,17 +198,29 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 </strong>
               </span>
               {actionRequiredCount > 0 && (
-                <span
+                <button
+                  type="button"
+                  onClick={handleSelectActionRequired}
+                  className="btn btn-sm"
                   style={{
+                    backgroundColor: "rgba(239, 68, 68, 0.12)",
                     color: "#ef4444",
+                    border: "1px solid rgba(239, 68, 68, 0.4)",
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    fontWeight: 700,
                     display: "flex",
                     alignItems: "center",
-                    gap: "3px",
+                    gap: "4px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
                   }}
+                  title="Click to select all cards requiring action"
                 >
                   <AlertTriangle size={12} /> Action Required:{" "}
                   <strong>{actionRequiredCount}</strong>
-                </span>
+                </button>
               )}
             </div>
 
@@ -429,6 +452,25 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
             >
               <CheckSquare size={12} /> Select All ({orders.length})
             </button>
+            {actionRequiredCount > 0 && (
+              <button
+                onClick={handleSelectActionRequired}
+                className="btn btn-sm btn-ghost"
+                style={{
+                  fontSize: "11px",
+                  padding: "3px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  color: "#ef4444",
+                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  borderRadius: "4px",
+                }}
+                title="Select all orders requiring action"
+              >
+                <AlertTriangle size={12} /> Action Required ({actionRequiredCount})
+              </button>
+            )}
             <button
               onClick={handleInvertSelection}
               className="btn btn-sm btn-ghost"
