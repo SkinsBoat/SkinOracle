@@ -23,6 +23,7 @@ import { calculateSuggestedListingPrice } from "../utils/oracleUtils";
 import { S } from "../OracleDashboard.styles";
 import { TrendDetailedChart } from "../../../components/TrendDetailedChart";
 import { TrendSparkline } from "../../../components/TrendSparkline";
+import { MarketLogo } from "../../../components/MarketLogo";
 
 interface Step4SingleLookupProps {
   isOpen: boolean;
@@ -498,9 +499,18 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               fontSize: "11px",
                               color: "var(--so-text-muted)",
                               fontWeight: 600,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "5px",
                             }}
                           >
-                            Lowest Listing
+                            <span>Lowest Listing</span>
+                            {marketListings.length > 0 && (
+                              <MarketLogo
+                                marketId={marketListings[0].marketId}
+                                size={14}
+                              />
+                            )}
                           </div>
                           <div
                             className="tabular-nums"
@@ -823,9 +833,14 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                           color: "var(--so-text-primary)",
                                           display: "flex",
                                           alignItems: "center",
-                                          gap: "6px",
+                                          gap: "8px",
                                         }}
                                       >
+                                        <MarketLogo
+                                          marketId={m.marketId}
+                                          marketName={marketName}
+                                          size={18}
+                                        />
                                         <span>{marketName}</span>
                                         {isTradeMarket(m.marketId) && (
                                           <span

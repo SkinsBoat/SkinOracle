@@ -21,6 +21,7 @@ import {
   Database,
 } from "lucide-react";
 import { skinSnipeLogo, cs2capLogo } from "../../../../../assets/images";
+import { MarketLogo } from "../../../components/MarketLogo";
 import { SkinsnipeMarketId } from "../../../../shared/types";
 import { CS2CAP_PROVIDERS } from "../../../../shared/cs2capProviders";
 import {
@@ -359,7 +360,20 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 alt="Skinsnipe"
                 style={{ height: 16, width: "auto", objectFit: "contain" }}
               />
-              Skinsnipe Standard Plan
+              Skinsnipe
+              <span
+                className="badge"
+                style={{
+                  fontSize: "9.5px",
+                  padding: "2px 6px",
+                  textTransform: "uppercase",
+                  backgroundColor: "rgba(99, 102, 241, 0.18)",
+                  color: "#818cf8",
+                  border: "1px solid rgba(99, 102, 241, 0.4)",
+                }}
+              >
+                STD PLAN
+              </span>
             </button>
 
             <button
@@ -453,7 +467,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         margin: 0,
                       }}
                     >
-                      Pricing Source: CS2Cap
+                      CS2Cap
                     </h2>
                     <span
                       className="badge badge-cyan"
@@ -682,6 +696,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             <Check size={10} style={{ color: "#fff" }} />
                           )}
                         </div>
+                        <MarketLogo
+                          marketId={provider.id}
+                          marketName={provider.name}
+                          size={15}
+                        />
                         <span
                           style={{
                             overflow: "hidden",
@@ -738,6 +757,23 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                       </div>
                     );
                   })}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--so-text-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginTop: "8px",
+                    opacity: 0.75,
+                  }}
+                >
+                  <Info size={13} style={{ flexShrink: 0 }} />
+                  <span>
+                    All brand logos and names are property of their respective owners. SkinOracle is an independent tool and is not affiliated with, endorsed, or sponsored by any listed marketplace.
+                  </span>
                 </div>
               </div>
 
@@ -1141,17 +1177,20 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         margin: 0,
                       }}
                     >
-                      Pricing Source: Skinsnipe Standard Plan
+                      Skinsnipe
                     </h2>
                     <span
-                      className="badge badge-cyan"
+                      className="badge"
                       style={{
                         fontSize: "11px",
                         textTransform: "uppercase",
                         letterSpacing: "0.5px",
+                        backgroundColor: "rgba(99, 102, 241, 0.18)",
+                        color: "#818cf8",
+                        border: "1px solid rgba(99, 102, 241, 0.4)",
                       }}
                     >
-                      Primary Price Source
+                      STD PLAN
                     </span>
                   </div>
                   {!hasApiKey && (
@@ -1369,6 +1408,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             <Check size={10} style={{ color: "#fff" }} />
                           )}
                         </div>
+                        <MarketLogo
+                          marketId={market.id}
+                          marketName={market.name}
+                          size={15}
+                        />
                         <span
                           style={{
                             overflow: "hidden",
@@ -1439,6 +1483,23 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   Estimated fetch cycle: ~
                   {Math.floor(estimatedFetchSeconds / 60)}m{" "}
                   {estimatedFetchSeconds % 60}s
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--so-text-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginTop: "8px",
+                    opacity: 0.75,
+                  }}
+                >
+                  <Info size={13} style={{ flexShrink: 0 }} />
+                  <span>
+                    All brand logos and names are property of their respective owners. SkinOracle is an independent tool and is not affiliated with, endorsed, or sponsored by any listed marketplace.
+                  </span>
                 </div>
               </div>
 
@@ -1668,8 +1729,15 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             style={{
                               color: "var(--so-primary)",
                               fontWeight: 800,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
                             }}
                           >
+                            <MarketLogo
+                              marketId={fetchProgress.currentMarket}
+                              size={15}
+                            />
                             {SKINSNIPE_AVAILABLE_MARKETS.find(
                               (m) => m.id === fetchProgress.currentMarket,
                             )?.name || fetchProgress.currentMarket}
@@ -1687,8 +1755,15 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             style={{
                               color: "var(--so-cyan-text)",
                               fontWeight: 800,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
                             }}
                           >
+                            <MarketLogo
+                              marketId={fetchProgress.currentMarket}
+                              size={15}
+                            />
                             {SKINSNIPE_AVAILABLE_MARKETS.find(
                               (m) => m.id === fetchProgress.currentMarket,
                             )?.name || fetchProgress.currentMarket}

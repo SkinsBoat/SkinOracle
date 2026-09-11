@@ -937,6 +937,21 @@ export default function OracleDashboard() {
           >
             <Sparkles size={24} style={{ color: "var(--so-primary)" }} /> Oracle
             Pricing Central
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 800,
+                letterSpacing: "0.5px",
+                padding: "2px 7px",
+                borderRadius: "4px",
+                background: "rgba(6, 182, 212, 0.15)",
+                color: "#06b6d4",
+                border: "1px solid rgba(6, 182, 212, 0.35)",
+                textTransform: "uppercase",
+              }}
+            >
+              BETA
+            </span>
           </h1>
           <p
             style={{

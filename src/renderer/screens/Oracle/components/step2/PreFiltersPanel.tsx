@@ -138,10 +138,10 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
                   : "var(--so-text-primary)",
               }}
             >
-              Exclude Souvenir Items
+              Exclude Souvenir Weapons
             </div>
             <div style={{ fontSize: "11px", color: "var(--so-text-muted)" }}>
-              Removes Souvenir package drops
+              Removes Souvenir weapon skins
             </div>
           </div>
         </div>
@@ -310,7 +310,7 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
                 color: "var(--so-text-muted)",
               }}
             >
-              Exclude Charms, Cases, Keys, Music Kits, Agents, Patches & Graffiti
+              Exclude Charms, Cases, Packages, Keys, Music Kits, Agents, Patches & Graffiti
             </div>
             <div
               style={{

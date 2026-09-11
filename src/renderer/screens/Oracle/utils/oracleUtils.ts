@@ -25,8 +25,10 @@ export function passesSmartPreFilters(
   const trimmed = itemName.trim();
   const lower = trimmed.toLowerCase();
 
-  // 1. Souvenir check
-  if (filters.excludeSouvenir && lower.includes("souvenir")) {
+  // 1. Souvenir Weapons check (targets Souvenir weapon skins e.g. "Souvenir AWP | Desert Hydra", not packages)
+  const isSouvenir = lower.includes("souvenir");
+  const isPackage = lower.includes("package");
+  if (filters.excludeSouvenir && isSouvenir && !isPackage) {
     return false;
   }
 

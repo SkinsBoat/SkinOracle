@@ -167,7 +167,23 @@ export default function App() {
             }}
           />
         </div>
-        <div className="splash-text">SkinOracle</div>
+        <div className="splash-text">
+          SkinOracle{" "}
+          <span
+            style={{
+              fontSize: "12px",
+              fontWeight: 800,
+              color: "#06b6d4",
+              padding: "1px 6px",
+              borderRadius: "4px",
+              border: "1px solid rgba(6, 182, 212, 0.4)",
+              verticalAlign: "middle",
+              marginLeft: "4px",
+            }}
+          >
+            BETA
+          </span>
+        </div>
       </div>
     );
   }
@@ -331,7 +347,8 @@ export default function App() {
                     <div
                       style={{
                         display: "flex",
-                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -344,6 +361,21 @@ export default function App() {
                         }}
                       >
                         SkinOracle
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "9px",
+                          fontWeight: 800,
+                          letterSpacing: "0.5px",
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                          background: "rgba(6, 182, 212, 0.15)",
+                          color: "#06b6d4",
+                          border: "1px solid rgba(6, 182, 212, 0.35)",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        BETA
                       </span>
                     </div>
                   </div>
@@ -392,8 +424,8 @@ export default function App() {
                 >
                   <img
                     src={oracleLogo}
-                    alt="SkinOracle"
-                    title="SkinOracle"
+                    alt="SkinOracle (Beta)"
+                    title="SkinOracle (Beta)"
                     style={{
                       width: "34px",
                       height: "34px",
@@ -677,38 +709,64 @@ export default function App() {
               </nav>
             </div>
 
-            {/* Sidebar Bottom: Logout Action */}
-            <button
-              onClick={async () => {
-                if (window.electronAPI?.auth) {
-                  await window.electronAPI.auth.logout();
-                }
-                setIsLoggedIn(false);
-              }}
-              title={!isSidebarExpanded ? "Logout" : undefined}
+            {/* Sidebar Bottom: Logout Action & Disclaimer */}
+            <div
               style={{
+                marginTop: "auto",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                gap: "12px",
-                padding: "10px 12px",
-                borderRadius: "var(--so-radius-sm)",
-                color: "var(--so-danger-text)",
-                backgroundColor: "rgba(220, 38, 38, 0.1)",
-                border: "1px solid rgba(220, 38, 38, 0.25)",
-                cursor: "pointer",
-                fontWeight: 700,
-                fontSize: "13.5px",
+                flexDirection: "column",
+                gap: "8px",
                 width: "100%",
-                transition: "all 0.15s ease",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                boxSizing: "border-box",
               }}
             >
-              <LogOut size={18} style={{ flexShrink: 0 }} />
-              {isSidebarExpanded && <span>Logout</span>}
-            </button>
+              <button
+                onClick={async () => {
+                  if (window.electronAPI?.auth) {
+                    await window.electronAPI.auth.logout();
+                  }
+                  setIsLoggedIn(false);
+                }}
+                title={!isSidebarExpanded ? "Logout" : undefined}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: isSidebarExpanded ? "flex-start" : "center",
+                  gap: "12px",
+                  padding: "10px 12px",
+                  borderRadius: "var(--so-radius-sm)",
+                  color: "var(--so-danger-text)",
+                  backgroundColor: "rgba(220, 38, 38, 0.1)",
+                  border: "1px solid rgba(220, 38, 38, 0.25)",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  fontSize: "13.5px",
+                  width: "100%",
+                  transition: "all 0.15s ease",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  boxSizing: "border-box",
+                }}
+              >
+                <LogOut size={18} style={{ flexShrink: 0 }} />
+                {isSidebarExpanded && <span>Logout</span>}
+              </button>
+
+              {isSidebarExpanded && (
+                <div
+                  style={{
+                    fontSize: "10px",
+                    lineHeight: 1.35,
+                    color: "var(--so-text-muted)",
+                    padding: "8px 4px 0 4px",
+                    borderTop: "1px solid var(--so-border-subtle)",
+                    textAlign: "center",
+                    opacity: 0.7,
+                  }}
+                >
+                  SkinOracle is an independent tool not affiliated with Valve, CSFloat, DMarket, or any listed marketplace. All trademarks belong to their respective owners.
+                </div>
+              )}
+            </div>
           </aside>
 
           {/* Main Content Area */}
