@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Package,
   RotateCw,
@@ -12,7 +12,7 @@ import {
   CheckSquare,
   Square,
   X,
-  RefreshCw,
+  Wallet,
 } from "lucide-react";
 import {
   CSFloatOrderCard,
@@ -43,7 +43,7 @@ interface BuyOrdersTabProps {
     quantity: number,
   ) => Promise<void>;
   handleDeleteOrder: (orderId: string) => Promise<void>;
-  handleBatchUpdate: () => Promise<void>;
+  handleBatchUpdate: (options?: { deleteUnmatched?: boolean }) => Promise<void>;
   handleBatchDelete: () => Promise<void>;
   handleDeleteAllOrders: () => Promise<void>;
   handleOpenCsfloatMarket: (name: string) => void;
@@ -55,6 +55,7 @@ interface BuyOrdersTabProps {
   isSidebarExpanded: boolean;
   selectedOrdersTotal?: number;
   maxLimitValue?: number;
+  userBalance?: number;
 }
 
 export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
@@ -82,21 +83,94 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
   isSidebarExpanded,
   selectedOrdersTotal = 0,
   maxLimitValue = 0,
+  userBalance,
 }) => {
   const [showExtraActions, setShowExtraActions] = useState(false);
+  const [deleteUnmatched, setDeleteUnmatched] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "action" | "exceeds" | "drift" | "unmatched"
+  >("all");
 
   const selectedCount = Object.values(selectedItems).filter(Boolean).length;
   const matchedCount = orders.filter(
     (o) => getOrderDriftDetails(o) !== null,
   ).length;
-  const actionRequiredCount = orders.filter((o) => {
-    const d = getOrderDriftDetails(o);
-    return d?.isOverbid || d?.isUnderbid;
-  }).length;
+
+  const exceedsBalanceOrders = useMemo(() => {
+    if (typeof userBalance !== "number" || userBalance < 0) return [];
+    return orders.filter((o) => o.price / 100 > userBalance);
+  }, [orders, userBalance]);
+
+  const exceedsBalanceCount = exceedsBalanceOrders.length;
+
+  const driftOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const d = getOrderDriftDetails(o);
+      return d?.isOverbid || d?.isUnderbid;
+    });
+  }, [orders, getOrderDriftDetails]);
+
+  const unmatchedOrders = useMemo(() => {
+    return orders.filter(
+      (o) => pricesLoaded && !getOrderDriftDetails(o)?.acceptedPrice,
+    );
+  }, [orders, pricesLoaded, getOrderDriftDetails]);
+
+  const actionRequiredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const d = getOrderDriftDetails(o);
+      const isUnmatched = pricesLoaded && !d?.acceptedPrice;
+      const currentPrice = o.price / 100;
+      const isExceeds =
+        typeof userBalance === "number" &&
+        userBalance >= 0 &&
+        currentPrice > userBalance;
+      return d?.isOverbid || d?.isUnderbid || isUnmatched || isExceeds;
+    });
+  }, [orders, getOrderDriftDetails, pricesLoaded, userBalance]);
+
+  const actionRequiredCount = actionRequiredOrders.length;
+
+  const displayedOrders = useMemo(() => {
+    switch (statusFilter) {
+      case "action":
+        return actionRequiredOrders;
+      case "exceeds":
+        return exceedsBalanceOrders;
+      case "drift":
+        return driftOrders;
+      case "unmatched":
+        return unmatchedOrders;
+      case "all":
+      default:
+        return orders;
+    }
+  }, [
+    statusFilter,
+    orders,
+    actionRequiredOrders,
+    exceedsBalanceOrders,
+    driftOrders,
+    unmatchedOrders,
+  ]);
+
+  const unmatchedSelectedCount = useMemo(() => {
+    return orders.filter(
+      (o) => selectedItems[o.id] && !getOrderDriftDetails(o)?.acceptedPrice,
+    ).length;
+  }, [orders, selectedItems, getOrderDriftDetails]);
+
+  const isAllActionRequiredSelected =
+    actionRequiredCount > 0 &&
+    actionRequiredOrders.every((o) => !!selectedItems[o.id]);
+
+  const isAllExceedsSelected =
+    exceedsBalanceCount > 0 &&
+    exceedsBalanceOrders.every((o) => !!selectedItems[o.id]);
 
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
-    orders.forEach((o) => {
+    (statusFilter === "all" ? orders : displayedOrders).forEach((o) => {
       next[o.id] = true;
     });
     setSelectedItems(next);
@@ -106,22 +180,31 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
     setSelectedItems({});
   };
 
-  const handleInvertSelection = () => {
-    const next: Record<string, boolean> = {};
-    orders.forEach((o) => {
-      next[o.id] = !selectedItems[o.id];
-    });
+  const handleToggleSelectActionRequired = () => {
+    const next = { ...selectedItems };
+    if (isAllActionRequiredSelected) {
+      actionRequiredOrders.forEach((o) => {
+        delete next[o.id];
+      });
+    } else {
+      actionRequiredOrders.forEach((o) => {
+        next[o.id] = true;
+      });
+    }
     setSelectedItems(next);
   };
 
-  const handleSelectActionRequired = () => {
-    const next: Record<string, boolean> = {};
-    orders.forEach((o) => {
-      const d = getOrderDriftDetails(o);
-      if (d?.isOverbid || d?.isUnderbid) {
+  const handleToggleSelectExceeds = () => {
+    const next = { ...selectedItems };
+    if (isAllExceedsSelected) {
+      exceedsBalanceOrders.forEach((o) => {
+        delete next[o.id];
+      });
+    } else {
+      exceedsBalanceOrders.forEach((o) => {
         next[o.id] = true;
-      }
-    });
+      });
+    }
     setSelectedItems(next);
   };
 
@@ -198,29 +281,19 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 </strong>
               </span>
               {actionRequiredCount > 0 && (
-                <button
-                  type="button"
-                  onClick={handleSelectActionRequired}
-                  className="btn btn-sm"
+                <span
                   style={{
-                    backgroundColor: "rgba(239, 68, 68, 0.12)",
-                    color: "#ef4444",
-                    border: "1px solid rgba(239, 68, 68, 0.4)",
-                    padding: "2px 8px",
-                    borderRadius: "4px",
-                    fontSize: "11px",
-                    fontWeight: 700,
+                    color: "var(--so-text-muted)",
                     display: "flex",
                     alignItems: "center",
                     gap: "4px",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
                   }}
-                  title="Click to select all cards requiring action"
                 >
-                  <AlertTriangle size={12} /> Action Required:{" "}
-                  <strong>{actionRequiredCount}</strong>
-                </button>
+                  Action Req:{" "}
+                  <strong style={{ color: "#f59e0b" }}>
+                    {actionRequiredCount}
+                  </strong>
+                </span>
               )}
             </div>
 
@@ -329,6 +402,32 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 </span>
               </div>
 
+              {exceedsBalanceCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleToggleSelectExceeds}
+                  className="btn btn-sm"
+                  style={{
+                    fontSize: "10.5px",
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    whiteSpace: "nowrap",
+                    backgroundColor: "rgba(239, 68, 68, 0.14)",
+                    color: "#f87171",
+                    border: "1px solid rgba(239, 68, 68, 0.35)",
+                  }}
+                  title="Select all buy orders exceeding available wallet balance"
+                >
+                  <Wallet size={11} />
+                  {isAllExceedsSelected
+                    ? `Unselect Exceeding (${exceedsBalanceCount})`
+                    : `Select Exceeding (${exceedsBalanceCount})`}
+                </button>
+              )}
+
               {orders.length > 0 && (
                 <button
                   onClick={handleDeleteAllOrders}
@@ -350,10 +449,232 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               )}
             </div>
           </div>
+
+          {/* Status Filter Chips */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              backgroundColor: "var(--so-surface-panel)",
+              border: "1px solid var(--so-border-medium)",
+              padding: "3px 6px",
+              borderRadius: "var(--so-radius-sm)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              style={{
+                fontSize: "10.5px",
+                fontWeight: statusFilter === "all" ? 800 : 600,
+                padding: "2px 8px",
+                borderRadius: "3px",
+                border: "none",
+                cursor: "pointer",
+                backgroundColor:
+                  statusFilter === "all"
+                    ? "var(--so-primary)"
+                    : "transparent",
+                color:
+                  statusFilter === "all"
+                    ? "#ffffff"
+                    : "var(--so-text-muted)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              All ({orders.length})
+            </button>
+
+            {actionRequiredCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setStatusFilter(statusFilter === "action" ? "all" : "action")
+                }
+                style={{
+                  fontSize: "10.5px",
+                  fontWeight: statusFilter === "action" ? 800 : 600,
+                  padding: "2px 8px",
+                  borderRadius: "3px",
+                  border: `1px solid ${
+                    statusFilter === "action"
+                      ? "rgba(245, 158, 11, 0.5)"
+                      : "transparent"
+                  }`,
+                  cursor: "pointer",
+                  backgroundColor:
+                    statusFilter === "action"
+                      ? "rgba(245, 158, 11, 0.22)"
+                      : "transparent",
+                  color:
+                    statusFilter === "action"
+                      ? "#fbbf24"
+                      : "var(--so-text-secondary)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Action ({actionRequiredCount})
+              </button>
+            )}
+
+            {exceedsBalanceCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setStatusFilter(statusFilter === "exceeds" ? "all" : "exceeds")
+                }
+                style={{
+                  fontSize: "10.5px",
+                  fontWeight: 800,
+                  padding: "2px 8px",
+                  borderRadius: "3px",
+                  border: `1px solid ${
+                    statusFilter === "exceeds"
+                      ? "#ef4444"
+                      : "rgba(239, 68, 68, 0.35)"
+                  }`,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "3px",
+                  backgroundColor:
+                    statusFilter === "exceeds"
+                      ? "rgba(239, 68, 68, 0.25)"
+                      : "rgba(239, 68, 68, 0.1)",
+                  color: "#f87171",
+                  transition: "all 0.15s ease",
+                }}
+                title={`Filter orders whose bid exceeds wallet balance ($${userBalance?.toFixed(2)})`}
+              >
+                <Wallet size={10} /> Exceeds Bal ({exceedsBalanceCount})
+              </button>
+            )}
+
+            {driftOrders.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setStatusFilter(statusFilter === "drift" ? "all" : "drift")
+                }
+                style={{
+                  fontSize: "10.5px",
+                  fontWeight: statusFilter === "drift" ? 800 : 600,
+                  padding: "2px 8px",
+                  borderRadius: "3px",
+                  border: `1px solid ${
+                    statusFilter === "drift"
+                      ? "rgba(6, 182, 212, 0.5)"
+                      : "transparent"
+                  }`,
+                  cursor: "pointer",
+                  backgroundColor:
+                    statusFilter === "drift"
+                      ? "rgba(6, 182, 212, 0.22)"
+                      : "transparent",
+                  color:
+                    statusFilter === "drift"
+                      ? "var(--so-accent-cyan)"
+                      : "var(--so-text-secondary)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Drift ({driftOrders.length})
+              </button>
+            )}
+
+            {unmatchedOrders.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setStatusFilter(statusFilter === "unmatched" ? "all" : "unmatched")
+                }
+                style={{
+                  fontSize: "10.5px",
+                  fontWeight: statusFilter === "unmatched" ? 800 : 600,
+                  padding: "2px 8px",
+                  borderRadius: "3px",
+                  border: `1px solid ${
+                    statusFilter === "unmatched"
+                      ? "rgba(148, 163, 184, 0.5)"
+                      : "transparent"
+                  }`,
+                  cursor: "pointer",
+                  backgroundColor:
+                    statusFilter === "unmatched"
+                      ? "rgba(148, 163, 184, 0.2)"
+                      : "transparent",
+                  color:
+                    statusFilter === "unmatched"
+                      ? "#ffffff"
+                      : "var(--so-text-muted)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Unmatched ({unmatchedOrders.length})
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Right Actions */}
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {actionRequiredCount > 0 && (
+            <button
+              type="button"
+              onClick={handleToggleSelectActionRequired}
+              className="btn btn-sm"
+              style={{
+                backgroundColor: isAllActionRequiredSelected
+                  ? "rgba(245, 158, 11, 0.18)"
+                  : "rgba(245, 158, 11, 0.09)",
+                color: "var(--so-text-primary, #e2e8f0)",
+                border: `1px solid ${
+                  isAllActionRequiredSelected
+                    ? "rgba(245, 158, 11, 0.45)"
+                    : "rgba(245, 158, 11, 0.28)"
+                }`,
+                padding: "4px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "11.5px",
+                fontWeight: 600,
+                cursor: "pointer",
+                borderRadius: "var(--so-radius-sm)",
+                transition: "all 0.15s ease",
+              }}
+              title={
+                isAllActionRequiredSelected
+                  ? "Click to unselect all action items"
+                  : "Click to select all buy orders requiring action"
+              }
+            >
+              <AlertTriangle
+                size={12}
+                style={{
+                  color: isAllActionRequiredSelected ? "#fbbf24" : "#f59e0b",
+                }}
+              />
+              <span>
+                {isAllActionRequiredSelected
+                  ? "Unselect Action Items"
+                  : "Select Action Items"}
+              </span>
+              <span
+                style={{
+                  backgroundColor: "rgba(245, 158, 11, 0.2)",
+                  color: "#f59e0b",
+                  padding: "1px 6px",
+                  borderRadius: "10px",
+                  fontSize: "10.5px",
+                  fontWeight: 700,
+                }}
+              >
+                {actionRequiredCount}
+              </span>
+            </button>
+          )}
           <button
             onClick={fetchOrders}
             disabled={loading}
@@ -454,7 +775,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
             </button>
             {actionRequiredCount > 0 && (
               <button
-                onClick={handleSelectActionRequired}
+                onClick={handleToggleSelectActionRequired}
                 className="btn btn-sm btn-ghost"
                 style={{
                   fontSize: "11px",
@@ -462,28 +783,54 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                   display: "flex",
                   alignItems: "center",
                   gap: "4px",
-                  color: "#ef4444",
-                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  color: "#f59e0b",
+                  backgroundColor: isAllActionRequiredSelected
+                    ? "rgba(245, 158, 11, 0.18)"
+                    : "rgba(245, 158, 11, 0.08)",
+                  border: "1px solid rgba(245, 158, 11, 0.25)",
                   borderRadius: "4px",
                 }}
-                title="Select all orders requiring action"
+                title={
+                  isAllActionRequiredSelected
+                    ? "Click to unselect action items"
+                    : "Click to select all orders requiring action"
+                }
               >
-                <AlertTriangle size={12} /> Action Required ({actionRequiredCount})
+                <AlertTriangle size={12} style={{ color: "#f59e0b" }} />{" "}
+                {isAllActionRequiredSelected
+                  ? `Unselect Action (${actionRequiredCount})`
+                  : `Action Required (${actionRequiredCount})`}
               </button>
             )}
-            <button
-              onClick={handleInvertSelection}
-              className="btn btn-sm btn-ghost"
-              style={{
-                fontSize: "11px",
-                padding: "3px 8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <RefreshCw size={12} /> Invert
-            </button>
+            {exceedsBalanceCount > 0 && (
+              <button
+                onClick={handleToggleSelectExceeds}
+                className="btn btn-sm btn-ghost"
+                style={{
+                  fontSize: "11px",
+                  padding: "3px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  color: "#f87171",
+                  backgroundColor: isAllExceedsSelected
+                    ? "rgba(239, 68, 68, 0.22)"
+                    : "rgba(239, 68, 68, 0.08)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: "4px",
+                }}
+                title={
+                  isAllExceedsSelected
+                    ? "Click to unselect orders exceeding balance"
+                    : "Click to select all buy orders exceeding available wallet balance"
+                }
+              >
+                <Wallet size={12} style={{ color: "#f87171" }} />{" "}
+                {isAllExceedsSelected
+                  ? `Unselect Exceeding (${exceedsBalanceCount})`
+                  : `Exceeds Balance (${exceedsBalanceCount})`}
+              </button>
+            )}
             <button
               onClick={handleDeselectAll}
               className="btn btn-sm btn-ghost"
@@ -501,8 +848,47 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {unmatchedSelectedCount > 0 && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "11.5px",
+                  fontWeight: 600,
+                  color: deleteUnmatched
+                    ? "#f87171"
+                    : "var(--so-text-secondary)",
+                  cursor: "pointer",
+                  userSelect: "none",
+                  padding: "4px 9px",
+                  borderRadius: "4px",
+                  backgroundColor: deleteUnmatched
+                    ? "rgba(239, 68, 68, 0.12)"
+                    : "rgba(255, 255, 255, 0.04)",
+                  border: `1px solid ${
+                    deleteUnmatched
+                      ? "rgba(239, 68, 68, 0.35)"
+                      : "var(--so-border-subtle)"
+                  }`,
+                  transition: "all 0.15s ease",
+                }}
+                title="When updating, also delete selected buy orders that have no matching accepted price in Oracle cache"
+              >
+                <input
+                  type="checkbox"
+                  checked={deleteUnmatched}
+                  onChange={(e) => setDeleteUnmatched(e.target.checked)}
+                  style={{
+                    cursor: "pointer",
+                    accentColor: "#ef4444",
+                  }}
+                />
+                <span>Delete unmatched ({unmatchedSelectedCount})</span>
+              </label>
+            )}
             <button
-              onClick={handleBatchUpdate}
+              onClick={() => handleBatchUpdate({ deleteUnmatched })}
               disabled={batchProcessing}
               className="btn btn-primary btn-sm"
               style={{
@@ -596,6 +982,41 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               </div>
             )}
           </div>
+        ) : displayedOrders.length === 0 ? (
+          <div
+            className="card"
+            style={{
+              textAlign: "center",
+              padding: "40px 20px",
+              color: "var(--so-text-muted)",
+            }}
+          >
+            <AlertTriangle
+              size={28}
+              style={{
+                marginBottom: "8px",
+                color: "var(--so-accent-cyan)",
+                opacity: 0.8,
+              }}
+            />
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: "14px",
+                color: "var(--so-text-primary)",
+                marginBottom: "4px",
+              }}
+            >
+              No Orders Match Filter "{statusFilter.toUpperCase()}"
+            </div>
+            <button
+              onClick={() => setStatusFilter("all")}
+              className="btn btn-sm btn-outline"
+              style={{ marginTop: "8px" }}
+            >
+              Show All Orders ({orders.length})
+            </button>
+          </div>
         ) : (
           <div
             style={{
@@ -605,7 +1026,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               paddingBottom: selectedCount > 0 ? "75px" : "12px",
             }}
           >
-            {orders.map((order) => {
+            {displayedOrders.map((order) => {
               const driftDetails = getOrderDriftDetails(order);
               const isSelected = !!selectedItems[order.id];
               const isProcessing = processingId === order.id;
@@ -623,6 +1044,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                   }
                   driftDetails={driftDetails}
                   isProcessing={isProcessing}
+                  userBalance={userBalance}
                   onManualUpdate={handleManualUpdate}
                   onDelete={handleDeleteOrder}
                   onOpenMarket={handleOpenCsfloatMarket}

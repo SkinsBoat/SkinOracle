@@ -18,8 +18,8 @@ let acceptedPriceMap: Record<
   string,
   {
     acceptedPrice: number;
-    liquidityScore: number;
-    isHyperLiquid: boolean;
+    supplyStabilityScore: number;
+    isHyperStable: boolean;
     nexusDelta?: number;
     trendAdjustment?: number;
   }
@@ -126,11 +126,26 @@ ipcMain.handle(
               .slice(0, 100)
           : rawListings;
 
-      const listings = cappedListings.map((l) => ({
-        m: l.m,
-        p: l.p,
-        ...(l.q !== undefined ? { q: l.q } : {}),
-      }));
+      const listings = cappedListings
+        .filter(
+          (l) =>
+            l &&
+            l.m &&
+            typeof l.p === "number" &&
+            Number.isFinite(l.p) &&
+            l.p >= 0.01 &&
+            l.p <= 250000,
+        )
+        .map((l) => ({
+          m: l.m,
+          p: l.p,
+          ...(l.q !== undefined &&
+          typeof l.q === "number" &&
+          Number.isFinite(l.q) &&
+          l.q >= 0
+            ? { q: l.q }
+            : {}),
+        }));
       return {
         name,
         listings,
@@ -172,17 +187,39 @@ ipcMain.handle(
               .slice(0, 100)
           : rawListings;
 
-      const listings = cappedListings.map((l) => ({
-        m: l.m,
-        p: l.p,
-        ...(l.q !== undefined ? { q: l.q } : {}),
-      }));
+      const listings = cappedListings
+        .filter(
+          (l) =>
+            l &&
+            l.m &&
+            typeof l.p === "number" &&
+            Number.isFinite(l.p) &&
+            l.p >= 0.01 &&
+            l.p <= 250000,
+        )
+        .map((l) => ({
+          m: l.m,
+          p: l.p,
+          ...(l.q !== undefined &&
+          typeof l.q === "number" &&
+          Number.isFinite(l.q) &&
+          l.q >= 0
+            ? { q: l.q }
+            : {}),
+        }));
       const trend = trendHistoryMap[name];
+      const hasSufficientTrend =
+        trend &&
+        Array.isArray(trend.overallAverages) &&
+        trend.overallAverages.length >= 3 &&
+        Array.isArray(trend.labels) &&
+        trend.labels.length === trend.overallAverages.length;
+
       return {
         name,
         listings,
-        trendHistory: trend?.overallAverages || [],
-        trendLabels: trend?.labels || [],
+        trendHistory: hasSufficientTrend ? trend.overallAverages : [],
+        trendLabels: hasSufficientTrend ? trend.labels : [],
       };
     });
 

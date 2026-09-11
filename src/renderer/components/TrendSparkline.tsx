@@ -83,25 +83,21 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
   const firstVal = validData[0];
   const lastVal = validData[validData.length - 1];
 
-  // Calculate percentage movement
+  // Calculate percentage movement from actual historical prices
   const calculatedDelta =
     firstVal > 0 ? ((lastVal - firstVal) / firstVal) * 100 : 0;
-  const effectiveMomentum =
-    typeof momentum === "number" && !isNaN(momentum)
-      ? momentum
-      : calculatedDelta / 100;
-  const displayPercent = effectiveMomentum * 100;
+  const displayPercent = calculatedDelta;
 
   // Momentum Color Logic:
-  // > +3% or momentum > 0.05: Emerald Green (Bullish)
-  // < -3% or momentum < -0.05: Danger Red (Bearish)
+  // >= +2%: Emerald Green (Bullish)
+  // <= -2%: Danger Red (Bearish)
   // Else: Solid Cyan / Slate (Neutral)
   let color = "#38bdf8"; // Neutral cyan
   let badgeIcon = "●";
-  if (displayPercent >= 3.0 || effectiveMomentum > 0.05) {
+  if (displayPercent >= 2.0) {
     color = "#10b981"; // Green
     badgeIcon = "▲";
-  } else if (displayPercent <= -3.0 || effectiveMomentum < -0.05) {
+  } else if (displayPercent <= -2.0) {
     color = "#ef4444"; // Red
     badgeIcon = "▼";
   }

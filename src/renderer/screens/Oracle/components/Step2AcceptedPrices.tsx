@@ -19,7 +19,7 @@ interface Step2AcceptedPricesProps {
   evaluatedSummary: {
     totalEvaluated: number;
     soCloseCount: number;
-    highLiquidityCount: number;
+    highSssCount: number;
     isBatchEvaluating: boolean;
     lastBuiltAt: string | null;
     batchProgress?: {

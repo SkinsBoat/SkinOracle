@@ -279,24 +279,7 @@ export const getTradeDate = (trade: any): string => {
   return new Date(sec * 1000).toLocaleString();
 };
 
-export interface TargetAnalysis {
-  acceptedPrice: number;
-  liquidityScore: number;
-  isHyperLiquid: boolean;
-  currentPrice: number;
-  trendMomentum14d?: number;
-}
-
-export interface SoCloseResultItem {
-  name: string;
-  acceptedPrice: number;
-  currentMarketPrice: number;
-  closeness: number;
-  closenessPercent: number;
-  hasExistingTarget: boolean;
-  iconUrl?: string;
-  trendMomentum14d?: number;
-}
+export type { TargetAnalysis, SoCloseResultItem } from "../../../shared/types";
 
 export const formatItemFloat = (item: any): string | null => {
   if (!item) return null;

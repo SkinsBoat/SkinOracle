@@ -5,10 +5,10 @@ import {
   Loader2,
   CheckSquare,
   Square,
-  RefreshCw,
   X,
   PlusCircle,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 import {
   CSFloatSoCloseCard,
@@ -24,9 +24,15 @@ interface SoCloseTabProps {
   soCloseMaxPrice: string;
   setSoCloseMaxPrice: (val: string) => void;
   handleSetBalanceAsMax: () => void;
-  userData: { balance?: number; username?: string; avatar?: string } | null;
+  userData: {
+    username?: string;
+    avatar?: string;
+    balance?: number;
+  } | null;
   soCloseMaxCloseness: number;
   setSoCloseMaxCloseness: (val: number) => void;
+  soCloseMinSssScore: number;
+  setSoCloseMinSssScore: (val: number) => void;
   soCloseAllowedWears: {
     fn: boolean;
     mw: boolean;
@@ -71,6 +77,8 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   userData,
   soCloseMaxCloseness,
   setSoCloseMaxCloseness,
+  soCloseMinSssScore,
+  setSoCloseMinSssScore,
   soCloseAllowedWears,
   setSoCloseAllowedWears,
   selectedSoCloseItems,
@@ -105,16 +113,6 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
 
   const handleDeselectAll = () => {
     setSelectedSoCloseItems({});
-  };
-
-  const handleInvertSelection = () => {
-    const next: Record<string, boolean> = {};
-    soCloseResults.forEach((item) => {
-      if (!item.hasExistingOrder) {
-        next[item.name] = !selectedSoCloseItems[item.name];
-      }
-    });
-    setSelectedSoCloseItems(next);
   };
 
   return (
@@ -307,6 +305,80 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             </span>
           </div>
 
+          {/* Min Supply Stability Score (SSS) Filter */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              backgroundColor: "var(--so-surface-panel)",
+              border: "1px solid var(--so-border-medium)",
+              padding: "4px 8px",
+              borderRadius: "var(--so-radius-sm)",
+              fontSize: "11px",
+            }}
+          >
+            <span
+              title="Supply Stability Score (SSS) measures cross-market availability, anti-monopoly supply distribution across markets (HHI), and listed stock depth relative to price bracket."
+              style={{
+                fontWeight: 700,
+                color: "var(--so-text-secondary)",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                cursor: "help",
+              }}
+            >
+              SSS:
+              <Info
+                size={12}
+                style={{ color: "var(--so-accent-cyan)", opacity: 0.85 }}
+              />
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="1.5"
+              step="0.1"
+              value={soCloseMinSssScore}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setSoCloseMinSssScore(
+                  isNaN(val) ? 0 : Math.max(0, Math.min(1.5, val)),
+                );
+              }}
+              style={{
+                width: "44px",
+                padding: "1px 4px",
+                fontSize: "11px",
+                fontWeight: 800,
+                textAlign: "center",
+                borderRadius: "3px",
+                border: "1px solid var(--so-border-subtle)",
+                background: "var(--so-surface-card)",
+                color: "var(--so-text-primary)",
+              }}
+            />
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 800,
+                color:
+                  soCloseMinSssScore >= 1.2
+                    ? "var(--so-success-text)"
+                    : soCloseMinSssScore >= 0.8
+                      ? "var(--so-cyan-text)"
+                      : "var(--so-warning)",
+              }}
+            >
+              {soCloseMinSssScore >= 1.2
+                ? "Strict"
+                : soCloseMinSssScore >= 0.8
+                  ? "Balanced"
+                  : "Broad"}
+            </span>
+          </div>
+
           {/* Wear Condition Selector Badges */}
           <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
             <span
@@ -438,19 +510,6 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
               }}
             >
               <CheckSquare size={12} /> Select All
-            </button>
-            <button
-              onClick={handleInvertSelection}
-              className="btn btn-sm btn-ghost"
-              style={{
-                fontSize: "11px",
-                padding: "3px 8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <RefreshCw size={12} /> Invert
             </button>
             <button
               onClick={handleDeselectAll}
@@ -616,7 +675,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
               gap: "10px",
               paddingBottom: selectedSoCloseCount > 0 ? "75px" : "12px",
             }}

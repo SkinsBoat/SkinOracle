@@ -8,7 +8,6 @@ import {
   Loader2,
   CheckSquare,
   Square,
-  RefreshCw,
   X,
   PlusCircle,
   Edit3,
@@ -142,14 +141,6 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
     const next: Record<string, boolean> = {};
     inventory.forEach((i) => {
       next[i.asset_id] = true;
-    });
-    setSelectedListingItems(next);
-  };
-
-  const handleInvertSelection = () => {
-    const next: Record<string, boolean> = {};
-    inventory.forEach((i) => {
-      next[i.asset_id] = !selectedListingItems[i.asset_id];
     });
     setSelectedListingItems(next);
   };
@@ -417,19 +408,6 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
               }}
             >
               <CheckSquare size={12} /> Select All
-            </button>
-            <button
-              onClick={handleInvertSelection}
-              className="btn btn-sm btn-ghost"
-              style={{
-                fontSize: "11px",
-                padding: "3px 8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <RefreshCw size={12} /> Invert
             </button>
             <button
               onClick={clearListingSelection}

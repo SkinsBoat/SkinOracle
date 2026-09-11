@@ -19,6 +19,8 @@ export interface CanonicalMarketInfo {
   name: string;
   /** Known raw strings emitted by external providers/APIs */
   aliases: string[];
+  /** True if this is a trade-bot / swap platform with marked-up virtual credit pricing */
+  isTradeMarket?: boolean;
 }
 
 export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
@@ -48,11 +50,18 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
     id: "csmoney_trade",
     name: "CS.MONEY (Trade)",
     aliases: ["csmoney_t", "csmoney_trade"],
+    isTradeMarket: true,
   },
   {
-    id: "tradeit",
+    id: "tradeit_store",
     name: "Tradeit.gg",
-    aliases: ["tradeit", "tradeitgg", "tradeitgg_store"],
+    aliases: ["tradeit", "tradeitgg_store", "tradeit_store", "tradeit_s"],
+  },
+  {
+    id: "tradeit_trade",
+    name: "Tradeit.gg (Trade)",
+    aliases: ["tradeitgg", "tradeitgg_trade", "tradeit_t", "tradeit_trade"],
+    isTradeMarket: true,
   },
   {
     id: "market_csgo",
@@ -82,6 +91,7 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
     id: "skinswap_trade",
     name: "SkinSwap (Trade)",
     aliases: ["skinswap_t", "skinswap_trade"],
+    isTradeMarket: true,
   },
   {
     id: "avanmarket",
@@ -89,7 +99,12 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
     aliases: ["avanmarket", "avan_market", "avan"],
   },
   { id: "c5", name: "C5GAME", aliases: ["c5", "c5game"] },
-  { id: "cstrade", name: "CS.Trade", aliases: ["cstrade", "cs_trade"] },
+  {
+    id: "cstrade",
+    name: "CS.Trade",
+    aliases: ["cstrade", "cs_trade"],
+    isTradeMarket: true,
+  },
   { id: "csdeals", name: "CS.Deals", aliases: ["csdeals", "cs_deals"] },
   { id: "ecosteam", name: "ECOSteam", aliases: ["ecosteam", "eco_steam"] },
   { id: "youpin", name: "Youpin898", aliases: ["youpin", "youpin898"] },
@@ -105,16 +120,23 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
     aliases: ["mannco", "manncostore", "mannco_store"],
   },
   { id: "exeskins", name: "ExeSkins", aliases: ["exeskins", "exe_skins"] },
-  { id: "itradegg", name: "iTrade.gg", aliases: ["itradegg", "itrade"] },
+  {
+    id: "itradegg",
+    name: "iTrade.gg",
+    aliases: ["itradegg", "itrade"],
+    isTradeMarket: true,
+  },
   {
     id: "pirateswap",
     name: "PirateSwap",
     aliases: ["pirateswap", "pirate_swap"],
+    isTradeMarket: true,
   },
   {
     id: "rapidskins",
     name: "RapidSkins",
     aliases: ["rapidskins", "rapid_skins"],
+    isTradeMarket: true,
   },
   { id: "skinbaron", name: "SkinBaron", aliases: ["skinbaron", "skin_baron"] },
   { id: "skinout", name: "SkinOut", aliases: ["skinout", "skin_out"] },
@@ -123,9 +145,15 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
     id: "skinsmonkey",
     name: "SkinsMonkey",
     aliases: ["skinsmonkey", "skins_monkey"],
+    isTradeMarket: true,
   },
   { id: "skinvault", name: "Skinvault", aliases: ["skinvault", "skin_vault"] },
-  { id: "swapgg", name: "Swap.gg", aliases: ["swapgg", "swap_gg", "swap"] },
+  {
+    id: "swapgg",
+    name: "Swap.gg",
+    aliases: ["swapgg", "swap_gg", "swap"],
+    isTradeMarket: true,
+  },
   { id: "dupefi", name: "Dupe.fi", aliases: ["dupefi", "dupe_fi", "dupe.fi"] },
   { id: "gameboost", name: "GameBoost", aliases: ["gameboost", "game_boost"] },
   { id: "haloskins", name: "HaloSkins", aliases: ["haloskins", "halo_skins"] },
@@ -133,6 +161,7 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
     id: "lootfarm",
     name: "LOOT.Farm",
     aliases: ["lootfarm", "loot_farm", "loot.farm"],
+    isTradeMarket: true,
   },
   {
     id: "merchanttf",
@@ -196,3 +225,47 @@ export function isMarketMatch(
   if (!rawIdA || !rawIdB) return false;
   return toCanonicalMarketId(rawIdA) === toCanonicalMarketId(rawIdB);
 }
+
+/**
+ * Checks whether a raw or canonical market identifier belongs to a trade-bot / swap platform
+ * with inflated virtual credit pricing (e.g. CS.MONEY Trade, Tradeit.gg, CSTrade, etc.).
+ * These markets distort price averaging and should be excluded from Oracle valuation.
+ */
+export function isTradeMarket(marketId: string | null | undefined): boolean {
+  if (!marketId || typeof marketId !== "string") return false;
+  const raw = marketId.trim().toLowerCase();
+  // Tradeit store / CS2Cap tradeit is cash/market, NOT a trade-bot
+  if (
+    raw === "tradeit" ||
+    raw === "tradeitgg_store" ||
+    raw === "tradeit_store" ||
+    raw === "tradeit_s"
+  ) {
+    return false;
+  }
+
+  const canonicalId = toCanonicalMarketId(marketId);
+  const matched = CANONICAL_MAP.get(canonicalId.toLowerCase());
+  if (matched?.isTradeMarket) return true;
+
+  return (
+    raw === "csmoney_t" ||
+    raw === "csmoney_trade" ||
+    raw === "tradeitgg" ||
+    raw === "tradeitgg_trade" ||
+    raw === "tradeit_t" ||
+    raw === "tradeit_trade" ||
+    raw === "cstrade" ||
+    raw === "cs_trade" ||
+    raw === "itradegg" ||
+    raw === "itrade" ||
+    raw === "skinswap_t" ||
+    raw === "skinswap_trade" ||
+    raw === "swapgg" ||
+    raw === "lootfarm" ||
+    raw === "pirateswap" ||
+    raw === "rapidskins" ||
+    raw === "skinsmonkey"
+  );
+}
+

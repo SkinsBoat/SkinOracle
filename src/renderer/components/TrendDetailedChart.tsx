@@ -54,13 +54,10 @@ export const TrendDetailedChart: React.FC<TrendDetailedChartProps> = ({
   const firstVal = validData[0] || 0;
   const lastVal = validData[validData.length - 1] || 0;
   const deltaPct = firstVal > 0 ? ((lastVal - firstVal) / firstVal) * 100 : 0;
-  const effectiveMomentum =
-    typeof momentum === "number" && !isNaN(momentum)
-      ? momentum * 100
-      : deltaPct;
+  const effectiveChange = validData.length >= 2 ? deltaPct : (typeof momentum === "number" && !isNaN(momentum) ? momentum : 0);
 
-  const isUp = effectiveMomentum >= 3.0;
-  const isDown = effectiveMomentum <= -3.0;
+  const isUp = effectiveChange >= 2.0;
+  const isDown = effectiveChange <= -2.0;
   const themeColor = isUp ? "#10b981" : isDown ? "#ef4444" : "#38bdf8";
 
   const min = validData.length > 0 ? Math.min(...validData) : 0;
@@ -152,9 +149,9 @@ export const TrendDetailedChart: React.FC<TrendDetailedChartProps> = ({
             }}
           >
             {isUp ? "▲" : isDown ? "▼" : "●"}{" "}
-            {effectiveMomentum >= 0
-              ? `+${effectiveMomentum.toFixed(1)}%`
-              : `${effectiveMomentum.toFixed(1)}%`}{" "}
+            {effectiveChange >= 0
+              ? `+${effectiveChange.toFixed(2)}%`
+              : `${effectiveChange.toFixed(2)}%`}{" "}
             (14D)
           </span>
         )}

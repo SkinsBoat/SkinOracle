@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Eye,
   PlusCircle,
+  Info,
 } from "lucide-react";
 import { getWearShortcut, SoCloseResultItem } from "../../dmarket-utils";
 import { isMarketMatch } from "../../../../../shared/canonicalMarkets";
@@ -50,6 +51,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   const [soCloseMinPrice, setSoCloseMinPrice] = useState<string>("1");
   const [soCloseMaxPrice, setSoCloseMaxPrice] = useState<string>("50");
   const [soCloseMaxCloseness, setSoCloseMaxCloseness] = useState<number>(1.08);
+  const [soCloseMinSssScore, setSoCloseMinSssScore] = useState<number>(1.2);
   const [soCloseAllowedWears, setSoCloseAllowedWears] = useState({
     fn: true,
     mw: true,
@@ -101,7 +103,11 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
       const acceptedRes: {
         map: Record<
           string,
-          { acceptedPrice: number; trendMomentum14d?: number }
+          {
+            acceptedPrice: number;
+            supplyStabilityScore?: number;
+            trendMomentum14d?: number;
+          }
         >;
         itemCount: number;
       } = await (window.electronAPI.oracle as any).getAcceptedPrices();
@@ -141,6 +147,9 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           acceptedEntry.acceptedPrice.toFixed(2),
         );
         if (acceptedPrice <= 0) continue;
+
+        const sss = acceptedEntry.supplyStabilityScore ?? 0;
+        if (sss < soCloseMinSssScore) continue;
 
         const nameLower = name.toLowerCase();
 
@@ -190,6 +199,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             hasExistingTarget: hasExisting,
             iconUrl: cacheItem?.icon_url,
             trendMomentum14d: acceptedEntry.trendMomentum14d,
+            supplyStabilityScore: sss,
           });
         }
       }
@@ -498,6 +508,80 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             </span>
           </div>
 
+          {/* Min Supply Stability Score (SSS) Filter */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              backgroundColor: "var(--so-surface-panel)",
+              border: "1px solid var(--so-border-medium)",
+              padding: "4px 8px",
+              borderRadius: "var(--so-radius-sm)",
+              fontSize: "11px",
+            }}
+          >
+            <span
+              title="Supply Stability Score (SSS) measures cross-market availability, anti-monopoly supply distribution across markets (HHI), and listed stock depth relative to price bracket."
+              style={{
+                fontWeight: 700,
+                color: "var(--so-text-secondary)",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                cursor: "help",
+              }}
+            >
+              SSS:
+              <Info
+                size={12}
+                style={{ color: "var(--so-accent-cyan)", opacity: 0.85 }}
+              />
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="1.5"
+              step="0.1"
+              value={soCloseMinSssScore}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setSoCloseMinSssScore(
+                  isNaN(val) ? 0 : Math.max(0, Math.min(1.5, val)),
+                );
+              }}
+              style={{
+                width: "44px",
+                padding: "1px 4px",
+                fontSize: "11px",
+                fontWeight: 800,
+                textAlign: "center",
+                borderRadius: "3px",
+                border: "1px solid var(--so-border-subtle)",
+                background: "var(--so-surface-card)",
+                color: "var(--so-text-primary)",
+              }}
+            />
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 800,
+                color:
+                  soCloseMinSssScore >= 1.2
+                    ? "var(--so-success-text)"
+                    : soCloseMinSssScore >= 0.8
+                      ? "var(--so-cyan-text)"
+                      : "var(--so-warning)",
+              }}
+            >
+              {soCloseMinSssScore >= 1.2
+                ? "Strict"
+                : soCloseMinSssScore >= 0.8
+                  ? "Balanced"
+                  : "Broad"}
+            </span>
+          </div>
+
           {/* Wear Condition Selector Badges */}
           <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
             <span
@@ -731,7 +815,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
             gap: "10px",
             paddingBottom: "12px",
           }}
@@ -778,6 +862,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                     : "var(--so-shadow-sm)",
                   cursor: item.hasExistingTarget ? "default" : "pointer",
                   transition: "all 0.15s ease",
+                  overflow: "hidden",
                 }}
                 onClick={() => {
                   if (!item.hasExistingTarget) {
@@ -788,12 +873,14 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                   }
                 }}
               >
-                {/* Top Row: Checkbox, Actions, Distance Badge */}
+                {/* Row 1: Actions */}
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    height: "22px",
+                    width: "100%",
                   }}
                 >
                   <div
@@ -835,7 +922,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                       }}
                       title="Open on DMarket (Browser)"
                     >
-                      <ExternalLink size={14} />
+                      <ExternalLink size={13} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -860,12 +947,59 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                       }}
                       title="Inspect Item Details"
                     >
-                      <Eye size={14} />
+                      <Eye size={13} />
                     </button>
                     <CopyMarketHashButton name={item.name} />
                   </div>
+                </div>
 
-                  {/* Distance / Closeness Badge */}
+                {/* Row 2: Badges Strip (Dedicated full-width row for SSS Score & Status) */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "4px",
+                    width: "100%",
+                    minHeight: "18px",
+                  }}
+                >
+                  {item.supplyStabilityScore !== undefined ? (
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: "9px",
+                        padding: "1px 5px",
+                        fontWeight: 800,
+                        borderRadius: "4px",
+                        backgroundColor:
+                          item.supplyStabilityScore >= 1.2
+                            ? "rgba(16, 185, 129, 0.18)"
+                            : item.supplyStabilityScore >= 0.8
+                              ? "rgba(6, 182, 212, 0.18)"
+                              : "rgba(245, 158, 11, 0.18)",
+                        color:
+                          item.supplyStabilityScore >= 1.2
+                            ? "var(--so-success-text)"
+                            : item.supplyStabilityScore >= 0.8
+                              ? "var(--so-cyan-text)"
+                              : "var(--so-warning)",
+                        border: `1px solid ${
+                          item.supplyStabilityScore >= 1.2
+                            ? "rgba(16, 185, 129, 0.35)"
+                            : item.supplyStabilityScore >= 0.8
+                              ? "rgba(6, 182, 212, 0.35)"
+                              : "rgba(245, 158, 11, 0.35)"
+                        }`,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                      title="Supply Stability Score (SSS): cross-market distribution, HHI balance, and volume depth."
+                    >
+                      SSS: {item.supplyStabilityScore.toFixed(1)}
+                    </span>
+                  ) : <div />}
+
                   {item.hasExistingTarget ? (
                     <span
                       className="badge badge-cyan"
@@ -873,6 +1007,9 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                         fontSize: "9px",
                         padding: "1px 5px",
                         fontWeight: 800,
+                        borderRadius: "4px",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
                       }}
                     >
                       TARGET ACTIVE
@@ -884,9 +1021,12 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                         fontSize: "9px",
                         padding: "1px 5px",
                         fontWeight: 800,
-                        display: "flex",
+                        borderRadius: "4px",
+                        display: "inline-flex",
                         alignItems: "center",
                         gap: "3px",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
                       }}
                     >
                       <CheckCircle2 size={10} /> BELOW TARGET (
@@ -902,12 +1042,15 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                         fontSize: "9px",
                         padding: "1px 5px",
                         fontWeight: 800,
+                        borderRadius: "4px",
                         backgroundColor: "rgba(245, 158, 11, 0.18)",
                         color: "#f59e0b",
                         border: "1px solid rgba(245, 158, 11, 0.4)",
-                        display: "flex",
+                        display: "inline-flex",
                         alignItems: "center",
                         gap: "3px",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
                       }}
                     >
                       SO CLOSE (+{item.closenessPercent.toFixed(1)}%)
@@ -1057,16 +1200,45 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                     </span>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "9.5px",
-                    }}
-                  >
-                    <span style={{ color: "var(--so-text-muted)" }}>
-                      Distance
-                    </span>
+                    {item.supplyStabilityScore !== undefined && (
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: "9.5px",
+                          marginBottom: "3px",
+                        }}
+                      >
+                        <span style={{ color: "var(--so-text-muted)" }}>
+                          SSS Score
+                        </span>
+                        <span
+                          className="tabular-nums"
+                          style={{
+                            fontWeight: 700,
+                            color:
+                              item.supplyStabilityScore >= 1.2
+                                ? "var(--so-success-text)"
+                                : item.supplyStabilityScore >= 0.8
+                                  ? "var(--so-cyan-text)"
+                                  : "var(--so-warning)",
+                          }}
+                        >
+                          {item.supplyStabilityScore.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "9.5px",
+                      }}
+                    >
+                      <span style={{ color: "var(--so-text-muted)" }}>
+                        Distance
+                      </span>
                     <span
                       className="tabular-nums"
                       style={{

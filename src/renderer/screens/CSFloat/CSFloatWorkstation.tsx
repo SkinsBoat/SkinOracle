@@ -7,6 +7,9 @@ import {
   CsFloatInventoryItem,
   ListingAnalysis,
   ListingPriceInfo,
+  OrderAnalysis,
+  SoCloseResultItem,
+  AcceptedPriceInfo as AcceptedPriceEntry,
 } from "../../../shared/types";
 import { useLayoutStore } from "../../store/useLayoutStore";
 import { useTrendStore } from "../../store/useTrendStore";
@@ -36,32 +39,6 @@ const getWearShortcut = (wear?: string) => {
   if (w.includes("battle-scarred")) return "BS";
   return wear;
 };
-
-interface AcceptedPriceEntry {
-  acceptedPrice: number;
-  liquidityScore: number;
-  isHyperLiquid: boolean;
-  trendMomentum14d?: number;
-}
-
-interface OrderAnalysis {
-  acceptedPrice: number;
-  liquidityScore: number;
-  isHyperLiquid: boolean;
-  currentPrice: number;
-  trendMomentum14d?: number;
-}
-
-interface SoCloseResultItem {
-  name: string;
-  acceptedPrice: number;
-  currentMarketPrice: number;
-  closeness: number;
-  closenessPercent: number;
-  hasExistingOrder: boolean;
-  iconUrl?: string;
-  trendMomentum14d?: number;
-}
 
 const getHumanMarketName = (marketId: string): string => {
   return getMarketDisplayName(marketId);
@@ -110,6 +87,7 @@ export default function CSFloatWorkstation() {
   const [soCloseMinPrice, setSoCloseMinPrice] = useState<string>("2");
   const [soCloseMaxPrice, setSoCloseMaxPrice] = useState<string>("100");
   const [soCloseMaxCloseness, setSoCloseMaxCloseness] = useState<number>(1.08); // 8% distance ceiling
+  const [soCloseMinSssScore, setSoCloseMinSssScore] = useState<number>(1.2); // SSS threshold (default 1.2)
   const [soCloseAllowedWears, setSoCloseAllowedWears] = useState({
     fn: true,
     mw: true,
@@ -293,8 +271,8 @@ export default function CSFloatWorkstation() {
 
         newAnalysis[order.id] = {
           acceptedPrice: roundedAcceptedPrice,
-          liquidityScore: priceEntry.liquidityScore,
-          isHyperLiquid: priceEntry.isHyperLiquid,
+          supplyStabilityScore: priceEntry.supplyStabilityScore,
+          isHyperStable: priceEntry.isHyperStable,
           currentPrice: currentPriceDollar,
           trendMomentum14d: priceEntry.trendMomentum14d,
         };
@@ -439,7 +417,7 @@ export default function CSFloatWorkstation() {
     });
   };
 
-  const executeBatchUpdate = async () => {
+  const executeBatchUpdate = async (options?: { deleteUnmatched?: boolean }) => {
     const selectedIds = Object.keys(selectedItems).filter(
       (id) => selectedItems[id],
     );
@@ -450,32 +428,52 @@ export default function CSFloatWorkstation() {
       `Executing batch update on ${selectedIds.length} orders...`,
     );
     let updatedCount = 0;
+    let deletedCount = 0;
 
     for (const id of selectedIds) {
       const order = orders.find((o) => o.id === id);
+      if (!order) continue;
       const analysis = itemAnalysis[id];
-      if (!analysis?.acceptedPrice || !order) continue;
 
-      try {
-        await handleManualUpdate(
-          id,
-          order.market_hash_name,
-          analysis.acceptedPrice,
-          order.qty || 1,
-        );
-        setSelectedItems((prev) => ({ ...prev, [id]: false }));
-        updatedCount++;
-      } catch (err) {
-        console.error(
-          `[CSFloat Workstation] 🔴 Batch Item Error for ${id}:`,
-          err,
-        );
+      if (analysis?.acceptedPrice) {
+        try {
+          await handleManualUpdate(
+            id,
+            order.market_hash_name,
+            analysis.acceptedPrice,
+            order.qty || 1,
+          );
+          setSelectedItems((prev) => ({ ...prev, [id]: false }));
+          updatedCount++;
+        } catch (err) {
+          console.error(
+            `[CSFloat Workstation] 🔴 Batch Item Error for ${id}:`,
+            err,
+          );
+        }
+        await new Promise((r) => setTimeout(r, 600));
+      } else if (options?.deleteUnmatched) {
+        try {
+          await window.electronAPI.csfloat.deleteOrder(id);
+          setOrders((prev) => prev.filter((o) => o.id !== id));
+          setSelectedItems((prev) => ({ ...prev, [id]: false }));
+          deletedCount++;
+        } catch (err) {
+          console.error(
+            `[CSFloat Workstation] 🔴 Error deleting unmatched order ${id}:`,
+            err,
+          );
+        }
+        await new Promise((r) => setTimeout(r, 400));
       }
-      await new Promise((r) => setTimeout(r, 600));
     }
 
     setBatchProcessing(false);
-    toast.success(`Completed batch update for ${updatedCount} orders`, {
+    let msg = `Completed batch update for ${updatedCount} orders`;
+    if (deletedCount > 0) {
+      msg += ` and deleted ${deletedCount} unmatched orders`;
+    }
+    toast.success(msg, {
       id: toastId,
     });
   };
@@ -551,7 +549,14 @@ export default function CSFloatWorkstation() {
 
     try {
       const acceptedRes: {
-        map: Record<string, { acceptedPrice: number }>;
+        map: Record<
+          string,
+          {
+            acceptedPrice: number;
+            supplyStabilityScore?: number;
+            trendMomentum14d?: number;
+          }
+        >;
         itemCount: number;
       } = await (window.electronAPI.oracle as any).getAcceptedPrices();
 
@@ -586,6 +591,9 @@ export default function CSFloatWorkstation() {
 
         const acceptedPrice = roundToCsFloatStep(acceptedEntry.acceptedPrice);
         if (acceptedPrice <= 0) continue;
+
+        const sss = acceptedEntry.supplyStabilityScore ?? 0;
+        if (sss < soCloseMinSssScore) continue;
 
         const nameLower = name.toLowerCase();
 
@@ -632,6 +640,7 @@ export default function CSFloatWorkstation() {
             hasExistingOrder: hasExisting,
             iconUrl: cacheItem?.icon_url,
             trendMomentum14d: (acceptedEntry as any)?.trendMomentum14d,
+            supplyStabilityScore: sss,
           });
         }
       }
@@ -1635,6 +1644,7 @@ export default function CSFloatWorkstation() {
           isSidebarExpanded={isSidebarExpanded}
           selectedOrdersTotal={selectedOrdersTotal}
           maxLimitValue={maxLimitValue}
+          userBalance={userData?.balance}
         />
       )}
 
@@ -1651,6 +1661,8 @@ export default function CSFloatWorkstation() {
           userData={userData}
           soCloseMaxCloseness={soCloseMaxCloseness}
           setSoCloseMaxCloseness={setSoCloseMaxCloseness}
+          soCloseMinSssScore={soCloseMinSssScore}
+          setSoCloseMinSssScore={setSoCloseMinSssScore}
           soCloseAllowedWears={soCloseAllowedWears}
           setSoCloseAllowedWears={setSoCloseAllowedWears}
           selectedSoCloseItems={selectedSoCloseItems}

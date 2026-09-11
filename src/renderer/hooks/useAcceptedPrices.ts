@@ -3,8 +3,8 @@ import toast from "react-hot-toast";
 
 export interface AcceptedPriceEntry {
   acceptedPrice: number;
-  liquidityScore: number;
-  isHyperLiquid?: boolean;
+  supplyStabilityScore: number;
+  isHyperStable?: boolean;
 }
 
 export interface AcceptedPricesMeta {

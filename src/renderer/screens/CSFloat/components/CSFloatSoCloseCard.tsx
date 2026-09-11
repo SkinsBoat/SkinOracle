@@ -5,20 +5,14 @@ import {
   CheckCircle2,
   PlusCircle,
   Loader2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import TrendSparkline from "../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 
-export interface SoCloseResultItem {
-  name: string;
-  acceptedPrice: number;
-  currentMarketPrice: number;
-  closeness: number;
-  closenessPercent: number;
-  iconUrl?: string;
-  hasExistingOrder?: boolean;
-  trendMomentum14d?: number;
-}
+import { SoCloseResultItem } from "../../../../shared/types";
+export type { SoCloseResultItem };
 
 interface CSFloatSoCloseCardProps {
   item: SoCloseResultItem;
@@ -67,7 +61,7 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        gap: "8px",
+        gap: "6px",
         margin: 0,
         padding: "10px",
         minHeight: "250px",
@@ -79,16 +73,18 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
         boxShadow: isSelected ? "inset 0 0 0 1px var(--so-primary)" : "none",
         cursor: "pointer",
         userSelect: "none",
+        overflow: "hidden",
       }}
       onClick={onToggleSelect}
     >
-      {/* Top Header Row */}
+      {/* Row 1: Actions & Selection Indicator */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          height: "20px",
+          height: "22px",
+          width: "100%",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
@@ -110,7 +106,7 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
             }}
             title="Open on CSFloat Market (Browser)"
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={13} />
           </button>
           <button
             onClick={(e) => {
@@ -135,16 +131,84 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
             }}
             title="Inspect Item Details"
           >
-            <Eye size={14} />
+            <Eye size={13} />
           </button>
           <CopyMarketHashButton name={item.name} />
         </div>
 
-        {/* Distance / Closeness Badge */}
+        {/* Selection Checkbox Indicator */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            color: isSelected ? "var(--so-primary)" : "var(--so-text-muted)",
+            opacity: isSelected ? 1 : 0.45,
+            transition: "all 0.15s ease",
+          }}
+          title={isSelected ? "Selected" : "Click card to select"}
+        >
+          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+        </div>
+      </div>
+
+      {/* Row 2: Badges Strip (Dedicated full-width row for SSS Score & Status) */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "4px",
+          width: "100%",
+          minHeight: "18px",
+        }}
+      >
+        {item.supplyStabilityScore !== undefined ? (
+          <span
+            className="badge"
+            style={{
+              fontSize: "9px",
+              padding: "1px 5px",
+              fontWeight: 800,
+              borderRadius: "4px",
+              backgroundColor:
+                item.supplyStabilityScore >= 1.2
+                  ? "rgba(16, 185, 129, 0.18)"
+                  : item.supplyStabilityScore >= 0.8
+                    ? "rgba(6, 182, 212, 0.18)"
+                    : "rgba(245, 158, 11, 0.18)",
+              color:
+                item.supplyStabilityScore >= 1.2
+                  ? "var(--so-success-text)"
+                  : item.supplyStabilityScore >= 0.8
+                    ? "var(--so-cyan-text)"
+                    : "var(--so-warning)",
+              border: `1px solid ${
+                item.supplyStabilityScore >= 1.2
+                  ? "rgba(16, 185, 129, 0.35)"
+                  : item.supplyStabilityScore >= 0.8
+                    ? "rgba(6, 182, 212, 0.35)"
+                    : "rgba(245, 158, 11, 0.35)"
+              }`,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+            title="Supply Stability Score (SSS): cross-market distribution, HHI balance, and volume depth."
+          >
+            SSS: {item.supplyStabilityScore.toFixed(1)}
+          </span>
+        ) : <div />}
+
         {item.hasExistingOrder ? (
           <span
             className="badge badge-cyan"
-            style={{ fontSize: "9px", padding: "1px 5px", fontWeight: 800 }}
+            style={{
+              fontSize: "9px",
+              padding: "1px 5px",
+              fontWeight: 800,
+              borderRadius: "4px",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
           >
             ORDER PLACED
           </span>
@@ -155,9 +219,12 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
               fontSize: "9px",
               padding: "1px 5px",
               fontWeight: 800,
-              display: "flex",
+              borderRadius: "4px",
+              display: "inline-flex",
               alignItems: "center",
               gap: "3px",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             <CheckCircle2 size={10} /> BELOW TARGET (
@@ -173,12 +240,15 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
               fontSize: "9px",
               padding: "1px 5px",
               fontWeight: 800,
+              borderRadius: "4px",
               backgroundColor: "rgba(245, 158, 11, 0.18)",
               color: "#f59e0b",
               border: "1px solid rgba(245, 158, 11, 0.4)",
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               gap: "3px",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             SO CLOSE (+{item.closenessPercent.toFixed(1)}%)
@@ -320,6 +390,33 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
             ${item.currentMarketPrice.toFixed(2)}
           </span>
         </div>
+
+        {item.supplyStabilityScore !== undefined && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "9.5px",
+              marginBottom: "3px",
+            }}
+          >
+            <span style={{ color: "var(--so-text-muted)" }}>SSS Score</span>
+            <span
+              className="tabular-nums"
+              style={{
+                fontWeight: 700,
+                color:
+                  item.supplyStabilityScore >= 1.2
+                    ? "var(--so-success-text)"
+                    : item.supplyStabilityScore >= 0.8
+                      ? "var(--so-cyan-text)"
+                      : "var(--so-warning)",
+              }}
+            >
+              {item.supplyStabilityScore.toFixed(2)}
+            </span>
+          </div>
+        )}
 
         <div
           style={{

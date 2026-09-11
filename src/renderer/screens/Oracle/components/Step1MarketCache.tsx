@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   Radio,
   ChevronUp,
@@ -25,6 +26,7 @@ import { CS2CAP_PROVIDERS } from "../../../../shared/cs2capProviders";
 import {
   toCanonicalMarketId,
   isMarketMatch,
+  isTradeMarket,
 } from "../../../../shared/canonicalMarkets";
 
 export const SKINSNIPE_AVAILABLE_MARKETS: {
@@ -92,6 +94,82 @@ interface Step1MarketCacheProps {
   onCancelFetch: () => void;
 }
 
+const TradeMarketFilterCard: React.FC<{
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  tradeCount: number;
+  accentColor?: string;
+}> = ({ checked, onChange, tradeCount, accentColor = "var(--so-primary)" }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      title="Hide trade-bot platforms from the selection grid"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "7px",
+        padding: "5px 10px",
+        borderRadius: "var(--so-radius-sm)",
+        fontSize: "12px",
+        fontWeight: 600,
+        cursor: "pointer",
+        userSelect: "none",
+        transition: "all 0.15s ease",
+        backgroundColor: checked
+          ? "rgba(255, 255, 255, 0.08)"
+          : isHovered
+            ? "rgba(255, 255, 255, 0.05)"
+            : "transparent",
+        border: checked
+          ? `1px solid ${accentColor}`
+          : isHovered
+            ? "1px solid var(--so-border-medium)"
+            : "1px solid var(--so-border-subtle)",
+        color: checked
+          ? "var(--so-text-primary)"
+          : "var(--so-text-secondary)",
+      }}
+    >
+      <div
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: "3px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: checked ? accentColor : "transparent",
+          border: checked ? "none" : "1px solid var(--so-border-medium)",
+          flexShrink: 0,
+        }}
+      >
+        {checked && (
+          <Check size={10} style={{ color: "#fff", strokeWidth: 3 }} />
+        )}
+      </div>
+
+      <span>Hide Trade</span>
+
+      <span
+        style={{
+          fontSize: "11px",
+          fontWeight: 600,
+          padding: "1px 5px",
+          borderRadius: "4px",
+          backgroundColor: "rgba(255, 255, 255, 0.06)",
+          color: "var(--so-text-muted)",
+        }}
+      >
+        ({tradeCount})
+      </span>
+    </div>
+  );
+};
+
 export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   isOpen,
   onToggle,
@@ -123,6 +201,13 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   onLoadDemoCache,
   onCancelFetch,
 }) => {
+  const [hideTradeMarkets, setHideTradeMarkets] = useState(false);
+  const cs2capTradeCount = CS2CAP_PROVIDERS.filter((p) =>
+    isTradeMarket(p.id),
+  ).length;
+  const skinsnipeTradeCount = SKINSNIPE_AVAILABLE_MARKETS.filter((m) =>
+    isTradeMarket(m.id),
+  ).length;
   const estimatedFetchSeconds = Math.max(0, (selectedMarkets.length - 1) * 32);
 
   const getMarketCount = (marketId: string): number => {
@@ -400,10 +485,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               {/* Dedicated CS2Cap Provider Selection Section */}
               <div
                 style={{
-                  padding: "16px 18px",
+                  padding: "18px 20px",
                   borderRadius: "var(--so-radius-md)",
                   backgroundColor: "var(--so-surface-panel)",
                   border: "1px solid var(--so-border-subtle)",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                   marginBottom: "20px",
                 }}
               >
@@ -414,21 +500,30 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     alignItems: "center",
                     marginBottom: "12px",
                     flexWrap: "wrap",
-                    gap: "8px",
+                    gap: "10px",
                   }}
                 >
                   <div
                     style={{
-                      fontWeight: 800,
-                      fontSize: "14px",
-                      color: "var(--so-text-primary)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      gap: "10px",
+                      flexWrap: "wrap",
                     }}
                   >
-                    <Filter size={16} style={{ color: "#06b6d4" }} /> CS2Cap
-                    Target Providers Config
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: "14px",
+                        color: "var(--so-text-primary)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <Filter size={16} style={{ color: "#06b6d4" }} /> CS2Cap
+                      Target Providers Config
+                    </div>
                     <span
                       className="badge badge-cyan"
                       style={{
@@ -442,11 +537,30 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     </span>
                   </div>
 
-                  <div style={{ display: "flex", gap: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <TradeMarketFilterCard
+                      checked={hideTradeMarkets}
+                      onChange={setHideTradeMarkets}
+                      tradeCount={cs2capTradeCount}
+                      accentColor="#06b6d4"
+                    />
                     <button
                       className="btn btn-sm btn-ghost"
                       onClick={onSelectAllCs2capProviders}
-                      style={{ fontSize: "12px", padding: "4px 10px" }}
+                      style={{
+                        fontSize: "12px",
+                        padding: "5px 10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
                     >
                       <CheckSquare size={14} /> Select All (
                       {CS2CAP_PROVIDERS.length})
@@ -454,7 +568,13 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     <button
                       className="btn btn-sm btn-ghost"
                       onClick={onResetDefaultCs2capProviders}
-                      style={{ fontSize: "12px", padding: "4px 10px" }}
+                      style={{
+                        fontSize: "12px",
+                        padding: "5px 10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
                     >
                       <Square size={14} /> Reset Defaults
                     </button>
@@ -483,10 +603,14 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     marginBottom: "8px",
                   }}
                 >
-                  {CS2CAP_PROVIDERS.map((provider) => {
+                  {(hideTradeMarkets
+                    ? CS2CAP_PROVIDERS.filter((p) => !isTradeMarket(p.id))
+                    : CS2CAP_PROVIDERS
+                  ).map((provider) => {
                     const isSelected = selectedCs2capProviders.includes(
                       provider.id,
                     );
+                    const isTrade = isTradeMarket(provider.id);
                     return (
                       <div
                         key={provider.id}
@@ -495,7 +619,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           e.preventDefault();
                           onSoloCs2capProvider?.(provider.id);
                         }}
-                        title="Click to toggle | Right-click to solo"
+                        title={
+                          isTrade
+                            ? "Trade-bot platform (prices may reflect marked-up virtual site credit) | Click to toggle | Right-click to solo"
+                            : "Click to toggle | Right-click to solo"
+                        }
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -508,16 +636,24 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           userSelect: "none",
                           transition: "all 0.15s ease",
                           backgroundColor: isSelected
-                            ? "rgba(6, 182, 212, 0.16)"
+                            ? isTrade
+                              ? "rgba(245, 158, 11, 0.12)"
+                              : "rgba(6, 182, 212, 0.16)"
                             : "var(--so-surface-input)",
                           border: isSelected
-                            ? "1px solid #06b6d4"
-                            : "1px solid var(--so-border-subtle)",
+                            ? isTrade
+                              ? "1px solid rgba(245, 158, 11, 0.55)"
+                              : "1px solid #06b6d4"
+                            : isTrade
+                              ? "1px solid rgba(245, 158, 11, 0.25)"
+                              : "1px solid var(--so-border-subtle)",
                           color: isSelected
                             ? "var(--so-text-primary)"
                             : "var(--so-text-muted)",
                           boxShadow: isSelected
-                            ? "0 0 10px rgba(6, 182, 212, 0.2)"
+                            ? isTrade
+                              ? "0 0 10px rgba(245, 158, 11, 0.2)"
+                              : "0 0 10px rgba(6, 182, 212, 0.2)"
                             : "none",
                         }}
                       >
@@ -530,11 +666,15 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             alignItems: "center",
                             justifyContent: "center",
                             backgroundColor: isSelected
-                              ? "#06b6d4"
+                              ? isTrade
+                                ? "#f59e0b"
+                                : "#06b6d4"
                               : "transparent",
                             border: isSelected
                               ? "none"
-                              : "1px solid var(--so-border-medium)",
+                              : isTrade
+                                ? "1px solid rgba(245, 158, 11, 0.4)"
+                                : "1px solid var(--so-border-medium)",
                             flexShrink: 0,
                           }}
                         >
@@ -552,6 +692,28 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         >
                           {provider.name}
                         </span>
+                        {isTrade && (
+                          <span
+                            className="badge"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                              fontSize: "9px",
+                              fontWeight: 800,
+                              padding: "1px 5px",
+                              borderRadius: "3px",
+                              backgroundColor: "rgba(245, 158, 11, 0.15)",
+                              color: "#f59e0b",
+                              border: "1px solid rgba(245, 158, 11, 0.35)",
+                              flexShrink: 0,
+                            }}
+                            title="Trade-bot platform: prices may reflect marked-up virtual credit"
+                          >
+                            <AlertTriangle size={10} style={{ color: "#f59e0b" }} />
+                            TRADE
+                          </span>
+                        )}
                         {getMarketCount(provider.id) > 0 && (
                           <span
                             style={{
@@ -1017,10 +1179,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               {/* Dedicated Skinsnipe Market Selection Section */}
               <div
                 style={{
-                  padding: "16px 18px",
+                  padding: "18px 20px",
                   borderRadius: "var(--so-radius-md)",
                   backgroundColor: "var(--so-surface-panel)",
                   border: "1px solid var(--so-border-subtle)",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                   marginBottom: "20px",
                 }}
               >
@@ -1030,20 +1193,31 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     justifyContent: "space-between",
                     alignItems: "center",
                     marginBottom: "12px",
+                    flexWrap: "wrap",
+                    gap: "10px",
                   }}
                 >
                   <div
                     style={{
-                      fontWeight: 800,
-                      fontSize: "14px",
-                      color: "var(--so-text-primary)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      gap: "10px",
+                      flexWrap: "wrap",
                     }}
                   >
-                    <Filter size={16} style={{ color: "var(--so-primary)" }} />{" "}
-                    Skinsnipe Target Markets Config
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: "14px",
+                        color: "var(--so-text-primary)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <Filter size={16} style={{ color: "var(--so-primary)" }} />{" "}
+                      Skinsnipe Target Markets Config
+                    </div>
                     <span
                       className="badge badge-cyan"
                       style={{ fontSize: "11px" }}
@@ -1053,11 +1227,29 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     </span>
                   </div>
 
-                  <div style={{ display: "flex", gap: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <TradeMarketFilterCard
+                      checked={hideTradeMarkets}
+                      onChange={setHideTradeMarkets}
+                      tradeCount={skinsnipeTradeCount}
+                    />
                     <button
                       className="btn btn-sm btn-ghost"
                       onClick={onSelectAllMarkets}
-                      style={{ fontSize: "12px", padding: "4px 10px" }}
+                      style={{
+                        fontSize: "12px",
+                        padding: "5px 10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
                     >
                       <CheckSquare size={14} /> Select All (
                       {SKINSNIPE_AVAILABLE_MARKETS.length})
@@ -1065,7 +1257,13 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     <button
                       className="btn btn-sm btn-ghost"
                       onClick={onDeselectAllMarkets}
-                      style={{ fontSize: "12px", padding: "4px 10px" }}
+                      style={{
+                        fontSize: "12px",
+                        padding: "5px 10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
                     >
                       <Square size={14} /> Reset Defaults
                     </button>
@@ -1094,8 +1292,12 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     marginBottom: "12px",
                   }}
                 >
-                  {SKINSNIPE_AVAILABLE_MARKETS.map((market) => {
+                  {(hideTradeMarkets
+                    ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id))
+                    : SKINSNIPE_AVAILABLE_MARKETS
+                  ).map((market) => {
                     const isSelected = selectedMarkets.includes(market.id);
+                    const isTrade = isTradeMarket(market.id);
                     return (
                       <div
                         key={market.id}
@@ -1104,7 +1306,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           e.preventDefault();
                           onSoloMarket(market.id);
                         }}
-                        title="Click to toggle | Right-click to solo"
+                        title={
+                          isTrade
+                            ? "Trade-bot market (prices may reflect marked-up virtual site credit) | Click to toggle | Right-click to solo"
+                            : "Click to toggle | Right-click to solo"
+                        }
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -1117,16 +1323,24 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           userSelect: "none",
                           transition: "all 0.15s ease",
                           backgroundColor: isSelected
-                            ? "rgba(99, 102, 241, 0.18)"
+                            ? isTrade
+                              ? "rgba(245, 158, 11, 0.12)"
+                              : "rgba(99, 102, 241, 0.18)"
                             : "var(--so-surface-input)",
                           border: isSelected
-                            ? "1px solid var(--so-primary)"
-                            : "1px solid var(--so-border-subtle)",
+                            ? isTrade
+                              ? "1px solid rgba(245, 158, 11, 0.55)"
+                              : "1px solid var(--so-primary)"
+                            : isTrade
+                              ? "1px solid rgba(245, 158, 11, 0.25)"
+                              : "1px solid var(--so-border-subtle)",
                           color: isSelected
                             ? "var(--so-text-primary)"
                             : "var(--so-text-muted)",
                           boxShadow: isSelected
-                            ? "0 0 10px rgba(99, 102, 241, 0.2)"
+                            ? isTrade
+                              ? "0 0 10px rgba(245, 158, 11, 0.2)"
+                              : "0 0 10px rgba(99, 102, 241, 0.2)"
                             : "none",
                         }}
                       >
@@ -1139,11 +1353,15 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             alignItems: "center",
                             justifyContent: "center",
                             backgroundColor: isSelected
-                              ? "var(--so-primary)"
+                              ? isTrade
+                                ? "#f59e0b"
+                                : "var(--so-primary)"
                               : "transparent",
                             border: isSelected
                               ? "none"
-                              : "1px solid var(--so-border-medium)",
+                              : isTrade
+                                ? "1px solid rgba(245, 158, 11, 0.4)"
+                                : "1px solid var(--so-border-medium)",
                             flexShrink: 0,
                           }}
                         >
@@ -1161,6 +1379,28 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         >
                           {market.name}
                         </span>
+                        {isTrade && (
+                          <span
+                            className="badge"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                              fontSize: "9px",
+                              fontWeight: 800,
+                              padding: "1px 5px",
+                              borderRadius: "3px",
+                              backgroundColor: "rgba(245, 158, 11, 0.15)",
+                              color: "#f59e0b",
+                              border: "1px solid rgba(245, 158, 11, 0.35)",
+                              flexShrink: 0,
+                            }}
+                            title="Trade-bot platform: prices may reflect marked-up virtual credit"
+                          >
+                            <AlertTriangle size={10} style={{ color: "#f59e0b" }} />
+                            TRADE
+                          </span>
+                        )}
                         {getMarketCount(market.id) > 0 && (
                           <span
                             style={{

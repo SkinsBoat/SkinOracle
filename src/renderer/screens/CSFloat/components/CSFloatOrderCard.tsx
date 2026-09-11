@@ -6,6 +6,9 @@ import {
   CheckCircle2,
   Trash2,
   Loader2,
+  CheckSquare,
+  Square,
+  Wallet,
 } from "lucide-react";
 import TrendSparkline from "../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
@@ -24,6 +27,7 @@ interface CSFloatOrderCardProps {
   onToggleSelect: () => void;
   driftDetails?: OrderDriftDetails | null;
   isProcessing: boolean;
+  userBalance?: number;
   onManualUpdate: (
     id: string,
     name: string,
@@ -46,6 +50,7 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
   onToggleSelect,
   driftDetails,
   isProcessing,
+  userBalance,
   onManualUpdate,
   onDelete,
   onOpenMarket,
@@ -53,14 +58,20 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
   onUpdateQuantity,
 }) => {
   const currentPrice = order.price / 100;
+  const isExceedsBalance =
+    typeof userBalance === "number" &&
+    userBalance >= 0 &&
+    currentPrice > userBalance;
 
   const cardBorderColor = isSelected
     ? "var(--so-primary)"
-    : driftDetails?.isOverbid
+    : isExceedsBalance
       ? "#ef4444"
-      : driftDetails?.isUnderbid
-        ? "#f59e0b"
-        : "var(--so-border-medium)";
+      : driftDetails?.isOverbid
+        ? "#ef4444"
+        : driftDetails?.isUnderbid
+          ? "#f59e0b"
+          : "var(--so-border-medium)";
 
   const match = order.market_hash_name.match(/^(.+?)\s*\(([^)]+)\)$/);
   const cleanTitle = match ? match[1] : order.market_hash_name;
@@ -88,13 +99,13 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
       }}
       onClick={onToggleSelect}
     >
-      {/* Top Header Row */}
+      {/* Top Action Row */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          height: "20px",
+          height: "22px",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
@@ -116,7 +127,7 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
             }}
             title="Open on CSFloat Market (Browser)"
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={13} />
           </button>
           <button
             onClick={(e) => {
@@ -140,25 +151,74 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
             }}
             title="Inspect Item Details"
           >
-            <Eye size={14} />
+            <Eye size={13} />
           </button>
           <CopyMarketHashButton name={order.market_hash_name} />
         </div>
 
-        {driftDetails ? (
+        {/* Selection Checkbox Indicator */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            color: isSelected ? "var(--so-primary)" : "var(--so-text-muted)",
+            opacity: isSelected ? 1 : 0.45,
+            transition: "all 0.15s ease",
+          }}
+          title={isSelected ? "Selected" : "Click card to select"}
+        >
+          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+        </div>
+      </div>
+
+      {/* Drift / Balance Status Badge */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          minHeight: "18px",
+          gap: "4px",
+          flexWrap: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        {isExceedsBalance ? (
+          <span
+            className="badge"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "3px",
+              backgroundColor: "rgba(239, 68, 68, 0.16)",
+              color: "#f87171",
+              border: "1px solid rgba(239, 68, 68, 0.35)",
+              fontWeight: 800,
+              fontSize: "9px",
+              padding: "1px 6px",
+              borderRadius: "4px",
+              whiteSpace: "nowrap",
+            }}
+            title={`Current bid ($${currentPrice.toFixed(2)}) exceeds wallet balance ($${userBalance?.toFixed(2)})`}
+          >
+            <Wallet size={10} /> EXCEEDS BALANCE
+          </span>
+        ) : driftDetails ? (
           driftDetails.isOverbid ? (
             <span
               className="badge"
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: "3px",
-                backgroundColor: "rgba(239, 68, 68, 0.18)",
-                color: "#ef4444",
-                border: "1px solid rgba(239, 68, 68, 0.4)",
-                fontWeight: 800,
+                backgroundColor: "rgba(239, 68, 68, 0.12)",
+                color: "#f87171",
+                border: "1px solid rgba(239, 68, 68, 0.3)",
+                fontWeight: 700,
                 fontSize: "9px",
-                padding: "1px 5px",
+                padding: "1px 6px",
+                borderRadius: "4px",
+                whiteSpace: "nowrap",
               }}
             >
               <AlertTriangle size={10} /> OVERBID (
@@ -171,15 +231,17 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
             <span
               className="badge"
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: "3px",
-                backgroundColor: "rgba(245, 158, 11, 0.18)",
-                color: "#f59e0b",
-                border: "1px solid rgba(245, 158, 11, 0.4)",
-                fontWeight: 800,
+                backgroundColor: "rgba(245, 158, 11, 0.12)",
+                color: "#fbbf24",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                fontWeight: 700,
                 fontSize: "9px",
-                padding: "1px 5px",
+                padding: "1px 6px",
+                borderRadius: "4px",
+                whiteSpace: "nowrap",
               }}
             >
               <AlertTriangle size={10} /> UNDERBID (
@@ -189,12 +251,17 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
             <span
               className="badge badge-success"
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: "3px",
-                fontWeight: 800,
+                backgroundColor: "rgba(16, 185, 129, 0.12)",
+                color: "#34d399",
+                border: "1px solid rgba(16, 185, 129, 0.3)",
+                fontWeight: 700,
                 fontSize: "9px",
-                padding: "1px 5px",
+                padding: "1px 6px",
+                borderRadius: "4px",
+                whiteSpace: "nowrap",
               }}
             >
               <CheckCircle2 size={10} /> SAFE (
@@ -207,7 +274,14 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
         ) : (
           <span
             className="badge badge-secondary"
-            style={{ fontSize: "9px", padding: "1px 5px" }}
+            style={{
+              fontSize: "9px",
+              padding: "1px 6px",
+              borderRadius: "4px",
+              color: "var(--so-text-muted)",
+              border: "1px solid var(--so-border-subtle)",
+              whiteSpace: "nowrap",
+            }}
           >
             ACTIVE
           </span>
@@ -399,12 +473,19 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
             className="tabular-nums"
             style={{
               fontWeight: 800,
-              color: driftDetails?.isOverbid
-                ? "#ef4444"
-                : driftDetails?.isUnderbid
-                  ? "#f59e0b"
-                  : "var(--so-text-primary)",
+              color: isExceedsBalance
+                ? "#f87171"
+                : driftDetails?.isOverbid
+                  ? "#ef4444"
+                  : driftDetails?.isUnderbid
+                    ? "#f59e0b"
+                    : "var(--so-text-primary)",
             }}
+            title={
+              isExceedsBalance
+                ? `Current bid ($${currentPrice.toFixed(2)}) exceeds wallet balance ($${userBalance?.toFixed(2)})`
+                : undefined
+            }
           >
             ${currentPrice.toFixed(2)}
           </span>
@@ -428,40 +509,70 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
         style={{ display: "flex", gap: "6px" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {driftDetails?.acceptedPrice && (
-          <button
-            onClick={() =>
-              onManualUpdate(
-                order.id,
-                order.market_hash_name,
-                driftDetails.acceptedPrice,
-                order.qty || 1,
-              )
-            }
-            disabled={isProcessing}
-            className="btn btn-primary btn-sm"
-            style={{
-              flex: 1,
-              fontWeight: 700,
-              fontSize: "11px",
-              padding: "4px 6px",
-            }}
-          >
-            {isProcessing ? (
-              <Loader2 size={11} className="spin" />
-            ) : (
-              "Update Order"
-            )}
-          </button>
-        )}
+        {driftDetails?.acceptedPrice &&
+          (!isExceedsBalance ||
+            driftDetails.acceptedPrice <= (userBalance || 0)) && (
+            <button
+              onClick={() =>
+                onManualUpdate(
+                  order.id,
+                  order.market_hash_name,
+                  driftDetails.acceptedPrice,
+                  order.qty || 1,
+                )
+              }
+              disabled={isProcessing}
+              className="btn btn-primary btn-sm"
+              style={{
+                flex: 1,
+                fontWeight: 700,
+                fontSize: "11px",
+                padding: "4px 6px",
+              }}
+              title={
+                isExceedsBalance
+                  ? `Update order to $${driftDetails.acceptedPrice.toFixed(2)} (within balance)`
+                  : "Update order to accepted price"
+              }
+            >
+              {isProcessing ? (
+                <Loader2 size={11} className="spin" />
+              ) : (
+                "Update Order"
+              )}
+            </button>
+          )}
         <button
           onClick={() => onDelete(order.id)}
           disabled={isProcessing}
           className="btn btn-danger btn-sm"
-          title="Delete Order"
-          style={{ padding: "4px 6px" }}
+          title={
+            isExceedsBalance
+              ? `Cancel Order (Exceeds Balance $${userBalance?.toFixed(2)})`
+              : "Delete Order"
+          }
+          style={{
+            flex:
+              !driftDetails?.acceptedPrice ||
+              (isExceedsBalance &&
+                driftDetails.acceptedPrice > (userBalance || 0))
+                ? 1
+                : "initial",
+            padding: "4px 8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "4px",
+          }}
         >
           <Trash2 size={12} />
+          {(!driftDetails?.acceptedPrice ||
+            (isExceedsBalance &&
+              driftDetails.acceptedPrice > (userBalance || 0))) && (
+            <span style={{ fontSize: "11px", fontWeight: 700 }}>
+              Cancel Order
+            </span>
+          )}
         </button>
       </div>
     </div>

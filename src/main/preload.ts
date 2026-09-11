@@ -142,8 +142,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
         string,
         {
           acceptedPrice: number;
-          liquidityScore: number;
-          isHyperLiquid: boolean;
+          supplyStabilityScore: number;
+          isHyperStable: boolean;
           nexusDelta?: number;
           trendAdjustment?: number;
         }

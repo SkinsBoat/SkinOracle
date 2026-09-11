@@ -7,12 +7,18 @@ import {
   Zap,
   BarChart3,
   AlertCircle,
+  AlertTriangle,
   Tag,
   Layers,
   TrendingUp,
+  Clipboard,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { ListingPriceStrategy } from "../../../store/useOracleStore";
-import { getMarketDisplayName } from "../../../../shared/canonicalMarkets";
+import {
+  getMarketDisplayName,
+  isTradeMarket,
+} from "../../../../shared/canonicalMarkets";
 import { calculateSuggestedListingPrice } from "../utils/oracleUtils";
 import { S } from "../OracleDashboard.styles";
 import { TrendDetailedChart } from "../../../components/TrendDetailedChart";
@@ -39,6 +45,20 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
   listingStrategy,
   onLookupSingleItem,
 }) => {
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        setSearchQuery(text.trim());
+        toast.success("Pasted from clipboard!");
+      } else {
+        toast.error("Clipboard is empty");
+      }
+    } catch (err: any) {
+      toast.error("Failed to read clipboard: " + (err?.message || "Permission denied"));
+    }
+  };
+
   return (
     <div
       className="card"
@@ -116,7 +136,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
 
           <form
             onSubmit={onLookupSingleItem}
-            style={{ display: "flex", gap: "12px", alignItems: "center" }}
+            style={{ display: "flex", gap: "10px", alignItems: "center" }}
           >
             <input
               type="text"
@@ -127,8 +147,26 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
             />
 
             <button
-              type="submit"
+              type="button"
               className="btn btn-secondary"
+              onClick={handlePaste}
+              title="Paste skin name from clipboard"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                fontSize: "13px",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Clipboard size={15} /> Paste
+            </button>
+
+            <button
+              type="submit"
+              className="btn btn-primary"
               disabled={evaluating || !searchQuery.trim()}
               style={{ minWidth: "160px" }}
             >
@@ -364,9 +402,40 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                   GRADE {oracle.trendConfidence}
                                 </span>
                               )}
-                              {oracle.isHyperLiquid && (
+                              {oracle.supplyStabilityScore !== undefined && (
+                                <span
+                                  className="badge"
+                                  style={{
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    backgroundColor:
+                                      oracle.supplyStabilityScore >= 1.2
+                                        ? "rgba(16, 185, 129, 0.15)"
+                                        : oracle.supplyStabilityScore >= 0.8
+                                          ? "rgba(6, 182, 212, 0.15)"
+                                          : "rgba(245, 158, 11, 0.15)",
+                                    color:
+                                      oracle.supplyStabilityScore >= 1.2
+                                        ? "var(--so-success-text)"
+                                        : oracle.supplyStabilityScore >= 0.8
+                                          ? "var(--so-cyan-text)"
+                                          : "var(--so-warning)",
+                                    border: `1px solid ${
+                                      oracle.supplyStabilityScore >= 1.2
+                                        ? "rgba(16, 185, 129, 0.3)"
+                                        : oracle.supplyStabilityScore >= 0.8
+                                          ? "rgba(6, 182, 212, 0.3)"
+                                          : "rgba(245, 158, 11, 0.3)"
+                                    }`,
+                                  }}
+                                  title="Supply Stability Score (SSS) measures cross-market availability, anti-monopoly supply distribution across markets (HHI), and listed stock depth relative to price bracket."
+                                >
+                                  SSS: {oracle.supplyStabilityScore.toFixed(1)}
+                                </span>
+                              )}
+                              {oracle.isHyperStable && (
                                 <span className="badge badge-cyan">
-                                  HYPER LIQUID
+                                  HYPER STABLE
                                 </span>
                               )}
                             </div>
@@ -517,7 +586,6 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                       {/* 14-Day Historical Trend Intelligence Graph */}
                       <TrendDetailedChart
                         name={r.name}
-                        momentum={oracle.trendMomentum14d}
                         height={115}
                       />
 
@@ -753,9 +821,38 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                           padding: "8px 12px",
                                           fontWeight: 700,
                                           color: "var(--so-text-primary)",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "6px",
                                         }}
                                       >
-                                        {marketName}
+                                        <span>{marketName}</span>
+                                        {isTradeMarket(m.marketId) && (
+                                          <span
+                                            className="badge"
+                                            style={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: "3px",
+                                              fontSize: "9px",
+                                              fontWeight: 800,
+                                              padding: "1px 5px",
+                                              borderRadius: "3px",
+                                              backgroundColor:
+                                                "rgba(245, 158, 11, 0.15)",
+                                              color: "#f59e0b",
+                                              border:
+                                                "1px solid rgba(245, 158, 11, 0.35)",
+                                            }}
+                                            title="Trade bot / swap platform: prices may reflect marked-up virtual credit"
+                                          >
+                                            <AlertTriangle
+                                              size={10}
+                                              style={{ color: "#f59e0b" }}
+                                            />
+                                            TRADE
+                                          </span>
+                                        )}
                                       </td>
                                       <td
                                         className="tabular-nums"

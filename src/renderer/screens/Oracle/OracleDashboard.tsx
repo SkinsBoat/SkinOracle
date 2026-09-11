@@ -98,7 +98,7 @@ export default function OracleDashboard() {
   const [evaluatedSummary, setEvaluatedSummary] = useState<{
     totalEvaluated: number;
     soCloseCount: number;
-    highLiquidityCount: number;
+    highSssCount: number;
     isBatchEvaluating: boolean;
     lastBuiltAt: string | null;
     batchProgress?: {
@@ -109,7 +109,7 @@ export default function OracleDashboard() {
   }>({
     totalEvaluated: 0,
     soCloseCount: 0,
-    highLiquidityCount: 0,
+    highSssCount: 0,
     isBatchEvaluating: false,
     lastBuiltAt: null,
     batchProgress: null,
@@ -481,8 +481,8 @@ export default function OracleDashboard() {
               );
               acceptedPriceMap[r.name] = {
                 acceptedPrice,
-                liquidityScore: r.oracle.liquidityScore || 0,
-                isHyperLiquid: r.oracle.isHyperLiquid || false,
+                supplyStabilityScore: r.oracle.supplyStabilityScore || 0,
+                isHyperStable: r.oracle.isHyperStable || false,
                 nexusDelta: r.oracle.nexusDelta,
                 trendAdjustment: r.oracle.trendAdjustment,
                 trendConfidence: r.oracle.trendConfidence,
@@ -491,7 +491,7 @@ export default function OracleDashboard() {
                 v1Benchmark: r.oracle.v1Benchmark,
               };
               total++;
-              if (r.oracle.liquidityScore >= 1.2) highLiq++;
+              if ((r.oracle.supplyStabilityScore || 0) >= 1.2) highLiq++;
 
               const csfloatListing = fullCache[r.name]?.l?.find((l: any) =>
                 isMarketMatch(l.m, "csfloat"),
@@ -511,7 +511,7 @@ export default function OracleDashboard() {
           ...prev,
           totalEvaluated: total,
           soCloseCount: soClose,
-          highLiquidityCount: highLiq,
+          highSssCount: highLiq,
           batchProgress: { current, total: filteredItemNames.length, percent },
         }));
 
@@ -567,7 +567,7 @@ export default function OracleDashboard() {
         setEvaluatedSummary({
           totalEvaluated: total,
           soCloseCount: soClose,
-          highLiquidityCount: highLiq,
+          highSssCount: highLiq,
           isBatchEvaluating: false,
           lastBuiltAt: builtAt,
           batchProgress: null,
@@ -877,12 +877,12 @@ export default function OracleDashboard() {
             oracle: {
               averageMarketPrice: avgPrice,
               lowestPrice: lowestPrice,
-              liquidityScore: builtItem.liquidityScore || 1.0,
+              supplyStabilityScore: builtItem.supplyStabilityScore || 1.0,
               maxAcceptPercent: 0.84,
               finalAcceptedPrice: builtItem.acceptedPrice,
               benchmarkValue: avgPrice,
               marketCount: rawListings.length,
-              isHyperLiquid: builtItem.isHyperLiquid || false,
+              isHyperStable: builtItem.isHyperStable || false,
               nexusDelta: builtItem.nexusDelta,
               trendAdjustment: builtItem.trendAdjustment,
               trendConfidence: builtItem.trendConfidence,

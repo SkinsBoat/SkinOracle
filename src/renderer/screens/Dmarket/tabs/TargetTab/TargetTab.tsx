@@ -16,6 +16,8 @@ import {
   Target,
   Eye,
   Zap,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   DmarketTargetItem,
@@ -86,6 +88,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   const [selectedTargets, setSelectedTargets] = useState<
     Record<string, boolean>
   >({});
+  const [deleteUnmatched, setDeleteUnmatched] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [batchProcessing, setBatchProcessing] = useState(false);
 
@@ -158,8 +161,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
         newAnalysis[target.targetId] = {
           acceptedPrice: acceptedDollar,
-          liquidityScore: priceEntry.liquidityScore,
-          isHyperLiquid: priceEntry.isHyperLiquid,
+          supplyStabilityScore: priceEntry.supplyStabilityScore,
+          isHyperStable: priceEntry.isHyperStable,
           currentPrice: currentPriceDollar,
           trendMomentum14d: priceEntry.trendMomentum14d,
         };
@@ -338,7 +341,16 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       return !!analysis?.acceptedPrice;
     });
 
-    if (eligibleTargets.length === 0) {
+    const unmatchedTargets = targets.filter((t) => {
+      if (!selectedTargets[t.targetId]) return false;
+      const analysis = targetAnalysis[t.targetId];
+      return !analysis?.acceptedPrice;
+    });
+
+    if (
+      eligibleTargets.length === 0 &&
+      (!deleteUnmatched || unmatchedTargets.length === 0)
+    ) {
       toast.error(
         "None of the selected targets have a matching Oracle accepted price",
       );
@@ -348,12 +360,16 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     setBatchProcessing(true);
     let successCount = 0;
     let failCount = 0;
+    let deletedCount = 0;
     const errors: string[] = [];
     const processedTitles = new Set<string>();
+    const totalOperations =
+      eligibleTargets.length + (deleteUnmatched ? unmatchedTargets.length : 0);
     const toastId = toast.loading(
-      `Updating 0/${eligibleTargets.length} targets...`,
+      `Processing 0/${totalOperations} targets...`,
     );
 
+    // 1. Update priced targets
     for (let i = 0; i < eligibleTargets.length; i++) {
       const target = eligibleTargets[i];
       if (processedTitles.has(target.title)) {
@@ -366,7 +382,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       const targetQty = parseInt(target.amount, 10) || 1;
 
       toast.loading(
-        `[${i + 1}/${eligibleTargets.length}] Updating: ${target.title}...`,
+        `[${i + 1}/${totalOperations}] Updating: ${target.title}...`,
         { id: toastId },
       );
       try {
@@ -398,8 +414,31 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         errors.push(`${target.title}: ${errMsg}`);
       }
 
-      if (i < eligibleTargets.length - 1) {
-        await new Promise((r) => setTimeout(r, 1500));
+      if (i < eligibleTargets.length - 1 || (deleteUnmatched && unmatchedTargets.length > 0)) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+
+    // 2. Delete unmatched targets if option checked
+    if (deleteUnmatched && unmatchedTargets.length > 0) {
+      for (let j = 0; j < unmatchedTargets.length; j++) {
+        const target = unmatchedTargets[j];
+        toast.loading(
+          `[${eligibleTargets.length + j + 1}/${totalOperations}] Deleting unmatched: ${target.title}...`,
+          { id: toastId },
+        );
+        try {
+          await window.electronAPI.dmarket.deleteTarget(target.targetId);
+          setTargets((prev) => prev.filter((t) => t.targetId !== target.targetId));
+          deletedCount++;
+        } catch (err: any) {
+          console.error(`Batch delete error for unmatched target ${target.title}:`, err);
+          failCount++;
+          errors.push(`Delete ${target.title}: ${err?.message || "Failed"}`);
+        }
+        if (j < unmatchedTargets.length - 1) {
+          await new Promise((r) => setTimeout(r, 600));
+        }
       }
     }
 
@@ -407,25 +446,17 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     setSelectedTargets({});
     await onUserDataUpdated();
 
+    let resultMsg = `Batch complete: ${successCount} updated`;
+    if (deletedCount > 0) resultMsg += `, ${deletedCount} unmatched deleted`;
+    if (failCount > 0) resultMsg += `, ${failCount} failed`;
+
     if (failCount === 0) {
-      toast.success(
-        `Batch complete: all ${successCount} target(s) updated successfully!`,
-        { id: toastId },
-      );
-    } else if (successCount === 0) {
-      const sampleErr = errors[0] || "DMarket rejected update";
-      toast.error(`Batch failed (${failCount} target(s)): ${sampleErr}`, {
+      toast.success(resultMsg, { id: toastId });
+    } else {
+      toast.error(`${resultMsg}. ${errors[0] || ""}`, {
         id: toastId,
         duration: 8000,
       });
-    } else {
-      toast.error(
-        `Batch finished: ${successCount} updated, ${failCount} failed. ${errors[0] || ""}`,
-        {
-          id: toastId,
-          duration: 8000,
-        },
-      );
     }
   };
 
@@ -518,21 +549,40 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       .length;
   }, [targets, targetAnalysis]);
 
-  const actionRequiredCount = useMemo(() => {
+  const actionRequiredTargets = useMemo(() => {
     return targets.filter((t) => {
       const d = getTargetDriftDetails(t);
-      return d?.isActionRequired;
-    }).length;
-  }, [targets, targetAnalysis, driftThresholdPercent]);
-
-  const handleSelectActionRequired = () => {
-    const next: Record<string, boolean> = {};
-    targets.forEach((t) => {
-      const d = getTargetDriftDetails(t);
-      if (d?.isActionRequired) {
-        next[t.targetId] = true;
-      }
+      const isUnmatched =
+        matchedCount > 0 && !targetAnalysis[t.targetId]?.acceptedPrice;
+      return d?.isActionRequired || isUnmatched;
     });
+  }, [targets, targetAnalysis, driftThresholdPercent, matchedCount]);
+
+  const actionRequiredCount = actionRequiredTargets.length;
+
+  const unmatchedSelectedCount = useMemo(() => {
+    return targets.filter(
+      (t) =>
+        selectedTargets[t.targetId] &&
+        !targetAnalysis[t.targetId]?.acceptedPrice,
+    ).length;
+  }, [targets, selectedTargets, targetAnalysis]);
+
+  const isAllActionRequiredSelected =
+    actionRequiredCount > 0 &&
+    actionRequiredTargets.every((t) => !!selectedTargets[t.targetId]);
+
+  const handleToggleSelectActionRequired = () => {
+    const next = { ...selectedTargets };
+    if (isAllActionRequiredSelected) {
+      actionRequiredTargets.forEach((t) => {
+        delete next[t.targetId];
+      });
+    } else {
+      actionRequiredTargets.forEach((t) => {
+        next[t.targetId] = true;
+      });
+    }
     setSelectedTargets(next);
   };
 
@@ -658,29 +708,19 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                 </strong>
               </span>
               {actionRequiredCount > 0 && (
-                <button
-                  type="button"
-                  onClick={handleSelectActionRequired}
-                  className="btn btn-sm"
+                <span
                   style={{
-                    backgroundColor: "rgba(239, 68, 68, 0.12)",
-                    color: "#ef4444",
-                    border: "1px solid rgba(239, 68, 68, 0.4)",
-                    padding: "2px 8px",
-                    borderRadius: "4px",
-                    fontSize: "11px",
-                    fontWeight: 700,
+                    color: "var(--so-text-muted)",
                     display: "flex",
                     alignItems: "center",
                     gap: "4px",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
                   }}
-                  title="Click to select all targets requiring action"
                 >
-                  <AlertTriangle size={12} /> Action Req:{" "}
-                  <strong>{actionRequiredCount}</strong>
-                </button>
+                  Action Req:{" "}
+                  <strong style={{ color: "#f59e0b" }}>
+                    {actionRequiredCount}
+                  </strong>
+                </span>
               )}
             </div>
           )}
@@ -838,6 +878,63 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                 </button>
               ))}
             </div>
+
+            {actionRequiredCount > 0 && (
+              <button
+                type="button"
+                onClick={handleToggleSelectActionRequired}
+                className="btn btn-sm"
+                style={{
+                  backgroundColor: isAllActionRequiredSelected
+                    ? "rgba(245, 158, 11, 0.18)"
+                    : "rgba(245, 158, 11, 0.09)",
+                  color: "var(--so-text-primary, #e2e8f0)",
+                  border: `1px solid ${
+                    isAllActionRequiredSelected
+                      ? "rgba(245, 158, 11, 0.45)"
+                      : "rgba(245, 158, 11, 0.28)"
+                  }`,
+                  padding: "4px 10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "11.5px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  borderRadius: "var(--so-radius-sm)",
+                  transition: "all 0.15s ease",
+                }}
+                title={
+                  isAllActionRequiredSelected
+                    ? "Click to unselect all action items"
+                    : "Click to select all active targets requiring action"
+                }
+              >
+                <AlertTriangle
+                  size={12}
+                  style={{
+                    color: isAllActionRequiredSelected ? "#fbbf24" : "#f59e0b",
+                  }}
+                />
+                <span>
+                  {isAllActionRequiredSelected
+                    ? "Unselect Action Items"
+                    : "Select Action Items"}
+                </span>
+                <span
+                  style={{
+                    backgroundColor: "rgba(245, 158, 11, 0.2)",
+                    color: "#f59e0b",
+                    padding: "1px 6px",
+                    borderRadius: "10px",
+                    fontSize: "10.5px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {actionRequiredCount}
+                </span>
+              </button>
+            )}
 
             <button
               className="btn btn-primary btn-sm"
@@ -997,13 +1094,13 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                       }))
                     }
                   >
-                    {/* Top Header Row */}
+                    {/* Top Action Row */}
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        height: "20px",
+                        height: "22px",
                       }}
                     >
                       <div
@@ -1062,21 +1159,45 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                         <CopyMarketHashButton name={target.title} />
                       </div>
 
-                      {/* Drift Status Badge */}
+                      {/* Selection Checkbox Indicator */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          color: isSelected ? "var(--so-primary)" : "var(--so-text-muted)",
+                          opacity: isSelected ? 1 : 0.45,
+                          transition: "all 0.15s ease",
+                        }}
+                        title={isSelected ? "Selected" : "Click card to select"}
+                      >
+                        {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                      </div>
+                    </div>
+
+                    {/* Drift Status Badge (Moved under actions) */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-start",
+                        minHeight: "18px",
+                      }}
+                    >
                       {driftDetails ? (
                         driftDetails.isOverbid ? (
                           <span
                             className="badge"
                             style={{
-                              display: "flex",
+                              display: "inline-flex",
                               alignItems: "center",
                               gap: "3px",
-                              backgroundColor: "rgba(239, 68, 68, 0.18)",
-                              color: "#ef4444",
-                              border: "1px solid rgba(239, 68, 68, 0.4)",
-                              fontWeight: 800,
+                              backgroundColor: "rgba(239, 68, 68, 0.12)",
+                              color: "#f87171",
+                              border: "1px solid rgba(239, 68, 68, 0.3)",
+                              fontWeight: 700,
                               fontSize: "9px",
-                              padding: "1px 5px",
+                              padding: "1px 6px",
+                              borderRadius: "4px",
                             }}
                           >
                             <AlertTriangle size={10} /> OVERBID (
@@ -1089,15 +1210,16 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                           <span
                             className="badge"
                             style={{
-                              display: "flex",
+                              display: "inline-flex",
                               alignItems: "center",
                               gap: "3px",
-                              backgroundColor: "rgba(245, 158, 11, 0.18)",
-                              color: "#f59e0b",
-                              border: "1px solid rgba(245, 158, 11, 0.4)",
-                              fontWeight: 800,
+                              backgroundColor: "rgba(245, 158, 11, 0.12)",
+                              color: "#fbbf24",
+                              border: "1px solid rgba(245, 158, 11, 0.3)",
+                              fontWeight: 700,
                               fontSize: "9px",
-                              padding: "1px 5px",
+                              padding: "1px 6px",
+                              borderRadius: "4px",
                             }}
                           >
                             <AlertTriangle size={10} /> UNDERBID (
@@ -1105,17 +1227,18 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                           </span>
                         ) : (
                           <span
-                            className="badge"
+                            className="badge badge-success"
                             style={{
-                              display: "flex",
+                              display: "inline-flex",
                               alignItems: "center",
                               gap: "3px",
-                              fontWeight: 800,
+                              backgroundColor: "rgba(16, 185, 129, 0.12)",
+                              color: "#34d399",
+                              border: "1px solid rgba(16, 185, 129, 0.3)",
+                              fontWeight: 700,
                               fontSize: "9px",
-                              padding: "1px 5px",
-                              backgroundColor: "rgba(56, 189, 248, 0.15)",
-                              color: "var(--so-accent-cyan)",
-                              border: "1px solid rgba(56, 189, 248, 0.35)",
+                              padding: "1px 6px",
+                              borderRadius: "4px",
                             }}
                           >
                             <CheckCircle2 size={10} /> SAFE (
@@ -1128,7 +1251,13 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                       ) : (
                         <span
                           className="badge badge-secondary"
-                          style={{ fontSize: "9px", padding: "1px 5px" }}
+                          style={{
+                            fontSize: "9px",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                            color: "var(--so-text-muted)",
+                            border: "1px solid var(--so-border-subtle)",
+                          }}
                         >
                           ACTIVE
                         </span>
@@ -1893,22 +2022,32 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
             {actionRequiredCount > 0 && (
               <button
-                onClick={handleSelectActionRequired}
+                onClick={handleToggleSelectActionRequired}
                 className="btn btn-sm btn-ghost"
                 style={{
                   fontWeight: 700,
                   padding: "6px 14px",
                   fontSize: "12px",
-                  color: "#ef4444",
-                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  color: "#f59e0b",
+                  backgroundColor: isAllActionRequiredSelected
+                    ? "rgba(245, 158, 11, 0.18)"
+                    : "rgba(245, 158, 11, 0.08)",
+                  border: "1px solid rgba(245, 158, 11, 0.25)",
                   borderRadius: "4px",
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
+                  gap: "5px",
                 }}
-                title="Select all targets requiring action"
+                title={
+                  isAllActionRequiredSelected
+                    ? "Click to unselect action items"
+                    : "Click to select all targets requiring action"
+                }
               >
-                <AlertTriangle size={13} /> Action Req ({actionRequiredCount})
+                <AlertTriangle size={12} style={{ color: "#f59e0b" }} />{" "}
+                {isAllActionRequiredSelected
+                  ? `Unselect Action (${actionRequiredCount})`
+                  : `Action Req (${actionRequiredCount})`}
               </button>
             )}
 
@@ -1942,6 +2081,46 @@ export const TargetTab: React.FC<TargetTabProps> = ({
               <Trash2 size={13} />
               <span>Delete Selected</span>
             </button>
+
+            {unmatchedSelectedCount > 0 && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "11.5px",
+                  fontWeight: 600,
+                  color: deleteUnmatched
+                    ? "#f87171"
+                    : "var(--so-text-secondary)",
+                  cursor: "pointer",
+                  userSelect: "none",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  backgroundColor: deleteUnmatched
+                    ? "rgba(239, 68, 68, 0.12)"
+                    : "rgba(255, 255, 255, 0.04)",
+                  border: `1px solid ${
+                    deleteUnmatched
+                      ? "rgba(239, 68, 68, 0.35)"
+                      : "var(--so-border-subtle)"
+                  }`,
+                  transition: "all 0.15s ease",
+                }}
+                title="When updating, also delete selected targets that have no matching accepted price in Oracle cache"
+              >
+                <input
+                  type="checkbox"
+                  checked={deleteUnmatched}
+                  onChange={(e) => setDeleteUnmatched(e.target.checked)}
+                  style={{
+                    cursor: "pointer",
+                    accentColor: "#ef4444",
+                  }}
+                />
+                <span>Delete unmatched ({unmatchedSelectedCount})</span>
+              </label>
+            )}
 
             <button
               onClick={handleBatchUpdateToOracle}
