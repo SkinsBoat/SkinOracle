@@ -29,6 +29,15 @@ import {
   isMarketMatch,
   isTradeMarket,
 } from "../../../../shared/canonicalMarkets";
+import { QuantityIntegrityReport } from "../utils/oracleUtils";
+import {
+  TradeMarketFilterCard,
+  MarketSelectionChip,
+  MarketSelectionToolbar,
+  CacheStatusInfo,
+  resolveMarketCount,
+  resolveMissingQty,
+} from "./step1/Step1Common";
 
 export const SKINSNIPE_AVAILABLE_MARKETS: {
   id: SkinsnipeMarketId;
@@ -82,6 +91,7 @@ interface Step1MarketCacheProps {
   onResetDefaultCs2capProviders?: () => void;
   selectedMarkets: SkinsnipeMarketId[];
   marketCounts: Record<string, number>;
+  quantityAudit?: QuantityIntegrityReport;
   fetchProgress: any;
   isBatchEvaluating: boolean;
   isDemoCache?: boolean;
@@ -94,82 +104,6 @@ interface Step1MarketCacheProps {
   onLoadDemoCache: (forceRefresh?: boolean) => void;
   onCancelFetch: () => void;
 }
-
-const TradeMarketFilterCard: React.FC<{
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  tradeCount: number;
-  accentColor?: string;
-}> = ({ checked, onChange, tradeCount, accentColor = "var(--so-primary)" }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <div
-      onClick={() => onChange(!checked)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      title="Hide trade-bot platforms from the selection grid"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "7px",
-        padding: "5px 10px",
-        borderRadius: "var(--so-radius-sm)",
-        fontSize: "12px",
-        fontWeight: 600,
-        cursor: "pointer",
-        userSelect: "none",
-        transition: "all 0.15s ease",
-        backgroundColor: checked
-          ? "rgba(255, 255, 255, 0.08)"
-          : isHovered
-            ? "rgba(255, 255, 255, 0.05)"
-            : "transparent",
-        border: checked
-          ? `1px solid ${accentColor}`
-          : isHovered
-            ? "1px solid var(--so-border-medium)"
-            : "1px solid var(--so-border-subtle)",
-        color: checked
-          ? "var(--so-text-primary)"
-          : "var(--so-text-secondary)",
-      }}
-    >
-      <div
-        style={{
-          width: 14,
-          height: 14,
-          borderRadius: "3px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: checked ? accentColor : "transparent",
-          border: checked ? "none" : "1px solid var(--so-border-medium)",
-          flexShrink: 0,
-        }}
-      >
-        {checked && (
-          <Check size={10} style={{ color: "#fff", strokeWidth: 3 }} />
-        )}
-      </div>
-
-      <span>Hide Trade</span>
-
-      <span
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          padding: "1px 5px",
-          borderRadius: "4px",
-          backgroundColor: "rgba(255, 255, 255, 0.06)",
-          color: "var(--so-text-muted)",
-        }}
-      >
-        ({tradeCount})
-      </span>
-    </div>
-  );
-};
 
 export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   isOpen,
@@ -190,6 +124,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   onResetDefaultCs2capProviders,
   selectedMarkets,
   marketCounts,
+  quantityAudit,
   fetchProgress,
   isBatchEvaluating,
   isDemoCache,
@@ -211,29 +146,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   ).length;
   const estimatedFetchSeconds = Math.max(0, (selectedMarkets.length - 1) * 32);
 
-  const getMarketCount = (marketId: string): number => {
-    if (!marketCounts || Object.keys(marketCounts).length === 0) return 0;
-    // Direct key match
-    if (marketCounts[marketId] !== undefined && marketCounts[marketId] > 0) {
-      return marketCounts[marketId];
-    }
-    // Canonical market ID match (e.g. csgofloat -> csfloat, csmoney_p2p -> csmoney_market)
-    const canonicalId = toCanonicalMarketId(marketId);
-    if (
-      canonicalId &&
-      marketCounts[canonicalId] !== undefined &&
-      marketCounts[canonicalId] > 0
-    ) {
-      return marketCounts[canonicalId];
-    }
-    // Fallback: search all keys in marketCounts that alias-match this market
-    for (const [key, count] of Object.entries(marketCounts)) {
-      if (isMarketMatch(key, marketId) && typeof count === "number" && count > 0) {
-        return count;
-      }
-    }
-    return 0;
-  };
+  const getMissingQtyForMarket = (marketId: string): number =>
+    resolveMissingQty(quantityAudit, marketId);
+
+  const getMarketCount = (marketId: string): number =>
+    resolveMarketCount(marketCounts, marketId);
 
   return (
     <div
@@ -294,7 +211,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span
             className={`badge ${cacheStatus.itemCount > 0 ? "badge-success" : "badge-cyan"}`}
             style={{ fontSize: "11px" }}
@@ -303,6 +220,40 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               ? `✓ ${cacheStatus.itemCount.toLocaleString()} Items Cached`
               : "Cache Empty"}
           </span>
+          {cacheStatus.itemCount > 0 && quantityAudit && (
+            <span
+              className="badge"
+              style={{
+                fontSize: "10.5px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "2px 8px",
+                borderRadius: "4px",
+                backgroundColor: quantityAudit.isFullyVerified
+                  ? "rgba(16, 185, 129, 0.15)"
+                  : "rgba(245, 158, 11, 0.15)",
+                color: quantityAudit.isFullyVerified ? "#34d399" : "#fbbf24",
+                border: quantityAudit.isFullyVerified
+                  ? "1px solid rgba(16, 185, 129, 0.3)"
+                  : "1px solid rgba(245, 158, 11, 0.3)",
+              }}
+              title={
+                quantityAudit.isFullyVerified
+                  ? "100% of cached listings have authentic positive quantities from data sources"
+                  : `${quantityAudit.missingQtyListings.toLocaleString()} listings have missing/unverified quantities and will be excluded from liquidity volume scoring`
+              }
+            >
+              {quantityAudit.isFullyVerified ? (
+                <>✓ Quantities Verified</>
+              ) : (
+                <>
+                  <AlertTriangle size={11} style={{ color: "#fbbf24" }} />
+                  {quantityAudit.missingQtyListings.toLocaleString()} Unverified Qty
+                </>
+              )}
+            </span>
+          )}
           {isOpen ? (
             <ChevronUp size={18} style={{ color: "var(--so-text-muted)" }} />
           ) : (
@@ -313,6 +264,52 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
       {isOpen && (
         <div style={{ padding: "20px" }}>
+          {/* Data Integrity Warning Banner for Unverified Quantities */}
+          {quantityAudit && !quantityAudit.isFullyVerified && cacheStatus.itemCount > 0 && (
+            <div
+              style={{
+                marginBottom: "18px",
+                padding: "12px 16px",
+                borderRadius: "var(--so-radius-md)",
+                backgroundColor: "rgba(245, 158, 11, 0.08)",
+                border: "1px solid rgba(245, 158, 11, 0.28)",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "12px",
+              }}
+            >
+              <AlertTriangle
+                size={18}
+                style={{ color: "#f59e0b", flexShrink: 0, marginTop: "2px" }}
+              />
+              <div
+                style={{
+                  fontSize: "12.5px",
+                  color: "var(--so-text-secondary)",
+                  lineHeight: "1.5",
+                }}
+              >
+                <strong style={{ color: "#fbbf24" }}>
+                  Quantity Integrity Notice:{" "}
+                </strong>
+                <span>
+                  {quantityAudit.missingQtyListings.toLocaleString()} listings (
+                  {100 - quantityAudit.verifiedPercentage}% of cache) across{" "}
+                  {Object.keys(quantityAudit.marketsWithMissingQty).length} markets (
+                  {Object.keys(quantityAudit.marketsWithMissingQty)
+                    .slice(0, 6)
+                    .join(", ")}
+                  {Object.keys(quantityAudit.marketsWithMissingQty).length > 6
+                    ? "..."
+                    : ""}
+                  ) do not contain verified quantity counts from the data provider.
+                  To protect your trades from distorted prices, the valuation engine strictly excludes unverified listings
+                  from supply depth & volume scoring without fabricating fake supply.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Pricing Provider Switcher Tab */}
           <div
             style={{
@@ -507,93 +504,22 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   marginBottom: "20px",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "12px",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 800,
-                        fontSize: "14px",
-                        color: "var(--so-text-primary)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      <Filter size={16} style={{ color: "#06b6d4" }} /> CS2Cap
-                      Target Providers Config
-                    </div>
-                    <span
-                      className="badge badge-cyan"
-                      style={{
-                        fontSize: "11px",
-                        borderColor: "#06b6d4",
-                        color: "#06b6d4",
-                      }}
-                    >
-                      {selectedCs2capProviders.length} of{" "}
-                      {CS2CAP_PROVIDERS.length} Providers Selected
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "8px",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <TradeMarketFilterCard
-                      checked={hideTradeMarkets}
-                      onChange={setHideTradeMarkets}
-                      tradeCount={cs2capTradeCount}
-                      accentColor="#06b6d4"
-                    />
-                    <button
-                      className="btn btn-sm btn-ghost"
-                      onClick={onSelectAllCs2capProviders}
-                      style={{
-                        fontSize: "12px",
-                        padding: "5px 10px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <CheckSquare size={14} /> Select All (
-                      {CS2CAP_PROVIDERS.length})
-                    </button>
-                    <button
-                      className="btn btn-sm btn-ghost"
-                      onClick={onResetDefaultCs2capProviders}
-                      style={{
-                        fontSize: "12px",
-                        padding: "5px 10px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <Square size={14} /> Reset Defaults
-                    </button>
-                  </div>
-                </div>
+                <MarketSelectionToolbar
+                  title="CS2Cap Target Providers Config"
+                  selectedCount={selectedCs2capProviders.length}
+                  totalCount={CS2CAP_PROVIDERS.length}
+                  itemTypeLabel="Providers"
+                  tradeCount={cs2capTradeCount}
+                  hideTradeMarkets={hideTradeMarkets}
+                  onToggleHideTrade={setHideTradeMarkets}
+                  onSelectAll={onSelectAllCs2capProviders || (() => {})}
+                  onResetOrDeselect={onResetDefaultCs2capProviders || (() => {})}
+                  resetLabel="Reset Defaults"
+                  accentColor="#06b6d4"
+                  badgeClassName="badge-cyan"
+                  badgeTextColor="#38bdf8"
+                  badgeBorderColor="#06b6d4"
+                />
 
                 <p
                   style={{
@@ -620,143 +546,20 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   {(hideTradeMarkets
                     ? CS2CAP_PROVIDERS.filter((p) => !isTradeMarket(p.id))
                     : CS2CAP_PROVIDERS
-                  ).map((provider) => {
-                    const isSelected = selectedCs2capProviders.includes(
-                      provider.id,
-                    );
-                    const isTrade = isTradeMarket(provider.id);
-                    return (
-                      <div
-                        key={provider.id}
-                        onClick={() => onToggleCs2capProvider?.(provider.id)}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          onSoloCs2capProvider?.(provider.id);
-                        }}
-                        title={
-                          isTrade
-                            ? "Trade-bot platform (prices may reflect marked-up virtual site credit) | Click to toggle | Right-click to solo"
-                            : "Click to toggle | Right-click to solo"
-                        }
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "6px 10px",
-                          borderRadius: "var(--so-radius-sm)",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          userSelect: "none",
-                          transition: "all 0.15s ease",
-                          backgroundColor: isSelected
-                            ? isTrade
-                              ? "rgba(245, 158, 11, 0.12)"
-                              : "rgba(6, 182, 212, 0.16)"
-                            : "var(--so-surface-input)",
-                          border: isSelected
-                            ? isTrade
-                              ? "1px solid rgba(245, 158, 11, 0.55)"
-                              : "1px solid #06b6d4"
-                            : isTrade
-                              ? "1px solid rgba(245, 158, 11, 0.25)"
-                              : "1px solid var(--so-border-subtle)",
-                          color: isSelected
-                            ? "var(--so-text-primary)"
-                            : "var(--so-text-muted)",
-                          boxShadow: isSelected
-                            ? isTrade
-                              ? "0 0 10px rgba(245, 158, 11, 0.2)"
-                              : "0 0 10px rgba(6, 182, 212, 0.2)"
-                            : "none",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 14,
-                            height: 14,
-                            borderRadius: "3px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: isSelected
-                              ? isTrade
-                                ? "#f59e0b"
-                                : "#06b6d4"
-                              : "transparent",
-                            border: isSelected
-                              ? "none"
-                              : isTrade
-                                ? "1px solid rgba(245, 158, 11, 0.4)"
-                                : "1px solid var(--so-border-medium)",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {isSelected && (
-                            <Check size={10} style={{ color: "#fff" }} />
-                          )}
-                        </div>
-                        <MarketLogo
-                          marketId={provider.id}
-                          marketName={provider.name}
-                          size={15}
-                        />
-                        <span
-                          style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            flexShrink: 1,
-                          }}
-                        >
-                          {provider.name}
-                        </span>
-                        {isTrade && (
-                          <span
-                            className="badge"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "3px",
-                              fontSize: "9px",
-                              fontWeight: 800,
-                              padding: "1px 5px",
-                              borderRadius: "3px",
-                              backgroundColor: "rgba(245, 158, 11, 0.15)",
-                              color: "#f59e0b",
-                              border: "1px solid rgba(245, 158, 11, 0.35)",
-                              flexShrink: 0,
-                            }}
-                            title="Trade-bot platform: prices may reflect marked-up virtual credit"
-                          >
-                            <AlertTriangle size={10} style={{ color: "#f59e0b" }} />
-                            TRADE
-                          </span>
-                        )}
-                        {getMarketCount(provider.id) > 0 && (
-                          <span
-                            style={{
-                              fontSize: "10.5px",
-                              fontWeight: 800,
-                              padding: "1px 6px",
-                              borderRadius: "4px",
-                              backgroundColor: isSelected
-                                ? "#06b6d4"
-                                : "var(--so-surface-card)",
-                              color: isSelected
-                                ? "#fff"
-                                : "var(--so-text-secondary)",
-                              marginLeft: "auto",
-                              fontFamily: "monospace",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {getMarketCount(provider.id).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                  ).map((provider) => (
+                    <MarketSelectionChip
+                      key={provider.id}
+                      id={provider.id}
+                      name={provider.name}
+                      isSelected={selectedCs2capProviders.includes(provider.id)}
+                      onToggle={onToggleCs2capProvider || (() => {})}
+                      onSolo={onSoloCs2capProvider || (() => {})}
+                      isTrade={isTradeMarket(provider.id)}
+                      marketCount={getMarketCount(provider.id)}
+                      missingQtyCount={getMissingQtyForMarket(provider.id)}
+                      accentColor="#06b6d4"
+                    />
+                  ))}
                 </div>
 
                 <div
@@ -1109,31 +912,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   </div>
                 )}
 
-                {cacheStatus.itemCount > 0 && (
-                  <div
-                    style={{
-                      fontSize: "12.5px",
-                      color: "var(--so-text-secondary)",
-                      marginTop: "14px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <span
-                      className="tabular-nums"
-                      style={{
-                        color: "var(--so-text-primary)",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {cacheStatus.itemCount.toLocaleString()}
-                    </span>{" "}
-                    items cached in memory
-                    {cacheStatus.lastFetchedAt &&
-                      ` — updated ${new Date(cacheStatus.lastFetchedAt).toLocaleTimeString()}`}
-                  </div>
-                )}
+                <CacheStatusInfo
+                  itemCount={cacheStatus.itemCount}
+                  lastFetchedAt={cacheStatus.lastFetchedAt}
+                />
               </div>
             </div>
           ) : (
@@ -1226,88 +1008,22 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   marginBottom: "20px",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "12px",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 800,
-                        fontSize: "14px",
-                        color: "var(--so-text-primary)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      <Filter size={16} style={{ color: "var(--so-primary)" }} />{" "}
-                      Skinsnipe Target Markets Config
-                    </div>
-                    <span
-                      className="badge badge-cyan"
-                      style={{ fontSize: "11px" }}
-                    >
-                      {selectedMarkets.length} of{" "}
-                      {SKINSNIPE_AVAILABLE_MARKETS.length} Markets Selected
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "8px",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <TradeMarketFilterCard
-                      checked={hideTradeMarkets}
-                      onChange={setHideTradeMarkets}
-                      tradeCount={skinsnipeTradeCount}
-                    />
-                    <button
-                      className="btn btn-sm btn-ghost"
-                      onClick={onSelectAllMarkets}
-                      style={{
-                        fontSize: "12px",
-                        padding: "5px 10px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <CheckSquare size={14} /> Select All (
-                      {SKINSNIPE_AVAILABLE_MARKETS.length})
-                    </button>
-                    <button
-                      className="btn btn-sm btn-ghost"
-                      onClick={onDeselectAllMarkets}
-                      style={{
-                        fontSize: "12px",
-                        padding: "5px 10px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <Square size={14} /> Reset Defaults
-                    </button>
-                  </div>
-                </div>
+                <MarketSelectionToolbar
+                  title="Skinsnipe Target Markets Config"
+                  selectedCount={selectedMarkets.length}
+                  totalCount={SKINSNIPE_AVAILABLE_MARKETS.length}
+                  itemTypeLabel="Markets"
+                  tradeCount={skinsnipeTradeCount}
+                  hideTradeMarkets={hideTradeMarkets}
+                  onToggleHideTrade={setHideTradeMarkets}
+                  onSelectAll={onSelectAllMarkets}
+                  onResetOrDeselect={onDeselectAllMarkets}
+                  resetLabel="Deselect All"
+                  accentColor="var(--so-primary)"
+                  badgeClassName="badge-cyan"
+                  badgeTextColor="#38bdf8"
+                  badgeBorderColor="rgba(56, 189, 248, 0.4)"
+                />
 
                 <p
                   style={{
@@ -1332,142 +1048,24 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   }}
                 >
                   {(hideTradeMarkets
-                    ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id))
+                    ? SKINSNIPE_AVAILABLE_MARKETS.filter(
+                        (m) => !isTradeMarket(m.id),
+                      )
                     : SKINSNIPE_AVAILABLE_MARKETS
-                  ).map((market) => {
-                    const isSelected = selectedMarkets.includes(market.id);
-                    const isTrade = isTradeMarket(market.id);
-                    return (
-                      <div
-                        key={market.id}
-                        onClick={() => onToggleMarket(market.id)}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          onSoloMarket(market.id);
-                        }}
-                        title={
-                          isTrade
-                            ? "Trade-bot market (prices may reflect marked-up virtual site credit) | Click to toggle | Right-click to solo"
-                            : "Click to toggle | Right-click to solo"
-                        }
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "6px 10px",
-                          borderRadius: "var(--so-radius-sm)",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          userSelect: "none",
-                          transition: "all 0.15s ease",
-                          backgroundColor: isSelected
-                            ? isTrade
-                              ? "rgba(245, 158, 11, 0.12)"
-                              : "rgba(99, 102, 241, 0.18)"
-                            : "var(--so-surface-input)",
-                          border: isSelected
-                            ? isTrade
-                              ? "1px solid rgba(245, 158, 11, 0.55)"
-                              : "1px solid var(--so-primary)"
-                            : isTrade
-                              ? "1px solid rgba(245, 158, 11, 0.25)"
-                              : "1px solid var(--so-border-subtle)",
-                          color: isSelected
-                            ? "var(--so-text-primary)"
-                            : "var(--so-text-muted)",
-                          boxShadow: isSelected
-                            ? isTrade
-                              ? "0 0 10px rgba(245, 158, 11, 0.2)"
-                              : "0 0 10px rgba(99, 102, 241, 0.2)"
-                            : "none",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 14,
-                            height: 14,
-                            borderRadius: "3px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: isSelected
-                              ? isTrade
-                                ? "#f59e0b"
-                                : "var(--so-primary)"
-                              : "transparent",
-                            border: isSelected
-                              ? "none"
-                              : isTrade
-                                ? "1px solid rgba(245, 158, 11, 0.4)"
-                                : "1px solid var(--so-border-medium)",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {isSelected && (
-                            <Check size={10} style={{ color: "#fff" }} />
-                          )}
-                        </div>
-                        <MarketLogo
-                          marketId={market.id}
-                          marketName={market.name}
-                          size={15}
-                        />
-                        <span
-                          style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            flexShrink: 1,
-                          }}
-                        >
-                          {market.name}
-                        </span>
-                        {isTrade && (
-                          <span
-                            className="badge"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "3px",
-                              fontSize: "9px",
-                              fontWeight: 800,
-                              padding: "1px 5px",
-                              borderRadius: "3px",
-                              backgroundColor: "rgba(245, 158, 11, 0.15)",
-                              color: "#f59e0b",
-                              border: "1px solid rgba(245, 158, 11, 0.35)",
-                              flexShrink: 0,
-                            }}
-                            title="Trade-bot platform: prices may reflect marked-up virtual credit"
-                          >
-                            <AlertTriangle size={10} style={{ color: "#f59e0b" }} />
-                            TRADE
-                          </span>
-                        )}
-                        {getMarketCount(market.id) > 0 && (
-                          <span
-                            style={{
-                              fontSize: "10.5px",
-                              fontWeight: 800,
-                              padding: "1px 6px",
-                              borderRadius: "4px",
-                              backgroundColor: isSelected
-                                ? "var(--so-primary)"
-                                : "var(--so-surface-card)",
-                              color: isSelected
-                                ? "#fff"
-                                : "var(--so-text-secondary)",
-                              marginLeft: "auto",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {getMarketCount(market.id).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                  ).map((market) => (
+                    <MarketSelectionChip
+                      key={market.id}
+                      id={market.id}
+                      name={market.name}
+                      isSelected={selectedMarkets.includes(market.id)}
+                      onToggle={onToggleMarket}
+                      onSolo={onSoloMarket}
+                      isTrade={isTradeMarket(market.id)}
+                      marketCount={getMarketCount(market.id)}
+                      missingQtyCount={getMissingQtyForMarket(market.id)}
+                      accentColor="var(--so-primary)"
+                    />
+                  ))}
                 </div>
 
                 <div
@@ -1604,28 +1202,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   </div>
                 )}
 
-                {cacheStatus.itemCount > 0 && (
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      color: "var(--so-text-secondary)",
-                      marginLeft: "auto",
-                    }}
-                  >
-                    <span
-                      className="tabular-nums"
-                      style={{
-                        color: "var(--so-text-primary)",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {cacheStatus.itemCount.toLocaleString()}
-                    </span>{" "}
-                    items cached in memory
-                    {cacheStatus.lastFetchedAt &&
-                      ` — updated ${new Date(cacheStatus.lastFetchedAt).toLocaleTimeString()}`}
-                  </div>
-                )}
+                <CacheStatusInfo
+                  itemCount={cacheStatus.itemCount}
+                  lastFetchedAt={cacheStatus.lastFetchedAt}
+                  style={{ marginLeft: "auto", fontSize: "13px", marginTop: 0 }}
+                />
               </div>
 
               {/* Demo Cache Warning Alert Box */}

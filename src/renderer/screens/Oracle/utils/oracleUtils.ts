@@ -213,3 +213,94 @@ export function mapNexusProfileToParams(profile: NexusStrategyProfile) {
     maxDataAgeDays: 3,
   };
 }
+
+export interface MarketQuantityAudit {
+  totalListings: number;
+  verifiedQtyListings: number;
+  missingQtyListings: number;
+}
+
+export interface QuantityIntegrityReport {
+  totalListings: number;
+  verifiedQtyListings: number;
+  missingQtyListings: number;
+  verifiedPercentage: number;
+  marketsWithMissingQty: Record<string, MarketQuantityAudit>;
+  isFullyVerified: boolean;
+}
+
+/**
+ * Audits market listings across the entire price cache to verify genuine, positive quantity data.
+ * Does not synthesize or guess missing quantities.
+ */
+export function auditCacheQuantityIntegrity(
+  cache: Record<string, any> | null,
+): QuantityIntegrityReport {
+  if (!cache || typeof cache !== "object") {
+    return {
+      totalListings: 0,
+      verifiedQtyListings: 0,
+      missingQtyListings: 0,
+      verifiedPercentage: 100,
+      marketsWithMissingQty: {},
+      isFullyVerified: true,
+    };
+  }
+
+  let totalListings = 0;
+  let verifiedQtyListings = 0;
+  let missingQtyListings = 0;
+  const marketStats: Record<string, MarketQuantityAudit> = {};
+
+  for (const item of Object.values(cache)) {
+    if (!item?.l || !Array.isArray(item.l)) continue;
+    for (const listing of item.l) {
+      if (!listing || !listing.m) continue;
+      const market = listing.m;
+      totalListings++;
+
+      if (!marketStats[market]) {
+        marketStats[market] = {
+          totalListings: 0,
+          verifiedQtyListings: 0,
+          missingQtyListings: 0,
+        };
+      }
+      marketStats[market].totalListings++;
+
+      const isVerified =
+        typeof listing.q === "number" &&
+        Number.isFinite(listing.q) &&
+        listing.q > 0;
+
+      if (isVerified) {
+        verifiedQtyListings++;
+        marketStats[market].verifiedQtyListings++;
+      } else {
+        missingQtyListings++;
+        marketStats[market].missingQtyListings++;
+      }
+    }
+  }
+
+  const marketsWithMissingQty: Record<string, MarketQuantityAudit> = {};
+  for (const [market, stats] of Object.entries(marketStats)) {
+    if (stats.missingQtyListings > 0) {
+      marketsWithMissingQty[market] = stats;
+    }
+  }
+
+  const verifiedPercentage =
+    totalListings > 0
+      ? Math.round((verifiedQtyListings / totalListings) * 100)
+      : 100;
+
+  return {
+    totalListings,
+    verifiedQtyListings,
+    missingQtyListings,
+    verifiedPercentage,
+    marketsWithMissingQty,
+    isFullyVerified: missingQtyListings === 0,
+  };
+}

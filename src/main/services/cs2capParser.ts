@@ -6,10 +6,13 @@ import {
 import { toCanonicalMarketId } from "../../shared/canonicalMarkets";
 
 // Standard internal PriceCache representation
-export type PriceCache = Record<
-  string,
-  { n: string; l: { m: string; p: number; q?: number }[] }
->;
+export interface PriceListing {
+  m: string;
+  p: number;
+  q?: number;
+}
+
+export type PriceCache = Record<string, { n: string; l: PriceListing[] }>;
 
 export { CS2CAP_PROVIDERS, DEFAULT_CS2CAP_PROVIDERS };
 export type { Cs2CapProviderInfo };
@@ -57,20 +60,28 @@ export function parseCs2CapLine(line: string, cache: PriceCache): boolean {
     // Normalize incoming provider identifier to canonical market ID
     const providerKey = toCanonicalMarketId(String(provider));
     const quantity =
-      typeof raw.quantity === "number" && raw.quantity > 0 ? raw.quantity : 1;
+      typeof raw.quantity === "number" && raw.quantity > 0
+        ? raw.quantity
+        : undefined;
 
     const existing = cache[name].l.find((l) => l.m === providerKey);
     if (existing) {
       if (priceUsd < existing.p) {
         existing.p = priceUsd;
       }
-      existing.q = Math.max(existing.q || 1, quantity);
+      if (quantity !== undefined) {
+        existing.q =
+          existing.q !== undefined ? Math.max(existing.q, quantity) : quantity;
+      }
     } else {
-      cache[name].l.push({
+      const listing: PriceListing = {
         m: providerKey,
         p: priceUsd,
-        q: quantity,
-      });
+      };
+      if (quantity !== undefined) {
+        listing.q = quantity;
+      }
+      cache[name].l.push(listing);
     }
 
     return true;

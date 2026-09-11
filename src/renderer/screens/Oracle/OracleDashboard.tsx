@@ -13,6 +13,8 @@ import {
   mapStrategyToBackendOptions,
   mapNexusProfileToParams,
   roundToCsFloatStep,
+  auditCacheQuantityIntegrity,
+  QuantityIntegrityReport,
 } from "./utils/oracleUtils";
 import {
   Step1MarketCache,
@@ -49,6 +51,10 @@ export default function OracleDashboard() {
   const [isDemoCache, setIsDemoCache] = useState<boolean>(false);
   const [isCs2capStreaming, setIsCs2capStreaming] = useState<boolean>(false);
   const [cs2capProgress, setCs2capProgress] = useState<any>(null);
+
+  const quantityAudit: QuantityIntegrityReport = useMemo(() => {
+    return auditCacheQuantityIntegrity(fullCache);
+  }, [fullCache]);
 
   // Accordion Step Collapsed/Expanded State
   const [openSteps, setOpenSteps] = useState<{ [key: string]: boolean }>({
@@ -986,6 +992,7 @@ export default function OracleDashboard() {
         onResetDefaultCs2capProviders={resetDefaultCs2capProviders}
         selectedMarkets={selectedMarkets}
         marketCounts={marketCounts}
+        quantityAudit={quantityAudit}
         fetchProgress={fetchProgress}
         isBatchEvaluating={
           evaluatedSummary.isBatchEvaluating || listingSummary.isBatchEvaluating

@@ -26,7 +26,6 @@ const DEFAULT_MARKETS = [
   "tradeitgg_store",
   "shadowpay",
   "skinland",
-  "skinsmonkey",
   "skinswap",
   "waxpeer",
   "skinflow",
@@ -59,6 +58,20 @@ export function getActivePriceCache(): PriceCache {
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function extractGenuineQuantity(raw: any): number | undefined {
+  if (typeof raw?.q === "number" && Number.isFinite(raw.q) && raw.q > 0) {
+    return raw.q;
+  }
+  if (
+    typeof raw?.quantity === "number" &&
+    Number.isFinite(raw.quantity) &&
+    raw.quantity > 0
+  ) {
+    return raw.quantity;
+  }
+  return undefined;
 }
 
 function getMarketCounts(cache: PriceCache): Record<string, number> {
@@ -231,13 +244,20 @@ async function mergeAndBuild(
 
         if (!tempCache[name]) tempCache[name] = { n: name, l: [] };
 
-        if (item.l) {
+        if (item.l && Array.isArray(item.l)) {
           const valid = item.l
-            .filter((l: any) => l.p > 0.2)
-            .map((l: any) => ({
-              ...l,
-              m: toCanonicalMarketId(l.m || market),
-            }));
+            .filter((l: any) => l && typeof l.p === "number" && l.p > 0.2)
+            .map((l: any) => {
+              const q = extractGenuineQuantity(l);
+              const listing: any = {
+                m: toCanonicalMarketId(l.m || market),
+                p: l.p,
+              };
+              if (q !== undefined) {
+                listing.q = q;
+              }
+              return listing;
+            });
           tempCache[name].l.push(...valid);
         }
       }
@@ -413,10 +433,19 @@ ipcMain.handle("skinsnipe:load-cache-json", async (_, jsonContent: string) => {
           const rawItem = val as any;
           cleanCache[key] = {
             n: rawItem.n || key,
-            l: (rawItem.l || []).map((l: any) => ({
-              ...l,
-              m: toCanonicalMarketId(l.m),
-            })),
+            l: (rawItem.l || [])
+              .filter((l: any) => l && typeof l.p === "number" && l.p > 0.2)
+              .map((l: any) => {
+                const q = extractGenuineQuantity(l);
+                const listing: any = {
+                  m: toCanonicalMarketId(l.m),
+                  p: l.p,
+                };
+                if (q !== undefined) {
+                  listing.q = q;
+                }
+                return listing;
+              }),
           };
         }
       }
@@ -538,10 +567,19 @@ ipcMain.handle(
             const rawItem = val as any;
             cleanCache[key] = {
               n: rawItem.n || key,
-              l: (rawItem.l || []).map((l: any) => ({
-                ...l,
-                m: toCanonicalMarketId(l.m),
-              })),
+              l: (rawItem.l || [])
+                .filter((l: any) => l && typeof l.p === "number" && l.p > 0.2)
+                .map((l: any) => {
+                  const q = extractGenuineQuantity(l);
+                  const listing: any = {
+                    m: toCanonicalMarketId(l.m),
+                    p: l.p,
+                  };
+                  if (q !== undefined) {
+                    listing.q = q;
+                  }
+                  return listing;
+                }),
             };
           }
         }

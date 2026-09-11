@@ -258,7 +258,12 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                     .map((l) => ({
                       marketId: l.m || l.market || "",
                       price: l.p ?? l.price ?? 0,
-                      quantity: l.q ?? l.quantity ?? 1,
+                      quantity:
+                        typeof l.q === "number" && l.q > 0
+                          ? l.q
+                          : typeof l.quantity === "number" && l.quantity > 0
+                            ? l.quantity
+                            : undefined,
                     }))
                     .filter((l) => l.price > 0)
                     .sort((a, b) => a.price - b.price);
@@ -554,10 +559,44 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               marginTop: "2px",
                             }}
                           >
-                            {marketListings
-                              .reduce((sum, m) => sum + m.quantity, 0)
-                              .toLocaleString()}{" "}
-                            Qty
+                            {(() => {
+                              const verifiedQty = marketListings.reduce(
+                                (sum, m) => sum + (m.quantity || 0),
+                                0,
+                              );
+                              const hasUnverified = marketListings.some(
+                                (m) => m.quantity === undefined,
+                              );
+                              if (verifiedQty === 0 && hasUnverified) {
+                                return (
+                                  <span
+                                    style={{
+                                      fontSize: "12px",
+                                      color: "var(--so-warning-text, #f59e0b)",
+                                    }}
+                                  >
+                                    Unverified
+                                  </span>
+                                );
+                              }
+                              return (
+                                <>
+                                  {verifiedQty.toLocaleString()} Qty
+                                  {hasUnverified && (
+                                    <span
+                                      style={{
+                                        fontSize: "11px",
+                                        color: "var(--so-warning-text, #f59e0b)",
+                                        marginLeft: "4px",
+                                      }}
+                                      title="Some market sources omitted listing quantity"
+                                    >
+                                      *
+                                    </span>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
 
@@ -889,7 +928,21 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                           fontWeight: 600,
                                         }}
                                       >
-                                        {m.quantity}
+                                        {m.quantity !== undefined ? (
+                                          m.quantity.toLocaleString()
+                                        ) : (
+                                          <span
+                                            style={{
+                                              color:
+                                                "var(--so-warning-text, #f59e0b)",
+                                              fontSize: "11px",
+                                              fontWeight: 600,
+                                            }}
+                                            title="Market source did not provide quantity for this listing"
+                                          >
+                                            Unverified
+                                          </span>
+                                        )}
                                       </td>
                                     </tr>
                                   );

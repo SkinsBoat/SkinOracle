@@ -101,6 +101,28 @@ describe("CS2Cap NDJSON Line Parser", () => {
     expect(item.l[0].q).toBe(8); // Math.max(5, 8, 2)
   });
 
+  it("should preserve undefined quantity and never inject fake quantity when missing or zero", () => {
+    const cache: PriceCache = {};
+    const lineMissingQty = JSON.stringify({
+      provider: "csfloat",
+      market_hash_name: "AK-47 | Slate (Field-Tested)",
+      lowest_ask: 350,
+      // quantity is missing entirely
+    });
+    const lineZeroQty = JSON.stringify({
+      provider: "skinport",
+      market_hash_name: "M4A4 | Spider Lily (Factory New)",
+      lowest_ask: 820,
+      quantity: 0,
+    });
+
+    parseCs2CapLine(lineMissingQty, cache);
+    parseCs2CapLine(lineZeroQty, cache);
+
+    expect(cache["AK-47 | Slate (Field-Tested)"]?.l[0].q).toBeUndefined();
+    expect(cache["M4A4 | Spider Lily (Factory New)"]?.l[0].q).toBeUndefined();
+  });
+
   it("should filter out dust items below $0.20", () => {
     const cache: PriceCache = {};
     const dustLine = JSON.stringify({

@@ -72,3 +72,63 @@ describe("passesSmartPreFilters", () => {
     ).toBe(false);
   });
 });
+
+describe("auditCacheQuantityIntegrity", () => {
+  it("accurately calculates verified vs missing quantities across market providers", async () => {
+    const { auditCacheQuantityIntegrity } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    const mockCache = {
+      "AK-47 | Redline (Field-Tested)": {
+        n: "AK-47 | Redline (Field-Tested)",
+        l: [
+          { m: "buff163", p: 20, q: 290 }, // verified
+          { m: "csfloat", p: 21, q: 15 }, // verified
+          { m: "skinport", p: 22 }, // missing q entirely
+        ],
+      },
+      "AWP | Asiimov (Field-Tested)": {
+        n: "AWP | Asiimov (Field-Tested)",
+        l: [
+          { m: "buff163", p: 80, q: 50 }, // verified
+          { m: "skinport", p: 85, q: 0 }, // non-positive (unverified)
+        ],
+      },
+    };
+
+    const report = auditCacheQuantityIntegrity(mockCache);
+    expect(report.totalListings).toBe(5);
+    expect(report.verifiedQtyListings).toBe(3);
+    expect(report.missingQtyListings).toBe(2);
+    expect(report.verifiedPercentage).toBe(60); // 3 / 5 = 60%
+    expect(report.isFullyVerified).toBe(false);
+    expect(report.marketsWithMissingQty["skinport"]).toBeDefined();
+    expect(report.marketsWithMissingQty["skinport"].missingQtyListings).toBe(2);
+    expect(report.marketsWithMissingQty["buff163"]).toBeUndefined();
+  });
+
+  it("reports 100% verified when all listings have genuine positive quantities", async () => {
+    const { auditCacheQuantityIntegrity } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    const mockCache = {
+      "Item A": {
+        n: "Item A",
+        l: [
+          { m: "buff163", p: 10, q: 100 },
+          { m: "csfloat", p: 11, q: 5 },
+        ],
+      },
+    };
+
+    const report = auditCacheQuantityIntegrity(mockCache);
+    expect(report.totalListings).toBe(2);
+    expect(report.verifiedQtyListings).toBe(2);
+    expect(report.missingQtyListings).toBe(0);
+    expect(report.verifiedPercentage).toBe(100);
+    expect(report.isFullyVerified).toBe(true);
+    expect(Object.keys(report.marketsWithMissingQty)).toHaveLength(0);
+  });
+});

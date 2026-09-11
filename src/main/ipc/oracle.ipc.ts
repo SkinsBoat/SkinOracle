@@ -139,10 +139,9 @@ ipcMain.handle(
         .map((l) => ({
           m: l.m,
           p: l.p,
-          ...(l.q !== undefined &&
-          typeof l.q === "number" &&
+          ...(typeof l.q === "number" &&
           Number.isFinite(l.q) &&
-          l.q >= 0
+          l.q > 0
             ? { q: l.q }
             : {}),
         }));
@@ -200,10 +199,9 @@ ipcMain.handle(
         .map((l) => ({
           m: l.m,
           p: l.p,
-          ...(l.q !== undefined &&
-          typeof l.q === "number" &&
+          ...(typeof l.q === "number" &&
           Number.isFinite(l.q) &&
-          l.q >= 0
+          l.q > 0
             ? { q: l.q }
             : {}),
         }));
