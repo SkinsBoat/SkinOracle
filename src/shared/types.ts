@@ -3,6 +3,7 @@
 
 export type SkinsnipeMarketId =
   | "avanmarket"
+  | "buffmarket"
   | "csgofloat"
   | "csmoney_p2p"
   | "csmoney_trade"

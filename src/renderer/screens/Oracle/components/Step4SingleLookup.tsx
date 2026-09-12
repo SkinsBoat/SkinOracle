@@ -12,6 +12,7 @@ import {
   Layers,
   TrendingUp,
   Clipboard,
+  ExternalLink,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ListingPriceStrategy } from "../../../store/useOracleStore";
@@ -19,6 +20,7 @@ import {
   getMarketDisplayName,
   isTradeMarket,
 } from "../../../../shared/canonicalMarkets";
+import { getMarketItemUrl } from "../../../utils/marketUrls";
 import { calculateSuggestedListingPrice } from "../utils/oracleUtils";
 import { S } from "../OracleDashboard.styles";
 import { TrendDetailedChart } from "../../../components/TrendDetailedChart";
@@ -851,6 +853,10 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                   const marketName = getMarketDisplayName(
                                     m.marketId,
                                   );
+                                  const marketUrl = getMarketItemUrl(
+                                    m.marketId,
+                                    r.name,
+                                  );
                                   return (
                                     <tr
                                       key={m.marketId + idx}
@@ -881,6 +887,30 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                           size={18}
                                         />
                                         <span>{marketName}</span>
+                                        {marketUrl && (
+                                          <a
+                                            href={marketUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            title={`Open ${r.name} on ${marketName}`}
+                                            style={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              color: "var(--so-text-muted, #94a3b8)",
+                                              transition: "color 0.15s ease",
+                                            }}
+                                            onMouseEnter={(e) =>
+                                              (e.currentTarget.style.color =
+                                                "var(--so-accent-primary, #3b82f6)")
+                                            }
+                                            onMouseLeave={(e) =>
+                                              (e.currentTarget.style.color =
+                                                "var(--so-text-muted, #94a3b8)")
+                                            }
+                                          >
+                                            <ExternalLink size={13} />
+                                          </a>
+                                        )}
                                         {isTradeMarket(m.marketId) && (
                                           <span
                                             className="badge"

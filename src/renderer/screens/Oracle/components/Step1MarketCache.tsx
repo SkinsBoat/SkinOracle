@@ -3,11 +3,7 @@ import {
   Radio,
   ChevronUp,
   ChevronDown,
-  ShieldCheck,
-  Key,
   Info,
-  Filter,
-  CheckSquare,
   Square,
   Layers,
   Loader2,
@@ -25,13 +21,10 @@ import { MarketLogo } from "../../../components/MarketLogo";
 import { SkinsnipeMarketId } from "../../../../shared/types";
 import { CS2CAP_PROVIDERS } from "../../../../shared/cs2capProviders";
 import {
-  toCanonicalMarketId,
-  isMarketMatch,
   isTradeMarket,
 } from "../../../../shared/canonicalMarkets";
 import { QuantityIntegrityReport } from "../utils/oracleUtils";
 import {
-  TradeMarketFilterCard,
   MarketSelectionChip,
   MarketSelectionToolbar,
   CacheStatusInfo,
@@ -44,6 +37,7 @@ export const SKINSNIPE_AVAILABLE_MARKETS: {
   name: string;
 }[] = [
   { id: "avanmarket", name: "AvanMarket" },
+  { id: "buffmarket", name: "BUFF.Market" },
   { id: "csgofloat", name: "CSFloat" },
   { id: "csmoney_p2p", name: "CS.MONEY P2P" },
   { id: "csmoney_trade", name: "CS.MONEY Trade" },
