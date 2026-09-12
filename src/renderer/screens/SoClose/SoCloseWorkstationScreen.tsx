@@ -100,7 +100,7 @@ export default function SoCloseWorkstationScreen() {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) {}
+    } catch (e) { }
     return ["ALL"];
   });
 
@@ -128,7 +128,7 @@ export default function SoCloseWorkstationScreen() {
     setSelectedFilterMarkets(solo);
     try {
       localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(solo));
-    } catch (e) {}
+    } catch (e) { }
     toast.success(`Solo isolated: ${getMarketDisplayName(marketId)}`, {
       id: "solo-market-toast",
       duration: 2000,
@@ -228,7 +228,7 @@ export default function SoCloseWorkstationScreen() {
             isFetching: status.isFetching ?? false,
           }));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (window.electronAPI?.oracle) {
@@ -241,7 +241,7 @@ export default function SoCloseWorkstationScreen() {
             lastBuiltAt: res.storedAt || null,
           }));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -660,7 +660,7 @@ export default function SoCloseWorkstationScreen() {
           </div>
 
           {/* Refresh Button */}
-          <button
+          {/* <button
             type="button"
             className="btn btn-sm"
             onClick={handleManualRefreshStatus}
@@ -683,7 +683,7 @@ export default function SoCloseWorkstationScreen() {
               }}
             />
             {isRefreshingStatus ? "Refreshing..." : "Refresh Status"}
-          </button>
+          </button> */}
         </div>
 
         {/* Section 1: Market Selector Tabs (Multi-Select Enabled) */}
@@ -1194,11 +1194,10 @@ export default function SoCloseWorkstationScreen() {
                   className="card"
                   style={{
                     backgroundColor: "var(--so-surface-card)",
-                    border: `1px solid ${
-                      isInstantProfit
+                    border: `1px solid ${isInstantProfit
                         ? "rgba(16, 185, 129, 0.4)"
                         : "var(--so-border-subtle)"
-                    }`,
+                      }`,
                     boxShadow: isInstantProfit
                       ? "0 0 12px rgba(16, 185, 129, 0.15)"
                       : "none",
@@ -1361,13 +1360,12 @@ export default function SoCloseWorkstationScreen() {
                               : item.supplyStabilityScore >= 0.8
                                 ? "var(--so-cyan-text)"
                                 : "var(--so-warning)",
-                          border: `1px solid ${
-                            item.supplyStabilityScore >= 1.2
+                          border: `1px solid ${item.supplyStabilityScore >= 1.2
                               ? "rgba(16, 185, 129, 0.35)"
                               : item.supplyStabilityScore >= 0.8
                                 ? "rgba(6, 182, 212, 0.35)"
                                 : "rgba(245, 158, 11, 0.35)"
-                          }`,
+                            }`,
                           whiteSpace: "nowrap",
                           flexShrink: 0,
                         }}
@@ -1556,11 +1554,10 @@ export default function SoCloseWorkstationScreen() {
                         item.closeness <= 1.0
                           ? "rgba(16, 185, 129, 0.12)"
                           : "var(--so-surface-panel)",
-                      border: `1px solid ${
-                        item.closeness <= 1.0
+                      border: `1px solid ${item.closeness <= 1.0
                           ? "rgba(16, 185, 129, 0.3)"
                           : "var(--so-border-subtle)"
-                      }`,
+                        }`,
                       display: "flex",
                       flexDirection: "column",
                       gap: "4px",
