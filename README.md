@@ -1,10 +1,13 @@
 # SkinOracle Desktop
 
-> Source-available desktop workstation built with Electron, React, and TypeScript for Counter-Strike 2 marketplace integration and order management.
+> Professional CS2 trading workstation with dual-engine algorithmic pricing, real-time multi-source market intelligence, and OS-encrypted credential management.
 
 [![License](https://img.shields.io/badge/License-Source--Available-orange.svg)](./LICENSE)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-blue.svg)](./SECURITY.md)
 [![AI Guidelines](https://img.shields.io/badge/AI%20Directives-AGENTS.md-green.svg)](./AGENTS.md)
+[![Discord](https://img.shields.io/badge/Discord-Community-5865F2.svg)](https://discord.gg/b62feTH5kS)
+
+
 
 ---
 
@@ -15,13 +18,6 @@
 - **Modular Data Ingestion:** Pluggable adapter architecture for integrating with diverse market data providers and price aggregators.
 - **In-Memory Request Signing:** Cryptographic request signing (e.g., Ed25519) computed entirely in-memory within the Node.js main process.
 - **Hardened Electron Runtime:** Strictly isolated renderer (`nodeIntegration: false`, `contextIsolation: true`, `webSecurity: true`) with typed IPC context bridges.
-
----
-
-## Supported Integrations
-
-1. **Marketplace Execution Workstations:** Direct order and target management (CSFloat, DMarket, Skins.com).
-2. **Market Data & Price Aggregators:** Real-time listing feeds and cross-market price caches (e.g., Skinsnipe and supported feeds).
 
 ---
 
@@ -55,6 +51,14 @@ npm run build:linux     # Package Linux (.AppImage, .deb)
 Before making changes or writing code:
 - **[SECURITY.md](./SECURITY.md)** — Hardware key encryption, security controls, and vulnerability reporting.
 - **[AGENTS.md](./AGENTS.md)** — Mandatory directives and pre-commit verification checklist for AI agents and developers.
+
+---
+
+## Community
+
+- **Discord:** [discord.gg/b62feTH5kS](https://discord.gg/b62feTH5kS)
+- **Telegram:** [t.me/skinsboat](https://t.me/skinsboat)
+- **Support:** support@skinsboat.com
 
 ---
 

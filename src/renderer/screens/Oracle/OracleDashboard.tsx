@@ -531,9 +531,19 @@ export default function OracleDashboard() {
       );
     } catch (err: any) {
       console.error("[Oracle Dashboard] Build Accepted Price error:", err);
-      if (totalEvaluated > 0) {
+      const isRestartHold =
+        err?.message?.includes("preparing for server restart") ||
+        err?.message?.includes("ENGINE_RESTART_HOLD") ||
+        err?.message?.includes("temporarily paused");
+
+      if (isRestartHold) {
         toast.error(
-          `Evaluation interrupted after ${totalEvaluated.toLocaleString()} items evaluated (${total.toLocaleString()} priced): ${err.message}. Prices were saved!`,
+          "⚠️ Server is currently preparing for restart. Building accepted prices is temporarily paused. Please wait 10 seconds.",
+          { duration: 8000, icon: "⏳" },
+        );
+      } else if (totalEvaluated > 0) {
+        toast.error(
+          `Evaluation interrupted after ${totalEvaluated.toLocaleString()} items evaluated (${total.toLocaleString()} priced): ${err.message}. Processed prices were saved!`,
           { duration: 8000 },
         );
       } else {
