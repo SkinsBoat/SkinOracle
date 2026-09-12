@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ListingPriceStrategy } from "../../../store/useOracleStore";
 import { S } from "../OracleDashboard.styles";
+import { formatTimeAgo } from "../utils/oracleUtils";
 
 interface Step3ListingPricesProps {
   isOpen: boolean;
@@ -587,7 +588,7 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                 {cacheStatus.itemCount === 0
                   ? "Fetch or load price cache above to activate listing price generation"
                   : listingSummary.lastBuiltAt
-                    ? `Last built at ${listingSummary.lastBuiltAt} — ${listingSummary.totalEvaluated.toLocaleString()} items generated using ${listingStrategy.mode.toUpperCase()} strategy`
+                    ? `Last built ${formatTimeAgo(listingSummary.lastBuiltAt)} — ${listingSummary.totalEvaluated.toLocaleString()} items generated using ${listingStrategy.mode.toUpperCase()} strategy`
                     : "Calculates optimal listing prices for market items based on active market data"}
               </div>
             </div>

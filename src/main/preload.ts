@@ -84,6 +84,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke("skinsnipe:load-cache-json", jsonContent),
     loadDemoCache: (options?: { forceRefresh?: boolean }) =>
       safeInvoke("skinsnipe:load-demo-cache", options),
+    onCacheStatusUpdated: (callback: any) => {
+      const subscription = (_event: any, data: any) => callback(data);
+      ipcRenderer.on("skinsnipe:cache-status-updated", subscription);
+      return () => {
+        ipcRenderer.removeListener(
+          "skinsnipe:cache-status-updated",
+          subscription,
+        );
+      };
+    },
   },
 
   // ── CS2Cap (stream prices snapshot using trader's own key, from trader's device) ──

@@ -198,7 +198,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 }}
               >
                 {import.meta.env.DEV
-                  ? "Select target markets, fetch live Skinsnipe API data, or load offline JSON price cache"
+                  ? "Select target markets, fetch live Skinsnipe API data"
                   : "Select target markets and fetch live Skinsnipe API data"}
               </div>
             )}

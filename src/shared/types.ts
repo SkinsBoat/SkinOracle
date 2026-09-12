@@ -78,6 +78,7 @@ export interface SoCloseResultItem {
   currentMarketPrice: number;
   closeness: number;
   closenessPercent: number;
+  market?: string;
   hasExistingOrder?: boolean;
   hasExistingTarget?: boolean;
   iconUrl?: string;
@@ -366,6 +367,14 @@ export interface ElectronAPI {
     loadDemoCache: (options?: {
       forceRefresh?: boolean;
     }) => Promise<SkinsnipeFetchResult>;
+    onCacheStatusUpdated?: (
+      callback: (status: {
+        itemCount: number;
+        isFetching: boolean;
+        lastFetchedAt: string | null;
+        marketCounts?: Record<string, number>;
+      }) => void,
+    ) => () => void;
   };
   cs2cap: {
     fetchPrices: (options?: {

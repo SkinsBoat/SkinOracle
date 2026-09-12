@@ -11,6 +11,7 @@ import {
   Wallet,
   ShieldAlert,
   X,
+  Target,
 } from "lucide-react";
 import {
   oracleLogo,
@@ -24,6 +25,7 @@ import ApiKeysScreen from "./screens/Settings/ApiKeysScreen";
 import OracleDashboard from "./screens/Oracle/OracleDashboard";
 import CSFloatWorkstation from "./screens/CSFloat/CSFloatWorkstation";
 import DmarketWorkstation from "./screens/Dmarket/DmarketWorkstation";
+import SoCloseWorkstationScreen from "./screens/SoClose/SoCloseWorkstationScreen";
 import SkinscomWorkstation from "./screens/Skinscom/SkinscomWorkstation";
 import BalanceDashboard from "./screens/Balance/BalanceDashboard";
 import UpdateNotification from "./components/UpdateNotification";
@@ -579,6 +581,41 @@ export default function App() {
                   {isSidebarExpanded && <span>DMarket</span>}
                 </NavLink>
 
+                <NavLink
+                  to="/soclose"
+                  title={!isSidebarExpanded ? "SoClose Scanner" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) => ({
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
+                    gap: "12px",
+                    padding: "10px 12px",
+                    borderRadius: "var(--so-radius-sm)",
+                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
+                    backgroundColor: isActive
+                      ? "var(--so-primary)"
+                      : "transparent",
+                    textDecoration: "none",
+                    fontWeight: 700,
+                    fontSize: "13.5px",
+                    transition: "all 0.15s ease",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                  })}
+                >
+                  <Target
+                    size={18}
+                    style={{
+                      flexShrink: 0,
+                      color: "var(--so-primary)",
+                    }}
+                  />
+                  {isSidebarExpanded && <span>SoClose</span>}
+                </NavLink>
+
                 {/* Skins.com Workstation NavLink - Temporarily Commented Out
                 <NavLink
                   to="/skinscom"
@@ -784,6 +821,7 @@ export default function App() {
               <Route path="/" element={<OracleDashboard />} />
               <Route path="/csfloat" element={<CSFloatWorkstation />} />
               <Route path="/dmarket" element={<DmarketWorkstation />} />
+              <Route path="/soclose" element={<SoCloseWorkstationScreen />} />
               {/* <Route path="/skinscom" element={<SkinscomWorkstation />} /> */}
               <Route path="/balance" element={<BalanceDashboard />} />
               <Route path="/settings" element={<ApiKeysScreen />} />

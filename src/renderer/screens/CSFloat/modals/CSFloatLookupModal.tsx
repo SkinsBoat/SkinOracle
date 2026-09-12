@@ -12,6 +12,7 @@ export interface LookupModalItemData {
   marketPrice?: number;
   cacheItem?: any;
   iconUrl?: string;
+  market?: string;
 }
 
 interface CSFloatLookupModalProps {
@@ -29,9 +30,42 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
 }) => {
   if (!item) return null;
 
+  const [internalCacheItem, setInternalCacheItem] = React.useState<any>(
+    item.cacheItem || null,
+  );
+
+  React.useEffect(() => {
+    if (item.cacheItem) {
+      setInternalCacheItem(item.cacheItem);
+      return;
+    }
+    let isMounted = true;
+    const fetchCache = async () => {
+      try {
+        if (window.electronAPI?.skinsnipe?.getCache) {
+          const cache = await window.electronAPI.skinsnipe.getCache();
+          if (isMounted && cache) {
+            const found = cache[item.name] || cache[item.name.trim()];
+            if (found) {
+              setInternalCacheItem(found);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("CSFloatLookupModal: Failed to auto-fetch item cache:", err);
+      }
+    };
+    fetchCache();
+    return () => {
+      isMounted = false;
+    };
+  }, [item.name, item.cacheItem]);
+
+  const activeCache = item.cacheItem || internalCacheItem;
+
   const cacheListings: any[] =
-    item.cacheItem?.l && Array.isArray(item.cacheItem.l)
-      ? item.cacheItem.l
+    activeCache?.l && Array.isArray(activeCache.l)
+      ? activeCache.l
       : [];
 
   const validPrices = cacheListings
@@ -40,11 +74,11 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
 
   const calculatedLowestPrice =
     validPrices.length > 0 ? Math.min(...validPrices) : null;
-  const csfloatEntry = cacheListings.find((m: any) =>
-    isMarketMatch(m.m, "csfloat"),
+  const targetMarketEntry = cacheListings.find((m: any) =>
+    isMarketMatch(m.m, item.market || "csfloat"),
   );
-  const resolvedCsfloatPrice =
-    item.marketPrice || (csfloatEntry?.p ? Number(csfloatEntry.p) : null);
+  const resolvedMarketPrice =
+    item.marketPrice || (targetMarketEntry?.p ? Number(targetMarketEntry.p) : null);
 
   return (
     <div
@@ -93,10 +127,20 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
             <img
               src={
                 item.iconUrl
-                  ? `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`
-                  : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`
+                  ? (item.iconUrl.startsWith("http://") || item.iconUrl.startsWith("https://")
+                      ? item.iconUrl
+                      : `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`)
+                  : activeCache?.icon_url
+                    ? `https://community.cloudflare.steamstatic.com/economy/image/${activeCache.icon_url}`
+                    : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`
               }
               alt={item.name}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.src.includes("steamapis.com")) {
+                  target.src = `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
+                }
+              }}
               style={{
                 width: 56,
                 height: 56,
@@ -196,7 +240,9 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
                 fontWeight: 600,
               }}
             >
-              CSFloat Market Price
+              {item.market
+                ? `${getHumanMarketName(item.market)} Market Price`
+                : "CSFloat Market Price"}
             </div>
             <div
               className="tabular-nums"
@@ -207,8 +253,8 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
                 marginTop: "2px",
               }}
             >
-              {resolvedCsfloatPrice
-                ? `$${resolvedCsfloatPrice.toFixed(2)}`
+              {resolvedMarketPrice
+                ? `$${resolvedMarketPrice.toFixed(2)}`
                 : "—"}
             </div>
           </div>
@@ -385,7 +431,7 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
               fontSize: "12px",
             }}
           >
-            <ExternalLink size={13} /> View on CSFloat Market
+            <ExternalLink size={13} /> View on {getHumanMarketName(item.market || "csfloat")} Market
           </button>
         </div>
       </div>

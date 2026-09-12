@@ -1,5 +1,6 @@
 import React from "react";
 import { Zap, RotateCw, Loader2, AlertTriangle, Lock } from "lucide-react";
+import { formatTimeAgo } from "../../utils/oracleUtils";
 
 interface CostLedgerSummaryProps {
   passingFilterCount: number;
@@ -86,7 +87,7 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
           {cacheStatus.itemCount === 0
             ? "Fetch or load price cache above to activate pricing generation"
             : evaluatedSummary.lastBuiltAt
-              ? `Last built at ${evaluatedSummary.lastBuiltAt} — ${evaluatedSummary.totalEvaluated.toLocaleString()} items generated using ${isNexus ? "NEXUS PRO" : strategyProfilePreset.toUpperCase()} strategy`
+              ? `Last built ${formatTimeAgo(evaluatedSummary.lastBuiltAt)} — ${evaluatedSummary.totalEvaluated.toLocaleString()} items generated using ${isNexus ? "NEXUS PRO" : strategyProfilePreset.toUpperCase()} strategy`
               : `Send merged price cache to SaaS Backend (${isNexus ? "OracleNexus v2" : "SkinOracle v20"}) → stores accepted prices in local memory`}
         </div>
       </div>

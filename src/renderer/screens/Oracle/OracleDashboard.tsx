@@ -175,9 +175,7 @@ export default function OracleDashboard() {
         .getAcceptedPrices()
         .then((res: any) => {
           if (res && res.itemCount > 0) {
-            const builtAt = res.storedAt
-              ? new Date(res.storedAt).toLocaleTimeString()
-              : null;
+            const builtAt = res.storedAt || null;
             setEvaluatedSummary((prev) => ({
               ...prev,
               totalEvaluated: res.itemCount,
@@ -192,9 +190,7 @@ export default function OracleDashboard() {
         .getListingPrices()
         .then((res: any) => {
           if (res && res.itemCount > 0) {
-            const builtAt = res.storedAt
-              ? new Date(res.storedAt).toLocaleTimeString()
-              : null;
+            const builtAt = res.storedAt || null;
             setListingSummary((prev) => ({
               ...prev,
               totalEvaluated: res.itemCount,
@@ -245,9 +241,20 @@ export default function OracleDashboard() {
       },
     );
 
+    const unsubCacheStatus =
+      window.electronAPI?.skinsnipe?.onCacheStatusUpdated?.((status) => {
+        if (status) {
+          setCacheStatus((prev) => ({ ...prev, ...status }));
+          if (status.marketCounts) {
+            setMarketCounts(status.marketCounts);
+          }
+        }
+      });
+
     return () => {
       unsubSkinsnipe?.();
       unsubCs2cap?.();
+      unsubCacheStatus?.();
     };
   }, []);
 
@@ -499,12 +506,20 @@ export default function OracleDashboard() {
               total++;
               if ((r.oracle.supplyStabilityScore || 0) >= 1.2) highLiq++;
 
-              const csfloatListing = fullCache[r.name]?.l?.find((l: any) =>
-                isMarketMatch(l.m, "csfloat"),
-              );
-              const csfloatPrice = csfloatListing?.p || 0;
-              if (csfloatPrice > 0 && csfloatPrice / acceptedPrice <= 1.1) {
-                soClose++;
+              const cacheListings = fullCache[r.name]?.l;
+              if (Array.isArray(cacheListings)) {
+                const activeMarkets =
+                  selectedMarkets && selectedMarkets.length > 0
+                    ? selectedMarkets
+                    : SKINSNIPE_AVAILABLE_MARKETS.map((m) => m.id);
+                const hasSoCloseDeal = cacheListings.some((l: any) => {
+                  if (!l || !l.m || !l.p || l.p <= 0) return false;
+                  const isTargetMarket = activeMarkets.some((mId) =>
+                    isMarketMatch(l.m, mId),
+                  );
+                  return isTargetMarket && l.p / acceptedPrice <= 1.1;
+                });
+                if (hasSoCloseDeal) soClose++;
               }
             }
           });
@@ -575,9 +590,7 @@ export default function OracleDashboard() {
       if (Object.keys(acceptedPriceMap).length > 0) {
         const storeResult =
           await window.electronAPI.oracle.storeAcceptedPrices(acceptedPriceMap);
-        const builtAt = storeResult?.storedAt
-          ? new Date(storeResult.storedAt).toLocaleTimeString()
-          : new Date().toLocaleTimeString();
+        const builtAt = storeResult?.storedAt || new Date().toISOString();
 
         setEvaluatedSummary({
           totalEvaluated: total,
@@ -675,9 +688,7 @@ export default function OracleDashboard() {
 
       const storeResult =
         await window.electronAPI.oracle.storeListingPrices(listingPriceMap);
-      const builtAt = storeResult?.storedAt
-        ? new Date(storeResult.storedAt).toLocaleTimeString()
-        : new Date().toLocaleTimeString();
+      const builtAt = storeResult?.storedAt || new Date().toISOString();
 
       setListingSummary({
         totalEvaluated: total,

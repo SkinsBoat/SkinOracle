@@ -132,3 +132,20 @@ describe("auditCacheQuantityIntegrity", () => {
     expect(Object.keys(report.marketsWithMissingQty)).toHaveLength(0);
   });
 });
+
+describe("formatTimeAgo", () => {
+  it("formats timestamps relative to now", async () => {
+    const { formatTimeAgo } = await import("../../screens/Oracle/utils/oracleUtils");
+
+    expect(formatTimeAgo(null)).toBe("Never");
+    expect(formatTimeAgo(undefined)).toBe("Never");
+    expect(formatTimeAgo("")).toBe("Never");
+
+    const now = Date.now();
+    expect(formatTimeAgo(new Date(now - 10 * 1000).toISOString())).toBe("just now");
+    expect(formatTimeAgo(new Date(now - 2 * 60 * 1000).toISOString())).toBe("2m ago");
+    expect(formatTimeAgo(new Date(now - 45 * 60 * 1000).toISOString())).toBe("45m ago");
+    expect(formatTimeAgo(new Date(now - 3 * 3600 * 1000).toISOString())).toBe("3h ago");
+    expect(formatTimeAgo(new Date(now - 2 * 86400 * 1000).toISOString())).toBe("2d ago");
+  });
+});

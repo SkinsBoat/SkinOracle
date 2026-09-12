@@ -304,3 +304,48 @@ export function auditCacheQuantityIntegrity(
     isFullyVerified: missingQtyListings === 0,
   };
 }
+
+/**
+ * Formats ISO timestamps, epoch numbers, Date objects, or time strings into
+ * relative "time ago" format (e.g., "just now", "2m ago", "1h ago", "3d ago").
+ */
+export function formatTimeAgo(
+  timestamp: string | number | Date | null | undefined,
+): string {
+  if (!timestamp) return "Never";
+
+  let date: Date;
+  if (timestamp instanceof Date) {
+    date = timestamp;
+  } else if (typeof timestamp === "number") {
+    date = new Date(timestamp);
+  } else {
+    const str = String(timestamp).trim();
+    if (!str) return "Never";
+    const parsed = Date.parse(str);
+    if (!isNaN(parsed)) {
+      date = new Date(parsed);
+    } else {
+      // Fallback for "HH:MM:SS" or "HH:MM:SS AM/PM" strings
+      const todayParsed = Date.parse(`${new Date().toDateString()} ${str}`);
+      if (!isNaN(todayParsed)) {
+        date = new Date(todayParsed);
+      } else {
+        return str;
+      }
+    }
+  }
+
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  if (diffMs < 0) return "just now";
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 45) return "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}

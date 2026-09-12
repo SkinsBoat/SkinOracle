@@ -1,4 +1,4 @@
-import { app, ipcMain, IpcMainInvokeEvent } from "electron";
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import axios from "axios";
@@ -43,10 +43,30 @@ let isFetching = false;
 let cancelRequested = false;
 let lastFetchedAt: Date | null = null;
 
+export function broadcastCacheStatus() {
+  try {
+    const active = getActivePriceCache();
+    const status = {
+      itemCount: Object.keys(active).length,
+      isFetching,
+      lastFetchedAt: lastFetchedAt?.toISOString() || null,
+      marketCounts: getMarketCounts(active),
+    };
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send("skinsnipe:cache-status-updated", status);
+      }
+    });
+  } catch (err) {
+    console.warn("[Skinsnipe] Failed to broadcast cache status:", err);
+  }
+}
+
 export function setLocalPriceCache(cache: PriceCache, fetchedAt?: Date) {
   localPriceCache = cache;
   lastFetchedAt = fetchedAt || new Date();
   setPriceCache(cache);
+  broadcastCacheStatus();
 }
 
 export function getActivePriceCache(): PriceCache {
@@ -331,34 +351,21 @@ ipcMain.handle(
     try {
       const result = await mergeAndBuild(event, apiKey, targetMarkets);
 
-      // Atomic Swap: If fetch finished successfully without critical error or manual abort,
-      // replace localPriceCache with the newly fetched cache (dropping the old one).
+      // Merge fresh market data into localPriceCache
       if (Object.keys(result.cache).length > 0) {
-        if (!result.aborted && !result.criticalError) {
-          localPriceCache = result.cache; // Swap atomically to the fresh fetch result
-          lastFetchedAt = new Date();
-          setPriceCache(localPriceCache); // Share updated cache with oracle.ipc.ts
-          trendStore
-            .saveDailySnapshots(localPriceCache)
-            .catch((err) =>
-              console.warn("[TrendStore] Auto-snapshot error:", err),
-            );
-        } else if (!hasPriorCache) {
-          // If no prior cache existed and fetch was stopped mid-way, keep partial results
-          localPriceCache = result.cache;
-          lastFetchedAt = new Date();
-          setPriceCache(localPriceCache);
-          trendStore
-            .saveDailySnapshots(localPriceCache)
-            .catch((err) =>
-              console.warn("[TrendStore] Auto-snapshot error:", err),
-            );
-        } else {
-          console.log(
-            "[Skinsnipe] Fetch was aborted or failed critically. Retaining existing active price cache for safety.",
+        localPriceCache = { ...localPriceCache, ...result.cache };
+        lastFetchedAt = new Date();
+        setPriceCache(localPriceCache);
+        trendStore
+          .saveDailySnapshots(localPriceCache)
+          .catch((err) =>
+            console.warn("[TrendStore] Auto-snapshot error:", err),
           );
-        }
+      } else if (!result.criticalError && !result.aborted) {
+        lastFetchedAt = new Date();
       }
+
+      broadcastCacheStatus();
 
       return {
         success: !result.criticalError && !result.aborted,
@@ -459,6 +466,7 @@ ipcMain.handle("skinsnipe:load-cache-json", async (_, jsonContent: string) => {
       trendStore
         .saveDailySnapshots(localPriceCache)
         .catch((err) => console.warn("[TrendStore] Auto-snapshot error:", err));
+      broadcastCacheStatus();
       return {
         success: true,
         itemCount: Object.keys(localPriceCache).length,
@@ -598,6 +606,7 @@ ipcMain.handle(
         console.log(
           `[Skinsnipe] Loaded demo price cache (${Object.keys(localPriceCache).length} items, source: ${source})`,
         );
+        broadcastCacheStatus();
         return {
           success: true,
           itemCount: Object.keys(localPriceCache).length,
