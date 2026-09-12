@@ -36,31 +36,31 @@ export const SKINSNIPE_AVAILABLE_MARKETS: {
   id: SkinsnipeMarketId;
   name: string;
 }[] = [
-  { id: "avanmarket", name: "AvanMarket" },
-  { id: "buffmarket", name: "BUFF.Market" },
-  { id: "csgofloat", name: "CSFloat" },
-  { id: "csmoney_p2p", name: "CS.MONEY P2P" },
-  { id: "csmoney_trade", name: "CS.MONEY Trade" },
-  { id: "cstrade", name: "CSTrade" },
-  { id: "dmarket", name: "DMarket" },
-  { id: "exeskins", name: "ExeSkins" },
-  { id: "itradegg", name: "iTradeGG" },
-  { id: "lisskins", name: "LisSkins" },
-  { id: "manncostore", name: "ManncoStore" },
-  { id: "market_csgo", name: "Market CSGO" },
-  { id: "merchanttf", name: "Merchant TF" },
-  { id: "shadowpay", name: "ShadowPay" },
-  { id: "skinbaron", name: "SkinBaron" },
-  { id: "skinflow", name: "SkinFlow" },
-  { id: "skinland", name: "SkinLand" },
-  { id: "skinport", name: "Skinport" },
-  { id: "skinsmonkey", name: "SkinsMonkey" },
-  { id: "skinswap", name: "SkinSwap" },
-  { id: "tradeitgg", name: "Tradeit.GG" },
-  { id: "tradeitgg_store", name: "Tradeit.GG Store" },
-  { id: "waxpeer", name: "Waxpeer" },
-  { id: "whitemarket", name: "WhiteMarket" },
-];
+    { id: "avanmarket", name: "AvanMarket" },
+    { id: "buffmarket", name: "BUFF.Market" },
+    { id: "csgofloat", name: "CSFloat" },
+    { id: "csmoney_p2p", name: "CS.MONEY P2P" },
+    { id: "csmoney_trade", name: "CS.MONEY Trade" },
+    { id: "cstrade", name: "CSTrade" },
+    { id: "dmarket", name: "DMarket" },
+    { id: "exeskins", name: "ExeSkins" },
+    { id: "itradegg", name: "iTradeGG" },
+    { id: "lisskins", name: "LisSkins" },
+    { id: "manncostore", name: "ManncoStore" },
+    { id: "market_csgo", name: "Market CSGO" },
+    { id: "merchanttf", name: "Merchant TF" },
+    { id: "shadowpay", name: "ShadowPay" },
+    { id: "skinbaron", name: "SkinBaron" },
+    { id: "skinflow", name: "SkinFlow" },
+    { id: "skinland", name: "SkinLand" },
+    { id: "skinport", name: "Skinport" },
+    { id: "skinsmonkey", name: "SkinsMonkey" },
+    { id: "skinswap", name: "SkinSwap" },
+    { id: "tradeitgg", name: "Tradeit.GG" },
+    { id: "tradeitgg_store", name: "Tradeit.GG Store" },
+    { id: "waxpeer", name: "Waxpeer" },
+    { id: "whitemarket", name: "WhiteMarket" },
+  ];
 
 interface Step1MarketCacheProps {
   isOpen: boolean;
@@ -214,40 +214,6 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               ? `✓ ${cacheStatus.itemCount.toLocaleString()} Items Cached`
               : "Cache Empty"}
           </span>
-          {cacheStatus.itemCount > 0 && quantityAudit && (
-            <span
-              className="badge"
-              style={{
-                fontSize: "10.5px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                padding: "2px 8px",
-                borderRadius: "4px",
-                backgroundColor: quantityAudit.isFullyVerified
-                  ? "rgba(16, 185, 129, 0.15)"
-                  : "rgba(245, 158, 11, 0.15)",
-                color: quantityAudit.isFullyVerified ? "#34d399" : "#fbbf24",
-                border: quantityAudit.isFullyVerified
-                  ? "1px solid rgba(16, 185, 129, 0.3)"
-                  : "1px solid rgba(245, 158, 11, 0.3)",
-              }}
-              title={
-                quantityAudit.isFullyVerified
-                  ? "100% of cached listings have authentic positive quantities from data sources"
-                  : `${quantityAudit.missingQtyListings.toLocaleString()} listings have missing/unverified quantities and will be excluded from liquidity volume scoring`
-              }
-            >
-              {quantityAudit.isFullyVerified ? (
-                <>✓ Quantities Verified</>
-              ) : (
-                <>
-                  <AlertTriangle size={11} style={{ color: "#fbbf24" }} />
-                  {quantityAudit.missingQtyListings.toLocaleString()} Unverified Qty
-                </>
-              )}
-            </span>
-          )}
           {isOpen ? (
             <ChevronUp size={18} style={{ color: "var(--so-text-muted)" }} />
           ) : (
@@ -258,52 +224,6 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
       {isOpen && (
         <div style={{ padding: "20px" }}>
-          {/* Data Integrity Warning Banner for Unverified Quantities */}
-          {quantityAudit && !quantityAudit.isFullyVerified && cacheStatus.itemCount > 0 && (
-            <div
-              style={{
-                marginBottom: "18px",
-                padding: "12px 16px",
-                borderRadius: "var(--so-radius-md)",
-                backgroundColor: "rgba(245, 158, 11, 0.08)",
-                border: "1px solid rgba(245, 158, 11, 0.28)",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "12px",
-              }}
-            >
-              <AlertTriangle
-                size={18}
-                style={{ color: "#f59e0b", flexShrink: 0, marginTop: "2px" }}
-              />
-              <div
-                style={{
-                  fontSize: "12.5px",
-                  color: "var(--so-text-secondary)",
-                  lineHeight: "1.5",
-                }}
-              >
-                <strong style={{ color: "#fbbf24" }}>
-                  Quantity Integrity Notice:{" "}
-                </strong>
-                <span>
-                  {quantityAudit.missingQtyListings.toLocaleString()} listings (
-                  {100 - quantityAudit.verifiedPercentage}% of cache) across{" "}
-                  {Object.keys(quantityAudit.marketsWithMissingQty).length} markets (
-                  {Object.keys(quantityAudit.marketsWithMissingQty)
-                    .slice(0, 6)
-                    .join(", ")}
-                  {Object.keys(quantityAudit.marketsWithMissingQty).length > 6
-                    ? "..."
-                    : ""}
-                  ) do not contain verified quantity counts from the data provider.
-                  To protect your trades from distorted prices, the valuation engine strictly excludes unverified listings
-                  from supply depth & volume scoring without fabricating fake supply.
-                </span>
-              </div>
-            </div>
-          )}
-
           {/* Pricing Provider Switcher Tab */}
           <div
             style={{
@@ -315,6 +235,55 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               flexWrap: "wrap",
             }}
           >
+            <button
+              type="button"
+              onClick={() => onChangePricingProvider?.("cs2cap")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+                borderRadius: "var(--so-radius-sm)",
+                fontWeight: 700,
+                fontSize: "13px",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                backgroundColor:
+                  pricingProvider === "cs2cap"
+                    ? "var(--so-surface-card)"
+                    : "transparent",
+                border:
+                  pricingProvider === "cs2cap"
+                    ? "1px solid #06b6d4"
+                    : "1px solid transparent",
+                color:
+                  pricingProvider === "cs2cap"
+                    ? "var(--so-text-primary)"
+                    : "var(--so-text-muted)",
+                boxShadow:
+                  pricingProvider === "cs2cap"
+                    ? "0 2px 10px rgba(6, 182, 212, 0.2)"
+                    : "none",
+              }}
+            >
+              <img
+                src={cs2capLogo}
+                alt="CS2Cap"
+                style={{ height: 16, width: "auto", objectFit: "contain" }}
+              />
+              CS2Cap
+              <span
+                className="badge badge-cyan"
+                style={{
+                  fontSize: "9.5px",
+                  padding: "2px 6px",
+                  textTransform: "uppercase",
+                }}
+              >
+                PRO / QUANT
+              </span>
+            </button>
+
             <button
               type="button"
               onClick={() => onChangePricingProvider?.("skinsnipe")}
@@ -364,55 +333,6 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 }}
               >
                 STD PLAN
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onChangePricingProvider?.("cs2cap")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 16px",
-                borderRadius: "var(--so-radius-sm)",
-                fontWeight: 700,
-                fontSize: "13px",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                backgroundColor:
-                  pricingProvider === "cs2cap"
-                    ? "var(--so-surface-card)"
-                    : "transparent",
-                border:
-                  pricingProvider === "cs2cap"
-                    ? "1px solid #06b6d4"
-                    : "1px solid transparent",
-                color:
-                  pricingProvider === "cs2cap"
-                    ? "var(--so-text-primary)"
-                    : "var(--so-text-muted)",
-                boxShadow:
-                  pricingProvider === "cs2cap"
-                    ? "0 2px 10px rgba(6, 182, 212, 0.2)"
-                    : "none",
-              }}
-            >
-              <img
-                src={cs2capLogo}
-                alt="CS2Cap"
-                style={{ height: 16, width: "auto", objectFit: "contain" }}
-              />
-              CS2Cap
-              <span
-                className="badge badge-cyan"
-                style={{
-                  fontSize: "9.5px",
-                  padding: "2px 6px",
-                  textTransform: "uppercase",
-                }}
-              >
-                PRO / QUANT
               </span>
             </button>
           </div>
@@ -506,8 +426,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   tradeCount={cs2capTradeCount}
                   hideTradeMarkets={hideTradeMarkets}
                   onToggleHideTrade={setHideTradeMarkets}
-                  onSelectAll={onSelectAllCs2capProviders || (() => {})}
-                  onResetOrDeselect={onResetDefaultCs2capProviders || (() => {})}
+                  onSelectAll={onSelectAllCs2capProviders || (() => { })}
+                  onResetOrDeselect={onResetDefaultCs2capProviders || (() => { })}
                   resetLabel="Reset Defaults"
                   accentColor="#06b6d4"
                   badgeClassName="badge-cyan"
@@ -546,8 +466,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                       id={provider.id}
                       name={provider.name}
                       isSelected={selectedCs2capProviders.includes(provider.id)}
-                      onToggle={onToggleCs2capProvider || (() => {})}
-                      onSolo={onSoloCs2capProvider || (() => {})}
+                      onToggle={onToggleCs2capProvider || (() => { })}
+                      onSolo={onSoloCs2capProvider || (() => { })}
                       isTrade={isTradeMarket(provider.id)}
                       marketCount={getMarketCount(provider.id)}
                       missingQtyCount={getMissingQtyForMarket(provider.id)}
@@ -671,8 +591,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           boxShadow: "0 4px 14px rgba(6, 182, 212, 0.3)",
                           cursor:
                             !hasCs2capKey ||
-                            cacheStatus.isFetching ||
-                            isBatchEvaluating
+                              cacheStatus.isFetching ||
+                              isBatchEvaluating
                               ? "not-allowed"
                               : "pointer",
                         }}
@@ -1043,8 +963,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 >
                   {(hideTradeMarkets
                     ? SKINSNIPE_AVAILABLE_MARKETS.filter(
-                        (m) => !isTradeMarket(m.id),
-                      )
+                      (m) => !isTradeMarket(m.id),
+                    )
                     : SKINSNIPE_AVAILABLE_MARKETS
                   ).map((market) => (
                     <MarketSelectionChip
@@ -1262,12 +1182,12 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     borderRadius: "var(--so-radius-md)",
                     backgroundColor:
                       fetchProgress.criticalError ||
-                      fetchProgress.status === "aborted"
+                        fetchProgress.status === "aborted"
                         ? "rgba(239, 68, 68, 0.08)"
                         : "rgba(59, 130, 246, 0.08)",
                     border:
                       fetchProgress.criticalError ||
-                      fetchProgress.status === "aborted"
+                        fetchProgress.status === "aborted"
                         ? "1px solid rgba(239, 68, 68, 0.3)"
                         : "1px solid rgba(59, 130, 246, 0.3)",
                     display: "flex",
@@ -1407,28 +1327,28 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
                       {(fetchProgress.status === "fetching" ||
                         fetchProgress.status === "waiting") && (
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={onCancelFetch}
-                          style={{
-                            backgroundColor: "#dc2626",
-                            color: "#ffffff",
-                            border: "none",
-                            fontWeight: 700,
-                            fontSize: "11.5px",
-                            padding: "4px 12px",
-                            borderRadius: "6px",
-                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.35)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "5px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Square size={11} fill="#ffffff" /> Stop Fetching
-                        </button>
-                      )}
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={onCancelFetch}
+                            style={{
+                              backgroundColor: "#dc2626",
+                              color: "#ffffff",
+                              border: "none",
+                              fontWeight: 700,
+                              fontSize: "11.5px",
+                              padding: "4px 12px",
+                              borderRadius: "6px",
+                              boxShadow: "0 2px 8px rgba(220, 38, 38, 0.35)",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "5px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <Square size={11} fill="#ffffff" /> Stop Fetching
+                          </button>
+                        )}
                     </div>
                   </div>
 
@@ -1448,7 +1368,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         width: `${Math.min(100, Math.round(((fetchProgress.completedMarkets || fetchProgress.currentMarketIndex - 1) / fetchProgress.totalMarkets) * 100))}%`,
                         backgroundColor:
                           fetchProgress.criticalError ||
-                          fetchProgress.status === "aborted"
+                            fetchProgress.status === "aborted"
                             ? "var(--so-danger-text)"
                             : "var(--so-primary)",
                         transition: "width 0.3s ease",

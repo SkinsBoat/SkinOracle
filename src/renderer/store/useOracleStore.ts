@@ -158,7 +158,7 @@ interface OracleStoreState {
 export const useOracleStore = create<OracleStoreState>()(
   persist(
     (set) => ({
-      pricingProvider: "skinsnipe",
+      pricingProvider: "cs2cap",
       selectedMarkets: DEFAULT_SELECTED_MARKETS,
       selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS,
       preFilters: DEFAULT_PRE_FILTERS,
