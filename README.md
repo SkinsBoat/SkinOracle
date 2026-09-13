@@ -15,6 +15,8 @@
 
 - **Local Credential Encryption:** API keys and access tokens are encrypted locally using OS-level hardware credentials (`safeStorage` via Keychain on macOS, DPAPI on Windows, Secret Service on Linux).
 - **Direct API Execution:** All market interactions and buy orders fire directly from the user's local IP address without intermediate traffic proxying.
+- **Compressed Valuation Payloads:** Transparent GZIP stream compression on batch price evaluations, minimizing upload bandwidth by up to 92% for seamless performance on constrained network connections.
+- **Bounded Local History & Privacy:** Local SQLite snapshot retention with dynamic windowing (7–30 days) and automated offer deduplication before valuation transmission.
 - **Modular Data Ingestion:** Pluggable adapter architecture for integrating with diverse market data providers and price aggregators.
 - **In-Memory Request Signing:** Cryptographic request signing (e.g., Ed25519) computed entirely in-memory within the Node.js main process.
 - **Hardened Electron Runtime:** Strictly isolated renderer (`nodeIntegration: false`, `contextIsolation: true`, `webSecurity: true`) with typed IPC context bridges.

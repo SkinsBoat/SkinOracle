@@ -30,13 +30,11 @@
 - **Marketplace and pricing provider credentials must NEVER be transmitted to the SaaS backend** (`saas-api`) or included in Oracle evaluation payloads.
 - DMarket Ed25519 cryptographic signatures must be computed locally in the Node.js main process (`src/main/ipc/dmarket.ipc.ts`) using `tweetnacl`. Secret keys must never leave main process memory.
 
-### 📡 Rule 4: SaaS Backend Communication via `saasAxios`
-- **ALWAYS** use the pre-configured `saasAxios` client (`src/main/services/saasAxios.ts`) for all calls to our SaaS backend:
-  ```typescript
-  // ✅ CORRECT — auto-attaches JWT, x-app-version header, and handles 401/426
-  import { saasAxios } from '../services/saasAxios';
-  const res = await saasAxios.post('/oracle/evaluate', payload);
-  ```
+### 📡 Rule 4: SaaS & Valuation Server Communication via `oracleAxios` and `saasAxios`
+- **ALWAYS** use the pre-configured clients (`src/main/services/saasAxios.ts`) for all SaaS & valuation communication:
+  - **`oracleAxios`:** Dedicated client for the valuation gateway (`ORACLE_SERVER_API`). Outgoing evaluation payloads (`/oracle/evaluate`, `/oracle/nexus/evaluate`) must be GZIP-compressed using `compressPayload()` with `{ "Content-Type": "application/json", "Content-Encoding": "gzip" }`.
+  - **`saasAxios`:** Client for SaaS account management, authentication, version gating, and batch session lifecycle (`/oracle/batch/start`, `/oracle/nexus/batch/start`, `/oracle/batch/finish`).
+- **Single Source of Truth:** Valuation calculations are performed exclusively by the dedicated valuation engine via `oracleAxios`. Do not implement local math fallback logic that duplicates server-side evaluation.
 - **FORBIDDEN:** Never call SaaS endpoints using raw `fetch()` or vanilla `axios` instances. Doing so bypasses JWT injection, version enforcement, and automatic session handling.
 
 ### 🌉 Rule 5: Strict IPC & Preload Isolation

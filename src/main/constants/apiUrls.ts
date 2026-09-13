@@ -14,20 +14,12 @@ export const DMARKET_API = "https://api.dmarket.com";
 export const DMARKET_CS2_GAME_ID = "a8db";
 export const DMARKET_SYNC_CSGO_GAME_ID = "CSGO";
 
-const isProd =
-  process.env.NODE_ENV === "production" || !process.env.VITE_DEV_SERVER_URL;
-
 export const SAAS_API =
-  process.env.SAAS_API_URL ||
-  (isProd
-    ? "https://saas.skinsboat.com/api/v1"
-    : "http://localhost:3100/api/v1");
+  process.env.SAAS_API_URL || "https://saas.skinsboat.com/api/v1";
 
 export const ORACLE_SERVER_API =
-  process.env.ORACLE_SERVER_URL ||
-  (isProd
-    ? "https://oracle.skinsboat.com/api/v1"
-    : "http://localhost:3200/api/v1");
+  process.env.ORACLE_SERVER_URL || "https://oracle.skinsboat.com/api/v1";
+
 
 // ── CSFloat Endpoints ─────────────────────────────────────────────
 export const CSFLOAT_ME = `${CSFLOAT_API}/me`;

@@ -171,16 +171,8 @@ ipcMain.handle(
     };
     const { body, headers } = compressPayload(payload);
 
-    try {
-      const res = await oracleAxios.post("/oracle/evaluate", body, { headers });
-      return res.data;
-    } catch (e: any) {
-      if (e?.response?.status && [401, 402, 403, 426, 503].includes(e.response.status)) {
-        throw e;
-      }
-      const res = await saasAxios.post("/oracle/evaluate", body, { headers });
-      return res.data;
-    }
+    const res = await oracleAxios.post("/oracle/evaluate", body, { headers });
+    return res.data;
   },
 );
 
@@ -268,16 +260,8 @@ ipcMain.handle(
     };
     const { body, headers } = compressPayload(payload);
 
-    try {
-      const res = await oracleAxios.post("/oracle/nexus/evaluate", body, { headers });
-      return res.data;
-    } catch (e: any) {
-      if (e?.response?.status && [401, 402, 403, 426, 503].includes(e.response.status)) {
-        throw e;
-      }
-      const res = await saasAxios.post("/oracle/nexus/evaluate", body, { headers });
-      return res.data;
-    }
+    const res = await oracleAxios.post("/oracle/nexus/evaluate", body, { headers });
+    return res.data;
   },
 );
 
