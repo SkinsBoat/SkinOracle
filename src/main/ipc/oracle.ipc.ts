@@ -1,9 +1,22 @@
 import { app, ipcMain } from "electron";
 import * as fs from "fs";
 import * as path from "path";
+import * as zlib from "zlib";
 import { saasAxios, oracleAxios } from "../services/saasAxios";
 
 import { trendStore } from "../services/trendStore";
+
+function compressPayload(payload: any): { body: Buffer; headers: Record<string, string> } {
+  const jsonStr = JSON.stringify(payload);
+  const compressed = zlib.gzipSync(Buffer.from(jsonStr, "utf-8"));
+  return {
+    body: compressed,
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Encoding": "gzip",
+    },
+  };
+}
 
 // In-memory merged price cache (from Skinsnipe fetch)
 // This is the same shape as SkinOracle priceCache: Record<name, { n, l[] }>
@@ -115,15 +128,15 @@ ipcMain.handle(
 ipcMain.handle(
   "oracle:evaluate",
   async (_, items: string[], options?: any, batchId?: string) => {
-    // Build request items from local price cache (strip redundant metadata & enforce max 100 listings)
+    // Build request items from local price cache (strip redundant metadata & enforce max 30 lowest listings)
     const requestItems = items.map((name) => {
       const cached = priceCache[name];
       const rawListings = cached?.l || [];
       const cappedListings =
-        rawListings.length > 100
+        rawListings.length > 30
           ? [...rawListings]
               .sort((a, b) => (a.p || 0) - (b.p || 0))
-              .slice(0, 100)
+              .slice(0, 30)
           : rawListings;
 
       const listings = cappedListings
@@ -151,22 +164,21 @@ ipcMain.handle(
       };
     });
 
+    const payload = {
+      items: requestItems,
+      options,
+      batchId,
+    };
+    const { body, headers } = compressPayload(payload);
+
     try {
-      const res = await oracleAxios.post("/oracle/evaluate", {
-        items: requestItems,
-        options,
-        batchId,
-      });
+      const res = await oracleAxios.post("/oracle/evaluate", body, { headers });
       return res.data;
     } catch (e: any) {
       if (e?.response?.status && [401, 402, 403, 426, 503].includes(e.response.status)) {
         throw e;
       }
-      const res = await saasAxios.post("/oracle/evaluate", {
-        items: requestItems,
-        options,
-        batchId,
-      });
+      const res = await saasAxios.post("/oracle/evaluate", body, { headers });
       return res.data;
     }
   },
@@ -182,7 +194,10 @@ ipcMain.handle(
     nexusParams?: any,
     batchId?: string,
   ) => {
-    const windowDays = nexusParams?.trendWindow || 14;
+    // Strictly validate and cap windowDays: min 7, max 30 (default: 14)
+    const requestedDays = Number(nexusParams?.trendWindow) || 14;
+    const windowDays = Math.min(30, Math.max(7, requestedDays));
+
     const trendHistoryMap = await trendStore.getTrendHistoryBatch(
       items,
       windowDays,
@@ -192,10 +207,10 @@ ipcMain.handle(
       const cached = priceCache[name];
       const rawListings = cached?.l || [];
       const cappedListings =
-        rawListings.length > 100
+        rawListings.length > 30
           ? [...rawListings]
               .sort((a, b) => (a.p || 0) - (b.p || 0))
-              .slice(0, 100)
+              .slice(0, 30)
           : rawListings;
 
       const listings = cappedListings
@@ -225,32 +240,42 @@ ipcMain.handle(
         Array.isArray(trend.labels) &&
         trend.labels.length === trend.overallAverages.length;
 
+      // Strictly cap trend history and labels to max windowDays (capped at max 30 days)
+      let trendHistory: number[] = [];
+      let trendLabels: string[] = [];
+      if (hasSufficientTrend) {
+        const sliceLen = Math.min(windowDays, trend.overallAverages.length);
+        trendHistory = trend.overallAverages.slice(-sliceLen);
+        trendLabels = trend.labels.slice(-sliceLen);
+      }
+
       return {
         name,
         listings,
-        trendHistory: hasSufficientTrend ? trend.overallAverages : [],
-        trendLabels: hasSufficientTrend ? trend.labels : [],
+        trendHistory,
+        trendLabels,
       };
     });
 
+    const payload = {
+      items: requestItems,
+      options,
+      nexusParams: {
+        ...nexusParams,
+        trendWindow: windowDays,
+      },
+      batchId,
+    };
+    const { body, headers } = compressPayload(payload);
+
     try {
-      const res = await oracleAxios.post("/oracle/nexus/evaluate", {
-        items: requestItems,
-        options,
-        nexusParams,
-        batchId,
-      });
+      const res = await oracleAxios.post("/oracle/nexus/evaluate", body, { headers });
       return res.data;
     } catch (e: any) {
       if (e?.response?.status && [401, 402, 403, 426, 503].includes(e.response.status)) {
         throw e;
       }
-      const res = await saasAxios.post("/oracle/nexus/evaluate", {
-        items: requestItems,
-        options,
-        nexusParams,
-        batchId,
-      });
+      const res = await saasAxios.post("/oracle/nexus/evaluate", body, { headers });
       return res.data;
     }
   },
