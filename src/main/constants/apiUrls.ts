@@ -23,6 +23,12 @@ export const SAAS_API =
     ? "https://saas.skinsboat.com/api/v1"
     : "http://localhost:3100/api/v1");
 
+export const ORACLE_SERVER_API =
+  process.env.ORACLE_SERVER_URL ||
+  (isProd
+    ? "https://oracle.skinsboat.com/api/v1"
+    : "http://localhost:3200/api/v1");
+
 // ── CSFloat Endpoints ─────────────────────────────────────────────
 export const CSFLOAT_ME = `${CSFLOAT_API}/me`;
 export const CSFLOAT_BUY_ORDERS = `${CSFLOAT_API}/buy-orders`;

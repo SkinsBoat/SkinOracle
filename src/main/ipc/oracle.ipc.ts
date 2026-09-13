@@ -1,7 +1,7 @@
 import { app, ipcMain } from "electron";
 import * as fs from "fs";
 import * as path from "path";
-import { saasAxios } from "../services/saasAxios";
+import { saasAxios, oracleAxios } from "../services/saasAxios";
 
 import { trendStore } from "../services/trendStore";
 
@@ -151,12 +151,24 @@ ipcMain.handle(
       };
     });
 
-    const res = await saasAxios.post("/oracle/evaluate", {
-      items: requestItems,
-      options,
-      batchId,
-    });
-    return res.data; // OracleEvaluateResponse
+    try {
+      const res = await oracleAxios.post("/oracle/evaluate", {
+        items: requestItems,
+        options,
+        batchId,
+      });
+      return res.data;
+    } catch (e: any) {
+      if (e?.response?.status && [401, 402, 403, 426, 503].includes(e.response.status)) {
+        throw e;
+      }
+      const res = await saasAxios.post("/oracle/evaluate", {
+        items: requestItems,
+        options,
+        batchId,
+      });
+      return res.data;
+    }
   },
 );
 
@@ -221,13 +233,26 @@ ipcMain.handle(
       };
     });
 
-    const res = await saasAxios.post("/oracle/nexus/evaluate", {
-      items: requestItems,
-      options,
-      nexusParams,
-      batchId,
-    });
-    return res.data;
+    try {
+      const res = await oracleAxios.post("/oracle/nexus/evaluate", {
+        items: requestItems,
+        options,
+        nexusParams,
+        batchId,
+      });
+      return res.data;
+    } catch (e: any) {
+      if (e?.response?.status && [401, 402, 403, 426, 503].includes(e.response.status)) {
+        throw e;
+      }
+      const res = await saasAxios.post("/oracle/nexus/evaluate", {
+        items: requestItems,
+        options,
+        nexusParams,
+        batchId,
+      });
+      return res.data;
+    }
   },
 );
 
