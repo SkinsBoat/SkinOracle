@@ -6,7 +6,8 @@ import {
   DEFAULT_SELECTED_MARKETS,
 } from "../../store/useOracleStore";
 import { SkinsnipeMarketId, AcceptedPriceInfo } from "../../../shared/types";
-import { isMarketMatch } from "../../../shared/canonicalMarkets";
+import { isMarketMatch, isTradeMarket } from "../../../shared/canonicalMarkets";
+import { CS2CAP_PROVIDERS } from "../../../shared/cs2capProviders";
 import {
   passesSmartPreFilters,
   calculateSuggestedListingPrice,
@@ -78,10 +79,13 @@ export default function OracleDashboard() {
     selectAllMarkets: storeSelectAllMarkets,
     resetDefaultMarkets,
     selectedCs2capProviders,
+    setSelectedCs2capProviders,
     toggleCs2capProvider: storeToggleCs2capProvider,
     soloCs2capProvider: storeSoloCs2capProvider,
     selectAllCs2capProviders: storeSelectAllCs2capProviders,
     resetDefaultCs2capProviders: storeResetDefaultCs2capProviders,
+    hideTradeMarkets,
+    setHideTradeMarkets,
     preFilters,
     setPreFilters,
     toggleWear,
@@ -325,9 +329,25 @@ export default function OracleDashboard() {
     toast.success(`Solo CS2Cap provider set to ${providerId}`);
   };
 
-  const selectAllCs2capProviders = () => {
-    storeSelectAllCs2capProviders();
-    toast.success("All CS2Cap providers selected");
+  const selectAllCs2capProviders = (customProviders?: string[]) => {
+    if (customProviders) {
+      setSelectedCs2capProviders(customProviders);
+      toast.success(
+        hideTradeMarkets
+          ? `Selected ${customProviders.length} non-trade CS2Cap providers`
+          : "All CS2Cap providers selected",
+      );
+      return;
+    }
+    const targets = hideTradeMarkets
+      ? CS2CAP_PROVIDERS.filter((p) => !isTradeMarket(p.id)).map((p) => p.id)
+      : CS2CAP_PROVIDERS.map((p) => p.id);
+    setSelectedCs2capProviders(targets);
+    toast.success(
+      hideTradeMarkets
+        ? `Selected ${targets.length} non-trade CS2Cap providers`
+        : "All CS2Cap providers selected",
+    );
   };
 
   const resetDefaultCs2capProviders = () => {
@@ -359,8 +379,27 @@ export default function OracleDashboard() {
     toast.success(`Solo Skinsnipe market set to ${name}`);
   };
 
-  const selectAllMarkets = () => {
-    storeSelectAllMarkets(SKINSNIPE_AVAILABLE_MARKETS.map((m) => m.id));
+  const selectAllMarkets = (customMarkets?: SkinsnipeMarketId[]) => {
+    if (customMarkets) {
+      storeSelectAllMarkets(customMarkets);
+      toast.success(
+        hideTradeMarkets
+          ? `Selected ${customMarkets.length} non-trade Skinsnipe markets`
+          : `Selected all ${customMarkets.length} Skinsnipe markets`,
+      );
+      return;
+    }
+    const targets = hideTradeMarkets
+      ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id)).map(
+          (m) => m.id,
+        )
+      : SKINSNIPE_AVAILABLE_MARKETS.map((m) => m.id);
+    storeSelectAllMarkets(targets);
+    toast.success(
+      hideTradeMarkets
+        ? `Selected ${targets.length} non-trade Skinsnipe markets`
+        : `Selected all ${targets.length} Skinsnipe markets`,
+    );
   };
 
   const deselectAllMarkets = () => {
@@ -1026,6 +1065,8 @@ export default function OracleDashboard() {
         onUploadJsonCache={handleUploadJsonCache}
         onLoadDemoCache={handleLoadDemoCache}
         onCancelFetch={handleCancelFetch}
+        hideTradeMarkets={hideTradeMarkets}
+        onToggleHideTrade={setHideTradeMarkets}
       />
 
       {/* Step 2: Builder Accepted Price Engine (Buy Ceilings) */}

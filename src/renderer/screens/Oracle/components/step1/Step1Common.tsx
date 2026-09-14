@@ -359,6 +359,10 @@ export const MarketSelectionToolbar: React.FC<MarketSelectionToolbarProps> = ({
   badgeTextColor,
   badgeBorderColor,
 }) => {
+  const visibleTotal = hideTradeMarkets
+    ? Math.max(0, totalCount - tradeCount)
+    : totalCount;
+
   return (
     <div
       style={{
@@ -402,7 +406,7 @@ export const MarketSelectionToolbar: React.FC<MarketSelectionToolbarProps> = ({
             color: badgeTextColor ?? (badgeClassName === "badge-cyan" ? "#38bdf8" : undefined),
           }}
         >
-          {selectedCount} of {totalCount} {itemTypeLabel} Selected
+          {selectedCount} of {visibleTotal} {itemTypeLabel} Selected
         </span>
       </div>
 
@@ -431,7 +435,7 @@ export const MarketSelectionToolbar: React.FC<MarketSelectionToolbarProps> = ({
             gap: "5px",
           }}
         >
-          <CheckSquare size={14} /> Select All ({totalCount})
+          <CheckSquare size={14} /> Select All ({visibleTotal})
         </button>
         <button
           className="btn btn-sm btn-ghost"

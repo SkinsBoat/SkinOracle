@@ -31,6 +31,7 @@ import {
   resolveMarketCount,
   resolveMissingQty,
 } from "./step1/Step1Common";
+import { useOracleStore } from "../../../store/useOracleStore";
 
 export const SKINSNIPE_AVAILABLE_MARKETS: {
   id: SkinsnipeMarketId;
@@ -81,7 +82,7 @@ interface Step1MarketCacheProps {
   selectedCs2capProviders?: string[];
   onToggleCs2capProvider?: (providerId: string) => void;
   onSoloCs2capProvider?: (providerId: string) => void;
-  onSelectAllCs2capProviders?: () => void;
+  onSelectAllCs2capProviders?: (providers?: string[]) => void;
   onResetDefaultCs2capProviders?: () => void;
   selectedMarkets: SkinsnipeMarketId[];
   marketCounts: Record<string, number>;
@@ -91,12 +92,14 @@ interface Step1MarketCacheProps {
   isDemoCache?: boolean;
   onToggleMarket: (marketId: SkinsnipeMarketId) => void;
   onSoloMarket: (marketId: SkinsnipeMarketId) => void;
-  onSelectAllMarkets: () => void;
+  onSelectAllMarkets?: (markets?: SkinsnipeMarketId[]) => void;
   onDeselectAllMarkets: () => void;
   onFetchPrices: () => void;
   onUploadJsonCache: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onLoadDemoCache: (forceRefresh?: boolean) => void;
   onCancelFetch: () => void;
+  hideTradeMarkets?: boolean;
+  onToggleHideTrade?: (hide: boolean) => void;
 }
 
 export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
@@ -130,14 +133,46 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   onUploadJsonCache,
   onLoadDemoCache,
   onCancelFetch,
+  hideTradeMarkets: propHideTradeMarkets,
+  onToggleHideTrade: propOnToggleHideTrade,
 }) => {
-  const [hideTradeMarkets, setHideTradeMarkets] = useState(false);
+  const storeHideTradeMarkets = useOracleStore((s) => s.hideTradeMarkets);
+  const storeSetHideTradeMarkets = useOracleStore(
+    (s) => s.setHideTradeMarkets,
+  );
+
+  const hideTradeMarkets = propHideTradeMarkets ?? storeHideTradeMarkets;
+  const setHideTradeMarkets = propOnToggleHideTrade ?? storeSetHideTradeMarkets;
+
   const cs2capTradeCount = CS2CAP_PROVIDERS.filter((p) =>
     isTradeMarket(p.id),
   ).length;
   const skinsnipeTradeCount = SKINSNIPE_AVAILABLE_MARKETS.filter((m) =>
     isTradeMarket(m.id),
   ).length;
+
+  const visibleSelectedCs2capCount = hideTradeMarkets
+    ? selectedCs2capProviders.filter((p) => !isTradeMarket(p)).length
+    : selectedCs2capProviders.length;
+
+  const visibleSelectedMarketsCount = hideTradeMarkets
+    ? selectedMarkets.filter((m) => !isTradeMarket(m)).length
+    : selectedMarkets.length;
+
+  const handleSelectAllCs2cap = () => {
+    const providersToSelect = hideTradeMarkets
+      ? CS2CAP_PROVIDERS.filter((p) => !isTradeMarket(p.id)).map((p) => p.id)
+      : CS2CAP_PROVIDERS.map((p) => p.id);
+    onSelectAllCs2capProviders?.(providersToSelect);
+  };
+
+  const handleSelectAllMarkets = () => {
+    const marketsToSelect = hideTradeMarkets
+      ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id)).map((m) => m.id)
+      : SKINSNIPE_AVAILABLE_MARKETS.map((m) => m.id);
+    onSelectAllMarkets?.(marketsToSelect);
+  };
+
   const estimatedFetchSeconds = Math.max(0, (selectedMarkets.length - 1) * 32);
 
   const getMissingQtyForMarket = (marketId: string): number =>
@@ -420,13 +455,13 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               >
                 <MarketSelectionToolbar
                   title="CS2Cap Target Providers Config"
-                  selectedCount={selectedCs2capProviders.length}
+                  selectedCount={visibleSelectedCs2capCount}
                   totalCount={CS2CAP_PROVIDERS.length}
                   itemTypeLabel="Providers"
                   tradeCount={cs2capTradeCount}
                   hideTradeMarkets={hideTradeMarkets}
                   onToggleHideTrade={setHideTradeMarkets}
-                  onSelectAll={onSelectAllCs2capProviders || (() => { })}
+                  onSelectAll={handleSelectAllCs2cap}
                   onResetOrDeselect={onResetDefaultCs2capProviders || (() => { })}
                   resetLabel="Reset Defaults"
                   accentColor="#06b6d4"
@@ -924,13 +959,13 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               >
                 <MarketSelectionToolbar
                   title="Skinsnipe Target Markets Config"
-                  selectedCount={selectedMarkets.length}
+                  selectedCount={visibleSelectedMarketsCount}
                   totalCount={SKINSNIPE_AVAILABLE_MARKETS.length}
                   itemTypeLabel="Markets"
                   tradeCount={skinsnipeTradeCount}
                   hideTradeMarkets={hideTradeMarkets}
                   onToggleHideTrade={setHideTradeMarkets}
-                  onSelectAll={onSelectAllMarkets}
+                  onSelectAll={handleSelectAllMarkets}
                   onResetOrDeselect={onDeselectAllMarkets}
                   resetLabel="Deselect All"
                   accentColor="var(--so-primary)"

@@ -116,6 +116,10 @@ interface OracleStoreState {
   strategyProfile: OracleStrategyProfile;
   nexusProfile: NexusStrategyProfile;
   listingStrategy: ListingPriceStrategy;
+  hideTradeMarkets: boolean;
+  setHideTradeMarkets: (
+    hide: boolean | ((prev: boolean) => boolean),
+  ) => void;
 
   setPricingProvider: (provider: "skinsnipe" | "cs2cap") => void;
   setSelectedMarkets: (markets: SkinsnipeMarketId[]) => void;
@@ -166,8 +170,14 @@ export const useOracleStore = create<OracleStoreState>()(
       strategyProfile: DEFAULT_STRATEGY_PROFILE,
       nexusProfile: DEFAULT_NEXUS_PROFILE,
       listingStrategy: DEFAULT_LISTING_STRATEGY,
+      hideTradeMarkets: false,
 
       setPricingProvider: (provider) => set({ pricingProvider: provider }),
+      setHideTradeMarkets: (hide) =>
+        set((state) => ({
+          hideTradeMarkets:
+            typeof hide === "function" ? hide(state.hideTradeMarkets) : hide,
+        })),
       setSelectedMarkets: (markets) => set({ selectedMarkets: markets }),
       toggleMarket: (marketId) =>
         set((state) => {
@@ -255,7 +265,7 @@ export const useOracleStore = create<OracleStoreState>()(
     }),
     {
       name: "oracle_dashboard_store",
-      version: 2,
+      version: 3,
       migrate: (persistedState: any, version: number) => {
         if (!persistedState || typeof persistedState !== "object") {
           return persistedState;
@@ -272,6 +282,9 @@ export const useOracleStore = create<OracleStoreState>()(
           );
           persistedState.selectedCs2capProviders =
             filtered.length > 0 ? filtered : DEFAULT_CS2CAP_PROVIDERS;
+        }
+        if (typeof persistedState.hideTradeMarkets !== "boolean") {
+          persistedState.hideTradeMarkets = false;
         }
         return persistedState;
       },

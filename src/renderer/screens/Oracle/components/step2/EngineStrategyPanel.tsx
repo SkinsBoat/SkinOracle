@@ -342,7 +342,7 @@ export const EngineStrategyPanel: React.FC<EngineStrategyPanelProps> = ({
           }}
         >
           Configure your trading aggressiveness, market depth preference, and
-          spike protection without revealing core internal valuation formulas.
+          spike protection.
         </p>
 
         {/* Strategy Control Selectors */}
