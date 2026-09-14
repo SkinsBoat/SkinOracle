@@ -25,6 +25,7 @@ import {
 import { MarketLogo } from "../../components/MarketLogo";
 import { CopyMarketHashButton } from "../../components/CopyMarketHashButton";
 import { TrendSparkline } from "../../components/TrendSparkline";
+import { SkinImage } from "../../components/SkinImage";
 import { getMarketItemUrl } from "../../utils/marketUrls";
 import { SKINSNIPE_AVAILABLE_MARKETS } from "../Oracle/components/Step1MarketCache";
 import {
@@ -1425,62 +1426,24 @@ export default function SoCloseWorkstationScreen() {
                   </div>
 
                   {/* Image Showcase Box - Click to open external marketplace */}
-                  <div
-                    style={{
-                      height: "75px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "rgba(0, 0, 0, 0.25)",
-                      borderRadius: "var(--so-radius-sm)",
-                      border: "1px solid var(--so-border-subtle)",
-                      padding: "6px",
-                      backgroundImage:
-                        "radial-gradient(circle at center, rgba(255,255,255,0.04) 0%, transparent 70%)",
-                      cursor: marketUrl ? "pointer" : "default",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (marketUrl) {
-                        (e.currentTarget as HTMLElement).style.borderColor = "var(--so-primary)";
-                        (e.currentTarget as HTMLElement).style.boxShadow = "0 0 8px rgba(56, 189, 248, 0.25)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.borderColor = "var(--so-border-subtle)";
-                      (e.currentTarget as HTMLElement).style.boxShadow = "none";
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (marketUrl) {
-                        if (window.electronAPI?.app?.openExternal) {
-                          window.electronAPI.app.openExternal(marketUrl);
-                        } else {
-                          window.open(marketUrl, "_blank");
-                        }
-                      }
-                    }}
+                  <SkinImage
+                    src={imageUrl}
+                    alt={cleanTitle}
+                    fallbackItemName={item.name}
                     title={marketUrl ? `Click to open on ${getMarketDisplayName(item.market)}` : undefined}
-                  >
-                    <img
-                      src={imageUrl}
-                      alt={cleanTitle}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        if (!target.src.includes("steamapis.com")) {
-                          target.src = `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
-                        } else {
-                          target.style.opacity = "0.3";
-                        }
-                      }}
-                      style={{
-                        maxHeight: "100%",
-                        maxWidth: "100%",
-                        objectFit: "contain",
-                        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))",
-                      }}
-                    />
-                  </div>
+                    onClick={
+                      marketUrl
+                        ? (e) => {
+                            e.stopPropagation();
+                            if (window.electronAPI?.app?.openExternal) {
+                              window.electronAPI.app.openExternal(marketUrl);
+                            } else {
+                              window.open(marketUrl, "_blank");
+                            }
+                          }
+                        : undefined
+                    }
+                  />
 
                   {/* Title & Wear Row */}
                   <div>

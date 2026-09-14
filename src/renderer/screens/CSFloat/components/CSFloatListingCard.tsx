@@ -11,10 +11,13 @@ import {
   PlusCircle,
   Edit3,
   Trash2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { ListingAnalysis } from "../../../../shared/types";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../components/TrendSparkline";
+import { SkinImage } from "../../../components/SkinImage";
 
 export type { ListingAnalysis };
 
@@ -100,13 +103,13 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
       }}
       onClick={onToggleSelect}
     >
-      {/* Top Header Row */}
+      {/* Top Action Row */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          height: "20px",
+          height: "22px",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
@@ -128,7 +131,7 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
             }}
             title="Open on CSFloat Market (Browser)"
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={13} />
           </button>
           <button
             onClick={(e) => {
@@ -153,41 +156,74 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
             }}
             title="Inspect Item Details"
           >
-            <Eye size={14} />
+            <Eye size={13} />
           </button>
           <CopyMarketHashButton name={name} />
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "1px 5px",
-              fontSize: "8.5px",
-              color: isListed
-                ? "var(--so-success-text)"
-                : "var(--so-text-muted)",
-              backgroundColor: isListed
-                ? "rgba(16, 185, 129, 0.15)"
-                : "var(--so-surface-panel)",
-              borderRadius: "3px",
-              fontWeight: 800,
-            }}
-          >
-            {isListed ? (
-              item.private ? (
-                <Lock size={9} style={{ marginRight: 2 }} />
-              ) : (
-                <Globe size={9} style={{ marginRight: 2 }} />
-              )
-            ) : null}
-            {isListed ? "STALL" : "UNLISTED"}
-          </span>
         </div>
+
+        {/* Selection Checkbox Indicator */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            color: isSelected ? "var(--so-primary)" : "var(--so-text-muted)",
+            opacity: isSelected ? 1 : 0.45,
+            transition: "all 0.15s ease",
+          }}
+          title={isSelected ? "Selected" : "Click card to select"}
+        >
+          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+        </div>
+      </div>
+
+      {/* Badges Row (Next Line to Prevent Overlapping) */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          minHeight: "18px",
+          gap: "4px",
+          flexWrap: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "3px",
+            padding: "1px 5px",
+            fontSize: "8.5px",
+            color: isListed
+              ? "var(--so-success-text)"
+              : "var(--so-text-muted)",
+            backgroundColor: isListed
+              ? "rgba(16, 185, 129, 0.15)"
+              : "var(--so-surface-panel)",
+            border: `1px solid ${
+              isListed ? "rgba(16, 185, 129, 0.3)" : "var(--so-border-subtle)"
+            }`,
+            borderRadius: "3px",
+            fontWeight: 800,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {isListed ? (
+            item.private ? (
+              <Lock size={9} />
+            ) : (
+              <Globe size={9} />
+            )
+          ) : null}
+          {isListed ? "STALL" : "UNLISTED"}
+        </span>
 
         {/* Analysis Badge */}
         {!isListed ? (
           <span
             className="badge badge-secondary"
-            style={{ fontSize: "9px", padding: "1px 5px" }}
+            style={{ fontSize: "9px", padding: "1px 5px", whiteSpace: "nowrap" }}
           >
             READY TO LIST
           </span>
@@ -196,15 +232,17 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
             <span
               className="badge"
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: "3px",
-                backgroundColor: "rgba(239, 68, 68, 0.18)",
-                color: "#ef4444",
-                border: "1px solid rgba(239, 68, 68, 0.4)",
+                backgroundColor: "rgba(239, 68, 68, 0.16)",
+                color: "#f87171",
+                border: "1px solid rgba(239, 68, 68, 0.35)",
                 fontWeight: 800,
                 fontSize: "9px",
                 padding: "1px 5px",
+                borderRadius: "4px",
+                whiteSpace: "nowrap",
               }}
             >
               <AlertTriangle size={10} /> OVERPRICED (
@@ -217,15 +255,17 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
             <span
               className="badge"
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: "3px",
-                backgroundColor: "rgba(245, 158, 11, 0.18)",
-                color: "#f59e0b",
-                border: "1px solid rgba(245, 158, 11, 0.4)",
+                backgroundColor: "rgba(245, 158, 11, 0.14)",
+                color: "#fbbf24",
+                border: "1px solid rgba(245, 158, 11, 0.35)",
                 fontWeight: 800,
                 fontSize: "9px",
                 padding: "1px 5px",
+                borderRadius: "4px",
+                whiteSpace: "nowrap",
               }}
             >
               <AlertTriangle size={10} /> UNDERPRICED (
@@ -235,12 +275,17 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
             <span
               className="badge badge-success"
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: "3px",
+                backgroundColor: "rgba(16, 185, 129, 0.12)",
+                color: "#34d399",
+                border: "1px solid rgba(16, 185, 129, 0.3)",
                 fontWeight: 800,
                 fontSize: "9px",
                 padding: "1px 5px",
+                borderRadius: "4px",
+                whiteSpace: "nowrap",
               }}
             >
               <CheckCircle2 size={10} /> SAFE (
@@ -253,42 +298,18 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
         ) : (
           <span
             className="badge badge-secondary"
-            style={{ fontSize: "9px", padding: "1px 5px" }}
+            style={{ fontSize: "9px", padding: "1px 5px", whiteSpace: "nowrap" }}
           >
             LISTED
           </span>
         )}
       </div>
 
-      {/* Image */}
-      <div
-        style={{
-          height: "65px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "rgba(0, 0, 0, 0.25)",
-          borderRadius: "var(--so-radius-sm)",
-          border: "1px solid var(--so-border-subtle)",
-          padding: "4px",
-          backgroundImage:
-            "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 70%)",
-        }}
-      >
-        <img
-          src={imageUrl}
-          alt={cleanTitle}
-          onError={(e) => {
-            (e.target as HTMLElement).style.opacity = "0.3";
-          }}
-          style={{
-            maxHeight: "55px",
-            maxWidth: "100%",
-            objectFit: "contain",
-            filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.5))",
-          }}
-        />
-      </div>
+      {/* Skin Image Showcase */}
+      <SkinImage
+        src={imageUrl}
+        alt={cleanTitle}
+      />
 
       {/* Title & Float */}
       <div

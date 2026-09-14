@@ -13,6 +13,7 @@ import {
   Square,
   X,
   Wallet,
+  HelpCircle,
 } from "lucide-react";
 import {
   CSFloatOrderCard,
@@ -160,6 +161,10 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
     ).length;
   }, [orders, selectedItems, getOrderDriftDetails]);
 
+  const matchedSelectedCount = selectedCount - unmatchedSelectedCount;
+  const isOnlyUnmatchedSelected =
+    selectedCount > 0 && matchedSelectedCount === 0;
+
   const isAllActionRequiredSelected =
     actionRequiredCount > 0 &&
     actionRequiredOrders.every((o) => !!selectedItems[o.id]);
@@ -167,6 +172,10 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
   const isAllExceedsSelected =
     exceedsBalanceCount > 0 &&
     exceedsBalanceOrders.every((o) => !!selectedItems[o.id]);
+
+  const isAllUnmatchedSelected =
+    unmatchedOrders.length > 0 &&
+    unmatchedOrders.every((o) => !!selectedItems[o.id]);
 
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
@@ -202,6 +211,20 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
       });
     } else {
       exceedsBalanceOrders.forEach((o) => {
+        next[o.id] = true;
+      });
+    }
+    setSelectedItems(next);
+  };
+
+  const handleToggleSelectUnmatched = () => {
+    const next = { ...selectedItems };
+    if (isAllUnmatchedSelected) {
+      unmatchedOrders.forEach((o) => {
+        delete next[o.id];
+      });
+    } else {
+      unmatchedOrders.forEach((o) => {
         next[o.id] = true;
       });
     }
@@ -831,6 +854,35 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                   : `Exceeds Balance (${exceedsBalanceCount})`}
               </button>
             )}
+            {unmatchedOrders.length > 0 && (
+              <button
+                onClick={handleToggleSelectUnmatched}
+                className="btn btn-sm btn-ghost"
+                style={{
+                  fontSize: "11px",
+                  padding: "3px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  color: isAllUnmatchedSelected ? "#f1f5f9" : "#94a3b8",
+                  backgroundColor: isAllUnmatchedSelected
+                    ? "rgba(148, 163, 184, 0.25)"
+                    : "rgba(148, 163, 184, 0.08)",
+                  border: "1px solid rgba(148, 163, 184, 0.3)",
+                  borderRadius: "4px",
+                }}
+                title={
+                  isAllUnmatchedSelected
+                    ? "Click to unselect orders not matched in Oracle cache"
+                    : "Click to select all buy orders not matched in Oracle cache"
+                }
+              >
+                <HelpCircle size={12} style={{ color: "#94a3b8" }} />{" "}
+                {isAllUnmatchedSelected
+                  ? `Unselect Unmatched (${unmatchedOrders.length})`
+                  : `Unmatched (${unmatchedOrders.length})`}
+              </button>
+            )}
             <button
               onClick={handleDeselectAll}
               className="btn btn-sm btn-ghost"
@@ -849,7 +901,9 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {unmatchedSelectedCount > 0 && (
-              <label
+              <button
+                type="button"
+                onClick={() => setDeleteUnmatched(!deleteUnmatched)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -864,33 +918,36 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                   padding: "4px 9px",
                   borderRadius: "4px",
                   backgroundColor: deleteUnmatched
-                    ? "rgba(239, 68, 68, 0.12)"
+                    ? "rgba(239, 68, 68, 0.16)"
                     : "rgba(255, 255, 255, 0.04)",
                   border: `1px solid ${
                     deleteUnmatched
-                      ? "rgba(239, 68, 68, 0.35)"
+                      ? "rgba(239, 68, 68, 0.45)"
                       : "var(--so-border-subtle)"
                   }`,
                   transition: "all 0.15s ease",
                 }}
-                title="When updating, also delete selected buy orders that have no matching accepted price in Oracle cache"
+                title="Toggle whether updating also deletes selected orders that have no matching accepted price in Oracle cache"
               >
-                <input
-                  type="checkbox"
-                  checked={deleteUnmatched}
-                  onChange={(e) => setDeleteUnmatched(e.target.checked)}
-                  style={{
-                    cursor: "pointer",
-                    accentColor: "#ef4444",
-                  }}
-                />
+                {deleteUnmatched ? (
+                  <CheckSquare size={13} style={{ color: "#ef4444" }} />
+                ) : (
+                  <Square size={13} style={{ color: "var(--so-text-muted)" }} />
+                )}
                 <span>Delete unmatched ({unmatchedSelectedCount})</span>
-              </label>
+              </button>
             )}
             <button
               onClick={() => handleBatchUpdate({ deleteUnmatched })}
-              disabled={batchProcessing}
-              className="btn btn-primary btn-sm"
+              disabled={
+                batchProcessing ||
+                (isOnlyUnmatchedSelected && !deleteUnmatched)
+              }
+              className={`btn btn-sm ${
+                isOnlyUnmatchedSelected && deleteUnmatched
+                  ? "btn-danger"
+                  : "btn-primary"
+              }`}
               style={{
                 fontWeight: 800,
                 fontSize: "12px",
@@ -899,14 +956,29 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 alignItems: "center",
                 gap: "6px",
                 color: "#ffffff",
+                opacity:
+                  isOnlyUnmatchedSelected && !deleteUnmatched ? 0.6 : 1,
               }}
+              title={
+                isOnlyUnmatchedSelected && !deleteUnmatched
+                  ? "Selected orders have no price in Oracle cache. Enable 'Delete unmatched' or use Delete Selected."
+                  : undefined
+              }
             >
               {batchProcessing ? (
                 <Loader2 size={13} className="spin" />
+              ) : isOnlyUnmatchedSelected && deleteUnmatched ? (
+                <Trash2 size={13} />
               ) : (
                 <RotateCw size={13} />
               )}
-              Update Selected ({selectedCount})
+              {isOnlyUnmatchedSelected
+                ? deleteUnmatched
+                  ? `Delete Unmatched (${unmatchedSelectedCount})`
+                  : `Cannot Update Unmatched (${unmatchedSelectedCount})`
+                : deleteUnmatched && unmatchedSelectedCount > 0
+                  ? `Update & Prune (${selectedCount})`
+                  : `Update Selected (${selectedCount})`}
             </button>
             <button
               onClick={handleBatchDelete}
@@ -1045,6 +1117,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                   driftDetails={driftDetails}
                   isProcessing={isProcessing}
                   userBalance={userBalance}
+                  isUnmatched={pricesLoaded && !driftDetails?.acceptedPrice}
                   onManualUpdate={handleManualUpdate}
                   onDelete={handleDeleteOrder}
                   onOpenMarket={handleOpenCsfloatMarket}

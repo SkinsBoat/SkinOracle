@@ -9,9 +9,11 @@ import {
   CheckSquare,
   Square,
   Wallet,
+  HelpCircle,
 } from "lucide-react";
 import TrendSparkline from "../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
+import { SkinImage } from "../../../components/SkinImage";
 
 export interface OrderDriftDetails {
   acceptedPrice: number;
@@ -28,6 +30,7 @@ interface CSFloatOrderCardProps {
   driftDetails?: OrderDriftDetails | null;
   isProcessing: boolean;
   userBalance?: number;
+  isUnmatched?: boolean;
   onManualUpdate: (
     id: string,
     name: string,
@@ -51,6 +54,7 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
   driftDetails,
   isProcessing,
   userBalance,
+  isUnmatched = false,
   onManualUpdate,
   onDelete,
   onOpenMarket,
@@ -71,7 +75,9 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
         ? "#ef4444"
         : driftDetails?.isUnderbid
           ? "#f59e0b"
-          : "var(--so-border-medium)";
+          : isUnmatched
+            ? "rgba(148, 163, 184, 0.45)"
+            : "var(--so-border-medium)";
 
   const match = order.market_hash_name.match(/^(.+?)\s*\(([^)]+)\)$/);
   const cleanTitle = match ? match[1] : order.market_hash_name;
@@ -91,8 +97,13 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
         height: "auto",
         boxSizing: "border-box",
         borderRadius: "var(--so-radius-md)",
-        backgroundColor: "var(--so-surface-card)",
-        border: `1px solid ${isSelected ? "var(--so-primary)" : cardBorderColor}`,
+        backgroundColor:
+          isUnmatched && !isSelected
+            ? "rgba(15, 23, 42, 0.65)"
+            : "var(--so-surface-card)",
+        border: `${isUnmatched && !isSelected ? "1px dashed" : "1px solid"} ${
+          isSelected ? "var(--so-primary)" : cardBorderColor
+        }`,
         boxShadow: isSelected ? "inset 0 0 0 1px var(--so-primary)" : "none",
         cursor: "pointer",
         userSelect: "none",
@@ -271,6 +282,26 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
               )
             </span>
           )
+        ) : isUnmatched ? (
+          <span
+            className="badge"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "3px",
+              backgroundColor: "rgba(148, 163, 184, 0.16)",
+              color: "#cbd5e1",
+              border: "1px solid rgba(148, 163, 184, 0.35)",
+              fontWeight: 700,
+              fontSize: "9px",
+              padding: "1px 6px",
+              borderRadius: "4px",
+              whiteSpace: "nowrap",
+            }}
+            title="No accepted price found in Oracle cache for this skin"
+          >
+            <HelpCircle size={10} style={{ color: "#94a3b8" }} /> UNMATCHED
+          </span>
         ) : (
           <span
             className="badge badge-secondary"
@@ -288,35 +319,11 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
         )}
       </div>
 
-      {/* Image */}
-      <div
-        style={{
-          height: "65px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "rgba(0, 0, 0, 0.25)",
-          borderRadius: "var(--so-radius-sm)",
-          border: "1px solid var(--so-border-subtle)",
-          padding: "4px",
-          backgroundImage:
-            "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 70%)",
-        }}
-      >
-        <img
-          src={imageUrl}
-          alt={cleanTitle}
-          onError={(e) => {
-            (e.target as HTMLElement).style.opacity = "0.3";
-          }}
-          style={{
-            maxHeight: "55px",
-            maxWidth: "100%",
-            objectFit: "contain",
-            filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.5))",
-          }}
-        />
-      </div>
+      {/* Skin Image Showcase */}
+      <SkinImage
+        src={imageUrl}
+        alt={cleanTitle}
+      />
 
       {/* Title & Wear */}
       <div
@@ -491,15 +498,24 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
           </span>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ color: "var(--so-text-muted)" }}>Accepted</span>
           <span
             className="tabular-nums"
-            style={{ fontWeight: 800, color: "var(--so-success-text)" }}
+            style={{
+              fontWeight: 800,
+              color: driftDetails?.acceptedPrice
+                ? "var(--so-success-text)"
+                : "var(--so-text-muted)",
+              fontSize: driftDetails?.acceptedPrice ? "11.5px" : "10.5px",
+              fontStyle: driftDetails?.acceptedPrice ? "normal" : "italic",
+            }}
           >
             {driftDetails?.acceptedPrice
               ? `$${driftDetails.acceptedPrice.toFixed(2)}`
-              : "---"}
+              : isUnmatched
+                ? "Not in Cache"
+                : "---"}
           </span>
         </div>
       </div>

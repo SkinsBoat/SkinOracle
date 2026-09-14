@@ -36,6 +36,7 @@ import { EditOfferModal } from "../../modals/EditOfferModal";
 import { CreateListingModal } from "../../modals/CreateListingModal";
 import { CopyMarketHashButton } from "../../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../../components/TrendSparkline";
+import { SkinImage } from "../../../../components/SkinImage";
 import { useTrendStore } from "../../../../store/useTrendStore";
 
 export interface ListingsTabProps {
@@ -1524,34 +1525,10 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                     </div>
 
                     {/* Image Showcase */}
-                    <div
-                      style={{
-                        height: "65px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: "rgba(0, 0, 0, 0.25)",
-                        borderRadius: "var(--so-radius-sm)",
-                        border: "1px solid var(--so-border-subtle)",
-                        padding: "4px",
-                        backgroundImage:
-                          "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 70%)",
-                      }}
-                    >
-                      <img
-                        src={offer.imageUrl}
-                        alt={cleanTitle}
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.opacity = "0.3";
-                        }}
-                        style={{
-                          maxHeight: "55px",
-                          maxWidth: "100%",
-                          objectFit: "contain",
-                          filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.5))",
-                        }}
-                      />
-                    </div>
+                    <SkinImage
+                      src={offer.imageUrl}
+                      alt={cleanTitle}
+                    />
 
                     {/* Title & Wear & Float */}
                     <div
@@ -2134,43 +2111,11 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                     </div>
 
                     {/* Image Showcase */}
-                    <div
-                      style={{
-                        height: "65px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: "rgba(0, 0, 0, 0.25)",
-                        borderRadius: "var(--so-radius-sm)",
-                        border: "1px solid var(--so-border-subtle)",
-                        padding: "4px",
-                        backgroundImage:
-                          "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 70%)",
-                      }}
-                    >
-                      <img
-                        src={itemImageUrl}
-                        alt={cleanTitle}
-                        onError={(e) => {
-                          const imgEl = e.target as HTMLImageElement;
-                          const fallback =
-                            title && title !== "CS2 Item"
-                              ? `https://api.steamapis.com/image/item/730/${encodeURIComponent(title)}`
-                              : "";
-                          if (fallback && imgEl.src !== fallback) {
-                            imgEl.src = fallback;
-                          } else {
-                            imgEl.style.opacity = "0.3";
-                          }
-                        }}
-                        style={{
-                          maxHeight: "55px",
-                          maxWidth: "100%",
-                          objectFit: "contain",
-                          filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.5))",
-                        }}
-                      />
-                    </div>
+                    <SkinImage
+                      src={itemImageUrl}
+                      alt={cleanTitle}
+                      fallbackItemName={title && title !== "CS2 Item" ? title : undefined}
+                    />
 
                     {/* Title & Wear & Float */}
                     <div

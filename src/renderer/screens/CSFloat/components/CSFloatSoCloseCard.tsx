@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import TrendSparkline from "../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
+import { SkinImage } from "../../../components/SkinImage";
 
 import { SoCloseResultItem } from "../../../../shared/types";
 export type { SoCloseResultItem };
@@ -257,34 +258,10 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
       </div>
 
       {/* Image Showcase */}
-      <div
-        style={{
-          height: "65px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "rgba(0, 0, 0, 0.25)",
-          borderRadius: "var(--so-radius-sm)",
-          border: "1px solid var(--so-border-subtle)",
-          padding: "4px",
-          backgroundImage:
-            "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 70%)",
-        }}
-      >
-        <img
-          src={imageUrl}
-          alt={cleanTitle}
-          onError={(e) => {
-            (e.target as HTMLElement).style.opacity = "0.3";
-          }}
-          style={{
-            maxHeight: "55px",
-            maxWidth: "100%",
-            objectFit: "contain",
-            filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.5))",
-          }}
-        />
-      </div>
+      <SkinImage
+        src={imageUrl}
+        alt={cleanTitle}
+      />
 
       {/* Title & Wear */}
       <div
