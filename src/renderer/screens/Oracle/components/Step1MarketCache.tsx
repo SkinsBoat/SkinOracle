@@ -289,7 +289,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     : "transparent",
                 border:
                   pricingProvider === "cs2cap"
-                    ? "1px solid #06b6d4"
+                    ? "1px solid rgba(6, 182, 212, 0.45)"
                     : "1px solid transparent",
                 color:
                   pricingProvider === "cs2cap"
@@ -297,7 +297,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     : "var(--so-text-muted)",
                 boxShadow:
                   pricingProvider === "cs2cap"
-                    ? "0 2px 10px rgba(6, 182, 212, 0.2)"
+                    ? "0 2px 6px rgba(0, 0, 0, 0.2)"
                     : "none",
               }}
             >
@@ -464,10 +464,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   onSelectAll={handleSelectAllCs2cap}
                   onResetOrDeselect={onResetDefaultCs2capProviders || (() => { })}
                   resetLabel="Reset Defaults"
-                  accentColor="#06b6d4"
+                  accentColor="#0891b2"
                   badgeClassName="badge-cyan"
                   badgeTextColor="#38bdf8"
-                  badgeBorderColor="#06b6d4"
+                  badgeBorderColor="rgba(56, 189, 248, 0.4)"
                 />
 
                 <p

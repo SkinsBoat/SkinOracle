@@ -179,6 +179,11 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
   missingQtyCount,
   accentColor,
 }) => {
+  const isCyan =
+    accentColor === "#06b6d4" ||
+    accentColor === "#0891b2" ||
+    accentColor.toLowerCase().includes("cyan");
+
   return (
     <div
       onClick={() => onToggle(id)}
@@ -205,14 +210,18 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
         backgroundColor: isSelected
           ? isTrade
             ? "rgba(245, 158, 11, 0.12)"
-            : accentColor === "#06b6d4"
-              ? "rgba(6, 182, 212, 0.16)"
-              : "rgba(99, 102, 241, 0.15)"
+            : isCyan
+              ? "rgba(6, 182, 212, 0.10)"
+              : "rgba(99, 102, 241, 0.12)"
           : "var(--so-surface-input)",
         border: isSelected
           ? isTrade
-            ? "1px solid rgba(245, 158, 11, 0.55)"
-            : `1px solid ${accentColor}`
+            ? "1px solid rgba(245, 158, 11, 0.45)"
+            : isCyan
+              ? "1px solid rgba(6, 182, 212, 0.35)"
+              : accentColor.startsWith("var")
+                ? `1px solid ${accentColor}`
+                : `1px solid ${accentColor}80`
           : isTrade
             ? "1px solid rgba(245, 158, 11, 0.25)"
             : "1px solid var(--so-border-subtle)",
@@ -220,9 +229,7 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
           ? "var(--so-text-primary)"
           : "var(--so-text-muted)",
         boxShadow: isSelected
-          ? isTrade
-            ? "0 0 10px rgba(245, 158, 11, 0.2)"
-            : `0 0 10px ${accentColor === "#06b6d4" ? "rgba(6, 182, 212, 0.2)" : "rgba(99, 102, 241, 0.2)"}`
+          ? "0 1px 3px rgba(0, 0, 0, 0.25)"
           : "none",
       }}
     >
@@ -237,7 +244,9 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
           backgroundColor: isSelected
             ? isTrade
               ? "#f59e0b"
-              : accentColor
+              : isCyan
+                ? "#0891b2"
+                : accentColor
             : "transparent",
           border: isSelected
             ? "none"
@@ -305,15 +314,30 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
         <span
           style={{
             fontSize: "10.5px",
-            fontWeight: 800,
+            fontWeight: 700,
             padding: "1px 6px",
             borderRadius: "4px",
             backgroundColor: isSelected
-              ? accentColor
+              ? isTrade
+                ? "rgba(245, 158, 11, 0.15)"
+                : isCyan
+                  ? "rgba(6, 182, 212, 0.14)"
+                  : "rgba(255, 255, 255, 0.10)"
               : "var(--so-surface-card)",
             color: isSelected
-              ? "#fff"
+              ? isTrade
+                ? "#f59e0b"
+                : isCyan
+                  ? "#38bdf8"
+                  : "#ffffff"
               : "var(--so-text-secondary)",
+            border: isSelected
+              ? isTrade
+                ? "1px solid rgba(245, 158, 11, 0.35)"
+                : isCyan
+                  ? "1px solid rgba(6, 182, 212, 0.35)"
+                  : "1px solid rgba(255, 255, 255, 0.16)"
+              : "1px solid var(--so-border-subtle)",
             marginLeft: missingQtyCount > 0 ? "0" : "auto",
             fontFamily: "monospace",
             flexShrink: 0,

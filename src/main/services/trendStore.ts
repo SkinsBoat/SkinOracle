@@ -136,6 +136,13 @@ export class TrendStore {
     this.persist();
     this.isInitialized = true;
     console.log(`[TrendStore] Initialized SQLite at ${this.dbPath}`);
+
+    // Auto-prune snapshots older than 30 days on startup to maintain a rolling retention window
+    try {
+      await this.pruneOldSnapshots(30);
+    } catch (e) {
+      console.warn("[TrendStore] Startup auto-prune failed:", e);
+    }
   }
 
   private persist(): void {
@@ -291,9 +298,10 @@ export class TrendStore {
     await this.init();
     if (!this.db || itemNames.length === 0) return {};
 
+    const cappedDays = Math.min(Math.max(1, days), 30);
     const effectiveDateStr = this.getEffectiveDate();
     const cutoff = new Date(effectiveDateStr + "T00:00:00.000Z");
-    cutoff.setDate(cutoff.getDate() - (days + 2)); // Give a small buffer of days
+    cutoff.setDate(cutoff.getDate() - (cappedDays + 2)); // Give a small buffer of days
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
     const result: Record<string, TrendSeries> = {};
@@ -394,7 +402,8 @@ export class TrendStore {
     await this.init();
     if (!this.db) return 0;
 
-    const cutoff = new Date();
+    const effectiveDateStr = this.getEffectiveDate();
+    const cutoff = new Date(effectiveDateStr + "T00:00:00.000Z");
     cutoff.setDate(cutoff.getDate() - retentionDays);
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
