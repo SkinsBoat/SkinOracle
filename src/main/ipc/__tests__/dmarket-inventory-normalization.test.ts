@@ -321,8 +321,12 @@ describe("DMarket Inventory & Offer Normalization Engine", () => {
     });
 
     it("should format direct decimal float from attributes.float or number", () => {
-      expect(formatItemFloat({ attributes: { float: 0.2356003 } })).toBe("0.2356");
-      expect(formatItemFloat({ attributes: { float: "0.1500" } })).toBe("0.1500");
+      expect(formatItemFloat({ attributes: { float: 0.2356003 } })).toBe(
+        "0.2356",
+      );
+      expect(formatItemFloat({ attributes: { float: "0.1500" } })).toBe(
+        "0.1500",
+      );
     });
 
     it("should fallback cleanly to sub-range bucket without 'FLOAT_PART_' prefix when float number is missing", () => {

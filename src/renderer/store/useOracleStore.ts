@@ -117,9 +117,7 @@ interface OracleStoreState {
   nexusProfile: NexusStrategyProfile;
   listingStrategy: ListingPriceStrategy;
   hideTradeMarkets: boolean;
-  setHideTradeMarkets: (
-    hide: boolean | ((prev: boolean) => boolean),
-  ) => void;
+  setHideTradeMarkets: (hide: boolean | ((prev: boolean) => boolean)) => void;
 
   setPricingProvider: (provider: "skinsnipe" | "cs2cap") => void;
   setSelectedMarkets: (markets: SkinsnipeMarketId[]) => void;

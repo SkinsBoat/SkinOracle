@@ -158,7 +158,7 @@ export default function OracleDashboard() {
             loadCacheKeys();
           }
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     if (window.electronAPI?.settings) {
@@ -170,7 +170,7 @@ export default function OracleDashboard() {
             setHasCs2capKey(!!keys.hasCs2capKey);
           }
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     // Restore stored accepted prices summary when returning to Oracle Dashboard tab
@@ -187,7 +187,7 @@ export default function OracleDashboard() {
             }));
           }
         })
-        .catch(() => { });
+        .catch(() => {});
 
       // Restore stored listing prices summary when returning to Oracle Dashboard tab
       window.electronAPI.oracle
@@ -202,7 +202,7 @@ export default function OracleDashboard() {
             }));
           }
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     const unsubSkinsnipe = window.electronAPI?.skinsnipe?.onFetchProgress?.(
@@ -498,8 +498,8 @@ export default function OracleDashboard() {
 
       const batchStartRes = isNexus
         ? await window.electronAPI.oracle.startNexusBatch(
-          filteredItemNames.length,
-        )
+            filteredItemNames.length,
+          )
         : await window.electronAPI.oracle.startBatch(filteredItemNames.length);
       activeBatchId = batchStartRes.batchId;
 
@@ -513,16 +513,16 @@ export default function OracleDashboard() {
         const chunk = filteredItemNames.slice(i, i + chunkSize);
         const evalRes = isNexus
           ? await window.electronAPI.oracle.evaluateNexus(
-            chunk,
-            evalOptions,
-            nexusParams,
-            activeBatchId || undefined,
-          )
+              chunk,
+              evalOptions,
+              nexusParams,
+              activeBatchId || undefined,
+            )
           : await window.electronAPI.oracle.evaluate(
-            chunk,
-            evalOptions,
-            activeBatchId || undefined,
-          );
+              chunk,
+              evalOptions,
+              activeBatchId || undefined,
+            );
         totalEvaluated += chunk.length;
 
         if (evalRes?.results) {
@@ -580,7 +580,8 @@ export default function OracleDashboard() {
       }
 
       toast.success(
-        `Computed accepted prices for ${total.toLocaleString()} items using ${isNexus ? "ORACLENEXUS PRO" : strategyProfile.preset.toUpperCase()
+        `Computed accepted prices for ${total.toLocaleString()} items using ${
+          isNexus ? "ORACLENEXUS PRO" : strategyProfile.preset.toUpperCase()
         } strategy!`,
       );
     } catch (err: any) {
@@ -677,7 +678,8 @@ export default function OracleDashboard() {
         return;
       }
 
-      const acceptedPricesRes = await window.electronAPI.oracle.getAcceptedPrices();
+      const acceptedPricesRes =
+        await window.electronAPI.oracle.getAcceptedPrices();
       const acceptedMap = acceptedPricesRes?.map || {};
 
       const listingPriceMap: Record<

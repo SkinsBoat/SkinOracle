@@ -40,8 +40,12 @@ export const MarketLogo: React.FC<MarketLogoProps> = ({
           alignItems: "center",
           justifyContent: "center",
           borderRadius: size <= 18 ? "3px" : "4px",
-          backgroundColor: showBackground ? "rgba(255, 255, 255, 0.05)" : "transparent",
-          border: showBackground ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
+          backgroundColor: showBackground
+            ? "rgba(255, 255, 255, 0.05)"
+            : "transparent",
+          border: showBackground
+            ? "1px solid rgba(255, 255, 255, 0.08)"
+            : "none",
           overflow: "hidden",
           flexShrink: 0,
           boxSizing: "border-box",

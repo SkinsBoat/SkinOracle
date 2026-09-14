@@ -177,14 +177,21 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
                     : trendHealth.isDecaying
                       ? "var(--so-warning-text, #f59e0b)"
                       : "var(--so-text-muted)",
-                  fontWeight: trendHealth.isStale || trendHealth.isDecaying ? 700 : 400,
+                  fontWeight:
+                    trendHealth.isStale || trendHealth.isDecaying ? 700 : 400,
                 }}
               >
-                ({trendHealth.daysSinceLatest === 0 ? "Today" : `${trendHealth.daysSinceLatest}d ago`})
+                (
+                {trendHealth.daysSinceLatest === 0
+                  ? "Today"
+                  : `${trendHealth.daysSinceLatest}d ago`}
+                )
               </span>
             )}
             {trendHealth.spanDays !== null && trendHealth.spanDays > 1 && (
-              <span style={{ color: "var(--so-text-muted)", marginLeft: "4px" }}>
+              <span
+                style={{ color: "var(--so-text-muted)", marginLeft: "4px" }}
+              >
                 [{trendHealth.spanDays}d span]
               </span>
             )}
@@ -231,17 +238,25 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
             marginTop: "4px",
           }}
         >
-          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+          <AlertTriangle
+            size={16}
+            style={{ flexShrink: 0, marginTop: "2px" }}
+          />
           <div>
             <div style={{ fontWeight: 800, marginBottom: "2px" }}>
-              CRITICAL STALENESS WARNING ({trendHealth.daysSinceLatest} Days Old)
+              CRITICAL STALENESS WARNING ({trendHealth.daysSinceLatest} Days
+              Old)
             </div>
             <span>
-              Your latest price snapshot was recorded on <strong>{trendStats.latestDate}</strong> ({trendHealth.daysSinceLatest} days ago).
-              The Nexus valuation engine enforces a hard staleness cap of 3 days (<code>maxDataAgeDays: 3</code>).
-              Because data is older than 3 days, trend momentum adjustments and downside cuts will be <strong>BYPASSED</strong>,
-              silently falling back to standard base Oracle pricing.
-              Please fetch or load a fresh price cache in Step 1 to record today&apos;s snapshot.
+              Your latest price snapshot was recorded on{" "}
+              <strong>{trendStats.latestDate}</strong> (
+              {trendHealth.daysSinceLatest} days ago). The Nexus valuation
+              engine enforces a hard staleness cap of 3 days (
+              <code>maxDataAgeDays: 3</code>). Because data is older than 3
+              days, trend momentum adjustments and downside cuts will be{" "}
+              <strong>BYPASSED</strong>, silently falling back to standard base
+              Oracle pricing. Please fetch or load a fresh price cache in Step 1
+              to record today&apos;s snapshot.
             </span>
           </div>
         </div>
@@ -263,15 +278,20 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
             marginTop: "4px",
           }}
         >
-          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+          <AlertTriangle
+            size={16}
+            style={{ flexShrink: 0, marginTop: "2px" }}
+          />
           <div>
             <div style={{ fontWeight: 800, marginBottom: "2px" }}>
               DECAYING TREND CAUTION ({trendHealth.daysSinceLatest} Days Old)
             </div>
             <span>
-              Latest snapshot is from <strong>{trendStats.latestDate}</strong> ({trendHealth.daysSinceLatest} days ago).
-              Market price movements over the last 48 hours are missing, meaning recent crashes or sudden breakouts may not be reflected in trend slopes.
-              Consider refreshing your price cache in Step 1 for optimal trend accuracy.
+              Latest snapshot is from <strong>{trendStats.latestDate}</strong> (
+              {trendHealth.daysSinceLatest} days ago). Market price movements
+              over the last 48 hours are missing, meaning recent crashes or
+              sudden breakouts may not be reflected in trend slopes. Consider
+              refreshing your price cache in Step 1 for optimal trend accuracy.
             </span>
           </div>
         </div>
@@ -293,58 +313,75 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
             marginTop: "4px",
           }}
         >
-          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+          <AlertTriangle
+            size={16}
+            style={{ flexShrink: 0, marginTop: "2px" }}
+          />
           <div>
             <div style={{ fontWeight: 800, marginBottom: "2px" }}>
-              DATA CONTINUITY GAP ({trendHealth.missingDaysInRange} Missing Days)
+              DATA CONTINUITY GAP ({trendHealth.missingDaysInRange} Missing
+              Days)
             </div>
             <span>
-              There are <strong>{trendHealth.missingDaysInRange} missing days</strong> between {trendStats.oldestDate} and {trendStats.latestDate} ({trendStats.daysCount} of {trendHealth.spanDays} days captured).
-              Sparse data points may produce sensitive or distorted linear regression slopes.
+              There are{" "}
+              <strong>{trendHealth.missingDaysInRange} missing days</strong>{" "}
+              between {trendStats.oldestDate} and {trendStats.latestDate} (
+              {trendStats.daysCount} of {trendHealth.spanDays} days captured).
+              Sparse data points may produce sensitive or distorted linear
+              regression slopes.
             </span>
           </div>
         </div>
       )}
 
-      {!trendHealth.isInsufficient && !trendHealth.isStale && !trendHealth.isDecaying && trendStats && trendStats.daysCount >= 3 && trendStats.daysCount < 7 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            color: "#10b981",
-            fontSize: "11.5px",
-            fontWeight: 600,
-            marginTop: "2px",
-          }}
-        >
-          <Check size={14} />
-          <span>
-            Minimum 3 days met for Nexus Pro pricing (7+ days recommended for
-            optimal linear regression & volatility accuracy).
-          </span>
-        </div>
-      )}
+      {!trendHealth.isInsufficient &&
+        !trendHealth.isStale &&
+        !trendHealth.isDecaying &&
+        trendStats &&
+        trendStats.daysCount >= 3 &&
+        trendStats.daysCount < 7 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "#10b981",
+              fontSize: "11.5px",
+              fontWeight: 600,
+              marginTop: "2px",
+            }}
+          >
+            <Check size={14} />
+            <span>
+              Minimum 3 days met for Nexus Pro pricing (7+ days recommended for
+              optimal linear regression & volatility accuracy).
+            </span>
+          </div>
+        )}
 
-      {!trendHealth.isInsufficient && !trendHealth.isStale && !trendHealth.isDecaying && trendStats && trendStats.daysCount >= 7 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            color: "#10b981",
-            fontSize: "11.5px",
-            fontWeight: 600,
-            marginTop: "2px",
-          }}
-        >
-          <Check size={14} />
-          <span>
-            Ready for AI Momentum Valuation: Slope linear regression &
-            volatility cut filters are active with verified history.
-          </span>
-        </div>
-      )}
+      {!trendHealth.isInsufficient &&
+        !trendHealth.isStale &&
+        !trendHealth.isDecaying &&
+        trendStats &&
+        trendStats.daysCount >= 7 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "#10b981",
+              fontSize: "11.5px",
+              fontWeight: 600,
+              marginTop: "2px",
+            }}
+          >
+            <Check size={14} />
+            <span>
+              Ready for AI Momentum Valuation: Slope linear regression &
+              volatility cut filters are active with verified history.
+            </span>
+          </div>
+        )}
 
       {/* ── Dev Mode: Trend Data Simulator Toolbar ── */}
       {import.meta.env.DEV && (

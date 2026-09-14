@@ -351,9 +351,7 @@ export interface ElectronAPI {
       callback: (progress: SkinsnipeFetchProgress) => void,
     ) => () => void;
     getCache: () => Promise<SkinsnipePriceCache>;
-    getItem: (
-      itemName: string,
-    ) => Promise<{
+    getItem: (itemName: string) => Promise<{
       n: string;
       l: { m: string; p: number; q?: number }[];
     } | null>;

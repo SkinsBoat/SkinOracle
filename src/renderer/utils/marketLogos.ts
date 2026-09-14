@@ -237,7 +237,10 @@ export function getMarketInitials(
 ): string {
   if (!marketIdOrName || typeof marketIdOrName !== "string") return "MK";
 
-  const cleaned = marketIdOrName.trim().replace(/[^a-zA-Z0-9\s]/g, " ").trim();
+  const cleaned = marketIdOrName
+    .trim()
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim();
   const words = cleaned.split(/\s+/).filter(Boolean);
 
   if (words.length >= 2) {

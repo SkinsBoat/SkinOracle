@@ -356,9 +356,9 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                 color: "var(--so-text-muted)",
               }}
             >
-              Forced Excluded Categories: Charms, Cases, Keys, Music Kits, Agents,
-              Patches & Graffiti are automatically filtered out from listing
-              price calculation.
+              Forced Excluded Categories: Charms, Cases, Keys, Music Kits,
+              Agents, Patches & Graffiti are automatically filtered out from
+              listing price calculation.
             </div>
           </div>
 

@@ -88,7 +88,14 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
           width: "100%",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            flexShrink: 0,
+          }}
+        >
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -197,7 +204,9 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
           >
             SSS: {item.supplyStabilityScore.toFixed(1)}
           </span>
-        ) : <div />}
+        ) : (
+          <div />
+        )}
 
         {item.hasExistingOrder ? (
           <span
@@ -258,10 +267,7 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
       </div>
 
       {/* Image Showcase */}
-      <SkinImage
-        src={imageUrl}
-        alt={cleanTitle}
-      />
+      <SkinImage src={imageUrl} alt={cleanTitle} />
 
       {/* Title & Wear */}
       <div

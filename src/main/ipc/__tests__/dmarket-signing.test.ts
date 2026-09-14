@@ -145,12 +145,15 @@ describe("DMarket Ed25519 Signing Engine", () => {
     // Stringified JSON inside Message field (as observed in DMarket 400 response)
     const errObj1 = {
       Code: "BadRequest",
-      Message: '{"id":"BadRequest","code":400,"detail":"Bad request","status":"Bad Request"}',
+      Message:
+        '{"id":"BadRequest","code":400,"detail":"Bad request","status":"Bad Request"}',
     };
     expect(formatDmarketError(errObj1)).toBe("Bad request");
 
     // Standard message field
-    expect(formatDmarketError({ message: "Invalid API key" })).toBe("Invalid API key");
+    expect(formatDmarketError({ message: "Invalid API key" })).toBe(
+      "Invalid API key",
+    );
 
     // Plain string error
     expect(formatDmarketError("Server error")).toBe("Server error");
@@ -173,9 +176,9 @@ describe("DMarket Ed25519 Signing Engine", () => {
     expect((req as any).price_cents).toBeUndefined();
 
     // Rejects non-deposited steam IDs
-    expect(() => formatCreateOfferRequest("8810763607:7993037582:53572993286:730", 100)).toThrow(
-      /Item is currently in your Steam inventory/,
-    );
+    expect(() =>
+      formatCreateOfferRequest("8810763607:7993037582:53572993286:730", 100),
+    ).toThrow(/Item is currently in your Steam inventory/);
   });
 
   it("should format batch update offer requests with offerId and priceCents", () => {

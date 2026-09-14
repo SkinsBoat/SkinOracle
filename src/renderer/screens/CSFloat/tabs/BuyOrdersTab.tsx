@@ -401,10 +401,14 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 <input
                   type="number"
                   step="0.5"
+                  min="0"
                   value={driftThresholdPercent}
-                  onChange={(e) =>
-                    setDriftThresholdPercent(parseFloat(e.target.value) || 0)
-                  }
+                  onChange={(e) => {
+                    const parsed = parseFloat(e.target.value);
+                    setDriftThresholdPercent(
+                      isNaN(parsed) ? 0 : Math.max(0, parsed),
+                    );
+                  }}
                   style={{
                     width: "42px",
                     padding: "1px 3px",
@@ -496,13 +500,9 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 border: "none",
                 cursor: "pointer",
                 backgroundColor:
-                  statusFilter === "all"
-                    ? "var(--so-primary)"
-                    : "transparent",
+                  statusFilter === "all" ? "var(--so-primary)" : "transparent",
                 color:
-                  statusFilter === "all"
-                    ? "#ffffff"
-                    : "var(--so-text-muted)",
+                  statusFilter === "all" ? "#ffffff" : "var(--so-text-muted)",
                 transition: "all 0.15s ease",
               }}
             >
@@ -545,7 +545,9 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() =>
-                  setStatusFilter(statusFilter === "exceeds" ? "all" : "exceeds")
+                  setStatusFilter(
+                    statusFilter === "exceeds" ? "all" : "exceeds",
+                  )
                 }
                 style={{
                   fontSize: "10.5px",
@@ -610,7 +612,9 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() =>
-                  setStatusFilter(statusFilter === "unmatched" ? "all" : "unmatched")
+                  setStatusFilter(
+                    statusFilter === "unmatched" ? "all" : "unmatched",
+                  )
                 }
                 style={{
                   fontSize: "10.5px",
@@ -940,8 +944,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
             <button
               onClick={() => handleBatchUpdate({ deleteUnmatched })}
               disabled={
-                batchProcessing ||
-                (isOnlyUnmatchedSelected && !deleteUnmatched)
+                batchProcessing || (isOnlyUnmatchedSelected && !deleteUnmatched)
               }
               className={`btn btn-sm ${
                 isOnlyUnmatchedSelected && deleteUnmatched
@@ -956,8 +959,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 alignItems: "center",
                 gap: "6px",
                 color: "#ffffff",
-                opacity:
-                  isOnlyUnmatchedSelected && !deleteUnmatched ? 0.6 : 1,
+                opacity: isOnlyUnmatchedSelected && !deleteUnmatched ? 0.6 : 1,
               }}
               title={
                 isOnlyUnmatchedSelected && !deleteUnmatched

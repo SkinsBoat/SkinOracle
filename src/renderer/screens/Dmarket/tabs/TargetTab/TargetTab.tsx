@@ -34,6 +34,10 @@ import {
   getTradeAmount,
   getTradeDate,
 } from "../../dmarket-utils";
+import {
+  getPersistedThreshold,
+  setPersistedThreshold,
+} from "../../../../utils/storage";
 
 interface TargetTabProps {
   hasKey: boolean | null;
@@ -54,6 +58,8 @@ interface TargetTabProps {
     analysis?: TargetAnalysis,
   ) => void;
   onOpenMarket: (title: string) => void;
+  driftThresholdPercent?: number;
+  setDriftThresholdPercent?: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export const TargetTab: React.FC<TargetTabProps> = ({
@@ -67,11 +73,39 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   onOpenLookupModal,
   onOpenEditModal,
   onOpenMarket,
+  driftThresholdPercent: propDriftThresholdPercent,
+  setDriftThresholdPercent: propSetDriftThresholdPercent,
 }) => {
   const [targetSubTab, setTargetSubTab] = useState<"active" | "history">(
     "active",
   );
-  const [driftThresholdPercent, setDriftThresholdPercent] = useState<number>(2);
+  const [internalDriftThresholdPercent, setInternalDriftThresholdPercent] =
+    useState<number>(() =>
+      getPersistedThreshold(
+        "dmarket_drift_threshold_percent",
+        "workstation_buyorders_drift_threshold",
+        2,
+      ),
+    );
+
+  const driftThresholdPercent =
+    propDriftThresholdPercent !== undefined
+      ? propDriftThresholdPercent
+      : internalDriftThresholdPercent;
+
+  const setDriftThresholdPercent =
+    propSetDriftThresholdPercent || setInternalDriftThresholdPercent;
+
+  useEffect(() => {
+    if (propSetDriftThresholdPercent === undefined) {
+      setPersistedThreshold(
+        "dmarket_drift_threshold_percent",
+        internalDriftThresholdPercent,
+        "workstation_buyorders_drift_threshold",
+      );
+    }
+  }, [internalDriftThresholdPercent, propSetDriftThresholdPercent]);
+
   const [showExtraOptions, setShowExtraOptions] = useState(false);
   const [filterAction, setFilterAction] = useState<
     "all" | "action_required" | "overbid" | "underbid" | "safe"
@@ -192,7 +226,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
     const drift =
       oraclePrice > 0 ? (currentPrice - oraclePrice) / oraclePrice : 0;
-    const thresholdFraction = (driftThresholdPercent || 2) / 100;
+    const thresholdFraction = (driftThresholdPercent ?? 2) / 100;
 
     const isOverbid = drift > thresholdFraction;
     const isUnderbid = drift < -thresholdFraction;
@@ -366,9 +400,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     const processedTitles = new Set<string>();
     const totalOperations =
       eligibleTargets.length + (deleteUnmatched ? unmatchedTargets.length : 0);
-    const toastId = toast.loading(
-      `Processing 0/${totalOperations} targets...`,
-    );
+    const toastId = toast.loading(`Processing 0/${totalOperations} targets...`);
 
     // 1. Update priced targets
     for (let i = 0; i < eligibleTargets.length; i++) {
@@ -415,7 +447,10 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         errors.push(`${target.title}: ${errMsg}`);
       }
 
-      if (i < eligibleTargets.length - 1 || (deleteUnmatched && unmatchedTargets.length > 0)) {
+      if (
+        i < eligibleTargets.length - 1 ||
+        (deleteUnmatched && unmatchedTargets.length > 0)
+      ) {
         await new Promise((r) => setTimeout(r, 1000));
       }
     }
@@ -430,10 +465,15 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         );
         try {
           await window.electronAPI.dmarket.deleteTarget(target.targetId);
-          setTargets((prev) => prev.filter((t) => t.targetId !== target.targetId));
+          setTargets((prev) =>
+            prev.filter((t) => t.targetId !== target.targetId),
+          );
           deletedCount++;
         } catch (err: any) {
-          console.error(`Batch delete error for unmatched target ${target.title}:`, err);
+          console.error(
+            `Batch delete error for unmatched target ${target.title}:`,
+            err,
+          );
           failCount++;
           errors.push(`Delete ${target.title}: ${err?.message || "Failed"}`);
         }
@@ -755,6 +795,16 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                 <span style={{ fontSize: "10.5px" }}>
                   {showExtraOptions ? "Hide" : "Options"}
                 </span>
+                {driftThresholdPercent !== 2 && (
+                  <span
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      backgroundColor: "var(--so-accent-blue)",
+                    }}
+                  />
+                )}
                 {showExtraOptions ? (
                   <ChevronLeft size={13} />
                 ) : (
@@ -797,12 +847,15 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                   <input
                     type="number"
                     step="0.5"
-                    min="0.5"
+                    min="0"
                     max="20"
                     value={driftThresholdPercent}
-                    onChange={(e) =>
-                      setDriftThresholdPercent(parseFloat(e.target.value) || 2)
-                    }
+                    onChange={(e) => {
+                      const parsed = parseFloat(e.target.value);
+                      setDriftThresholdPercent(
+                        isNaN(parsed) ? 0 : Math.max(0, parsed),
+                      );
+                    }}
                     style={{
                       width: "42px",
                       padding: "1px 3px",
@@ -1165,13 +1218,19 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          color: isSelected ? "var(--so-primary)" : "var(--so-text-muted)",
+                          color: isSelected
+                            ? "var(--so-primary)"
+                            : "var(--so-text-muted)",
                           opacity: isSelected ? 1 : 0.45,
                           transition: "all 0.15s ease",
                         }}
                         title={isSelected ? "Selected" : "Click card to select"}
                       >
-                        {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                        {isSelected ? (
+                          <CheckSquare size={14} />
+                        ) : (
+                          <Square size={14} />
+                        )}
                       </div>
                     </div>
 
@@ -1266,10 +1325,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                     </div>
 
                     {/* Image Showcase */}
-                    <SkinImage
-                      src={imageUrl}
-                      alt={cleanTitle}
-                    />
+                    <SkinImage src={imageUrl} alt={cleanTitle} />
 
                     {/* Title & Wear Tags */}
                     <div

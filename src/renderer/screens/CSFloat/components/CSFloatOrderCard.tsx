@@ -119,7 +119,14 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
           height: "22px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            flexShrink: 0,
+          }}
+        >
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -320,10 +327,7 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
       </div>
 
       {/* Skin Image Showcase */}
-      <SkinImage
-        src={imageUrl}
-        alt={cleanTitle}
-      />
+      <SkinImage src={imageUrl} alt={cleanTitle} />
 
       {/* Title & Wear */}
       <div
@@ -498,7 +502,13 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
           </span>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <span style={{ color: "var(--so-text-muted)" }}>Accepted</span>
           <span
             className="tabular-nums"

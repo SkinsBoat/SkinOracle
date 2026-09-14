@@ -11,13 +11,17 @@ import { formatCsfloatItemName } from "./csfloatUrls";
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-export function handleCsfloatReferenceLink(name: string | undefined | null): string {
+export function handleCsfloatReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://csfloat.com/search?sort_by=lowest_price";
   const formattedName = formatCsfloatItemName(name);
   return `https://csfloat.com/search?market_hash_name=${encodeURIComponent(formattedName)}&sort_by=lowest_price`;
 }
 
-export function handleDmarketReferenceLink(name: string | undefined | null): string {
+export function handleDmarketReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://dmarket.com/ingame-items/item-list/csgo-skins";
   const encodedTitle = encodeURIComponent(name);
   const base = "https://dmarket.com/ingame-items/item-list/csgo-skins";
@@ -27,7 +31,10 @@ export function handleDmarketReferenceLink(name: string | undefined | null): str
   return `${base}?category_1=not_souvenir&category_0=not_stattrak_tm&title=${encodedTitle}`;
 }
 
-export function handleWaxpeerReferenceLink(name: string | undefined | null, skinId?: string): string {
+export function handleWaxpeerReferenceLink(
+  name: string | undefined | null,
+  skinId?: string,
+): string {
   if (!name) return "https://waxpeer.com";
   // Format exact market hash name into URL search param or slug
   const encodedName = encodeURIComponent(name);
@@ -37,7 +44,9 @@ export function handleWaxpeerReferenceLink(name: string | undefined | null, skin
   return `https://waxpeer.com/?game=csgo&sort=ASC&order=price&all=0&exact=0&search=${encodedName}`;
 }
 
-export function handleAvanMarketReferenceLink(name: string | undefined | null): string {
+export function handleAvanMarketReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://avan.market/en/market/cs";
   const isStatTrak = /StatTrak™/i.test(name);
   const isSouvenir = /Souvenir/i.test(name);
@@ -49,22 +58,27 @@ export function handleAvanMarketReferenceLink(name: string | undefined | null): 
     .trim();
 
   const encodedName = encodeURIComponent(cleanName).replace(/%20/g, "+");
-  
+
   let specialParam = "";
   if (isStatTrak) {
-    specialParam = "&special=" + encodeURIComponent("StatTrak™").replace(/%20/g, "+");
+    specialParam =
+      "&special=" + encodeURIComponent("StatTrak™").replace(/%20/g, "+");
   } else if (isSouvenir) {
     specialParam = "&special=Souvenir";
   } else {
-    specialParam = "&special=" + encodeURIComponent("Without StatTrak™").replace(/%20/g, "+");
+    specialParam =
+      "&special=" +
+      encodeURIComponent("Without StatTrak™").replace(/%20/g, "+");
   }
 
   return `https://avan.market/en/market/cs?name=${encodedName}${specialParam}`;
 }
 
-export function handleLisSkinsReferenceLink(name: string | undefined | null): string {
+export function handleLisSkinsReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://lis-skins.com/market/csgo/";
-  
+
   // Format into slug: lowercase, replacing spaces/special chars with hyphens
   const slug = name
     .toLowerCase()
@@ -77,13 +91,17 @@ export function handleLisSkinsReferenceLink(name: string | undefined | null): st
   return `https://lis-skins.com/market/csgo/${slug}/`;
 }
 
-export function handleBitSkinsReferenceLink(name: string | undefined | null): string {
+export function handleBitSkinsReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://bitskins.com/market/cs2";
   const encodedSkinName = encodeURIComponent(name).replace(/%20/g, "+");
   return `https://bitskins.com/market/cs2?search={"strict_search":1,"where":{"skin_name":"${encodedSkinName}"}}`;
 }
 
-export function handleSkinflowReferenceLink(name: string | undefined | null): string {
+export function handleSkinflowReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://skinflow.gg/buy";
   const isStatTrak = /StatTrak™/i.test(name);
   const isSouvenir = /Souvenir/i.test(name);
@@ -103,13 +121,17 @@ export function handleSkinflowReferenceLink(name: string | undefined | null): st
   return `https://skinflow.gg/buy?search=${urlSafeName}${flags}`;
 }
 
-export function handleWhiteMarketReferenceLink(name: string | undefined | null): string {
+export function handleWhiteMarketReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://white.market/market";
   const encodedNameHash = encodeURIComponent(name);
   return `https://white.market/item?appId=730&nameHash=${encodedNameHash}`;
 }
 
-export function handleSkinoutReferenceLink(name: string | undefined | null): string {
+export function handleSkinoutReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://skinout.gg/en/market/";
   const statTrakRegex = /(StatTrak™)/i;
   const statTrakMatch = name.match(statTrakRegex);
@@ -130,9 +152,11 @@ export function handleSkinoutReferenceLink(name: string | undefined | null): str
   return `https://skinout.gg/en/market/${formattedName}`;
 }
 
-export function handleCsgoMarketReferenceLink(name: string | undefined | null): string {
+export function handleCsgoMarketReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://market.csgo.com/en/";
-  
+
   const isStatTrak = /StatTrak™/i.test(name);
   const isSouvenir = /Souvenir/i.test(name);
 
@@ -149,18 +173,24 @@ export function handleCsgoMarketReferenceLink(name: string | undefined | null): 
   return `https://market.csgo.com/en/?search=${encodedSearch}&categories=${encodedCategory}`;
 }
 
-export function handleBuff163ReferenceLink(name: string | undefined | null): string {
+export function handleBuff163ReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://buff.163.com/market/csgo#tab=selling&page_num=1";
   return `https://buff.163.com/market/csgo#tab=selling&page_num=1&search=${encodeURIComponent(name)}`;
 }
 
-export function handleBuffMarketReferenceLink(name: string | undefined | null): string {
+export function handleBuffMarketReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://buff.market/market/csgo#tab=selling&page_num=1";
   const encodedName = encodeURIComponent(name);
   return `https://buff.market/market/goods/cs2/${encodedName}`;
 }
 
-export function handleManncoReferenceLink(name: string | undefined | null): string {
+export function handleManncoReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://mannco.store/csgo";
 
   // Slug format: lowercase, remove special characters except hyphens and spaces, replace spaces with hyphens
@@ -175,7 +205,9 @@ export function handleManncoReferenceLink(name: string | undefined | null): stri
   return `https://mannco.store/item/730-${slug}`;
 }
 
-export function handleSkinlandReferenceLink(name: string | undefined | null): string {
+export function handleSkinlandReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://skin.land/market/cs2/";
 
   // Format into slug: lowercase, replace spaces/pipes with hyphens, encode special unicode characters like ★
@@ -193,29 +225,43 @@ export function handleSkinlandReferenceLink(name: string | undefined | null): st
   return `https://skin.land/market/cs2/${encodedSlug}`;
 }
 
-export function handleSkinportReferenceLink(name: string | undefined | null): string {
+export function handleSkinportReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://skinport.com/market";
   return `https://skinport.com/market?search=${encodeURIComponent(name)}`;
 }
 
-export function handleSteamReferenceLink(name: string | undefined | null): string {
+export function handleSteamReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://steamcommunity.com/market/";
   return `https://steamcommunity.com/market/listings/730/${encodeURIComponent(name)}`;
 }
 
-export function handleCsMoneyReferenceLink(name: string | undefined | null): string {
+export function handleCsMoneyReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://cs.money/csgo/store/";
   return `https://cs.money/csgo/store/?search=${encodeURIComponent(name)}`;
 }
 
-export function handleTradeitReferenceLink(name: string | undefined | null): string {
+export function handleTradeitReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://tradeit.gg/csgo/store";
 
   const isStatTrak = /StatTrak™/i.test(name);
   const isSouvenir = /Souvenir/i.test(name);
 
-  const statTrakParam = isStatTrak ? "statTrak=Has+StatTrak" : "statTrak=No+StatTrak";
-  const souvenirParam = isSouvenir ? "souvenir=Has+Souvenir" : (isStatTrak ? "souvenir=No+Souvenir" : "");
+  const statTrakParam = isStatTrak
+    ? "statTrak=Has+StatTrak"
+    : "statTrak=No+StatTrak";
+  const souvenirParam = isSouvenir
+    ? "souvenir=Has+Souvenir"
+    : isStatTrak
+      ? "souvenir=No+Souvenir"
+      : "";
 
   const encodedSearch = encodeURIComponent(name).replace(/%20/g, "+");
   const params = [statTrakParam, souvenirParam, `search=${encodedSearch}`]
@@ -225,12 +271,16 @@ export function handleTradeitReferenceLink(name: string | undefined | null): str
   return `https://tradeit.gg/csgo/store?${params}`;
 }
 
-export function handleSkinSwapReferenceLink(name: string | undefined | null): string {
+export function handleSkinSwapReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://skinswap.com/buy";
   return `https://skinswap.com/buy?search=${encodeURIComponent(name)}`;
 }
 
-export function handleSkinsComReferenceLink(name: string | undefined | null): string {
+export function handleSkinsComReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://skins.com";
 
   const isStatTrak = /StatTrak™/i.test(name);
@@ -244,15 +294,22 @@ export function handleSkinsComReferenceLink(name: string | undefined | null): st
     "battle-scarred": "bs",
   };
 
-  const exteriorMatch = name.match(/\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i);
-  const exteriorCode = exteriorMatch ? exteriorMap[exteriorMatch[1].toLowerCase()] : null;
+  const exteriorMatch = name.match(
+    /\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i,
+  );
+  const exteriorCode = exteriorMatch
+    ? exteriorMap[exteriorMatch[1].toLowerCase()]
+    : null;
 
   // Clean item name by stripping StatTrak™, Souvenir, ★ prefix and exterior suffix
   const cleanName = name
     .replace(/^★\s*/, "")
     .replace(/StatTrak™\s*/i, "")
     .replace(/Souvenir\s*/i, "")
-    .replace(/\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i, "")
+    .replace(
+      /\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i,
+      "",
+    )
     .replace(/\s*\|\s*/g, "-")
     .toLowerCase()
     .trim()
@@ -272,21 +329,30 @@ export function handleSkinsComReferenceLink(name: string | undefined | null): st
   return `https://skins.com/item/${cleanName}${queryString}`;
 }
 
-export function handleSkinBaronReferenceLink(name: string | undefined | null): string {
+export function handleSkinBaronReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://skinbaron.de/en/csgo";
 
   const isStatTrak = /StatTrak™/i.test(name);
 
   // Exterior mapping: (Factory New) -> Factory-New, (Minimal Wear) -> Minimal-Wear, (Field-Tested) -> Field-Tested, (Well-Worn) -> Well-Worn, (Battle-Scarred) -> Battle-Scarred
-  const exteriorMatch = name.match(/\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i);
-  const exteriorFormatted = exteriorMatch ? exteriorMatch[1].replace(/\s+/g, "-") : null;
+  const exteriorMatch = name.match(
+    /\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i,
+  );
+  const exteriorFormatted = exteriorMatch
+    ? exteriorMatch[1].replace(/\s+/g, "-")
+    : null;
 
   // Remove ★, StatTrak™, Souvenir, and exterior suffix
   const cleanName = name
     .replace(/^★\s*/, "")
     .replace(/StatTrak™\s*/i, "")
     .replace(/Souvenir\s*/i, "")
-    .replace(/\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i, "")
+    .replace(
+      /\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i,
+      "",
+    )
     .trim();
 
   // Split into weapon prefix and skin title if pipe exists (e.g., "Glock-18 | Shinobu" or "Bowie Knife | Autotronic")
@@ -296,7 +362,12 @@ export function handleSkinBaronReferenceLink(name: string | undefined | null): s
 
   if (cleanName.includes("Gloves") || cleanName.includes("Wraps")) {
     category = "Gloves";
-  } else if (cleanName.includes("Knife") || cleanName.includes("Bayonet") || cleanName.includes("Karambit") || cleanName.includes("Daggers")) {
+  } else if (
+    cleanName.includes("Knife") ||
+    cleanName.includes("Bayonet") ||
+    cleanName.includes("Karambit") ||
+    cleanName.includes("Daggers")
+  ) {
     category = "Knife";
   }
 
@@ -324,25 +395,38 @@ export function handleSkinBaronReferenceLink(name: string | undefined | null): s
   return `${pathParts.join("/")}?${queryParams.join("&")}`;
 }
 
-export function handleShadowPayReferenceLink(name: string | undefined | null): string {
+export function handleShadowPayReferenceLink(
+  name: string | undefined | null,
+): string {
   if (!name) return "https://shadowpay.com/csgo-items";
 
   const isStatTrak = /StatTrak™/i.test(name);
   const isSouvenir = /Souvenir/i.test(name);
 
   // Extract exterior condition e.g. "(Factory New)", "(Field-Tested)", etc.
-  const exteriorMatch = name.match(/\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i);
+  const exteriorMatch = name.match(
+    /\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i,
+  );
   const exterior = exteriorMatch ? exteriorMatch[1] : null;
 
   // Clean name by removing StatTrak™, Souvenir, and exterior suffix
   const cleanName = name
     .replace(/StatTrak™\s*/i, "")
     .replace(/Souvenir\s*/i, "")
-    .replace(/\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i, "")
+    .replace(
+      /\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)/i,
+      "",
+    )
     .trim();
 
-  const exteriorParam = exterior ? `exteriors=${encodeURIComponent(JSON.stringify([exterior]))}` : "";
-  const statTrakParam = isStatTrak ? "is_stattrak=1" : (isSouvenir ? "is_stattrak" : "is_stattrak=0");
+  const exteriorParam = exterior
+    ? `exteriors=${encodeURIComponent(JSON.stringify([exterior]))}`
+    : "";
+  const statTrakParam = isStatTrak
+    ? "is_stattrak=1"
+    : isSouvenir
+      ? "is_stattrak"
+      : "is_stattrak=0";
   const souvenirParam = isSouvenir ? "is_souvenir=1" : "";
   const searchParam = `search=${encodeURIComponent(cleanName).replace(/%20/g, "+")}`;
 

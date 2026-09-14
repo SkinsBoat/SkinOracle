@@ -12,7 +12,10 @@ describe("Oracle Payload Compression & Capping", () => {
         { m: "skinport", p: 102.1 + i },
       ],
       trendHistory: Array.from({ length: 30 }, (_, d) => 100.0 + d * 0.1),
-      trendLabels: Array.from({ length: 30 }, (_, d) => `2026-08-${String(d + 1).padStart(2, "0")}`),
+      trendLabels: Array.from(
+        { length: 30 },
+        (_, d) => `2026-08-${String(d + 1).padStart(2, "0")}`,
+      ),
     }));
 
     const rawJson = JSON.stringify({ items, options: {} });

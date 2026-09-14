@@ -165,7 +165,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
       if (currentPriceDollar > 0 && targetPrice > 0) {
         drift = (currentPriceDollar - targetPrice) / targetPrice;
         driftPercent = drift * 100;
-        const thresholdFraction = (threshold || 2) / 100;
+        const thresholdFraction = (threshold ?? 2) / 100;
         isOverpriced = drift > thresholdFraction;
         isUnderpriced = drift < -thresholdFraction;
       }
@@ -447,7 +447,10 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
       if (res.failed && res.failed.length > 0) {
         const failItem = res.failed[0];
         const failMsg =
-          failItem?.message || failItem?.code || JSON.stringify(failItem) || "Update failed";
+          failItem?.message ||
+          failItem?.code ||
+          JSON.stringify(failItem) ||
+          "Update failed";
         console.error("[ListingsTab] ❌ Quick update failed:", failItem);
         toast.error(`Failed to update offer: ${failMsg}`, { id: toastId });
         return;
@@ -1525,10 +1528,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                     </div>
 
                     {/* Image Showcase */}
-                    <SkinImage
-                      src={offer.imageUrl}
-                      alt={cleanTitle}
-                    />
+                    <SkinImage src={offer.imageUrl} alt={cleanTitle} />
 
                     {/* Title & Wear & Float */}
                     <div
@@ -1803,8 +1803,8 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
               />
               <span>
                 <strong style={{ color: "#ffffff" }}>Steam Sync Notice:</strong>{" "}
-                DMarket caches your Steam inventory.
-                If newly bought or traded CS2 items aren&apos;t showing, click{" "}
+                DMarket caches your Steam inventory. If newly bought or traded
+                CS2 items aren&apos;t showing, click{" "}
                 <strong style={{ color: "var(--so-accent-cyan)" }}>
                   Steam Re-sync
                 </strong>{" "}
@@ -2114,7 +2114,9 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                     <SkinImage
                       src={itemImageUrl}
                       alt={cleanTitle}
-                      fallbackItemName={title && title !== "CS2 Item" ? title : undefined}
+                      fallbackItemName={
+                        title && title !== "CS2 Item" ? title : undefined
+                      }
                     />
 
                     {/* Title & Wear & Float */}

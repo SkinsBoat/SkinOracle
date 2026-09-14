@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { Target, Zap, Tag } from "lucide-react";
 import { DmarketTargetItem } from "../../../shared/types";
-import { safeGetItem } from "../../utils/storage";
+import {
+  getPersistedThreshold,
+  setPersistedThreshold,
+} from "../../utils/storage";
+
 import { useLayoutStore } from "../../store/useLayoutStore";
 import { useTrendStore } from "../../store/useTrendStore";
 import {
@@ -57,6 +61,24 @@ export default function DmarketWorkstation() {
   const [mainTab, setMainTab] = useState<"target" | "soclose" | "listings">(
     "target",
   );
+
+  // Drift Action Threshold (default 2% difference, persisted across app restarts)
+  const [driftThresholdPercent, setDriftThresholdPercent] = useState<number>(
+    () =>
+      getPersistedThreshold(
+        "dmarket_drift_threshold_percent",
+        "workstation_buyorders_drift_threshold",
+        2,
+      ),
+  );
+
+  useEffect(() => {
+    setPersistedThreshold(
+      "dmarket_drift_threshold_percent",
+      driftThresholdPercent,
+      "workstation_buyorders_drift_threshold",
+    );
+  }, [driftThresholdPercent]);
 
   // Sidebar expand/collapse tracking for full-width floating panel positioning
   const isSidebarExpanded = useLayoutStore((state) => state.isSidebarExpanded);
@@ -339,6 +361,8 @@ export default function DmarketWorkstation() {
             setEditingTargetAnalysis(analysis);
           }}
           onOpenMarket={handleOpenDmarketMarket}
+          driftThresholdPercent={driftThresholdPercent}
+          setDriftThresholdPercent={setDriftThresholdPercent}
         />
       )}
 
@@ -361,6 +385,7 @@ export default function DmarketWorkstation() {
           checkApiKey={checkApiKey}
           onOpenLookupModal={handleOpenLookupModal}
           onOpenMarket={handleOpenDmarketMarket}
+          driftThresholdPercent={driftThresholdPercent}
         />
       )}
 

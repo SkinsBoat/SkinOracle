@@ -54,7 +54,12 @@ export const TrendDetailedChart: React.FC<TrendDetailedChartProps> = ({
   const firstVal = validData[0] || 0;
   const lastVal = validData[validData.length - 1] || 0;
   const deltaPct = firstVal > 0 ? ((lastVal - firstVal) / firstVal) * 100 : 0;
-  const effectiveChange = validData.length >= 2 ? deltaPct : (typeof momentum === "number" && !isNaN(momentum) ? momentum : 0);
+  const effectiveChange =
+    validData.length >= 2
+      ? deltaPct
+      : typeof momentum === "number" && !isNaN(momentum)
+        ? momentum
+        : 0;
 
   const isUp = effectiveChange >= 2.0;
   const isDown = effectiveChange <= -2.0;

@@ -52,7 +52,10 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
           }
         }
       } catch (err) {
-        console.error("CSFloatLookupModal: Failed to auto-fetch item cache:", err);
+        console.error(
+          "CSFloatLookupModal: Failed to auto-fetch item cache:",
+          err,
+        );
       }
     };
     fetchCache();
@@ -64,9 +67,7 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
   const activeCache = item.cacheItem || internalCacheItem;
 
   const cacheListings: any[] =
-    activeCache?.l && Array.isArray(activeCache.l)
-      ? activeCache.l
-      : [];
+    activeCache?.l && Array.isArray(activeCache.l) ? activeCache.l : [];
 
   const validPrices = cacheListings
     .map((m: any) => (typeof m.p === "number" ? m.p : parseFloat(m.p)))
@@ -78,7 +79,8 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
     isMarketMatch(m.m, item.market || "csfloat"),
   );
   const resolvedMarketPrice =
-    item.marketPrice || (targetMarketEntry?.p ? Number(targetMarketEntry.p) : null);
+    item.marketPrice ||
+    (targetMarketEntry?.p ? Number(targetMarketEntry.p) : null);
 
   return (
     <div
@@ -127,9 +129,10 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
             <img
               src={
                 item.iconUrl
-                  ? (item.iconUrl.startsWith("http://") || item.iconUrl.startsWith("https://")
-                      ? item.iconUrl
-                      : `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`)
+                  ? item.iconUrl.startsWith("http://") ||
+                    item.iconUrl.startsWith("https://")
+                    ? item.iconUrl
+                    : `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`
                   : activeCache?.icon_url
                     ? `https://community.cloudflare.steamstatic.com/economy/image/${activeCache.icon_url}`
                     : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`
@@ -253,9 +256,7 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
                 marginTop: "2px",
               }}
             >
-              {resolvedMarketPrice
-                ? `$${resolvedMarketPrice.toFixed(2)}`
-                : "—"}
+              {resolvedMarketPrice ? `$${resolvedMarketPrice.toFixed(2)}` : "—"}
             </div>
           </div>
 
@@ -431,7 +432,8 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
               fontSize: "12px",
             }}
           >
-            <ExternalLink size={13} /> View on {getHumanMarketName(item.market || "csfloat")} Market
+            <ExternalLink size={13} /> View on{" "}
+            {getHumanMarketName(item.market || "csfloat")} Market
           </button>
         </div>
       </div>

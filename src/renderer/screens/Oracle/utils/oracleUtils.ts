@@ -401,7 +401,10 @@ export function evaluateTrendHealth(
       hasContinuityGap: false,
       isInsufficient: true,
       status: "empty",
-      badgeText: days > 0 ? `▲ Baseline Building (${days}/3 Days)` : "○ No History (0/3 Days)",
+      badgeText:
+        days > 0
+          ? `▲ Baseline Building (${days}/3 Days)`
+          : "○ No History (0/3 Days)",
       badgeClass: days > 0 ? "badge-warning" : "badge-ghost",
       warningMessage:
         "No trend snapshots recorded yet. Build price cache in Step 1 daily to accumulate history.",
@@ -482,4 +485,3 @@ export function evaluateTrendHealth(
     warningMessage,
   };
 }
-

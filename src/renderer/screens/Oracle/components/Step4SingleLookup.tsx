@@ -58,7 +58,9 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
         toast.error("Clipboard is empty");
       }
     } catch (err: any) {
-      toast.error("Failed to read clipboard: " + (err?.message || "Permission denied"));
+      toast.error(
+        "Failed to read clipboard: " + (err?.message || "Permission denied"),
+      );
     }
   };
 
@@ -588,7 +590,8 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                     <span
                                       style={{
                                         fontSize: "11px",
-                                        color: "var(--so-warning-text, #f59e0b)",
+                                        color:
+                                          "var(--so-warning-text, #f59e0b)",
                                         marginLeft: "4px",
                                       }}
                                       title="Some market sources omitted listing quantity"
@@ -635,10 +638,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                       </div>
 
                       {/* 14-Day Historical Trend Intelligence Graph */}
-                      <TrendDetailedChart
-                        name={r.name}
-                        height={115}
-                      />
+                      <TrendDetailedChart name={r.name} height={115} />
 
                       {/* Centralized Buy & Listing Target Box */}
                       {(() => {
@@ -896,7 +896,8 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                             style={{
                                               display: "inline-flex",
                                               alignItems: "center",
-                                              color: "var(--so-text-muted, #94a3b8)",
+                                              color:
+                                                "var(--so-text-muted, #94a3b8)",
                                               transition: "color 0.15s ease",
                                             }}
                                             onMouseEnter={(e) =>

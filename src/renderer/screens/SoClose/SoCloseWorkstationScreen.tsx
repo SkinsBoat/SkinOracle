@@ -64,7 +64,8 @@ export default function SoCloseWorkstationScreen() {
 
   const [soCloseResults, setSoCloseResults] = useState<SoCloseResultItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
-  const [lookupModalItem, setLookupModalItem] = useState<LookupModalItemData | null>(null);
+  const [lookupModalItem, setLookupModalItem] =
+    useState<LookupModalItemData | null>(null);
 
   const handleOpenLookupModal = async (
     name: string,
@@ -77,7 +78,7 @@ export default function SoCloseWorkstationScreen() {
     try {
       if (window.electronAPI?.skinsnipe?.getCache) {
         const cache = await window.electronAPI.skinsnipe.getCache();
-        const cacheItem = cache ? (cache[name] || cache[name.trim()]) : null;
+        const cacheItem = cache ? cache[name] || cache[name.trim()] : null;
         if (cacheItem) {
           setLookupModalItem((prev) =>
             prev && prev.name === name ? { ...prev, cacheItem } : prev,
@@ -85,7 +86,10 @@ export default function SoCloseWorkstationScreen() {
         }
       }
     } catch (err) {
-      console.error("[SoCloseWorkstationScreen] Failed to load cache for lookup modal:", err);
+      console.error(
+        "[SoCloseWorkstationScreen] Failed to load cache for lookup modal:",
+        err,
+      );
     }
   };
   const [cachedMarkets, setCachedMarkets] = useState<string[]>([]);
@@ -103,7 +107,11 @@ export default function SoCloseWorkstationScreen() {
   const availableMarkets = useMemo(() => {
     const marketSet = new Set<string>();
 
-    if (cachedMarkets && Array.isArray(cachedMarkets) && cachedMarkets.length > 0) {
+    if (
+      cachedMarkets &&
+      Array.isArray(cachedMarkets) &&
+      cachedMarkets.length > 0
+    ) {
       cachedMarkets.forEach((m) => marketSet.add(m));
     }
 
@@ -128,16 +136,18 @@ export default function SoCloseWorkstationScreen() {
   }, [cachedMarkets, selectedMarkets, soCloseResults]);
 
   // Filter & Scanner Config States
-  const [selectedFilterMarkets, setSelectedFilterMarkets] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("soclose_selected_filter_markets");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) { }
-    return ["ALL"];
-  });
+  const [selectedFilterMarkets, setSelectedFilterMarkets] = useState<string[]>(
+    () => {
+      try {
+        const saved = localStorage.getItem("soclose_selected_filter_markets");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+      return ["ALL"];
+    },
+  );
 
   const [hideTradeMarkets, setHideTradeMarkets] = useState<boolean>(() => {
     try {
@@ -185,8 +195,11 @@ export default function SoCloseWorkstationScreen() {
     const solo = [marketId];
     setSelectedFilterMarkets(solo);
     try {
-      localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(solo));
-    } catch (e) { }
+      localStorage.setItem(
+        "soclose_selected_filter_markets",
+        JSON.stringify(solo),
+      );
+    } catch (e) {}
     toast.success(`Solo isolated: ${getMarketDisplayName(marketId)}`, {
       id: "solo-market-toast",
       duration: 2000,
@@ -196,22 +209,26 @@ export default function SoCloseWorkstationScreen() {
   const handleSelectAllMarkets = () => {
     setSelectedFilterMarkets(["ALL"]);
     try {
-      localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(["ALL"]));
+      localStorage.setItem(
+        "soclose_selected_filter_markets",
+        JSON.stringify(["ALL"]),
+      );
     } catch (e) {}
   };
 
   const handleDeselectAllMarkets = () => {
     setSelectedFilterMarkets([]);
     try {
-      localStorage.setItem("soclose_selected_filter_markets", JSON.stringify([]));
+      localStorage.setItem(
+        "soclose_selected_filter_markets",
+        JSON.stringify([]),
+      );
     } catch (e) {}
   };
 
   const handleToggleMarketFilter = (marketId: string) => {
     setSelectedFilterMarkets((prev) => {
-      const current = prev.includes("ALL")
-        ? [...availableMarkets]
-        : [...prev];
+      const current = prev.includes("ALL") ? [...availableMarkets] : [...prev];
       const exists = current.some((m) => isMarketMatch(m, marketId));
       let updated: string[];
       if (exists) {
@@ -223,7 +240,10 @@ export default function SoCloseWorkstationScreen() {
         updated = ["ALL"];
       }
       try {
-        localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(updated));
+        localStorage.setItem(
+          "soclose_selected_filter_markets",
+          JSON.stringify(updated),
+        );
       } catch (e) {
         console.error("Failed to save soclose filter markets:", e);
       }
@@ -233,10 +253,13 @@ export default function SoCloseWorkstationScreen() {
 
   const [minPrice, setMinPrice] = useState<string>("1");
   const [maxPrice, setMaxPrice] = useState<string>("250");
-  const [soCloseMaxCloseness, setSoCloseMaxCloseness] = useState<string>("1.08"); // 8% distance ceiling
+  const [soCloseMaxCloseness, setSoCloseMaxCloseness] =
+    useState<string>("1.08"); // 8% distance ceiling
   const [soCloseMinSssScore, setSoCloseMinSssScore] = useState<string>("1.2"); // Supply stability threshold
   const [resultSearchQuery, setResultSearchQuery] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"closeness" | "profit" | "price" | "sss">("closeness");
+  const [sortBy, setSortBy] = useState<
+    "closeness" | "profit" | "price" | "sss"
+  >("closeness");
 
   const [allowedWears, setAllowedWears] = useState({
     fn: true,
@@ -260,7 +283,7 @@ export default function SoCloseWorkstationScreen() {
             isFetching: status.isFetching ?? false,
           }));
         }
-      } catch (e) { }
+      } catch (e) {}
     }
 
     if (window.electronAPI?.oracle) {
@@ -273,7 +296,7 @@ export default function SoCloseWorkstationScreen() {
             lastBuiltAt: res.storedAt || null,
           }));
         }
-      } catch (e) { }
+      } catch (e) {}
     }
   };
 
@@ -281,7 +304,9 @@ export default function SoCloseWorkstationScreen() {
     setIsRefreshingStatus(true);
     try {
       await refreshStatuses();
-      toast.success("Refreshed price cache & accepted prices data status!", { id: "status-refresh" });
+      toast.success("Refreshed price cache & accepted prices data status!", {
+        id: "status-refresh",
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -298,8 +323,8 @@ export default function SoCloseWorkstationScreen() {
     }, 10000);
 
     // Live subscription to cache status broadcast updates
-    const unsub =
-      window.electronAPI?.skinsnipe?.onCacheStatusUpdated?.((status) => {
+    const unsub = window.electronAPI?.skinsnipe?.onCacheStatusUpdated?.(
+      (status) => {
         if (status) {
           setCacheStatus((prev) => ({
             ...prev,
@@ -307,7 +332,8 @@ export default function SoCloseWorkstationScreen() {
             isFetching: status.isFetching ?? false,
           }));
         }
-      });
+      },
+    );
 
     return () => {
       clearInterval(interval);
@@ -344,7 +370,10 @@ export default function SoCloseWorkstationScreen() {
           setCachedMarkets(Array.from(foundMarkets));
         }
       } catch (err) {
-        console.warn("[SoCloseWorkstationScreen] Failed to extract markets from price cache:", err);
+        console.warn(
+          "[SoCloseWorkstationScreen] Failed to extract markets from price cache:",
+          err,
+        );
       } finally {
         if (isMounted) {
           setIsLoadingMarkets(false);
@@ -362,11 +391,14 @@ export default function SoCloseWorkstationScreen() {
   const runUniversalSoCloseScan = async () => {
     if (isScanning) return;
     setIsScanning(true);
-    const toastId = toast.loading("Running SoClose universal opportunity scan...");
+    const toastId = toast.loading(
+      "Running SoClose universal opportunity scan...",
+    );
 
     try {
-      const acceptedRes: any =
-        await (window.electronAPI.oracle as any).getAcceptedPrices();
+      const acceptedRes: any = await (
+        window.electronAPI.oracle as any
+      ).getAcceptedPrices();
       if (
         !acceptedRes ||
         !acceptedRes.map ||
@@ -384,16 +416,22 @@ export default function SoCloseWorkstationScreen() {
         await window.electronAPI.skinsnipe.getCache();
 
       if (!priceCache || Object.keys(priceCache).length === 0) {
-        toast.error("Market price cache is empty. Please fetch or load market prices first.", {
-          id: toastId,
-        });
+        toast.error(
+          "Market price cache is empty. Please fetch or load market prices first.",
+          {
+            id: toastId,
+          },
+        );
         setIsScanning(false);
         return;
       }
 
       const minP = Math.max(0, parseFloat(minPrice) || 0);
       const maxP = Math.max(0, parseFloat(maxPrice) || 999999);
-      const maxCloseness = Math.max(1.0, parseFloat(soCloseMaxCloseness) || 1.08);
+      const maxCloseness = Math.max(
+        1.0,
+        parseFloat(soCloseMaxCloseness) || 1.08,
+      );
       const minSss = parseFloat(soCloseMinSssScore) || 0;
 
       const targetMarkets = isAllSelected
@@ -406,7 +444,8 @@ export default function SoCloseWorkstationScreen() {
         const cacheItem = priceCache[itemName];
         if (!cacheItem || !cacheItem.l || !Array.isArray(cacheItem.l)) continue;
 
-        const acceptedEntry = acceptedRes.map[itemName] || acceptedRes.map[itemName.trim()];
+        const acceptedEntry =
+          acceptedRes.map[itemName] || acceptedRes.map[itemName.trim()];
         if (!acceptedEntry) continue;
 
         const acceptedPrice = acceptedEntry.acceptedPrice;
@@ -422,14 +461,18 @@ export default function SoCloseWorkstationScreen() {
         if (nameLower.includes("(minimal wear)") && !allowedWears.mw) continue;
         if (nameLower.includes("(field-tested)") && !allowedWears.ft) continue;
         if (nameLower.includes("(well-worn)") && !allowedWears.ww) continue;
-        if (nameLower.includes("(battle-scarred)") && !allowedWears.bs) continue;
+        if (nameLower.includes("(battle-scarred)") && !allowedWears.bs)
+          continue;
 
         for (const listing of cacheItem.l) {
-          if (!listing || typeof listing.p !== "number" || listing.p <= 0) continue;
+          if (!listing || typeof listing.p !== "number" || listing.p <= 0)
+            continue;
           const canonicalM = toCanonicalMarketId(listing.m);
 
           const matchesMarket = targetMarkets.some(
-            (targetM) => isMarketMatch(canonicalM, targetM) || isMarketMatch(listing.m, targetM),
+            (targetM) =>
+              isMarketMatch(canonicalM, targetM) ||
+              isMarketMatch(listing.m, targetM),
           );
           if (!matchesMarket) continue;
 
@@ -463,7 +506,10 @@ export default function SoCloseWorkstationScreen() {
       for (const item of foundResults) {
         const key = `${item.name}__${item.market}`;
         const existing = uniqueMap.get(key);
-        if (!existing || item.currentMarketPrice < existing.currentMarketPrice) {
+        if (
+          !existing ||
+          item.currentMarketPrice < existing.currentMarketPrice
+        ) {
           uniqueMap.set(key, item);
         }
       }
@@ -502,15 +548,26 @@ export default function SoCloseWorkstationScreen() {
     list.sort((a, b) => {
       if (sortBy === "closeness") return a.closeness - b.closeness;
       if (sortBy === "profit")
-        return b.acceptedPrice - b.currentMarketPrice - (a.acceptedPrice - a.currentMarketPrice);
-      if (sortBy === "price") return a.currentMarketPrice - b.currentMarketPrice;
+        return (
+          b.acceptedPrice -
+          b.currentMarketPrice -
+          (a.acceptedPrice - a.currentMarketPrice)
+        );
+      if (sortBy === "price")
+        return a.currentMarketPrice - b.currentMarketPrice;
       if (sortBy === "sss")
         return (b.supplyStabilityScore || 0) - (a.supplyStabilityScore || 0);
       return 0;
     });
 
     return list;
-  }, [soCloseResults, selectedFilterMarkets, isAllSelected, resultSearchQuery, sortBy]);
+  }, [
+    soCloseResults,
+    selectedFilterMarkets,
+    isAllSelected,
+    resultSearchQuery,
+    sortBy,
+  ]);
 
   // Market Breakdown Counts
   const marketCountsMap = useMemo(() => {
@@ -525,7 +582,8 @@ export default function SoCloseWorkstationScreen() {
   const getMarketCount = (marketId: string) => {
     if (marketCountsMap[marketId]) return marketCountsMap[marketId];
     const canonical = toCanonicalMarketId(marketId);
-    if (canonical && marketCountsMap[canonical]) return marketCountsMap[canonical];
+    if (canonical && marketCountsMap[canonical])
+      return marketCountsMap[canonical];
     for (const [key, count] of Object.entries(marketCountsMap)) {
       if (isMarketMatch(key, marketId)) return count;
     }
@@ -595,11 +653,10 @@ export default function SoCloseWorkstationScreen() {
               marginBottom: 0,
             }}
           >
-            Universal scan engine across all active markets to surface instant arbitrage & near-miss deals.
+            Universal scan engine across all active markets to surface instant
+            arbitrage & near-miss deals.
           </p>
         </div>
-
-
       </div>
 
       {/* Main Workstation Container */}
@@ -627,7 +684,14 @@ export default function SoCloseWorkstationScreen() {
             border: "1px solid var(--so-border-subtle)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "20px",
+              flexWrap: "wrap",
+            }}
+          >
             {/* Box 1: Market Price Cache Status */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div
@@ -645,19 +709,43 @@ export default function SoCloseWorkstationScreen() {
                 <Database size={16} style={{ color: "#38bdf8" }} />
               </div>
               <div>
-                <div style={{ fontSize: "11px", color: "var(--so-text-muted)", fontWeight: 700 }}>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--so-text-muted)",
+                    fontWeight: 700,
+                  }}
+                >
                   Market Price Cache
                 </div>
-                <div style={{ fontSize: "12.5px", fontWeight: 800, color: "var(--so-text-primary)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <div
+                  style={{
+                    fontSize: "12.5px",
+                    fontWeight: 800,
+                    color: "var(--so-text-primary)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
                   {cacheStatus.itemCount > 0 ? (
-                    <span>{cacheStatus.itemCount.toLocaleString()} listings</span>
+                    <span>
+                      {cacheStatus.itemCount.toLocaleString()} listings
+                    </span>
                   ) : (
                     <span style={{ color: "#f59e0b" }}>No Cache Data</span>
                   )}
                   {cacheStatus.lastFetchedAt && (
                     <span
                       title={`Fetched at: ${new Date(cacheStatus.lastFetchedAt).toLocaleString()}`}
-                      style={{ fontSize: "10.5px", fontWeight: 600, color: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.15)", padding: "1px 6px", borderRadius: "4px" }}
+                      style={{
+                        fontSize: "10.5px",
+                        fontWeight: 600,
+                        color: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.15)",
+                        padding: "1px 6px",
+                        borderRadius: "4px",
+                      }}
                     >
                       Fetched {formatTimeAgo(cacheStatus.lastFetchedAt)}
                     </span>
@@ -667,7 +755,13 @@ export default function SoCloseWorkstationScreen() {
             </div>
 
             {/* Divider */}
-            <div style={{ width: "1px", height: "28px", backgroundColor: "var(--so-border-subtle)" }} />
+            <div
+              style={{
+                width: "1px",
+                height: "28px",
+                backgroundColor: "var(--so-border-subtle)",
+              }}
+            />
 
             {/* Box 2: Accepted Buy Ceilings Status */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -686,19 +780,44 @@ export default function SoCloseWorkstationScreen() {
                 <CheckCircle2 size={16} style={{ color: "#10b981" }} />
               </div>
               <div>
-                <div style={{ fontSize: "11px", color: "var(--so-text-muted)", fontWeight: 700 }}>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--so-text-muted)",
+                    fontWeight: 700,
+                  }}
+                >
                   Accepted Buy Ceilings
                 </div>
-                <div style={{ fontSize: "12.5px", fontWeight: 800, color: "var(--so-text-primary)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <div
+                  style={{
+                    fontSize: "12.5px",
+                    fontWeight: 800,
+                    color: "var(--so-text-primary)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
                   {evaluatedSummary.totalEvaluated > 0 ? (
-                    <span>{evaluatedSummary.totalEvaluated.toLocaleString()} priced items</span>
+                    <span>
+                      {evaluatedSummary.totalEvaluated.toLocaleString()} priced
+                      items
+                    </span>
                   ) : (
                     <span style={{ color: "#f59e0b" }}>Not Built Yet</span>
                   )}
                   {evaluatedSummary.lastBuiltAt && (
                     <span
                       title={`Built at: ${new Date(evaluatedSummary.lastBuiltAt).toLocaleString()}`}
-                      style={{ fontSize: "10.5px", fontWeight: 600, color: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.15)", padding: "1px 6px", borderRadius: "4px" }}
+                      style={{
+                        fontSize: "10.5px",
+                        fontWeight: 600,
+                        color: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.15)",
+                        padding: "1px 6px",
+                        borderRadius: "4px",
+                      }}
                     >
                       Built {formatTimeAgo(evaluatedSummary.lastBuiltAt)}
                     </span>
@@ -859,13 +978,26 @@ export default function SoCloseWorkstationScreen() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Sliders size={16} style={{ color: "var(--so-primary)" }} />
-              <span style={{ fontSize: "13px", fontWeight: 800, color: "var(--so-text-primary)" }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  color: "var(--so-text-primary)",
+                }}
+              >
                 Scanner Parameters
               </span>
             </div>
 
             {/* Wear Filter Checkboxes */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                flexWrap: "wrap",
+              }}
+            >
               {(
                 [
                   ["fn", "FN"],
@@ -900,7 +1032,10 @@ export default function SoCloseWorkstationScreen() {
                         [key]: e.target.checked,
                       }))
                     }
-                    style={{ accentColor: "var(--so-primary)", cursor: "pointer" }}
+                    style={{
+                      accentColor: "var(--so-primary)",
+                      cursor: "pointer",
+                    }}
                   />
                   {label}
                 </label>
@@ -929,7 +1064,9 @@ export default function SoCloseWorkstationScreen() {
                 fontSize: "11px",
               }}
             >
-              <span style={{ fontWeight: 700, color: "var(--so-text-secondary)" }}>
+              <span
+                style={{ fontWeight: 700, color: "var(--so-text-secondary)" }}
+              >
                 Price Range ($):
               </span>
               <input
@@ -991,7 +1128,9 @@ export default function SoCloseWorkstationScreen() {
               }}
             >
               {/* Closeness Distance & Percent */}
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
                 <span
                   title="Distance ceiling relative to accepted buy ceiling (1.08 = within 8%)"
                   style={{ fontWeight: 700, color: "var(--so-text-secondary)" }}
@@ -1025,15 +1164,29 @@ export default function SoCloseWorkstationScreen() {
                     color: "var(--so-accent-cyan)",
                   }}
                 >
-                  (+{((Math.max(1.0, parseFloat(soCloseMaxCloseness) || 1.0) - 1) * 100).toFixed(0)}%)
+                  (+
+                  {(
+                    (Math.max(1.0, parseFloat(soCloseMaxCloseness) || 1.0) -
+                      1) *
+                    100
+                  ).toFixed(0)}
+                  %)
                 </span>
               </div>
 
               {/* Subtle separator */}
-              <div style={{ width: "1px", height: "16px", backgroundColor: "var(--so-border-subtle)" }} />
+              <div
+                style={{
+                  width: "1px",
+                  height: "16px",
+                  backgroundColor: "var(--so-border-subtle)",
+                }}
+              />
 
               {/* SSS */}
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
                 <span
                   title="Supply Stability Score (SSS) measures cross-market availability, liquidity distribution, and listed stock depth relative to price bracket."
                   style={{
@@ -1046,7 +1199,10 @@ export default function SoCloseWorkstationScreen() {
                   }}
                 >
                   SSS:
-                  <Info size={12} style={{ color: "var(--so-accent-cyan)", opacity: 0.85 }} />
+                  <Info
+                    size={12}
+                    style={{ color: "var(--so-accent-cyan)", opacity: 0.85 }}
+                  />
                 </span>
                 <input
                   type="number"
@@ -1112,7 +1268,13 @@ export default function SoCloseWorkstationScreen() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--so-text-primary)" }}>
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  color: "var(--so-text-primary)",
+                }}
+              >
                 Found Opportunities ({processedResults.length})
               </div>
 
@@ -1144,13 +1306,23 @@ export default function SoCloseWorkstationScreen() {
               </div>
 
               {/* Sort By Dropdown */}
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <ArrowUpDown size={13} style={{ color: "var(--so-text-muted)" }} />
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <ArrowUpDown
+                  size={13}
+                  style={{ color: "var(--so-text-muted)" }}
+                />
                 <select
                   className="input"
                   value={sortBy}
                   onChange={(e: any) => setSortBy(e.target.value)}
-                  style={{ height: "30px", fontSize: "11px", padding: "0 8px", cursor: "pointer" }}
+                  style={{
+                    height: "30px",
+                    fontSize: "11px",
+                    padding: "0 8px",
+                    cursor: "pointer",
+                  }}
                 >
                   <option value="closeness">Sort: Closeness (Lowest %)</option>
                   <option value="profit">Sort: Potential Profit ($)</option>
@@ -1169,7 +1341,8 @@ export default function SoCloseWorkstationScreen() {
                 gap: "8px",
               }}
             >
-              Showing {processedResults.length} of {soCloseResults.length} deal(s)
+              Showing {processedResults.length} of {soCloseResults.length}{" "}
+              deal(s)
             </div>
           </div>
         )}
@@ -1186,7 +1359,10 @@ export default function SoCloseWorkstationScreen() {
             {processedResults.map((item, index) => {
               const diffDollars = item.acceptedPrice - item.currentMarketPrice;
               const isInstantProfit = item.closeness <= 1.0;
-              const marketUrl = getMarketItemUrl(item.market || "csfloat", item.name);
+              const marketUrl = getMarketItemUrl(
+                item.market || "csfloat",
+                item.name,
+              );
 
               const match = item.name.match(
                 /^(.*?)(?:\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\))?$/i,
@@ -1195,7 +1371,8 @@ export default function SoCloseWorkstationScreen() {
               const wearShortcut = match ? match[2] : "";
 
               const imageUrl = item.iconUrl
-                ? item.iconUrl.startsWith("http://") || item.iconUrl.startsWith("https://")
+                ? item.iconUrl.startsWith("http://") ||
+                  item.iconUrl.startsWith("https://")
                   ? item.iconUrl
                   : `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`
                 : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
@@ -1206,10 +1383,11 @@ export default function SoCloseWorkstationScreen() {
                   className="card"
                   style={{
                     backgroundColor: "var(--so-surface-card)",
-                    border: `1px solid ${isInstantProfit
+                    border: `1px solid ${
+                      isInstantProfit
                         ? "rgba(16, 185, 129, 0.4)"
                         : "var(--so-border-subtle)"
-                      }`,
+                    }`,
                     boxShadow: isInstantProfit
                       ? "0 0 12px rgba(16, 185, 129, 0.15)"
                       : "none",
@@ -1222,14 +1400,16 @@ export default function SoCloseWorkstationScreen() {
                     transition: "border-color 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor = isInstantProfit
-                      ? "rgba(16, 185, 129, 0.8)"
-                      : "var(--so-primary)";
+                    (e.currentTarget as HTMLElement).style.borderColor =
+                      isInstantProfit
+                        ? "rgba(16, 185, 129, 0.8)"
+                        : "var(--so-primary)";
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor = isInstantProfit
-                      ? "rgba(16, 185, 129, 0.4)"
-                      : "var(--so-border-subtle)";
+                    (e.currentTarget as HTMLElement).style.borderColor =
+                      isInstantProfit
+                        ? "rgba(16, 185, 129, 0.4)"
+                        : "var(--so-border-subtle)";
                   }}
                 >
                   {/* Row 1: Actions (Top Left: View, Copy, Link) & Market Info (Top Right: Logo + Name) */}
@@ -1245,7 +1425,11 @@ export default function SoCloseWorkstationScreen() {
                   >
                     {/* Top Left: 3 Action Icons (View, Copy, Link) */}
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* View icon: Quick preview item details & all-market price breakdown */}
@@ -1295,10 +1479,16 @@ export default function SoCloseWorkstationScreen() {
                               window.open(marketUrl, "_blank");
                             }
                           } else {
-                            toast.error(`Market link not available for ${getMarketDisplayName(item.market)}`);
+                            toast.error(
+                              `Market link not available for ${getMarketDisplayName(item.market)}`,
+                            );
                           }
                         }}
-                        title={marketUrl ? `Open on ${getMarketDisplayName(item.market)}` : "Market link unavailable"}
+                        title={
+                          marketUrl
+                            ? `Open on ${getMarketDisplayName(item.market)}`
+                            : "Market link unavailable"
+                        }
                         className="btn btn-sm"
                         style={{
                           padding: "3px 6px",
@@ -1327,7 +1517,10 @@ export default function SoCloseWorkstationScreen() {
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <MarketLogo marketId={item.market || "csfloat"} size={14} />
+                      <MarketLogo
+                        marketId={item.market || "csfloat"}
+                        size={14}
+                      />
                       <span
                         style={{
                           fontSize: "11px",
@@ -1372,12 +1565,13 @@ export default function SoCloseWorkstationScreen() {
                               : item.supplyStabilityScore >= 0.8
                                 ? "var(--so-cyan-text)"
                                 : "var(--so-warning)",
-                          border: `1px solid ${item.supplyStabilityScore >= 1.2
+                          border: `1px solid ${
+                            item.supplyStabilityScore >= 1.2
                               ? "rgba(16, 185, 129, 0.35)"
                               : item.supplyStabilityScore >= 0.8
                                 ? "rgba(6, 182, 212, 0.35)"
                                 : "rgba(245, 158, 11, 0.35)"
-                            }`,
+                          }`,
                           whiteSpace: "nowrap",
                           flexShrink: 0,
                         }}
@@ -1441,7 +1635,11 @@ export default function SoCloseWorkstationScreen() {
                     src={imageUrl}
                     alt={cleanTitle}
                     fallbackItemName={item.name}
-                    title={marketUrl ? `Click to open on ${getMarketDisplayName(item.market)}` : undefined}
+                    title={
+                      marketUrl
+                        ? `Click to open on ${getMarketDisplayName(item.market)}`
+                        : undefined
+                    }
                     onClick={
                       marketUrl
                         ? (e) => {
@@ -1502,7 +1700,10 @@ export default function SoCloseWorkstationScreen() {
                   </div>
 
                   {/* 14-Day Trend Sparkline Graph - Click opens detailed trend chart & all-market breakdown */}
-                  <div style={{ margin: "2px 0" }} onClick={(e) => e.stopPropagation()}>
+                  <div
+                    style={{ margin: "2px 0" }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <TrendSparkline
                       name={item.name}
                       momentum={item.trendMomentum14d}
@@ -1528,38 +1729,67 @@ export default function SoCloseWorkstationScreen() {
                         item.closeness <= 1.0
                           ? "rgba(16, 185, 129, 0.12)"
                           : "var(--so-surface-panel)",
-                      border: `1px solid ${item.closeness <= 1.0
+                      border: `1px solid ${
+                        item.closeness <= 1.0
                           ? "rgba(16, 185, 129, 0.3)"
                           : "var(--so-border-subtle)"
-                        }`,
+                      }`,
                       display: "flex",
                       flexDirection: "column",
                       gap: "4px",
                       fontSize: "11px",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: "var(--so-text-muted)", fontWeight: 700 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "var(--so-text-muted)",
+                          fontWeight: 700,
+                        }}
+                      >
                         {getMarketDisplayName(item.market)} Market
                       </span>
                       <span
                         className="tabular-nums"
                         style={{
                           fontWeight: 800,
-                          color: item.closeness <= 1.0 ? "var(--so-success-text)" : "#f59e0b",
+                          color:
+                            item.closeness <= 1.0
+                              ? "var(--so-success-text)"
+                              : "#f59e0b",
                         }}
                       >
                         ${item.currentMarketPrice.toFixed(2)}
                       </span>
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: "var(--so-text-muted)", fontWeight: 700 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "var(--so-text-muted)",
+                          fontWeight: 700,
+                        }}
+                      >
                         Target Buy Price
                       </span>
                       <span
                         className="tabular-nums"
-                        style={{ fontWeight: 800, color: "var(--so-success-text)" }}
+                        style={{
+                          fontWeight: 800,
+                          color: "var(--so-success-text)",
+                        }}
                       >
                         ${item.acceptedPrice.toFixed(2)}
                       </span>
@@ -1601,7 +1831,9 @@ export default function SoCloseWorkstationScreen() {
                 margin: "0 auto 16px auto",
               }}
             >
-              Click "Run SoClose Market Scan" above to analyze live market listings against your calculated accepted buy ceilings across all active markets.
+              Click "Run SoClose Market Scan" above to analyze live market
+              listings against your calculated accepted buy ceilings across all
+              active markets.
             </p>
             <button
               className="btn btn-primary"
@@ -1628,7 +1860,10 @@ export default function SoCloseWorkstationScreen() {
           item={lookupModalItem}
           onClose={() => setLookupModalItem(null)}
           onOpenMarket={(name) => {
-            const url = getMarketItemUrl(lookupModalItem.market || "csfloat", name);
+            const url = getMarketItemUrl(
+              lookupModalItem.market || "csfloat",
+              name,
+            );
             if (url) {
               if (window.electronAPI?.app?.openExternal) {
                 window.electronAPI.app.openExternal(url);

@@ -268,4 +268,3 @@ export function isTradeMarket(marketId: string | null | undefined): boolean {
     raw === "skinsmonkey"
   );
 }
-

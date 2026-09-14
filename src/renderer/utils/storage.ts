@@ -18,3 +18,30 @@ export function safeSetItem(key: string, value: string): void {
     }
   } catch {}
 }
+
+export function getPersistedThreshold(
+  key: string,
+  fallbackKey?: string,
+  defaultValue = 2,
+): number {
+  const saved =
+    safeGetItem(key) ?? (fallbackKey ? safeGetItem(fallbackKey) : null);
+  if (saved !== null) {
+    const parsed = parseFloat(saved);
+    if (!isNaN(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+  return defaultValue;
+}
+
+export function setPersistedThreshold(
+  key: string,
+  value: number,
+  fallbackKey?: string,
+): void {
+  safeSetItem(key, String(value));
+  if (fallbackKey) {
+    safeSetItem(fallbackKey, String(value));
+  }
+}

@@ -36,7 +36,9 @@ export const SkinImage: React.FC<SkinImageProps> = ({
 
   const isClickable = Boolean(onClick);
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement, Event>,
+  ) => {
     const target = e.currentTarget;
     if (
       fallbackItemName &&
@@ -45,7 +47,7 @@ export const SkinImage: React.FC<SkinImageProps> = ({
     ) {
       setHasFallbackTried(true);
       target.src = `https://api.steamapis.com/image/item/730/${encodeURIComponent(
-        fallbackItemName
+        fallbackItemName,
       )}`;
     } else {
       target.style.opacity = "0.3";

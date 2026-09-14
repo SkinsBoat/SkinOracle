@@ -112,7 +112,14 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
           height: "22px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            flexShrink: 0,
+          }}
+        >
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -195,9 +202,7 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
             gap: "3px",
             padding: "1px 5px",
             fontSize: "8.5px",
-            color: isListed
-              ? "var(--so-success-text)"
-              : "var(--so-text-muted)",
+            color: isListed ? "var(--so-success-text)" : "var(--so-text-muted)",
             backgroundColor: isListed
               ? "rgba(16, 185, 129, 0.15)"
               : "var(--so-surface-panel)",
@@ -223,7 +228,11 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
         {!isListed ? (
           <span
             className="badge badge-secondary"
-            style={{ fontSize: "9px", padding: "1px 5px", whiteSpace: "nowrap" }}
+            style={{
+              fontSize: "9px",
+              padding: "1px 5px",
+              whiteSpace: "nowrap",
+            }}
           >
             READY TO LIST
           </span>
@@ -298,7 +307,11 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
         ) : (
           <span
             className="badge badge-secondary"
-            style={{ fontSize: "9px", padding: "1px 5px", whiteSpace: "nowrap" }}
+            style={{
+              fontSize: "9px",
+              padding: "1px 5px",
+              whiteSpace: "nowrap",
+            }}
           >
             LISTED
           </span>
@@ -306,10 +319,7 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
       </div>
 
       {/* Skin Image Showcase */}
-      <SkinImage
-        src={imageUrl}
-        alt={cleanTitle}
-      />
+      <SkinImage src={imageUrl} alt={cleanTitle} />
 
       {/* Title & Float */}
       <div

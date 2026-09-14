@@ -339,9 +339,8 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
       {isOpen && (
         <div style={{ padding: "20px" }}>
           <p className="card-desc" style={{ marginBottom: "16px" }}>
-            Takes cached pricing data from active price providers 
-            and evaluates target accepted prices across CSFloat and Skins.com
-            workstations.
+            Takes cached pricing data from active price providers and evaluates
+            target accepted prices across CSFloat and Skins.com workstations.
           </p>
 
           {/* Section 1: Smart Pre-Evaluation Filters */}

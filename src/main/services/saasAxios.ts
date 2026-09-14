@@ -51,9 +51,7 @@ const responseErrorInterceptor = (err: any) => {
   // Extract message from normalized backend shape, fall back to raw message
   const message: string =
     body?.error?.message ||
-    (Array.isArray(body?.message)
-      ? body.message.join("; ")
-      : body?.message) ||
+    (Array.isArray(body?.message) ? body.message.join("; ") : body?.message) ||
     err.message ||
     "API request failed";
 

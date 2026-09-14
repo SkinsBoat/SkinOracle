@@ -33,7 +33,9 @@ describe("useOracleStore - hideTradeMarkets & smart Select All", () => {
       const hideTrade = useOracleStore.getState().hideTradeMarkets;
 
       const targets = hideTrade
-        ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id)).map((m) => m.id)
+        ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id)).map(
+            (m) => m.id,
+          )
         : SKINSNIPE_AVAILABLE_MARKETS.map((m) => m.id);
 
       useOracleStore.getState().selectAllMarkets(targets);
@@ -63,7 +65,9 @@ describe("useOracleStore - hideTradeMarkets & smart Select All", () => {
       const hideTrade = useOracleStore.getState().hideTradeMarkets;
 
       const targets = hideTrade
-        ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id)).map((m) => m.id)
+        ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id)).map(
+            (m) => m.id,
+          )
         : SKINSNIPE_AVAILABLE_MARKETS.map((m) => m.id);
 
       useOracleStore.getState().selectAllMarkets(targets);

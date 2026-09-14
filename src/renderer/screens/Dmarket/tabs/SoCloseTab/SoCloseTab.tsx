@@ -999,7 +999,9 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                     >
                       SSS: {item.supplyStabilityScore.toFixed(1)}
                     </span>
-                  ) : <div />}
+                  ) : (
+                    <div />
+                  )}
 
                   {item.hasExistingTarget ? (
                     <span
@@ -1060,10 +1062,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 </div>
 
                 {/* Image Showcase */}
-                <SkinImage
-                  src={imageUrl}
-                  alt={cleanTitle}
-                />
+                <SkinImage src={imageUrl} alt={cleanTitle} />
 
                 {/* Title & Wear */}
                 <div

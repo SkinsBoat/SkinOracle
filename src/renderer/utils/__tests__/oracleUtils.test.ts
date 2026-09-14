@@ -75,9 +75,8 @@ describe("passesSmartPreFilters", () => {
 
 describe("auditCacheQuantityIntegrity", () => {
   it("accurately calculates verified vs missing quantities across market providers", async () => {
-    const { auditCacheQuantityIntegrity } = await import(
-      "../../screens/Oracle/utils/oracleUtils"
-    );
+    const { auditCacheQuantityIntegrity } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     const mockCache = {
       "AK-47 | Redline (Field-Tested)": {
@@ -109,9 +108,8 @@ describe("auditCacheQuantityIntegrity", () => {
   });
 
   it("reports 100% verified when all listings have genuine positive quantities", async () => {
-    const { auditCacheQuantityIntegrity } = await import(
-      "../../screens/Oracle/utils/oracleUtils"
-    );
+    const { auditCacheQuantityIntegrity } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     const mockCache = {
       "Item A": {
@@ -135,26 +133,36 @@ describe("auditCacheQuantityIntegrity", () => {
 
 describe("formatTimeAgo", () => {
   it("formats timestamps relative to now", async () => {
-    const { formatTimeAgo } = await import("../../screens/Oracle/utils/oracleUtils");
+    const { formatTimeAgo } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     expect(formatTimeAgo(null)).toBe("Never");
     expect(formatTimeAgo(undefined)).toBe("Never");
     expect(formatTimeAgo("")).toBe("Never");
 
     const now = Date.now();
-    expect(formatTimeAgo(new Date(now - 10 * 1000).toISOString())).toBe("just now");
-    expect(formatTimeAgo(new Date(now - 2 * 60 * 1000).toISOString())).toBe("2m ago");
-    expect(formatTimeAgo(new Date(now - 45 * 60 * 1000).toISOString())).toBe("45m ago");
-    expect(formatTimeAgo(new Date(now - 3 * 3600 * 1000).toISOString())).toBe("3h ago");
-    expect(formatTimeAgo(new Date(now - 2 * 86400 * 1000).toISOString())).toBe("2d ago");
+    expect(formatTimeAgo(new Date(now - 10 * 1000).toISOString())).toBe(
+      "just now",
+    );
+    expect(formatTimeAgo(new Date(now - 2 * 60 * 1000).toISOString())).toBe(
+      "2m ago",
+    );
+    expect(formatTimeAgo(new Date(now - 45 * 60 * 1000).toISOString())).toBe(
+      "45m ago",
+    );
+    expect(formatTimeAgo(new Date(now - 3 * 3600 * 1000).toISOString())).toBe(
+      "3h ago",
+    );
+    expect(formatTimeAgo(new Date(now - 2 * 86400 * 1000).toISOString())).toBe(
+      "2d ago",
+    );
   });
 });
 
 describe("evaluateTrendHealth", () => {
   it("handles null or empty stats safely", async () => {
-    const { evaluateTrendHealth } = await import(
-      "../../screens/Oracle/utils/oracleUtils"
-    );
+    const { evaluateTrendHealth } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     const empty = evaluateTrendHealth(null);
     expect(empty.status).toBe("empty");
@@ -164,9 +172,8 @@ describe("evaluateTrendHealth", () => {
   });
 
   it("identifies insufficient history when daysCount < 3", async () => {
-    const { evaluateTrendHealth } = await import(
-      "../../screens/Oracle/utils/oracleUtils"
-    );
+    const { evaluateTrendHealth } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     const res = evaluateTrendHealth(
       {
@@ -186,9 +193,8 @@ describe("evaluateTrendHealth", () => {
   });
 
   it("detects STALE trend history when latest snapshot is > 3 days old (user question scenario: 7d to 4d ago)", async () => {
-    const { evaluateTrendHealth } = await import(
-      "../../screens/Oracle/utils/oracleUtils"
-    );
+    const { evaluateTrendHealth } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     // Today is 2026-09-14. Oldest is 7 days ago (2026-09-07), latest is 4 days ago (2026-09-10).
     // daysCount is 4 (which is >= 3), but latest is 4 days ago (> 3 days).
@@ -212,9 +218,8 @@ describe("evaluateTrendHealth", () => {
   });
 
   it("detects DECAYING trend history when latest snapshot is 2 days old", async () => {
-    const { evaluateTrendHealth } = await import(
-      "../../screens/Oracle/utils/oracleUtils"
-    );
+    const { evaluateTrendHealth } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     // Today is 2026-09-14, latest is 2026-09-12 (2 days ago).
     const res = evaluateTrendHealth(
@@ -236,9 +241,8 @@ describe("evaluateTrendHealth", () => {
   });
 
   it("detects CONTINUITY GAP when > 2 days are missing in the date range span", async () => {
-    const { evaluateTrendHealth } = await import(
-      "../../screens/Oracle/utils/oracleUtils"
-    );
+    const { evaluateTrendHealth } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     // Span from 2026-09-07 to 2026-09-14 is 8 days, but daysCount is only 4 (4 days missing).
     const res = evaluateTrendHealth(
@@ -261,9 +265,8 @@ describe("evaluateTrendHealth", () => {
   });
 
   it("marks contiguous 7+ days fresh history as verified and healthy", async () => {
-    const { evaluateTrendHealth } = await import(
-      "../../screens/Oracle/utils/oracleUtils"
-    );
+    const { evaluateTrendHealth } =
+      await import("../../screens/Oracle/utils/oracleUtils");
 
     const res = evaluateTrendHealth(
       {
@@ -287,4 +290,3 @@ describe("evaluateTrendHealth", () => {
     expect(res.warningMessage).toBeNull();
   });
 });
-

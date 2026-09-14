@@ -92,38 +92,42 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
               ? `Last built ${formatTimeAgo(evaluatedSummary.lastBuiltAt)} — ${evaluatedSummary.totalEvaluated.toLocaleString()} items generated using ${isNexus ? "NEXUS PRO" : strategyProfilePreset.toUpperCase()} strategy`
               : `Send merged price cache to SaaS Backend (${isNexus ? "OracleNexus v2" : "SkinOracle v20"}) → stores accepted prices in local memory`}
         </div>
-        {isNexus && trendHealth && (trendHealth.isStale || trendHealth.isDecaying || trendHealth.hasContinuityGap) && (
-          <div
-            style={{
-              marginTop: "8px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 10px",
-              borderRadius: "4px",
-              backgroundColor: trendHealth.isStale
-                ? "rgba(239, 68, 68, 0.12)"
-                : "rgba(234, 179, 8, 0.1)",
-              border: trendHealth.isStale
-                ? "1px solid rgba(239, 68, 68, 0.35)"
-                : "1px solid rgba(234, 179, 8, 0.3)",
-              color: trendHealth.isStale
-                ? "var(--so-danger-text, #ef4444)"
-                : "var(--so-warning-text, #f59e0b)",
-              fontSize: "11.5px",
-              fontWeight: 600,
-            }}
-          >
-            <AlertTriangle size={13} style={{ flexShrink: 0 }} />
-            <span>
-              {trendHealth.isStale
-                ? `Stale Trend History (${trendHealth.daysSinceLatest}d old) — Nexus Pro will bypass trend momentum and fall back to base Oracle.`
-                : trendHealth.isDecaying
-                  ? `Decaying Trend Recency (${trendHealth.daysSinceLatest}d lag) — Missing last 48h market activity.`
-                  : `Trend Data Gap (${trendHealth.missingDaysInRange} missing days) — Regression slope may vary.`}
-            </span>
-          </div>
-        )}
+        {isNexus &&
+          trendHealth &&
+          (trendHealth.isStale ||
+            trendHealth.isDecaying ||
+            trendHealth.hasContinuityGap) && (
+            <div
+              style={{
+                marginTop: "8px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "4px 10px",
+                borderRadius: "4px",
+                backgroundColor: trendHealth.isStale
+                  ? "rgba(239, 68, 68, 0.12)"
+                  : "rgba(234, 179, 8, 0.1)",
+                border: trendHealth.isStale
+                  ? "1px solid rgba(239, 68, 68, 0.35)"
+                  : "1px solid rgba(234, 179, 8, 0.3)",
+                color: trendHealth.isStale
+                  ? "var(--so-danger-text, #ef4444)"
+                  : "var(--so-warning-text, #f59e0b)",
+                fontSize: "11.5px",
+                fontWeight: 600,
+              }}
+            >
+              <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+              <span>
+                {trendHealth.isStale
+                  ? `Stale Trend History (${trendHealth.daysSinceLatest}d old) — Nexus Pro will bypass trend momentum and fall back to base Oracle.`
+                  : trendHealth.isDecaying
+                    ? `Decaying Trend Recency (${trendHealth.daysSinceLatest}d lag) — Missing last 48h market activity.`
+                    : `Trend Data Gap (${trendHealth.missingDaysInRange} missing days) — Regression slope may vary.`}
+              </span>
+            </div>
+          )}
       </div>
 
       {/* Estimated Cost Breakdown Pill */}

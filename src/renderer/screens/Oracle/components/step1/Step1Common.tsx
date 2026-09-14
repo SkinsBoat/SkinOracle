@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Check, AlertTriangle, Filter, CheckSquare, Square } from "lucide-react";
+import {
+  Check,
+  AlertTriangle,
+  Filter,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 import { MarketLogo } from "../../../../components/MarketLogo";
 import {
   toCanonicalMarketId,
@@ -36,7 +42,11 @@ export function resolveMarketCount(
   }
   // Fallback: search all keys in marketCounts that alias-match this market
   for (const [key, count] of Object.entries(marketCounts)) {
-    if (isMarketMatch(key, marketId) && typeof count === "number" && count > 0) {
+    if (
+      isMarketMatch(key, marketId) &&
+      typeof count === "number" &&
+      count > 0
+    ) {
       return count;
     }
   }
@@ -115,9 +125,7 @@ export const TradeMarketFilterCard: React.FC<TradeMarketFilterCardProps> = ({
           : isHovered
             ? "1px solid var(--so-border-medium)"
             : "1px solid var(--so-border-subtle)",
-        color: checked
-          ? "var(--so-text-primary)"
-          : "var(--so-text-secondary)",
+        color: checked ? "var(--so-text-primary)" : "var(--so-text-secondary)",
       }}
     >
       <div
@@ -225,12 +233,8 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
           : isTrade
             ? "1px solid rgba(245, 158, 11, 0.25)"
             : "1px solid var(--so-border-subtle)",
-        color: isSelected
-          ? "var(--so-text-primary)"
-          : "var(--so-text-muted)",
-        boxShadow: isSelected
-          ? "0 1px 3px rgba(0, 0, 0, 0.25)"
-          : "none",
+        color: isSelected ? "var(--so-text-primary)" : "var(--so-text-muted)",
+        boxShadow: isSelected ? "0 1px 3px rgba(0, 0, 0, 0.25)" : "none",
       }}
     >
       <div
@@ -427,7 +431,9 @@ export const MarketSelectionToolbar: React.FC<MarketSelectionToolbarProps> = ({
               : badgeClassName
                 ? {}
                 : { borderColor: accentColor }),
-            color: badgeTextColor ?? (badgeClassName === "badge-cyan" ? "#38bdf8" : undefined),
+            color:
+              badgeTextColor ??
+              (badgeClassName === "badge-cyan" ? "#38bdf8" : undefined),
           }}
         >
           {selectedCount} of {visibleTotal} {itemTypeLabel} Selected
@@ -518,7 +524,8 @@ export const CacheStatusInfo: React.FC<{
           title={`Updated at: ${new Date(lastFetchedAt).toLocaleString()}`}
           style={{ color: "var(--so-text-muted)" }}
         >
-          {" "}— updated {formatTimeAgo(lastFetchedAt)}
+          {" "}
+          — updated {formatTimeAgo(lastFetchedAt)}
         </span>
       )}
     </div>

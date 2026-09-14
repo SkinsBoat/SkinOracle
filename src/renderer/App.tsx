@@ -800,7 +800,9 @@ export default function App() {
                     opacity: 0.7,
                   }}
                 >
-                  SkinOracle is an independent tool not affiliated with Valve, CSFloat, DMarket, or any listed marketplace. All trademarks belong to their respective owners.
+                  SkinOracle is an independent tool not affiliated with Valve,
+                  CSFloat, DMarket, or any listed marketplace. All trademarks
+                  belong to their respective owners.
                 </div>
               )}
             </div>

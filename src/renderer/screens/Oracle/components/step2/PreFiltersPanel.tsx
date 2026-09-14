@@ -310,7 +310,8 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
                 color: "var(--so-text-muted)",
               }}
             >
-              Exclude Charms, Cases, Packages, Keys, Music Kits, Agents, Patches & Graffiti
+              Exclude Charms, Cases, Packages, Keys, Music Kits, Agents, Patches
+              & Graffiti
             </div>
             <div
               style={{
@@ -368,7 +369,9 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
                   key={wear.key}
                   type="button"
                   onClick={() =>
-                    toggleWear(wear.key as keyof BuildPreFilters["allowedWears"])
+                    toggleWear(
+                      wear.key as keyof BuildPreFilters["allowedWears"],
+                    )
                   }
                   style={{
                     padding: "5px 12px",

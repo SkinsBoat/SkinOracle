@@ -28,6 +28,10 @@ import {
   roundToCsFloatStep,
   snapCsFloatBuyOrderPriceCents,
 } from "../Oracle/utils/oracleUtils";
+import {
+  getPersistedThreshold,
+  setPersistedThreshold,
+} from "../../utils/storage";
 
 const getWearShortcut = (wear?: string) => {
   if (!wear) return "";
@@ -60,8 +64,23 @@ export default function CSFloatWorkstation() {
     "buy_orders" | "soclose" | "listings"
   >("buy_orders");
 
-  // Drift Action Threshold (default 2% difference)
-  const [driftThresholdPercent, setDriftThresholdPercent] = useState<number>(2);
+  // Drift Action Threshold (default 2% difference, persisted across app restarts)
+  const [driftThresholdPercent, setDriftThresholdPercent] = useState<number>(
+    () =>
+      getPersistedThreshold(
+        "csfloat_drift_threshold_percent",
+        "workstation_buyorders_drift_threshold",
+        2,
+      ),
+  );
+
+  useEffect(() => {
+    setPersistedThreshold(
+      "csfloat_drift_threshold_percent",
+      driftThresholdPercent,
+      "workstation_buyorders_drift_threshold",
+    );
+  }, [driftThresholdPercent]);
 
   // ── BUY ORDERS STATE ──────────────────────────────────────────────
   const initialFetchDoneRef = useRef(false);
@@ -302,7 +321,7 @@ export default function CSFloatWorkstation() {
 
     const drift =
       oraclePrice > 0 ? (currentPrice - oraclePrice) / oraclePrice : 0;
-    const thresholdFraction = (driftThresholdPercent || 2) / 100;
+    const thresholdFraction = (driftThresholdPercent ?? 2) / 100;
 
     const isOverbid = drift > thresholdFraction;
     const isUnderbid = drift < -thresholdFraction;
@@ -417,7 +436,9 @@ export default function CSFloatWorkstation() {
     });
   };
 
-  const executeBatchUpdate = async (options?: { deleteUnmatched?: boolean }) => {
+  const executeBatchUpdate = async (options?: {
+    deleteUnmatched?: boolean;
+  }) => {
     const selectedIds = Object.keys(selectedItems).filter(
       (id) => selectedItems[id],
     );
@@ -848,7 +869,7 @@ export default function CSFloatWorkstation() {
         if (isListed && currentPriceDollar !== null && targetPrice > 0) {
           drift = (currentPriceDollar - targetPrice) / targetPrice;
           driftPercent = drift * 100;
-          const thresholdFraction = (driftThresholdPercent || 2) / 100;
+          const thresholdFraction = (driftThresholdPercent ?? 2) / 100;
           isOverpriced = drift > thresholdFraction;
           isUnderpriced = drift < -thresholdFraction;
         }

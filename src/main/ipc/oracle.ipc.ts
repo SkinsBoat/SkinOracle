@@ -6,7 +6,10 @@ import { saasAxios, oracleAxios } from "../services/saasAxios";
 
 import { trendStore } from "../services/trendStore";
 
-function compressPayload(payload: any): { body: Buffer; headers: Record<string, string> } {
+function compressPayload(payload: any): {
+  body: Buffer;
+  headers: Record<string, string>;
+} {
   const jsonStr = JSON.stringify(payload);
   const compressed = zlib.gzipSync(Buffer.from(jsonStr, "utf-8"));
   return {
@@ -152,9 +155,7 @@ ipcMain.handle(
         .map((l) => ({
           m: l.m,
           p: l.p,
-          ...(typeof l.q === "number" &&
-          Number.isFinite(l.q) &&
-          l.q > 0
+          ...(typeof l.q === "number" && Number.isFinite(l.q) && l.q > 0
             ? { q: l.q }
             : {}),
         }));
@@ -218,9 +219,7 @@ ipcMain.handle(
         .map((l) => ({
           m: l.m,
           p: l.p,
-          ...(typeof l.q === "number" &&
-          Number.isFinite(l.q) &&
-          l.q > 0
+          ...(typeof l.q === "number" && Number.isFinite(l.q) && l.q > 0
             ? { q: l.q }
             : {}),
         }));
@@ -260,7 +259,9 @@ ipcMain.handle(
     };
     const { body, headers } = compressPayload(payload);
 
-    const res = await oracleAxios.post("/oracle/nexus/evaluate", body, { headers });
+    const res = await oracleAxios.post("/oracle/nexus/evaluate", body, {
+      headers,
+    });
     return res.data;
   },
 );

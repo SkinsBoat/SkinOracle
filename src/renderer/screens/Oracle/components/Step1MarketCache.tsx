@@ -20,9 +20,7 @@ import { skinSnipeLogo, cs2capLogo } from "../../../../../assets/images";
 import { MarketLogo } from "../../../components/MarketLogo";
 import { SkinsnipeMarketId } from "../../../../shared/types";
 import { CS2CAP_PROVIDERS } from "../../../../shared/cs2capProviders";
-import {
-  isTradeMarket,
-} from "../../../../shared/canonicalMarkets";
+import { isTradeMarket } from "../../../../shared/canonicalMarkets";
 import { QuantityIntegrityReport } from "../utils/oracleUtils";
 import {
   MarketSelectionChip,
@@ -37,31 +35,31 @@ export const SKINSNIPE_AVAILABLE_MARKETS: {
   id: SkinsnipeMarketId;
   name: string;
 }[] = [
-    { id: "avanmarket", name: "AvanMarket" },
-    { id: "buffmarket", name: "BUFF.Market" },
-    { id: "csgofloat", name: "CSFloat" },
-    { id: "csmoney_p2p", name: "CS.MONEY P2P" },
-    { id: "csmoney_trade", name: "CS.MONEY Trade" },
-    { id: "cstrade", name: "CSTrade" },
-    { id: "dmarket", name: "DMarket" },
-    { id: "exeskins", name: "ExeSkins" },
-    { id: "itradegg", name: "iTradeGG" },
-    { id: "lisskins", name: "LisSkins" },
-    { id: "manncostore", name: "ManncoStore" },
-    { id: "market_csgo", name: "Market CSGO" },
-    { id: "merchanttf", name: "Merchant TF" },
-    { id: "shadowpay", name: "ShadowPay" },
-    { id: "skinbaron", name: "SkinBaron" },
-    { id: "skinflow", name: "SkinFlow" },
-    { id: "skinland", name: "SkinLand" },
-    { id: "skinport", name: "Skinport" },
-    { id: "skinsmonkey", name: "SkinsMonkey" },
-    { id: "skinswap", name: "SkinSwap" },
-    { id: "tradeitgg", name: "Tradeit.GG" },
-    { id: "tradeitgg_store", name: "Tradeit.GG Store" },
-    { id: "waxpeer", name: "Waxpeer" },
-    { id: "whitemarket", name: "WhiteMarket" },
-  ];
+  { id: "avanmarket", name: "AvanMarket" },
+  { id: "buffmarket", name: "BUFF.Market" },
+  { id: "csgofloat", name: "CSFloat" },
+  { id: "csmoney_p2p", name: "CS.MONEY P2P" },
+  { id: "csmoney_trade", name: "CS.MONEY Trade" },
+  { id: "cstrade", name: "CSTrade" },
+  { id: "dmarket", name: "DMarket" },
+  { id: "exeskins", name: "ExeSkins" },
+  { id: "itradegg", name: "iTradeGG" },
+  { id: "lisskins", name: "LisSkins" },
+  { id: "manncostore", name: "ManncoStore" },
+  { id: "market_csgo", name: "Market CSGO" },
+  { id: "merchanttf", name: "Merchant TF" },
+  { id: "shadowpay", name: "ShadowPay" },
+  { id: "skinbaron", name: "SkinBaron" },
+  { id: "skinflow", name: "SkinFlow" },
+  { id: "skinland", name: "SkinLand" },
+  { id: "skinport", name: "Skinport" },
+  { id: "skinsmonkey", name: "SkinsMonkey" },
+  { id: "skinswap", name: "SkinSwap" },
+  { id: "tradeitgg", name: "Tradeit.GG" },
+  { id: "tradeitgg_store", name: "Tradeit.GG Store" },
+  { id: "waxpeer", name: "Waxpeer" },
+  { id: "whitemarket", name: "WhiteMarket" },
+];
 
 interface Step1MarketCacheProps {
   isOpen: boolean;
@@ -137,9 +135,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   onToggleHideTrade: propOnToggleHideTrade,
 }) => {
   const storeHideTradeMarkets = useOracleStore((s) => s.hideTradeMarkets);
-  const storeSetHideTradeMarkets = useOracleStore(
-    (s) => s.setHideTradeMarkets,
-  );
+  const storeSetHideTradeMarkets = useOracleStore((s) => s.setHideTradeMarkets);
 
   const hideTradeMarkets = propHideTradeMarkets ?? storeHideTradeMarkets;
   const setHideTradeMarkets = propOnToggleHideTrade ?? storeSetHideTradeMarkets;
@@ -168,7 +164,9 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
   const handleSelectAllMarkets = () => {
     const marketsToSelect = hideTradeMarkets
-      ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id)).map((m) => m.id)
+      ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id)).map(
+          (m) => m.id,
+        )
       : SKINSNIPE_AVAILABLE_MARKETS.map((m) => m.id);
     onSelectAllMarkets?.(marketsToSelect);
   };
@@ -462,7 +460,9 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   hideTradeMarkets={hideTradeMarkets}
                   onToggleHideTrade={setHideTradeMarkets}
                   onSelectAll={handleSelectAllCs2cap}
-                  onResetOrDeselect={onResetDefaultCs2capProviders || (() => { })}
+                  onResetOrDeselect={
+                    onResetDefaultCs2capProviders || (() => {})
+                  }
                   resetLabel="Reset Defaults"
                   accentColor="#0891b2"
                   badgeClassName="badge-cyan"
@@ -501,8 +501,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                       id={provider.id}
                       name={provider.name}
                       isSelected={selectedCs2capProviders.includes(provider.id)}
-                      onToggle={onToggleCs2capProvider || (() => { })}
-                      onSolo={onSoloCs2capProvider || (() => { })}
+                      onToggle={onToggleCs2capProvider || (() => {})}
+                      onSolo={onSoloCs2capProvider || (() => {})}
                       isTrade={isTradeMarket(provider.id)}
                       marketCount={getMarketCount(provider.id)}
                       missingQtyCount={getMissingQtyForMarket(provider.id)}
@@ -524,7 +524,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 >
                   <Info size={13} style={{ flexShrink: 0 }} />
                   <span>
-                    All brand logos and names are property of their respective owners. SkinOracle is an independent tool and is not affiliated with, endorsed, or sponsored by any listed marketplace.
+                    All brand logos and names are property of their respective
+                    owners. SkinOracle is an independent tool and is not
+                    affiliated with, endorsed, or sponsored by any listed
+                    marketplace.
                   </span>
                 </div>
               </div>
@@ -626,8 +629,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           boxShadow: "0 4px 14px rgba(6, 182, 212, 0.3)",
                           cursor:
                             !hasCs2capKey ||
-                              cacheStatus.isFetching ||
-                              isBatchEvaluating
+                            cacheStatus.isFetching ||
+                            isBatchEvaluating
                               ? "not-allowed"
                               : "pointer",
                         }}
@@ -998,8 +1001,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 >
                   {(hideTradeMarkets
                     ? SKINSNIPE_AVAILABLE_MARKETS.filter(
-                      (m) => !isTradeMarket(m.id),
-                    )
+                        (m) => !isTradeMarket(m.id),
+                      )
                     : SKINSNIPE_AVAILABLE_MARKETS
                   ).map((market) => (
                     <MarketSelectionChip
@@ -1045,7 +1048,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 >
                   <Info size={13} style={{ flexShrink: 0 }} />
                   <span>
-                    All brand logos and names are property of their respective owners. SkinOracle is an independent tool and is not affiliated with, endorsed, or sponsored by any listed marketplace.
+                    All brand logos and names are property of their respective
+                    owners. SkinOracle is an independent tool and is not
+                    affiliated with, endorsed, or sponsored by any listed
+                    marketplace.
                   </span>
                 </div>
               </div>
@@ -1217,12 +1223,12 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     borderRadius: "var(--so-radius-md)",
                     backgroundColor:
                       fetchProgress.criticalError ||
-                        fetchProgress.status === "aborted"
+                      fetchProgress.status === "aborted"
                         ? "rgba(239, 68, 68, 0.08)"
                         : "rgba(59, 130, 246, 0.08)",
                     border:
                       fetchProgress.criticalError ||
-                        fetchProgress.status === "aborted"
+                      fetchProgress.status === "aborted"
                         ? "1px solid rgba(239, 68, 68, 0.3)"
                         : "1px solid rgba(59, 130, 246, 0.3)",
                     display: "flex",
@@ -1362,28 +1368,28 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
                       {(fetchProgress.status === "fetching" ||
                         fetchProgress.status === "waiting") && (
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            onClick={onCancelFetch}
-                            style={{
-                              backgroundColor: "#dc2626",
-                              color: "#ffffff",
-                              border: "none",
-                              fontWeight: 700,
-                              fontSize: "11.5px",
-                              padding: "4px 12px",
-                              borderRadius: "6px",
-                              boxShadow: "0 2px 8px rgba(220, 38, 38, 0.35)",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "5px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <Square size={11} fill="#ffffff" /> Stop Fetching
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={onCancelFetch}
+                          style={{
+                            backgroundColor: "#dc2626",
+                            color: "#ffffff",
+                            border: "none",
+                            fontWeight: 700,
+                            fontSize: "11.5px",
+                            padding: "4px 12px",
+                            borderRadius: "6px",
+                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.35)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <Square size={11} fill="#ffffff" /> Stop Fetching
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1403,7 +1409,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         width: `${Math.min(100, Math.round(((fetchProgress.completedMarkets || fetchProgress.currentMarketIndex - 1) / fetchProgress.totalMarkets) * 100))}%`,
                         backgroundColor:
                           fetchProgress.criticalError ||
-                            fetchProgress.status === "aborted"
+                          fetchProgress.status === "aborted"
                             ? "var(--so-danger-text)"
                             : "var(--so-primary)",
                         transition: "width 0.3s ease",
