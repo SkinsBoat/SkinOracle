@@ -21,7 +21,12 @@ import {
   toCanonicalMarketId,
   getMarketDisplayName,
   isMarketMatch,
+  isTradeMarket,
 } from "../../../shared/canonicalMarkets";
+import {
+  MarketSelectionToolbar,
+  MarketSelectionChip,
+} from "../Oracle/components/step1/Step1Common";
 import { MarketLogo } from "../../components/MarketLogo";
 import { CopyMarketHashButton } from "../../components/CopyMarketHashButton";
 import { TrendSparkline } from "../../components/TrendSparkline";
@@ -93,102 +98,6 @@ export default function SoCloseWorkstationScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter & Scanner Config States
-  const [selectedFilterMarkets, setSelectedFilterMarkets] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("soclose_selected_filter_markets");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) { }
-    return ["ALL"];
-  });
-
-  // Long-press timer ref for solo market isolation
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isLongPressTriggeredRef = useRef<boolean>(false);
-
-  const handleMarketTouchStart = (marketId: string) => {
-    isLongPressTriggeredRef.current = false;
-    longPressTimerRef.current = setTimeout(() => {
-      isLongPressTriggeredRef.current = true;
-      handleSoloMarketFilter(marketId);
-    }, 450);
-  };
-
-  const handleMarketTouchEnd = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-
-  const handleSoloMarketFilter = (marketId: string) => {
-    const solo = [marketId];
-    setSelectedFilterMarkets(solo);
-    try {
-      localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(solo));
-    } catch (e) { }
-    toast.success(`Solo isolated: ${getMarketDisplayName(marketId)}`, {
-      id: "solo-market-toast",
-      duration: 2000,
-    });
-  };
-
-  const handleToggleMarketFilter = (marketId: string) => {
-    if (isLongPressTriggeredRef.current) {
-      isLongPressTriggeredRef.current = false;
-      return;
-    }
-
-    setSelectedFilterMarkets((prev) => {
-      let updated: string[];
-      if (marketId === "ALL") {
-        updated = ["ALL"];
-      } else {
-        const current = prev.filter((m) => m !== "ALL");
-        const exists = current.some((m) => isMarketMatch(m, marketId));
-        if (exists) {
-          const filtered = current.filter((m) => !isMarketMatch(m, marketId));
-          updated = filtered.length === 0 ? ["ALL"] : filtered;
-        } else {
-          updated = [...current, marketId];
-        }
-      }
-      try {
-        localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(updated));
-      } catch (e) {
-        console.error("Failed to save soclose filter markets:", e);
-      }
-      return updated;
-    });
-  };
-
-  const isAllSelected = useMemo(() => {
-    return (
-      selectedFilterMarkets.includes("ALL") ||
-      selectedFilterMarkets.length === 0
-    );
-  }, [selectedFilterMarkets]);
-
-  const [minPrice, setMinPrice] = useState<string>("1");
-  const [maxPrice, setMaxPrice] = useState<string>("250");
-  const [soCloseMaxCloseness, setSoCloseMaxCloseness] = useState<string>("1.08"); // 8% distance ceiling
-  const [soCloseMinSssScore, setSoCloseMinSssScore] = useState<string>("1.2"); // Supply stability threshold
-  const [resultSearchQuery, setResultSearchQuery] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"closeness" | "profit" | "price" | "sss">("closeness");
-
-  const [allowedWears, setAllowedWears] = useState({
-    fn: true,
-    mw: true,
-    ft: true,
-    ww: true,
-    bs: true,
-    souvenir: true,
-    sticker: true,
-  });
-
   // Available markets extracted directly from local cached price data
   const availableMarkets = useMemo(() => {
     const marketSet = new Set<string>();
@@ -216,6 +125,127 @@ export default function SoCloseWorkstationScreen() {
 
     return Array.from(marketSet);
   }, [cachedMarkets, selectedMarkets, soCloseResults]);
+
+  // Filter & Scanner Config States
+  const [selectedFilterMarkets, setSelectedFilterMarkets] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("soclose_selected_filter_markets");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) { }
+    return ["ALL"];
+  });
+
+  const [hideTradeMarkets, setHideTradeMarkets] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("soclose_hide_trade_markets") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const handleToggleHideTrade = (hide: boolean) => {
+    setHideTradeMarkets(hide);
+    try {
+      localStorage.setItem("soclose_hide_trade_markets", String(hide));
+    } catch (e) {}
+  };
+
+  const isAllSelected = useMemo(() => {
+    return (
+      selectedFilterMarkets.includes("ALL") ||
+      (availableMarkets.length > 0 &&
+        availableMarkets.every((m) =>
+          selectedFilterMarkets.some((sel) => isMarketMatch(sel, m)),
+        ))
+    );
+  }, [selectedFilterMarkets, availableMarkets]);
+
+  const tradeCount = useMemo(() => {
+    return availableMarkets.filter((m) => isTradeMarket(m)).length;
+  }, [availableMarkets]);
+
+  const visibleMarkets = useMemo(() => {
+    return hideTradeMarkets
+      ? availableMarkets.filter((m) => !isTradeMarket(m))
+      : availableMarkets;
+  }, [availableMarkets, hideTradeMarkets]);
+
+  const selectedCount = useMemo(() => {
+    if (isAllSelected) return visibleMarkets.length;
+    return visibleMarkets.filter((m) =>
+      selectedFilterMarkets.some((sel) => isMarketMatch(sel, m)),
+    ).length;
+  }, [isAllSelected, visibleMarkets, selectedFilterMarkets]);
+
+  const handleSoloMarketFilter = (marketId: string) => {
+    const solo = [marketId];
+    setSelectedFilterMarkets(solo);
+    try {
+      localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(solo));
+    } catch (e) { }
+    toast.success(`Solo isolated: ${getMarketDisplayName(marketId)}`, {
+      id: "solo-market-toast",
+      duration: 2000,
+    });
+  };
+
+  const handleSelectAllMarkets = () => {
+    setSelectedFilterMarkets(["ALL"]);
+    try {
+      localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(["ALL"]));
+    } catch (e) {}
+  };
+
+  const handleDeselectAllMarkets = () => {
+    setSelectedFilterMarkets([]);
+    try {
+      localStorage.setItem("soclose_selected_filter_markets", JSON.stringify([]));
+    } catch (e) {}
+  };
+
+  const handleToggleMarketFilter = (marketId: string) => {
+    setSelectedFilterMarkets((prev) => {
+      const current = prev.includes("ALL")
+        ? [...availableMarkets]
+        : [...prev];
+      const exists = current.some((m) => isMarketMatch(m, marketId));
+      let updated: string[];
+      if (exists) {
+        updated = current.filter((m) => !isMarketMatch(m, marketId));
+      } else {
+        updated = [...current, marketId];
+      }
+      if (updated.length === availableMarkets.length) {
+        updated = ["ALL"];
+      }
+      try {
+        localStorage.setItem("soclose_selected_filter_markets", JSON.stringify(updated));
+      } catch (e) {
+        console.error("Failed to save soclose filter markets:", e);
+      }
+      return updated;
+    });
+  };
+
+  const [minPrice, setMinPrice] = useState<string>("1");
+  const [maxPrice, setMaxPrice] = useState<string>("250");
+  const [soCloseMaxCloseness, setSoCloseMaxCloseness] = useState<string>("1.08"); // 8% distance ceiling
+  const [soCloseMinSssScore, setSoCloseMinSssScore] = useState<string>("1.2"); // Supply stability threshold
+  const [resultSearchQuery, setResultSearchQuery] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"closeness" | "profit" | "price" | "sss">("closeness");
+
+  const [allowedWears, setAllowedWears] = useState({
+    fn: true,
+    mw: true,
+    ft: true,
+    ww: true,
+    bs: true,
+    souvenir: true,
+    sticker: true,
+  });
 
   // Refresh status from main process
   const refreshStatuses = async () => {
@@ -484,6 +514,16 @@ export default function SoCloseWorkstationScreen() {
     return counts;
   }, [soCloseResults]);
 
+  const getMarketCount = (marketId: string) => {
+    if (marketCountsMap[marketId]) return marketCountsMap[marketId];
+    const canonical = toCanonicalMarketId(marketId);
+    if (canonical && marketCountsMap[canonical]) return marketCountsMap[canonical];
+    for (const [key, count] of Object.entries(marketCountsMap)) {
+      if (isMarketMatch(key, marketId)) return count;
+    }
+    return 0;
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`Copied ${label} to clipboard!`);
@@ -687,141 +727,76 @@ export default function SoCloseWorkstationScreen() {
           </button> */}
         </div>
 
-        {/* Section 1: Market Selector Tabs (Multi-Select Enabled) */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "8px",
-            }}
-          >
-            <div style={{ fontSize: "12px", fontWeight: 800, color: "var(--so-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Target Market Filter ({isAllSelected ? "All Selected" : `${selectedFilterMarkets.length} Selected`})
-            </div>
-          </div>
+        {/* Section 1: Target Market Filter (Skinsnipe Standard Props & Toolbar) */}
+        <div
+          style={{
+            padding: "18px 20px",
+            borderRadius: "var(--so-radius-md)",
+            backgroundColor: "var(--so-surface-panel)",
+            border: "1px solid var(--so-border-subtle)",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          <MarketSelectionToolbar
+            title="Target Markets Filter"
+            selectedCount={selectedCount}
+            totalCount={availableMarkets.length}
+            itemTypeLabel="Markets"
+            tradeCount={tradeCount}
+            hideTradeMarkets={hideTradeMarkets}
+            onToggleHideTrade={handleToggleHideTrade}
+            onSelectAll={handleSelectAllMarkets}
+            onResetOrDeselect={handleDeselectAllMarkets}
+            resetLabel="Deselect All"
+            accentColor="var(--so-primary)"
+            badgeClassName="badge-cyan"
+            badgeTextColor="#38bdf8"
+            badgeBorderColor="rgba(56, 189, 248, 0.4)"
+          />
 
+          {/* Interactive Market Chips Grid */}
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))",
               gap: "8px",
-              flexWrap: "wrap",
+              marginBottom: "12px",
             }}
           >
-            {/* All Markets Pill */}
-            <button
-              type="button"
-              onClick={() => handleToggleMarketFilter("ALL")}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "6px 12px",
-                borderRadius: "20px",
-                fontSize: "12px",
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                backgroundColor: isAllSelected
-                  ? "var(--so-primary)"
-                  : "var(--so-surface-panel)",
-                color: isAllSelected ? "#ffffff" : "var(--so-text-secondary)",
-                border: isAllSelected
-                  ? "1px solid var(--so-primary)"
-                  : "1px solid var(--so-border-subtle)",
-              }}
-            >
-              <Layers size={13} />
-              All Available ({availableMarkets.length})
-              {soCloseResults.length > 0 && (
-                <span
-                  style={{
-                    backgroundColor: isAllSelected
-                      ? "rgba(255, 255, 255, 0.25)"
-                      : "rgba(255, 255, 255, 0.08)",
-                    padding: "1px 6px",
-                    borderRadius: "10px",
-                    fontSize: "10px",
-                    fontWeight: 800,
-                  }}
-                >
-                  {soCloseResults.length}
-                </span>
-              )}
-            </button>
-
-            {/* Individual Available Market Pills */}
-            {availableMarkets.map((marketId) => {
+            {visibleMarkets.map((marketId) => {
               const displayName = getMarketDisplayName(marketId);
-              const isSelected = isAllSelected || selectedFilterMarkets.some((m) => isMarketMatch(m, marketId));
-              const count = marketCountsMap[marketId] || 0;
+              const isSelected =
+                isAllSelected ||
+                selectedFilterMarkets.some((m) => isMarketMatch(m, marketId));
+              const count = getMarketCount(marketId);
 
               return (
-                <button
+                <MarketSelectionChip
                   key={marketId}
-                  type="button"
-                  onClick={() => handleToggleMarketFilter(marketId)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    handleSoloMarketFilter(marketId);
-                  }}
-                  onMouseDown={() => handleMarketTouchStart(marketId)}
-                  onMouseUp={handleMarketTouchEnd}
-                  onMouseLeave={handleMarketTouchEnd}
-                  onTouchStart={() => handleMarketTouchStart(marketId)}
-                  onTouchEnd={handleMarketTouchEnd}
-                  title="Click to toggle. Long-press or Right-click to isolate solo."
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "6px 12px",
-                    borderRadius: "20px",
-                    fontSize: "12px",
-                    fontWeight: isSelected ? 800 : 600,
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                    backgroundColor: isSelected
-                      ? "rgba(56, 189, 248, 0.15)"
-                      : "var(--so-surface-panel)",
-                    color: isSelected
-                      ? "var(--so-primary)"
-                      : "var(--so-text-muted)",
-                    border: isSelected
-                      ? "1px solid var(--so-primary)"
-                      : "1px solid var(--so-border-subtle)",
-                    boxShadow: isSelected
-                      ? "0 0 8px rgba(56, 189, 248, 0.25)"
-                      : "none",
-                  }}
-                >
-                  <MarketLogo marketId={marketId} size={14} />
-                  {displayName}
-                  {count > 0 && (
-                    <span
-                      style={{
-                        backgroundColor: isSelected
-                          ? "rgba(56, 189, 248, 0.25)"
-                          : "rgba(255, 255, 255, 0.08)",
-                        color: isSelected ? "#ffffff" : "var(--so-text-secondary)",
-                        padding: "1px 6px",
-                        borderRadius: "10px",
-                        fontSize: "10px",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
+                  id={marketId}
+                  name={displayName}
+                  isSelected={isSelected}
+                  onToggle={handleToggleMarketFilter}
+                  onSolo={handleSoloMarketFilter}
+                  isTrade={isTradeMarket(marketId)}
+                  marketCount={count}
+                  missingQtyCount={0}
+                  accentColor="var(--so-primary)"
+                />
               );
             })}
           </div>
 
-          <div style={{ fontSize: "11px", color: "var(--so-text-muted)", marginTop: "6px", fontStyle: "italic" }}>
-            Tip: Click to toggle multiple markets. <strong>Long-press or Right-click</strong> on any market to isolate it solo.
+          <div
+            style={{
+              fontSize: "11.5px",
+              color: "var(--so-text-muted)",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <Layers size={14} /> Right-click any market chip to solo it.
           </div>
         </div>
 
@@ -1396,7 +1371,7 @@ export default function SoCloseWorkstationScreen() {
                           flexShrink: 0,
                         }}
                       >
-                        <CheckCircle2 size={10} /> DISCOUNT (
+                        <CheckCircle2 size={10} /> DEAL (
                         {item.closenessPercent > 0
                           ? `+${item.closenessPercent.toFixed(1)}%`
                           : `${item.closenessPercent.toFixed(1)}%`}
@@ -1529,18 +1504,6 @@ export default function SoCloseWorkstationScreen() {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ color: "var(--so-text-muted)", fontWeight: 700 }}>
-                        Target Buy Price
-                      </span>
-                      <span
-                        className="tabular-nums"
-                        style={{ fontWeight: 800, color: "var(--so-success-text)" }}
-                      >
-                        ${item.acceptedPrice.toFixed(2)}
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: "var(--so-text-muted)", fontWeight: 700 }}>
                         {getMarketDisplayName(item.market)} Market
                       </span>
                       <span
@@ -1551,6 +1514,18 @@ export default function SoCloseWorkstationScreen() {
                         }}
                       >
                         ${item.currentMarketPrice.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "var(--so-text-muted)", fontWeight: 700 }}>
+                        Target Buy Price
+                      </span>
+                      <span
+                        className="tabular-nums"
+                        style={{ fontWeight: 800, color: "var(--so-success-text)" }}
+                      >
+                        ${item.acceptedPrice.toFixed(2)}
                       </span>
                     </div>
                   </div>

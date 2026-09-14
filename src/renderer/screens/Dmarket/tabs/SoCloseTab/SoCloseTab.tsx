@@ -1030,8 +1030,8 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                         flexShrink: 0,
                       }}
                     >
-                      <CheckCircle2 size={10} /> BELOW TARGET (
-                      {item.closenessPercent >= 0
+                      <CheckCircle2 size={10} /> DEAL (
+                      {item.closenessPercent > 0
                         ? `+${item.closenessPercent.toFixed(1)}%`
                         : `${item.closenessPercent.toFixed(1)}%`}
                       )
@@ -1140,27 +1140,6 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                     }}
                   >
                     <span style={{ color: "var(--so-text-muted)" }}>
-                      Target Buy Price
-                    </span>
-                    <span
-                      className="tabular-nums"
-                      style={{
-                        fontWeight: 800,
-                        color: "var(--so-success-text)",
-                      }}
-                    >
-                      ${item.acceptedPrice.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "3px",
-                    }}
-                  >
-                    <span style={{ color: "var(--so-text-muted)" }}>
                       DMarket Market
                     </span>
                     <span
@@ -1177,57 +1156,23 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                     </span>
                   </div>
 
-                    {item.supplyStabilityScore !== undefined && (
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: "9.5px",
-                          marginBottom: "3px",
-                        }}
-                      >
-                        <span style={{ color: "var(--so-text-muted)" }}>
-                          SSS Score
-                        </span>
-                        <span
-                          className="tabular-nums"
-                          style={{
-                            fontWeight: 700,
-                            color:
-                              item.supplyStabilityScore >= 1.2
-                                ? "var(--so-success-text)"
-                                : item.supplyStabilityScore >= 0.8
-                                  ? "var(--so-cyan-text)"
-                                  : "var(--so-warning)",
-                          }}
-                        >
-                          {item.supplyStabilityScore.toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "9.5px",
-                      }}
-                    >
-                      <span style={{ color: "var(--so-text-muted)" }}>
-                        Distance
-                      </span>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span style={{ color: "var(--so-text-muted)" }}>
+                      Target Buy Price
+                    </span>
                     <span
                       className="tabular-nums"
                       style={{
-                        fontWeight: 700,
-                        color:
-                          item.closeness <= 1.0
-                            ? "var(--so-success-text)"
-                            : "var(--so-text-secondary)",
+                        fontWeight: 800,
+                        color: "var(--so-success-text)",
                       }}
                     >
-                      {item.closeness.toFixed(2)}x (+
-                      {item.closenessPercent.toFixed(1)}%)
+                      ${item.acceptedPrice.toFixed(2)}
                     </span>
                   </div>
                 </div>
