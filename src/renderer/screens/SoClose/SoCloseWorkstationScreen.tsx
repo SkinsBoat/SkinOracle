@@ -89,6 +89,7 @@ export default function SoCloseWorkstationScreen() {
     }
   };
   const [cachedMarkets, setCachedMarkets] = useState<string[]>([]);
+  const [isLoadingMarkets, setIsLoadingMarkets] = useState<boolean>(true);
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
 
   // Live 15-second tick to keep relative timestamps ("just now", "2m ago") dynamically advancing
@@ -318,6 +319,9 @@ export default function SoCloseWorkstationScreen() {
   useEffect(() => {
     let isMounted = true;
     const extractCachedMarkets = async () => {
+      if (cachedMarkets.length === 0) {
+        setIsLoadingMarkets(true);
+      }
       try {
         if (!window.electronAPI?.skinsnipe?.getCache) return;
         const cache = await window.electronAPI.skinsnipe.getCache();
@@ -341,6 +345,10 @@ export default function SoCloseWorkstationScreen() {
         }
       } catch (err) {
         console.warn("[SoCloseWorkstationScreen] Failed to extract markets from price cache:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoadingMarkets(false);
+        }
       }
     };
 
@@ -754,38 +762,66 @@ export default function SoCloseWorkstationScreen() {
             badgeBorderColor="rgba(56, 189, 248, 0.4)"
           />
 
-          {/* Interactive Market Chips Grid */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))",
-              gap: "8px",
-              marginBottom: "12px",
-            }}
-          >
-            {visibleMarkets.map((marketId) => {
-              const displayName = getMarketDisplayName(marketId);
-              const isSelected =
-                isAllSelected ||
-                selectedFilterMarkets.some((m) => isMarketMatch(m, marketId));
-              const count = getMarketCount(marketId);
+          {/* Interactive Market Chips Grid or Loading State */}
+          {isLoadingMarkets ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                padding: "28px 16px",
+                color: "var(--so-text-muted)",
+                fontSize: "12.5px",
+                fontWeight: 600,
+                backgroundColor: "rgba(0, 0, 0, 0.15)",
+                borderRadius: "var(--so-radius-sm)",
+                border: "1px dashed var(--so-border-subtle)",
+                marginBottom: "12px",
+              }}
+            >
+              <RefreshCw
+                size={15}
+                style={{
+                  animation: "spin 1s linear infinite",
+                  color: "var(--so-primary)",
+                }}
+              />
+              Loading & indexing available markets from price cache...
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))",
+                gap: "8px",
+                marginBottom: "12px",
+              }}
+            >
+              {visibleMarkets.map((marketId) => {
+                const displayName = getMarketDisplayName(marketId);
+                const isSelected =
+                  isAllSelected ||
+                  selectedFilterMarkets.some((m) => isMarketMatch(m, marketId));
+                const count = getMarketCount(marketId);
 
-              return (
-                <MarketSelectionChip
-                  key={marketId}
-                  id={marketId}
-                  name={displayName}
-                  isSelected={isSelected}
-                  onToggle={handleToggleMarketFilter}
-                  onSolo={handleSoloMarketFilter}
-                  isTrade={isTradeMarket(marketId)}
-                  marketCount={count}
-                  missingQtyCount={0}
-                  accentColor="var(--so-primary)"
-                />
-              );
-            })}
-          </div>
+                return (
+                  <MarketSelectionChip
+                    key={marketId}
+                    id={marketId}
+                    name={displayName}
+                    isSelected={isSelected}
+                    onToggle={handleToggleMarketFilter}
+                    onSolo={handleSoloMarketFilter}
+                    isTrade={isTradeMarket(marketId)}
+                    marketCount={count}
+                    missingQtyCount={0}
+                    accentColor="var(--so-primary)"
+                  />
+                );
+              })}
+            </div>
+          )}
 
           <div
             style={{
