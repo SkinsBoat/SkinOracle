@@ -149,3 +149,142 @@ describe("formatTimeAgo", () => {
     expect(formatTimeAgo(new Date(now - 2 * 86400 * 1000).toISOString())).toBe("2d ago");
   });
 });
+
+describe("evaluateTrendHealth", () => {
+  it("handles null or empty stats safely", async () => {
+    const { evaluateTrendHealth } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    const empty = evaluateTrendHealth(null);
+    expect(empty.status).toBe("empty");
+    expect(empty.isInsufficient).toBe(true);
+    expect(empty.isStale).toBe(false);
+    expect(empty.badgeClass).toBe("badge-ghost");
+  });
+
+  it("identifies insufficient history when daysCount < 3", async () => {
+    const { evaluateTrendHealth } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    const res = evaluateTrendHealth(
+      {
+        daysCount: 2,
+        totalSnapshots: 100,
+        itemCoverage: 50,
+        latestDate: "2026-09-14",
+        oldestDate: "2026-09-13",
+      },
+      "2026-09-14",
+    );
+
+    expect(res.isInsufficient).toBe(true);
+    expect(res.status).toBe("insufficient");
+    expect(res.badgeClass).toBe("badge-warning");
+    expect(res.badgeText).toContain("2/3 Days");
+  });
+
+  it("detects STALE trend history when latest snapshot is > 3 days old (user question scenario: 7d to 4d ago)", async () => {
+    const { evaluateTrendHealth } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    // Today is 2026-09-14. Oldest is 7 days ago (2026-09-07), latest is 4 days ago (2026-09-10).
+    // daysCount is 4 (which is >= 3), but latest is 4 days ago (> 3 days).
+    const res = evaluateTrendHealth(
+      {
+        daysCount: 4,
+        totalSnapshots: 400,
+        itemCoverage: 100,
+        latestDate: "2026-09-10",
+        oldestDate: "2026-09-07",
+      },
+      "2026-09-14",
+    );
+
+    expect(res.daysSinceLatest).toBe(4);
+    expect(res.isStale).toBe(true);
+    expect(res.status).toBe("stale");
+    expect(res.badgeText).toContain("Stale Trends (4d ago");
+    expect(res.warningMessage).toContain("Critical");
+    expect(res.warningMessage).toContain("BYPASSED");
+  });
+
+  it("detects DECAYING trend history when latest snapshot is 2 days old", async () => {
+    const { evaluateTrendHealth } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    // Today is 2026-09-14, latest is 2026-09-12 (2 days ago).
+    const res = evaluateTrendHealth(
+      {
+        daysCount: 7,
+        totalSnapshots: 700,
+        itemCoverage: 100,
+        latestDate: "2026-09-12",
+        oldestDate: "2026-09-06",
+      },
+      "2026-09-14",
+    );
+
+    expect(res.daysSinceLatest).toBe(2);
+    expect(res.isStale).toBe(false);
+    expect(res.isDecaying).toBe(true);
+    expect(res.status).toBe("decaying");
+    expect(res.badgeText).toContain("Trends Outdated (2d lag)");
+  });
+
+  it("detects CONTINUITY GAP when > 2 days are missing in the date range span", async () => {
+    const { evaluateTrendHealth } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    // Span from 2026-09-07 to 2026-09-14 is 8 days, but daysCount is only 4 (4 days missing).
+    const res = evaluateTrendHealth(
+      {
+        daysCount: 4,
+        totalSnapshots: 400,
+        itemCoverage: 100,
+        latestDate: "2026-09-14",
+        oldestDate: "2026-09-07",
+      },
+      "2026-09-14",
+    );
+
+    expect(res.daysSinceLatest).toBe(0);
+    expect(res.spanDays).toBe(8);
+    expect(res.missingDaysInRange).toBe(4);
+    expect(res.hasContinuityGap).toBe(true);
+    expect(res.status).toBe("gap");
+    expect(res.badgeText).toContain("4d missing");
+  });
+
+  it("marks contiguous 7+ days fresh history as verified and healthy", async () => {
+    const { evaluateTrendHealth } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    const res = evaluateTrendHealth(
+      {
+        daysCount: 7,
+        totalSnapshots: 700,
+        itemCoverage: 100,
+        latestDate: "2026-09-14",
+        oldestDate: "2026-09-08",
+      },
+      "2026-09-14",
+    );
+
+    expect(res.daysSinceLatest).toBe(0);
+    expect(res.missingDaysInRange).toBe(0);
+    expect(res.isStale).toBe(false);
+    expect(res.isDecaying).toBe(false);
+    expect(res.hasContinuityGap).toBe(false);
+    expect(res.status).toBe("healthy");
+    expect(res.badgeText).toBe("● Verified (7d)");
+    expect(res.badgeClass).toBe("badge-primary");
+    expect(res.warningMessage).toBeNull();
+  });
+});
+

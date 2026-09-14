@@ -349,3 +349,137 @@ export function formatTimeAgo(
   if (diffDays < 30) return `${diffDays}d ago`;
   return date.toLocaleDateString();
 }
+
+export interface TrendHealthStatus {
+  daysCount: number;
+  latestDate: string | null;
+  oldestDate: string | null;
+  daysSinceLatest: number | null;
+  spanDays: number | null;
+  missingDaysInRange: number;
+  isStale: boolean;
+  isDecaying: boolean;
+  hasContinuityGap: boolean;
+  isInsufficient: boolean;
+  status: "insufficient" | "stale" | "decaying" | "gap" | "healthy" | "empty";
+  badgeText: string;
+  badgeClass: string;
+  warningMessage: string | null;
+}
+
+/**
+ * Evaluates the health and continuity of historical trend data for Nexus Pro.
+ * Flags staleness (> 3 days old, which triggers backend Nexus fallback to base Oracle),
+ * decaying recency (2-3 days old, missing 48h moves), and continuity gaps (> 2 missing days in range).
+ */
+export function evaluateTrendHealth(
+  stats: {
+    daysCount: number;
+    totalSnapshots: number;
+    itemCoverage: number;
+    latestDate: string | null;
+    oldestDate: string | null;
+  } | null,
+  referenceDateStr?: string | null,
+): TrendHealthStatus {
+  if (
+    !stats ||
+    stats.daysCount === 0 ||
+    !stats.latestDate ||
+    !stats.oldestDate
+  ) {
+    const days = stats?.daysCount || 0;
+    return {
+      daysCount: days,
+      latestDate: stats?.latestDate || null,
+      oldestDate: stats?.oldestDate || null,
+      daysSinceLatest: null,
+      spanDays: null,
+      missingDaysInRange: 0,
+      isStale: false,
+      isDecaying: false,
+      hasContinuityGap: false,
+      isInsufficient: true,
+      status: "empty",
+      badgeText: days > 0 ? `▲ Baseline Building (${days}/3 Days)` : "○ No History (0/3 Days)",
+      badgeClass: days > 0 ? "badge-warning" : "badge-ghost",
+      warningMessage:
+        "No trend snapshots recorded yet. Build price cache in Step 1 daily to accumulate history.",
+    };
+  }
+
+  let refDateMs: number;
+  if (referenceDateStr && /^\d{4}-\d{2}-\d{2}$/.test(referenceDateStr)) {
+    refDateMs = Date.parse(`${referenceDateStr}T00:00:00Z`);
+  } else {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    refDateMs = Date.parse(`${todayIso}T00:00:00Z`);
+  }
+
+  const latestMs = Date.parse(`${stats.latestDate}T00:00:00Z`);
+  const oldestMs = Date.parse(`${stats.oldestDate}T00:00:00Z`);
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const daysSinceLatest = Math.max(
+    0,
+    Math.floor((refDateMs - latestMs) / msPerDay),
+  );
+  const spanDays = Math.max(
+    1,
+    Math.floor((latestMs - oldestMs) / msPerDay) + 1,
+  );
+  const missingDaysInRange = Math.max(0, spanDays - stats.daysCount);
+
+  const isInsufficient = stats.daysCount < 3;
+  const isStale = !isInsufficient && daysSinceLatest > 3;
+  const isDecaying = !isInsufficient && !isStale && daysSinceLatest >= 2;
+  const hasContinuityGap =
+    !isInsufficient && !isStale && missingDaysInRange >= 2;
+
+  let status: TrendHealthStatus["status"] = "healthy";
+  let badgeText = `● Verified (${stats.daysCount}d)`;
+  let badgeClass = stats.daysCount >= 7 ? "badge-primary" : "badge-primary";
+  let warningMessage: string | null = null;
+
+  if (isInsufficient) {
+    status = "insufficient";
+    badgeText = `▲ Baseline Building (${stats.daysCount}/3 Days — Recommended 7 Days)`;
+    badgeClass = "badge-warning";
+    warningMessage = `Minimum 3 days of trend required for Nexus engine (currently ${stats.daysCount} day${stats.daysCount === 1 ? "" : "s"}).`;
+  } else if (isStale) {
+    status = "stale";
+    badgeText = `▲ Stale Trends (${daysSinceLatest}d ago — Engine Bypassed)`;
+    badgeClass = "badge-warning";
+    warningMessage = `Critical: Latest snapshot was recorded ${daysSinceLatest} days ago (${stats.latestDate}). Because Nexus caps data age at 3 days, trend momentum and downside protection will be BYPASSED, falling back to base pricing. Refresh price cache in Step 1.`;
+  } else if (isDecaying) {
+    status = "decaying";
+    badgeText = `▲ Trends Outdated (${daysSinceLatest}d lag)`;
+    badgeClass = "badge-warning";
+    warningMessage = `Caution: Latest snapshot is ${daysSinceLatest} days old (${stats.latestDate}). Price movements from the last 48 hours are missing, which may delay price trend detection. We recommend refreshing price cache in Step 1.`;
+  } else if (hasContinuityGap) {
+    status = "gap";
+    badgeText = `▲ Trend Gap (${missingDaysInRange}d missing)`;
+    badgeClass = "badge-warning";
+    warningMessage = `Notice: ${missingDaysInRange} days are missing between ${stats.oldestDate} and ${stats.latestDate} (${stats.daysCount} of ${spanDays} days recorded). Linear regression slope may be sensitive to gaps.`;
+  } else if (stats.daysCount < 7) {
+    badgeText = `● Verified (${stats.daysCount}d — Recommended 7d)`;
+  }
+
+  return {
+    daysCount: stats.daysCount,
+    latestDate: stats.latestDate,
+    oldestDate: stats.oldestDate,
+    daysSinceLatest,
+    spanDays,
+    missingDaysInRange,
+    isStale,
+    isDecaying,
+    hasContinuityGap,
+    isInsufficient,
+    status,
+    badgeText,
+    badgeClass,
+    warningMessage,
+  };
+}
+

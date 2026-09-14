@@ -8,6 +8,10 @@ import {
   Loader2,
   Zap,
 } from "lucide-react";
+import {
+  evaluateTrendHealth,
+  TrendHealthStatus,
+} from "../../utils/oracleUtils";
 
 interface DevSimulatorPanelProps {
   trendStats: {
@@ -27,6 +31,7 @@ interface DevSimulatorPanelProps {
   handleSetSimulatedDate: (date: string | null) => Promise<void>;
   isClearingHistory: boolean;
   handleClearTrendHistory: () => Promise<void>;
+  trendHealth?: TrendHealthStatus | null;
 }
 
 export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
@@ -41,7 +46,12 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
   handleSetSimulatedDate,
   isClearingHistory,
   handleClearTrendHistory,
+  trendHealth: propTrendHealth,
 }) => {
+  const trendHealth = React.useMemo(() => {
+    return propTrendHealth ?? evaluateTrendHealth(trendStats, simulatedDate);
+  }, [propTrendHealth, trendStats, simulatedDate]);
+
   const getPastDateStr = (daysAgo: number) => {
     const d = new Date();
     d.setDate(d.getDate() - daysAgo);
@@ -83,16 +93,21 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
           </span>
           {trendStats ? (
             <span
-              className={`badge ${trendStats.daysCount >= 7 ? "badge-primary" : trendStats.daysCount >= 3 ? "badge-primary" : trendStats.daysCount > 0 ? "badge-warning" : "badge-ghost"}`}
-              style={{ fontSize: "11px", padding: "2px 8px" }}
+              className={`badge ${trendHealth.badgeClass}`}
+              style={{
+                fontSize: "11px",
+                padding: "2px 8px",
+                ...(trendHealth.isStale
+                  ? {
+                      backgroundColor: "rgba(239, 68, 68, 0.15)",
+                      color: "var(--so-danger-text, #ef4444)",
+                      border: "1px solid rgba(239, 68, 68, 0.35)",
+                    }
+                  : {}),
+              }}
+              title={trendHealth.warningMessage || undefined}
             >
-              {trendStats.daysCount >= 7
-                ? `● Verified (${trendStats.daysCount} Snapshot Days)`
-                : trendStats.daysCount >= 3
-                  ? `● Verified (${trendStats.daysCount} Days — Recommended 7 Days)`
-                  : trendStats.daysCount > 0
-                    ? `▲ Baseline Building (${trendStats.daysCount}/3 Days — Recommended 7 Days)`
-                    : `○ No History (0/3 Days — Recommended 7 Days)`}
+              {trendHealth.badgeText}
             </span>
           ) : (
             <span style={{ fontSize: "12px", color: "var(--so-text-muted)" }}>
@@ -153,11 +168,32 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
               {trendStats.oldestDate || "None"} →{" "}
               {trendStats.latestDate || "None"}
             </strong>
+            {trendHealth.daysSinceLatest !== null && (
+              <span
+                style={{
+                  marginLeft: "4px",
+                  color: trendHealth.isStale
+                    ? "var(--so-danger-text, #ef4444)"
+                    : trendHealth.isDecaying
+                      ? "var(--so-warning-text, #f59e0b)"
+                      : "var(--so-text-muted)",
+                  fontWeight: trendHealth.isStale || trendHealth.isDecaying ? 700 : 400,
+                }}
+              >
+                ({trendHealth.daysSinceLatest === 0 ? "Today" : `${trendHealth.daysSinceLatest}d ago`})
+              </span>
+            )}
+            {trendHealth.spanDays !== null && trendHealth.spanDays > 1 && (
+              <span style={{ color: "var(--so-text-muted)", marginLeft: "4px" }}>
+                [{trendHealth.spanDays}d span]
+              </span>
+            )}
           </span>
         </div>
       )}
 
-      {trendStats && trendStats.daysCount < 3 && (
+      {/* ── Status Alerts & Health Warnings ── */}
+      {trendHealth.isInsufficient && trendStats && (
         <div
           style={{
             display: "flex",
@@ -178,7 +214,99 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
           </span>
         </div>
       )}
-      {trendStats && trendStats.daysCount >= 3 && trendStats.daysCount < 7 && (
+
+      {trendHealth.isStale && trendStats && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            color: "var(--so-danger-text, #ef4444)",
+            backgroundColor: "rgba(239, 68, 68, 0.08)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            padding: "10px 14px",
+            borderRadius: "var(--so-radius-sm)",
+            fontSize: "12px",
+            fontWeight: 500,
+            marginTop: "4px",
+          }}
+        >
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+          <div>
+            <div style={{ fontWeight: 800, marginBottom: "2px" }}>
+              CRITICAL STALENESS WARNING ({trendHealth.daysSinceLatest} Days Old)
+            </div>
+            <span>
+              Your latest price snapshot was recorded on <strong>{trendStats.latestDate}</strong> ({trendHealth.daysSinceLatest} days ago).
+              The Nexus valuation engine enforces a hard staleness cap of 3 days (<code>maxDataAgeDays: 3</code>).
+              Because data is older than 3 days, trend momentum adjustments and downside cuts will be <strong>BYPASSED</strong>,
+              silently falling back to standard base Oracle pricing.
+              Please fetch or load a fresh price cache in Step 1 to record today&apos;s snapshot.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {trendHealth.isDecaying && trendStats && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            color: "var(--so-warning-text, #f59e0b)",
+            backgroundColor: "rgba(234, 179, 8, 0.08)",
+            border: "1px solid rgba(234, 179, 8, 0.3)",
+            padding: "10px 14px",
+            borderRadius: "var(--so-radius-sm)",
+            fontSize: "12px",
+            fontWeight: 500,
+            marginTop: "4px",
+          }}
+        >
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+          <div>
+            <div style={{ fontWeight: 800, marginBottom: "2px" }}>
+              DECAYING TREND CAUTION ({trendHealth.daysSinceLatest} Days Old)
+            </div>
+            <span>
+              Latest snapshot is from <strong>{trendStats.latestDate}</strong> ({trendHealth.daysSinceLatest} days ago).
+              Market price movements over the last 48 hours are missing, meaning recent crashes or sudden breakouts may not be reflected in trend slopes.
+              Consider refreshing your price cache in Step 1 for optimal trend accuracy.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {trendHealth.hasContinuityGap && !trendHealth.isStale && trendStats && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            color: "var(--so-warning-text, #f59e0b)",
+            backgroundColor: "rgba(234, 179, 8, 0.08)",
+            border: "1px solid rgba(234, 179, 8, 0.3)",
+            padding: "10px 14px",
+            borderRadius: "var(--so-radius-sm)",
+            fontSize: "12px",
+            fontWeight: 500,
+            marginTop: "4px",
+          }}
+        >
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+          <div>
+            <div style={{ fontWeight: 800, marginBottom: "2px" }}>
+              DATA CONTINUITY GAP ({trendHealth.missingDaysInRange} Missing Days)
+            </div>
+            <span>
+              There are <strong>{trendHealth.missingDaysInRange} missing days</strong> between {trendStats.oldestDate} and {trendStats.latestDate} ({trendStats.daysCount} of {trendHealth.spanDays} days captured).
+              Sparse data points may produce sensitive or distorted linear regression slopes.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!trendHealth.isInsufficient && !trendHealth.isStale && !trendHealth.isDecaying && trendStats && trendStats.daysCount >= 3 && trendStats.daysCount < 7 && (
         <div
           style={{
             display: "flex",
@@ -197,7 +325,8 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
           </span>
         </div>
       )}
-      {trendStats && trendStats.daysCount >= 7 && (
+
+      {!trendHealth.isInsufficient && !trendHealth.isStale && !trendHealth.isDecaying && trendStats && trendStats.daysCount >= 7 && (
         <div
           style={{
             display: "flex",

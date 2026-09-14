@@ -12,6 +12,7 @@ import { EngineStrategyPanel } from "./step2/EngineStrategyPanel";
 import { NexusLabControls } from "./step2/NexusLabControls";
 import { DevSimulatorPanel } from "./step2/DevSimulatorPanel";
 import { CostLedgerSummary } from "./step2/CostLedgerSummary";
+import { evaluateTrendHealth } from "../utils/oracleUtils";
 
 interface Step2AcceptedPricesProps {
   isOpen: boolean;
@@ -193,6 +194,10 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
     }
   };
 
+  const trendHealth = React.useMemo(() => {
+    return evaluateTrendHealth(trendStats, simulatedDate);
+  }, [trendStats, simulatedDate]);
+
   const activeUnitCost =
     selectedEngine === "nexus" ? nexusUnitCostCents : unitCostCents;
   const isNexusTrendBlocked =
@@ -294,23 +299,25 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             )}
             {selectedEngine === "nexus" ? "Nexus Pro" : "Standard"}
           </span>
-          {selectedEngine === "nexus" && trendStats && (
+          {selectedEngine === "nexus" && (
             <span
-              className={`badge ${trendStats.daysCount >= 7 ? "badge-primary" : trendStats.daysCount >= 3 ? "badge-primary" : trendStats.daysCount > 0 ? "badge-warning" : "badge-ghost"}`}
+              className={`badge ${trendHealth.badgeClass}`}
               style={{
                 fontSize: "11px",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "4px",
+                ...(trendHealth.isStale
+                  ? {
+                      backgroundColor: "rgba(239, 68, 68, 0.15)",
+                      color: "var(--so-danger-text, #ef4444)",
+                      border: "1px solid rgba(239, 68, 68, 0.35)",
+                    }
+                  : {}),
               }}
+              title={trendHealth.warningMessage || undefined}
             >
-              {trendStats.daysCount >= 7
-                ? `● Verified (${trendStats.daysCount}d)`
-                : trendStats.daysCount >= 3
-                  ? `● Verified (${trendStats.daysCount}d — Recommended 7d)`
-                  : trendStats.daysCount > 0
-                    ? `▲ Baseline Building (${trendStats.daysCount}/3 Days — Recommended 7 Days)`
-                    : `○ No History (0/3 Days — Recommended 7 Days)`}
+              {trendHealth.badgeText}
             </span>
           )}
           <span
@@ -378,6 +385,7 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             handleSetSimulatedDate={handleSetSimulatedDate}
             isClearingHistory={isClearingHistory}
             handleClearTrendHistory={handleClearTrendHistory}
+            trendHealth={trendHealth}
           />
 
           {/* Section 5: Cost Breakdown & Build Trigger */}
@@ -392,6 +400,7 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             onBuildAcceptedPrices={handleBuildAcceptedPrices}
             isNexusTrendBlocked={isNexusTrendBlocked}
             trendDaysCount={trendStats?.daysCount ?? 0}
+            trendHealth={trendHealth}
           />
         </div>
       )}
