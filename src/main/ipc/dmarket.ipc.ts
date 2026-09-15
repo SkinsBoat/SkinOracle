@@ -576,6 +576,32 @@ export function resolveDmarketPriceCents(item: any): number {
   return isNaN(priceCents) ? 0 : priceCents;
 }
 
+export function resolveDmarketInstantPrice(item: any): number | null {
+  if (!item) return null;
+
+  if (typeof item.instantPriceUsd === "number" && item.instantPriceUsd > 0) {
+    return item.instantPriceUsd;
+  }
+
+  // DMarket standard item structure: "instantPrice": { "DMC": "", "USD": "6289" }
+  const rawUsd =
+    item.instantPrice?.USD ??
+    item.instantPrice?.usd ??
+    item._raw?.instantPrice?.USD ??
+    item._raw?.instantPrice?.usd;
+
+  if (rawUsd === undefined || rawUsd === null || rawUsd === "") return null;
+
+  const str = String(rawUsd).trim();
+  if (!str) return null;
+
+  const num = parseFloat(str);
+  if (isNaN(num) || num <= 0) return null;
+
+  // If decimal point exists (e.g. "62.89"), it's in dollars; otherwise DMarket returns cents ("6289" -> 62.89)
+  return str.includes(".") ? num : num / 100;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // IPC Handlers
 // ─────────────────────────────────────────────────────────────────
@@ -782,7 +808,7 @@ if (ipcMain?.handle) {
     return { success: true, result: res };
   });
 
-  // 6. Update Target Price (Update = Delete old target + Create new target, matching DmarketActiveTargetsManager)
+  // 6. Update Target Price (Direct in-place update via POST /exchange/v1/target/update with Delete+Create fallback)
   ipcMain.handle(
     "dmarket:update-target",
     async (
@@ -793,14 +819,85 @@ if (ipcMain?.handle) {
       amount: number = 1,
       attrs?: any,
     ) => {
-      console.log("[DMarket IPC] Updating target (Delete + Create):", {
+      console.log("[DMarket IPC] Updating target:", {
         oldTargetId,
         title,
         newPriceInUsd,
         amount,
       });
 
-      // 1. Delete old target first to avoid creating duplicate active targets on DMarket
+      const priceCents = Math.round(newPriceInUsd * 100);
+
+      // 1. Attempt direct in-place update via POST /exchange/v1/target/update
+      if (oldTargetId) {
+        try {
+          console.log(
+            `[DMarket IPC] ⚡ Attempting direct target update via POST /exchange/v1/target/update for "${title}" ($${Number(newPriceInUsd).toFixed(2)})...`,
+          );
+
+          const attributes: Record<string, any> = {
+            gameId: DMARKET_CS2_GAME_ID,
+            title,
+          };
+          if (attrs && typeof attrs === "object") {
+            Object.assign(attributes, attrs);
+          }
+
+          const updateBody = {
+            force: true,
+            targets: [
+              {
+                id: oldTargetId,
+                body: {
+                  amount: Math.max(1, Math.floor(amount || 1)),
+                  gameId: DMARKET_CS2_GAME_ID,
+                  price: {
+                    amount: String(priceCents),
+                    currency: "USD",
+                  },
+                  attributes,
+                },
+              },
+            ],
+          };
+
+          const updateRes = await dmarketRequest(
+            "POST",
+            "/exchange/v1/target/update",
+            undefined,
+            updateBody,
+          );
+
+          const updatedItem = updateRes?.updated?.[0];
+          if (updatedItem && updatedItem.newTargetId) {
+            console.log(
+              `[DMarket IPC] ✅ Target updated successfully in-place for "${title}" (New TargetID: ${updatedItem.newTargetId})`,
+            );
+            return {
+              success: true,
+              newTargetId: updatedItem.newTargetId,
+              oldTargetId,
+              result: updateRes,
+            };
+          }
+
+          if (
+            Array.isArray(updateRes?.failedTargets) &&
+            updateRes.failedTargets.length > 0
+          ) {
+            console.warn(
+              `[DMarket IPC] ⚠️ Direct target update returned failedTargets:`,
+              updateRes.failedTargets,
+            );
+          }
+        } catch (updateErr: any) {
+          console.warn(
+            `[DMarket IPC] ⚠️ Direct /exchange/v1/target/update failed (${updateErr.message}). Falling back to Delete + Create...`,
+          );
+        }
+      }
+
+      // 2. Fallback: Delete old target first to avoid creating duplicate active targets on DMarket
       if (oldTargetId) {
         try {
           console.log(
@@ -1079,8 +1176,16 @@ if (ipcMain?.handle) {
           ...(item.attributes || item.Attributes || {}),
         };
 
+        const isP2P =
+          attributes?.provider === "ICS" ||
+          (typeof attributes?.botId === "string" && attributes.botId.trim() === "") ||
+          (!attributes?.botId && !attributes?.depositor);
+        const listingMode: "p2p" | "bot" = isP2P ? "p2p" : "bot";
+        const instantPriceUsd = resolveDmarketInstantPrice(item);
+
         return {
           ...item,
+          _raw: item,
           id,
           offerId,
           assetId,
@@ -1090,8 +1195,12 @@ if (ipcMain?.handle) {
           priceCents,
           priceUsd,
           status: item.status || item.Status || "active",
+          isP2P,
+          listingMode,
           imageUrl,
           attributes,
+          instantPrice: item.instantPrice || item.instant_price,
+          instantPriceUsd: instantPriceUsd ?? undefined,
         };
       };
 
@@ -1103,6 +1212,19 @@ if (ipcMain?.handle) {
           baseParams,
         );
         const rawItems = Array.isArray(data?.items) ? data.items : [];
+        console.log(
+          `[DMarket IPC get-offers] ✅ Single page fetched ${rawItems.length} active sell offers.`,
+        );
+        console.log(
+          `[DMarket IPC get-offers] 🔍 FULL RAW OFFERS PAYLOAD:\n`,
+          JSON.stringify(rawItems, null, 2),
+        );
+        rawItems.forEach((raw, i) => {
+          console.log(
+            `[DMarket IPC Offer #${i + 1}] Title: "${raw.title || raw.Title || raw.name || ""}" | Keys: [${Object.keys(raw).join(", ")}]`,
+            raw,
+          );
+        });
         return {
           items: rawItems.map(normalizeOffer),
           total: data?.total || String(rawItems.length),
@@ -1141,8 +1263,18 @@ if (ipcMain?.handle) {
       }
 
       console.log(
-        `[DMarket IPC] ✅ Fetched total ${allItems.length} active sell offers across ${page} page(s).`,
+        `[DMarket IPC get-offers] ✅ Total ${allItems.length} active sell offers fetched across ${page} page(s).`,
       );
+      console.log(
+        `[DMarket IPC get-offers] 🔍 FULL RAW OFFERS PAYLOAD (${allItems.length} items):\n`,
+        JSON.stringify(allItems, null, 2),
+      );
+      allItems.forEach((raw, i) => {
+        console.log(
+          `[DMarket IPC Offer #${i + 1}] Title: "${raw.title || raw.Title || raw.name || ""}" | Keys: [${Object.keys(raw).join(", ")}]`,
+          raw,
+        );
+      });
       return {
         items: allItems.map(normalizeOffer),
         total: String(allItems.length),
@@ -1210,8 +1342,11 @@ if (ipcMain?.handle) {
             "",
         ).trim();
 
+        const instantPriceUsd = resolveDmarketInstantPrice(item);
+
         return {
           ...item,
+          _raw: item,
           id: assetId,
           itemId: assetId,
           assetId,
@@ -1226,6 +1361,8 @@ if (ipcMain?.handle) {
           inMarket,
           imageUrl,
           attributes,
+          instantPrice: item.instantPrice || item.instant_price,
+          instantPriceUsd: instantPriceUsd ?? undefined,
         };
       };
 
@@ -1311,58 +1448,222 @@ if (ipcMain?.handle) {
         assetId?: string;
         itemId?: string;
         id?: string;
+        isP2P?: boolean;
+        listingMode?: "p2p" | "bot";
         priceCents?: number | string;
         priceUsd?: number | string;
       }>,
     ) => {
       console.log(
-        `[DMarket IPC] Batch creating ${requests?.length || 0} offers...`,
+        `[DMarket IPC] Creating ${requests?.length || 0} offer(s)...`,
       );
       if (!Array.isArray(requests) || requests.length === 0) {
         throw new Error("No items provided for listing creation");
       }
 
-      const formattedRequests = requests.map((r) => {
-        let cents = 0;
-        if (r.priceCents !== undefined && r.priceCents !== null) {
-          cents = Math.round(Number(r.priceCents));
-        } else if (r.priceUsd !== undefined && r.priceUsd !== null) {
-          cents = Math.round(Number(r.priceUsd) * 100);
-        }
-        const rawId = r.assetId || r.itemId || r.id || "";
-        if (cents <= 0) {
-          throw new Error(
-            `Invalid price for asset ${rawId}: price must be greater than 0`,
-          );
-        }
-        return formatCreateOfferRequest(rawId, cents);
-      });
+      const p2pRequests: typeof requests = [];
+      const botRequests: typeof requests = [];
 
-      console.log(
-        `[DMarket IPC] Formatted ${formattedRequests.length} offer(s) for creation. Sample payload:`,
-        formattedRequests[0] ? JSON.stringify(formattedRequests[0]) : "None",
-      );
+      for (const r of requests) {
+        if (r.isP2P === true || r.listingMode === "p2p") {
+          p2pRequests.push(r);
+        } else {
+          botRequests.push(r);
+        }
+      }
 
-      // Chunk into batches of 100 (DMarket limit per request)
-      const chunkSize = 100;
       const allCreated: any[] = [];
       const allFailed: any[] = [];
 
-      for (let i = 0; i < formattedRequests.length; i += chunkSize) {
-        const chunk = formattedRequests.slice(i, i + chunkSize);
-        const body = { requests: chunk };
-        const res = await dmarketRequest(
-          "POST",
-          "/marketplace-api/v2/offers:batchCreate",
-          undefined,
-          body,
+      // 1. Process P2P Listings via POST /exchange/v1/offers
+      if (p2pRequests.length > 0) {
+        console.log(
+          `[DMarket IPC] Processing ${p2pRequests.length} P2P offer listing(s) via POST /exchange/v1/offers...`,
         );
+        const chunkSize = 50;
+        for (let i = 0; i < p2pRequests.length; i += chunkSize) {
+          const chunk = p2pRequests.slice(i, i + chunkSize);
+          const objects = chunk.map((r) => {
+            let cents = 0;
+            if (r.priceCents !== undefined && r.priceCents !== null) {
+              cents = Math.round(Number(r.priceCents));
+            } else if (r.priceUsd !== undefined && r.priceUsd !== null) {
+              cents = Math.round(Number(r.priceUsd) * 100);
+            }
+            const rawId = r.assetId || r.itemId || r.id || "";
+            if (cents <= 0) {
+              throw new Error(
+                `Invalid price for asset ${rawId}: price must be greater than 0`,
+              );
+            }
+            return {
+              type: "p2p",
+              itemId: rawId,
+              price: {
+                amount: String(cents),
+                currency: "USD",
+              },
+            };
+          });
 
-        if (Array.isArray(res?.offers)) allCreated.push(...res.offers);
-        if (Array.isArray(res?.failed)) allFailed.push(...res.failed);
+          const p2pBody = { objects };
+          try {
+            const res = await dmarketRequest(
+              "POST",
+              "/exchange/v1/offers",
+              undefined,
+              p2pBody,
+            );
 
-        if (i + chunkSize < formattedRequests.length) {
-          await new Promise((r) => setTimeout(r, 300));
+            const created = Array.isArray(res?.created) ? res.created : [];
+            const failed = Array.isArray(res?.fail) ? res.fail : [];
+
+            if (created.length > 0) {
+              created.forEach((c: any) => {
+                allCreated.push({
+                  assetId: c.assetId,
+                  offerId: c.offerId,
+                  isP2P: true,
+                  status: "active",
+                });
+              });
+            } else if (Array.isArray(res?.success) && res.success.length > 0) {
+              res.success.forEach((assetId: string) => {
+                allCreated.push({
+                  assetId,
+                  isP2P: true,
+                  status: "active",
+                });
+              });
+            }
+
+            if (failed.length > 0) {
+              failed.forEach((f: any) => {
+                allFailed.push({
+                  assetId: typeof f === "string" ? f : f?.assetId || f?.itemId,
+                  message: f?.message || "Failed to create P2P offer",
+                });
+              });
+            }
+          } catch (err: any) {
+            console.error("[DMarket IPC] Error creating P2P offers:", err);
+            // Fallback attempt to batchCreate in case it was in bot custody
+            for (const r of chunk) {
+              try {
+                let cents = 0;
+                if (r.priceCents !== undefined && r.priceCents !== null) {
+                  cents = Math.round(Number(r.priceCents));
+                } else if (r.priceUsd !== undefined && r.priceUsd !== null) {
+                  cents = Math.round(Number(r.priceUsd) * 100);
+                }
+                const rawId = r.assetId || r.itemId || r.id || "";
+                const fallbackRes = await dmarketRequest(
+                  "POST",
+                  "/marketplace-api/v2/offers:batchCreate",
+                  undefined,
+                  { requests: [formatCreateOfferRequest(rawId, cents)] },
+                );
+                if (Array.isArray(fallbackRes?.offers)) allCreated.push(...fallbackRes.offers);
+                if (Array.isArray(fallbackRes?.failed)) allFailed.push(...fallbackRes.failed);
+              } catch {
+                allFailed.push({
+                  assetId: r.assetId || r.itemId || r.id,
+                  message: err.message,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Process Bot Listings via POST /marketplace-api/v2/offers:batchCreate
+      if (botRequests.length > 0) {
+        console.log(
+          `[DMarket IPC] Processing ${botRequests.length} Bot custody offer listing(s) via POST /marketplace-api/v2/offers:batchCreate...`,
+        );
+        const formattedRequests = botRequests.map((r) => {
+          let cents = 0;
+          if (r.priceCents !== undefined && r.priceCents !== null) {
+            cents = Math.round(Number(r.priceCents));
+          } else if (r.priceUsd !== undefined && r.priceUsd !== null) {
+            cents = Math.round(Number(r.priceUsd) * 100);
+          }
+          const rawId = r.assetId || r.itemId || r.id || "";
+          if (cents <= 0) {
+            throw new Error(
+              `Invalid price for asset ${rawId}: price must be greater than 0`,
+            );
+          }
+          return { req: r, formatted: formatCreateOfferRequest(rawId, cents), cents, rawId };
+        });
+
+        const chunkSize = 100;
+        for (let i = 0; i < formattedRequests.length; i += chunkSize) {
+          const chunk = formattedRequests.slice(i, i + chunkSize);
+          const body = { requests: chunk.map((c) => c.formatted) };
+          try {
+            const res = await dmarketRequest(
+              "POST",
+              "/marketplace-api/v2/offers:batchCreate",
+              undefined,
+              body,
+            );
+
+            if (Array.isArray(res?.offers)) allCreated.push(...res.offers);
+
+            if (Array.isArray(res?.failed)) {
+              // If failed, check if it can be listed via P2P POST /exchange/v1/offers
+              for (const fail of res.failed) {
+                const matching = chunk.find(
+                  (c) =>
+                    c.rawId === fail.assetId ||
+                    c.req.assetId === fail.assetId ||
+                    c.req.id === fail.assetId,
+                );
+                if (matching && (fail.code === "BadRequest" || !fail.message)) {
+                  try {
+                    const fallbackRes = await dmarketRequest(
+                      "POST",
+                      "/exchange/v1/offers",
+                      undefined,
+                      {
+                        objects: [
+                          {
+                            type: "p2p",
+                            itemId: matching.rawId,
+                            price: {
+                              amount: String(matching.cents),
+                              currency: "USD",
+                            },
+                          },
+                        ],
+                      },
+                    );
+                    const createdP2P = fallbackRes?.created?.[0];
+                    if (createdP2P) {
+                      allCreated.push({
+                        assetId: createdP2P.assetId,
+                        offerId: createdP2P.offerId,
+                        isP2P: true,
+                        status: "active",
+                      });
+                      continue;
+                    }
+                  } catch {
+                    // Fallback failed as well
+                  }
+                }
+                allFailed.push(fail);
+              }
+            }
+          } catch (err: any) {
+            console.error("[DMarket IPC] Error in batchCreate:", err);
+            allFailed.push(...chunk.map((c) => ({ assetId: c.rawId, message: err.message })));
+          }
+
+          if (i + chunkSize < formattedRequests.length) {
+            await new Promise((r) => setTimeout(r, 300));
+          }
         }
       }
 
@@ -1384,6 +1685,9 @@ if (ipcMain?.handle) {
       _,
       requests: Array<{
         id: string;
+        offerId?: string;
+        isP2P?: boolean;
+        listingMode?: "p2p" | "bot";
         priceCents?: number | string;
         priceUsd?: number | string;
       }>,
@@ -1396,53 +1700,224 @@ if (ipcMain?.handle) {
         throw new Error("No offers provided for price update");
       }
 
-      const formattedRequests = requests.map((r) => {
-        let cents = 0;
-        if (r.priceCents !== undefined && r.priceCents !== null) {
-          cents = Math.round(Number(r.priceCents));
-        } else if (r.priceUsd !== undefined && r.priceUsd !== null) {
-          cents = Math.round(Number(r.priceUsd) * 100);
-        }
-        if (cents <= 0) {
-          throw new Error(
-            `Invalid price for offer ${r.id}: price must be greater than 0`,
-          );
-        }
-        return formatUpdateOfferRequest(r.id, cents);
-      });
-
-      console.log(
-        `[DMarket IPC] Formatted ${formattedRequests.length} offer(s) for update:`,
-        JSON.stringify(formattedRequests, null, 2),
-      );
-
-      const chunkSize = 100;
       const allUpdated: any[] = [];
       const allFailed: any[] = [];
 
-      for (let i = 0; i < formattedRequests.length; i += chunkSize) {
-        const chunk = formattedRequests.slice(i, i + chunkSize);
-        const body = { requests: chunk };
-        console.log(
-          `[DMarket IPC] Sending POST /marketplace-api/v2/offers:batchUpdate:`,
-          JSON.stringify(body, null, 2),
-        );
-        const res = await dmarketRequest(
-          "POST",
-          "/marketplace-api/v2/offers:batchUpdate",
-          undefined,
-          body,
-        );
-        console.log(
-          `[DMarket IPC] batchUpdate response:`,
-          JSON.stringify(res, null, 2),
-        );
+      // 1. Partition requests into P2P vs Bot offers
+      const p2pRequests: typeof requests = [];
+      const botRequests: typeof requests = [];
 
-        if (Array.isArray(res?.offers)) allUpdated.push(...res.offers);
-        if (Array.isArray(res?.failed)) allFailed.push(...res.failed);
+      for (const r of requests) {
+        if (r.isP2P === true || r.listingMode === "p2p") {
+          p2pRequests.push(r);
+        } else {
+          botRequests.push(r);
+        }
+      }
 
-        if (i + chunkSize < formattedRequests.length) {
-          await new Promise((r) => setTimeout(r, 300));
+      // 2. Process P2P Offers via PATCH /exchange/v1/offers
+      if (p2pRequests.length > 0) {
+        console.log(
+          `[DMarket IPC] Processing ${p2pRequests.length} P2P offer update(s) via PATCH /exchange/v1/offers...`,
+        );
+        const chunkSize = 50;
+        for (let i = 0; i < p2pRequests.length; i += chunkSize) {
+          const chunk = p2pRequests.slice(i, i + chunkSize);
+          const objects = chunk.map((r) => {
+            let cents = 0;
+            if (r.priceCents !== undefined && r.priceCents !== null) {
+              cents = Math.round(Number(r.priceCents));
+            } else if (r.priceUsd !== undefined && r.priceUsd !== null) {
+              cents = Math.round(Number(r.priceUsd) * 100);
+            }
+            if (cents <= 0) {
+              throw new Error(
+                `Invalid price for P2P offer ${r.id}: price must be greater than 0`,
+              );
+            }
+            const offerId = r.offerId || r.id;
+            return {
+              offerId,
+              price: {
+                amount: String(cents),
+                currency: "USD",
+              },
+              selectedPricePreset: "custom",
+              type: "p2p",
+            };
+          });
+
+          const p2pBody = { force: true, objects };
+          try {
+            const res = await dmarketRequest(
+              "PATCH",
+              "/exchange/v1/offers",
+              undefined,
+              p2pBody,
+            );
+
+            const createdOffers = Array.isArray(res?.created)
+              ? res.created
+              : [];
+            const failOffers = Array.isArray(res?.fail) ? res.fail : [];
+
+            chunk.forEach((item, idx) => {
+              const matchingCreated =
+                createdOffers.find(
+                  (c: any) =>
+                    c.offerId === item.offerId ||
+                    c.assetId === (item as any).assetId,
+                ) || createdOffers[idx];
+
+              const newOfferId =
+                matchingCreated?.offerId || item.offerId || item.id;
+              allUpdated.push({
+                id: newOfferId,
+                offerId: newOfferId,
+                oldOfferId: item.offerId || item.id,
+                assetId:
+                  matchingCreated?.assetId || (item as any).assetId,
+                isP2P: true,
+              });
+            });
+
+            if (failOffers.length > 0) {
+              failOffers.forEach((f: any) => {
+                allFailed.push({
+                  offerId: f.offerId || f.id || String(f),
+                  code: "P2PUpdateFailed",
+                  message: f.message || "Failed to update P2P offer",
+                });
+              });
+            }
+          } catch (err: any) {
+            console.error(
+              `[DMarket IPC] ❌ P2P PATCH /exchange/v1/offers failed:`,
+              err.message,
+            );
+            chunk.forEach((item) => {
+              allFailed.push({
+                offerId: item.offerId || item.id,
+                code: "P2PUpdateError",
+                message: err.message,
+              });
+            });
+          }
+
+          if (i + chunkSize < p2pRequests.length) {
+            await new Promise((r) => setTimeout(r, 200));
+          }
+        }
+      }
+
+      // 3. Process Bot Offers via POST /marketplace-api/v2/offers:batchUpdate
+      if (botRequests.length > 0) {
+        const formattedRequests = botRequests.map((r) => {
+          let cents = 0;
+          if (r.priceCents !== undefined && r.priceCents !== null) {
+            cents = Math.round(Number(r.priceCents));
+          } else if (r.priceUsd !== undefined && r.priceUsd !== null) {
+            cents = Math.round(Number(r.priceUsd) * 100);
+          }
+          if (cents <= 0) {
+            throw new Error(
+              `Invalid price for offer ${r.id}: price must be greater than 0`,
+            );
+          }
+          return {
+            req: r,
+            formatted: formatUpdateOfferRequest(r.id, cents),
+            cents,
+          };
+        });
+
+        const chunkSize = 100;
+        for (let i = 0; i < formattedRequests.length; i += chunkSize) {
+          const chunk = formattedRequests.slice(i, i + chunkSize);
+          const body = { requests: chunk.map((c) => c.formatted) };
+          console.log(
+            `[DMarket IPC] Sending POST /marketplace-api/v2/offers:batchUpdate:`,
+            JSON.stringify(body, null, 2),
+          );
+
+          try {
+            const res = await dmarketRequest(
+              "POST",
+              "/marketplace-api/v2/offers:batchUpdate",
+              undefined,
+              body,
+            );
+
+            if (Array.isArray(res?.offers)) allUpdated.push(...res.offers);
+
+            if (Array.isArray(res?.failed)) {
+              // Check if any failed items are actually P2P offers that can be updated via PATCH /exchange/v1/offers
+              for (const fail of res.failed) {
+                const matching = chunk.find(
+                  (c) =>
+                    c.formatted.offerId === fail.offerId ||
+                    c.req.id === fail.offerId,
+                );
+                if (matching && (fail.code === "BadRequest" || !fail.message)) {
+                  console.log(
+                    `[DMarket IPC] Attempting automatic fallback to PATCH /exchange/v1/offers for failed offer ${fail.offerId}...`,
+                  );
+                  try {
+                    const fallbackBody = {
+                      force: true,
+                      objects: [
+                        {
+                          offerId: matching.formatted.offerId,
+                          price: {
+                            amount: String(matching.cents),
+                            currency: "USD",
+                          },
+                          selectedPricePreset: "custom",
+                          type: "p2p",
+                        },
+                      ],
+                    };
+                    await dmarketRequest(
+                      "PATCH",
+                      "/exchange/v1/offers",
+                      undefined,
+                      fallbackBody,
+                    );
+                    console.log(
+                      `[DMarket IPC] ✅ Fallback to PATCH /exchange/v1/offers succeeded for offer ${fail.offerId}!`,
+                    );
+                    allUpdated.push({
+                      id: matching.formatted.offerId,
+                      offerId: matching.formatted.offerId,
+                      isP2P: true,
+                    });
+                    continue;
+                  } catch (fallbackErr: any) {
+                    console.warn(
+                      `[DMarket IPC] Fallback also failed: ${fallbackErr.message}`,
+                    );
+                  }
+                }
+                allFailed.push(fail);
+              }
+            }
+          } catch (err: any) {
+            console.error(
+              `[DMarket IPC] ❌ Bot batchUpdate failed:`,
+              err.message,
+            );
+            chunk.forEach((c) => {
+              allFailed.push({
+                offerId: c.formatted.offerId,
+                code: "BatchUpdateError",
+                message: err.message,
+              });
+            });
+          }
+
+          if (i + chunkSize < formattedRequests.length) {
+            await new Promise((r) => setTimeout(r, 300));
+          }
         }
       }
 
@@ -1467,7 +1942,16 @@ if (ipcMain?.handle) {
   // 13. Batch Delete Offers (Delist / Remove from Sale)
   ipcMain.handle(
     "dmarket:delete-offers",
-    async (_, requests: Array<{ id: string; assetId?: string }>) => {
+    async (
+      _,
+      requests: Array<{
+        id: string;
+        offerId?: string;
+        assetId?: string;
+        isP2P?: boolean;
+        listingMode?: "p2p" | "bot";
+      }>,
+    ) => {
       console.log(
         `[DMarket IPC] Batch deleting ${requests?.length || 0} offers...`,
       );
@@ -1475,29 +1959,154 @@ if (ipcMain?.handle) {
         throw new Error("No offers provided for delisting");
       }
 
-      const formattedRequests = requests.map((r) => {
-        return formatDeleteOfferRequest(r.id);
-      });
+      const p2pRequests: typeof requests = [];
+      const botRequests: typeof requests = [];
 
-      const chunkSize = 100;
+      for (const r of requests) {
+        if (r.isP2P === true || r.listingMode === "p2p") {
+          p2pRequests.push(r);
+        } else {
+          botRequests.push(r);
+        }
+      }
+
       const allDeleted: any[] = [];
       const allFailed: any[] = [];
 
-      for (let i = 0; i < formattedRequests.length; i += chunkSize) {
-        const chunk = formattedRequests.slice(i, i + chunkSize);
-        const body = { requests: chunk };
-        const res = await dmarketRequest(
-          "POST",
-          "/marketplace-api/v2/offers:batchDelete",
-          undefined,
-          body,
+      // 1. Process P2P Delisting via DELETE /exchange/v1/offers
+      if (p2pRequests.length > 0) {
+        console.log(
+          `[DMarket IPC] Processing ${p2pRequests.length} P2P offer delist(s) via DELETE /exchange/v1/offers...`,
         );
+        const chunkSize = 50;
+        for (let i = 0; i < p2pRequests.length; i += chunkSize) {
+          const chunk = p2pRequests.slice(i, i + chunkSize);
+          const objects = chunk.map((r) => ({
+            offerId: r.offerId || r.id,
+            type: "p2p",
+          }));
 
-        if (Array.isArray(res?.offers)) allDeleted.push(...res.offers);
-        if (Array.isArray(res?.failed)) allFailed.push(...res.failed);
+          const p2pBody = { force: true, objects };
+          try {
+            const res = await dmarketRequest(
+              "DELETE",
+              "/exchange/v1/offers",
+              undefined,
+              p2pBody,
+            );
 
-        if (i + chunkSize < formattedRequests.length) {
-          await new Promise((r) => setTimeout(r, 300));
+            const failItems = Array.isArray(res?.fail) ? res.fail : [];
+
+            chunk.forEach((item) => {
+              const offerId = item.offerId || item.id;
+              const isFailed = failItems.some(
+                (f: any) => f === offerId || f?.offerId === offerId,
+              );
+              if (isFailed) {
+                allFailed.push({
+                  offerId,
+                  assetId: item.assetId,
+                  message: "Failed to delist P2P offer",
+                });
+              } else {
+                allDeleted.push({
+                  offerId,
+                  id: offerId,
+                  assetId: item.assetId,
+                  success: true,
+                  isP2P: true,
+                });
+              }
+            });
+          } catch (err: any) {
+            console.error("[DMarket IPC] Error in DELETE /exchange/v1/offers:", err);
+            // Fallback to batchDelete in case it wasn't P2P
+            for (const r of chunk) {
+              try {
+                const targetOfferId = r.offerId || r.id;
+                const fallbackRes = await dmarketRequest(
+                  "POST",
+                  "/marketplace-api/v2/offers:batchDelete",
+                  undefined,
+                  { requests: [formatDeleteOfferRequest(targetOfferId)] },
+                );
+                if (Array.isArray(fallbackRes?.offers)) allDeleted.push(...fallbackRes.offers);
+                if (Array.isArray(fallbackRes?.failed)) allFailed.push(...fallbackRes.failed);
+              } catch {
+                allFailed.push({ offerId: r.offerId || r.id, message: err.message });
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Process Bot Delisting via POST /marketplace-api/v2/offers:batchDelete
+      if (botRequests.length > 0) {
+        console.log(
+          `[DMarket IPC] Processing ${botRequests.length} Bot custody offer delist(s) via POST /marketplace-api/v2/offers:batchDelete...`,
+        );
+        const formattedRequests = botRequests.map((r) => {
+          const offerId = r.offerId || r.id;
+          return { req: r, formatted: formatDeleteOfferRequest(offerId), offerId };
+        });
+
+        const chunkSize = 100;
+        for (let i = 0; i < formattedRequests.length; i += chunkSize) {
+          const chunk = formattedRequests.slice(i, i + chunkSize);
+          const body = { requests: chunk.map((c) => c.formatted) };
+          try {
+            const res = await dmarketRequest(
+              "POST",
+              "/marketplace-api/v2/offers:batchDelete",
+              undefined,
+              body,
+            );
+
+            if (Array.isArray(res?.offers)) allDeleted.push(...res.offers);
+
+            if (Array.isArray(res?.failed)) {
+              // Check if any failed offer is actually P2P
+              for (const fail of res.failed) {
+                const matching = chunk.find(
+                  (c) => c.offerId === fail.offerId || c.req.id === fail.offerId,
+                );
+                if (matching && (fail.code === "BadRequest" || !fail.message)) {
+                  try {
+                    const fallbackRes = await dmarketRequest(
+                      "DELETE",
+                      "/exchange/v1/offers",
+                      undefined,
+                      {
+                        force: true,
+                        objects: [{ offerId: matching.offerId, type: "p2p" }],
+                      },
+                    );
+                    const failList = Array.isArray(fallbackRes?.fail) ? fallbackRes.fail : [];
+                    if (!failList.includes(matching.offerId)) {
+                      allDeleted.push({
+                        offerId: matching.offerId,
+                        id: matching.offerId,
+                        assetId: matching.req.assetId,
+                        success: true,
+                        isP2P: true,
+                      });
+                      continue;
+                    }
+                  } catch {
+                    // Fallback failed as well
+                  }
+                }
+                allFailed.push(fail);
+              }
+            }
+          } catch (err: any) {
+            console.error("[DMarket IPC] Error in batchDelete:", err);
+            allFailed.push(...chunk.map((c) => ({ offerId: c.offerId, message: err.message })));
+          }
+
+          if (i + chunkSize < formattedRequests.length) {
+            await new Promise((r) => setTimeout(r, 300));
+          }
         }
       }
 

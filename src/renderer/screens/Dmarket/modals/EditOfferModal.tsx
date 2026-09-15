@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Edit3, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Edit3, X, Loader2, CheckCircle2, Zap, AlertTriangle } from "lucide-react";
 import { DmarketOfferItem } from "../../../../shared/types";
+import { resolveInstantPrice } from "../dmarket-utils";
 import toast from "react-hot-toast";
 
 interface EditOfferModalProps {
@@ -33,6 +34,18 @@ export const EditOfferModal: React.FC<EditOfferModalProps> = ({
   const currentPriceDollar = offer.priceCents
     ? offer.priceCents / 100
     : parseFloat(offer.priceUsd) || 0;
+
+  const instantPrice = resolveInstantPrice(offer);
+  const numPrice = parseFloat(price);
+  const isInputBelowInstant = Boolean(
+    !isNaN(numPrice) && numPrice > 0 && instantPrice && numPrice < instantPrice
+  );
+  const isOracleBelowInstant = Boolean(
+    targetListingPrice &&
+      targetListingPrice > 0 &&
+      instantPrice &&
+      targetListingPrice < instantPrice
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +196,103 @@ export const EditOfferModal: React.FC<EditOfferModalProps> = ({
             >
               Use Oracle Price
             </button>
+          </div>
+        )}
+
+        {instantPrice && instantPrice > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: isInputBelowInstant
+                ? "rgba(239, 68, 68, 0.12)"
+                : "rgba(245, 158, 11, 0.1)",
+              border: `1px solid ${
+                isInputBelowInstant
+                  ? "rgba(239, 68, 68, 0.35)"
+                  : "rgba(245, 158, 11, 0.3)"
+              }`,
+              padding: "8px 12px",
+              borderRadius: "var(--so-radius-sm)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Zap
+                size={13}
+                style={{
+                  color: isInputBelowInstant ? "#f87171" : "#f59e0b",
+                  fill: isInputBelowInstant ? "#f87171" : "#f59e0b",
+                }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--so-text-secondary)" }}>
+                Instant Buy Order:{" "}
+                <strong
+                  style={{
+                    color: isInputBelowInstant ? "#f87171" : "#f59e0b",
+                  }}
+                >
+                  ${instantPrice.toFixed(2)}
+                </strong>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPrice(instantPrice.toFixed(2))}
+              className="btn btn-secondary btn-sm"
+              style={{
+                fontSize: "10.5px",
+                padding: "2px 8px",
+                borderColor: "rgba(245, 158, 11, 0.4)",
+              }}
+              title="Match highest active buy order"
+            >
+              Use Instant Price
+            </button>
+          </div>
+        ) : null}
+
+        {isInputBelowInstant && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: "rgba(239, 68, 68, 0.14)",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              borderRadius: "var(--so-radius-sm)",
+              padding: "8px 12px",
+              fontSize: "11.5px",
+              color: "#f87171",
+              fontWeight: 600,
+            }}
+          >
+            <AlertTriangle size={14} style={{ flexShrink: 0, color: "#f87171" }} />
+            <span>
+              Warning: New price (${numPrice.toFixed(2)}) is BELOW Instant Buy Order (${instantPrice?.toFixed(2)})!
+            </span>
+          </div>
+        )}
+
+        {!isInputBelowInstant && isOracleBelowInstant && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: "rgba(245, 158, 11, 0.12)",
+              border: "1px solid rgba(245, 158, 11, 0.35)",
+              borderRadius: "var(--so-radius-sm)",
+              padding: "8px 12px",
+              fontSize: "11.5px",
+              color: "#f59e0b",
+              fontWeight: 600,
+            }}
+          >
+            <AlertTriangle size={14} style={{ flexShrink: 0, color: "#f59e0b" }} />
+            <span>
+              Notice: Oracle target (${targetListingPrice?.toFixed(2)}) is BELOW Instant Buy Order (${instantPrice?.toFixed(2)}).
+            </span>
           </div>
         )}
 

@@ -33,14 +33,18 @@ import {
   skinVaultLogo,
   swapggLogo,
   youpinLogo,
+  steamLogo,
 } from "../../../assets/images";
 import { toCanonicalMarketId } from "../../shared/canonicalMarkets";
+
+export { steamLogo, dmarketLogo };
 
 /**
  * Authoritative mapping of marketplace identifiers (canonical & common raw aliases)
  * to their respective logo image assets.
  */
 export const MARKET_LOGOS: Record<string, string> = {
+  steam: steamLogo,
   // CSFloat
   csfloat: csfloatLogo,
   csgofloat: csfloatLogo,

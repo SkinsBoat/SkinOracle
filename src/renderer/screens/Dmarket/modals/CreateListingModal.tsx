@@ -6,12 +6,18 @@ import {
   ArrowUpRight,
   Loader2,
   PlusCircle,
+  Zap,
 } from "lucide-react";
 import {
   DmarketInventoryItem,
   ListingPriceInfo,
 } from "../../../../shared/types";
-import { getTradeTitle, getItemListingPriceWithMap } from "../dmarket-utils";
+import {
+  getTradeTitle,
+  getItemListingPriceWithMap,
+  resolveInstantPrice,
+} from "../dmarket-utils";
+import { steamLogo } from "../../../utils/marketLogos";
 import toast from "react-hot-toast";
 
 interface CreateListingModalProps {
@@ -36,6 +42,16 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
 
   const oracleEntry = getItemListingPriceWithMap(item, listingPriceMap);
   const tradeTitle = getTradeTitle(item);
+  const instantPrice = resolveInstantPrice(item);
+  const numPrice = parseFloat(price);
+  const isInputBelowInstant = Boolean(
+    !isNaN(numPrice) && numPrice > 0 && instantPrice && numPrice < instantPrice
+  );
+  const isOracleBelowInstant = Boolean(
+    oracleEntry?.listingPrice &&
+      instantPrice &&
+      oracleEntry.listingPrice < instantPrice
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,10 +205,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
         {!item.inMarket && (
           <div
             style={{
-              backgroundColor: "rgba(59, 130, 246, 0.1)",
-              border: "1px solid rgba(59, 130, 246, 0.3)",
+              backgroundColor: "rgba(37, 99, 235, 0.1)",
+              border: "1px solid rgba(37, 99, 235, 0.3)",
               borderRadius: "var(--so-radius-sm)",
-              padding: "12px 14px",
+              padding: "11px 14px",
               fontSize: "12px",
               color: "#93c5fd",
               display: "flex",
@@ -209,8 +225,12 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                 color: "#60a5fa",
               }}
             >
-              <AlertTriangle size={15} />
-              <span>Item is currently in Steam Inventory</span>
+              <img
+                src={steamLogo}
+                alt="Steam"
+                style={{ width: "13px", height: "13px", objectFit: "contain" }}
+              />
+              <span>Listing via Steam P2P Mode</span>
             </div>
             <div
               style={{
@@ -219,9 +239,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                 lineHeight: 1.4,
               }}
             >
-              DMarket requires skins to be deposited to their storage bots
-              before you can create an active sell listing. Click below to
-              initiate the deposit trade offer.
+              This skin is in your Steam inventory and will be listed directly via P2P mode (no deposit required). Or if you prefer DMarket bot custody, you can deposit it first.
             </div>
             <button
               type="button"
@@ -229,20 +247,18 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                 onClose();
                 await onDeposit(item);
               }}
-              className="btn btn-primary btn-sm"
+              className="btn btn-secondary btn-sm"
               style={{
                 alignSelf: "flex-start",
                 marginTop: "2px",
                 display: "flex",
                 alignItems: "center",
                 gap: "5px",
-                backgroundColor: "#2563eb",
-                color: "#ffffff",
-                fontWeight: 800,
+                fontSize: "11px",
               }}
             >
-              <ArrowUpRight size={13} />
-              <span>Deposit to DMarket Now</span>
+              <ArrowUpRight size={12} />
+              <span>Or Deposit to DMarket Bot</span>
             </button>
           </div>
         )}
@@ -273,6 +289,103 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
             >
               Use Oracle Price
             </button>
+          </div>
+        )}
+
+        {instantPrice && instantPrice > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: isInputBelowInstant
+                ? "rgba(239, 68, 68, 0.12)"
+                : "rgba(245, 158, 11, 0.1)",
+              border: `1px solid ${
+                isInputBelowInstant
+                  ? "rgba(239, 68, 68, 0.35)"
+                  : "rgba(245, 158, 11, 0.3)"
+              }`,
+              padding: "8px 12px",
+              borderRadius: "var(--so-radius-sm)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Zap
+                size={13}
+                style={{
+                  color: isInputBelowInstant ? "#f87171" : "#f59e0b",
+                  fill: isInputBelowInstant ? "#f87171" : "#f59e0b",
+                }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--so-text-secondary)" }}>
+                Instant Buy Order:{" "}
+                <strong
+                  style={{
+                    color: isInputBelowInstant ? "#f87171" : "#f59e0b",
+                  }}
+                >
+                  ${instantPrice.toFixed(2)}
+                </strong>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPrice(instantPrice.toFixed(2))}
+              className="btn btn-secondary btn-sm"
+              style={{
+                fontSize: "10.5px",
+                padding: "2px 8px",
+                borderColor: "rgba(245, 158, 11, 0.4)",
+              }}
+              title="Match highest active buy order"
+            >
+              Use Instant Price
+            </button>
+          </div>
+        ) : null}
+
+        {isInputBelowInstant && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: "rgba(239, 68, 68, 0.14)",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              borderRadius: "var(--so-radius-sm)",
+              padding: "8px 12px",
+              fontSize: "11.5px",
+              color: "#f87171",
+              fontWeight: 600,
+            }}
+          >
+            <AlertTriangle size={14} style={{ flexShrink: 0, color: "#f87171" }} />
+            <span>
+              Warning: Listing price (${numPrice.toFixed(2)}) is BELOW Instant Buy Order (${instantPrice?.toFixed(2)})!
+            </span>
+          </div>
+        )}
+
+        {!isInputBelowInstant && isOracleBelowInstant && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: "rgba(245, 158, 11, 0.12)",
+              border: "1px solid rgba(245, 158, 11, 0.35)",
+              borderRadius: "var(--so-radius-sm)",
+              padding: "8px 12px",
+              fontSize: "11.5px",
+              color: "#f59e0b",
+              fontWeight: 600,
+            }}
+          >
+            <AlertTriangle size={14} style={{ flexShrink: 0, color: "#f59e0b" }} />
+            <span>
+              Notice: Oracle target (${oracleEntry?.listingPrice?.toFixed(2)}) is BELOW Instant Buy Order (${instantPrice?.toFixed(2)}).
+            </span>
           </div>
         )}
 
@@ -329,17 +442,20 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={submitting || !item.inMarket}
-              title={
-                !item.inMarket ? "Deposit to DMarket before listing" : undefined
-              }
+              disabled={submitting}
             >
               {submitting ? (
                 <Loader2 size={14} className="spin" />
               ) : (
                 <PlusCircle size={14} />
               )}
-              <span>{submitting ? "Listing..." : "Confirm & List"}</span>
+              <span>
+                {submitting
+                  ? "Listing..."
+                  : !item.inMarket
+                    ? "List via P2P"
+                    : "Confirm & List"}
+              </span>
             </button>
           </div>
         </form>

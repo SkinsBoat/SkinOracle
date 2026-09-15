@@ -175,16 +175,63 @@ export interface DmarketUserProfile {
   [key: string]: any;
 }
 
+export type DmarketListingProvider = "ICS" | "CPU" | string;
+export type DmarketListingMode = "p2p" | "bot";
+
+export interface DmarketOfferAttributes {
+  provider?: DmarketListingProvider; // "ICS" for P2P (In-Client / Steam inventory), "CPU" for Bot / Platform custody
+  botId?: string;                    // Empty string "" in P2P mode, Steam ID in Bot mode
+  depositor?: string;                // Empty string "" in P2P mode, user ID in Bot mode
+  viewAtSteamUri?: string;           // Direct Steam inventory link
+  categoryPath?: string;
+  classId?: string;
+  gameId?: string;
+  gameType?: string;
+  imageUri?: string;
+  inGameAssetId?: string;
+  itemSlug?: string;
+  name?: string;
+  productId?: string;
+  slug?: string;
+  steamAssetId?: string;
+  title?: string;
+  tradable?: boolean;
+  withdrawable?: boolean;
+  type?: string;
+  status?: string;
+  cs2?: {
+    category?: string;
+    collection?: string;
+    family?: string;
+    exterior?: string;
+    float?: string;
+    inspectInGameUri?: string;
+    itemType?: string;
+    paintIndex?: number;
+    paintSeed?: number;
+    stickers?: any[];
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
 export interface DmarketOfferItem {
   id: string;
+  offerId?: string;
   assetId: string;
   title: string;
   priceCents: number;
   priceUsd: string;
   status: string;
-  attributes?: any;
+  isP2P?: boolean;                    // true if listed in P2P mode (from user's Steam inventory)
+  listingMode?: DmarketListingMode;    // 'p2p' | 'bot'
+  attributes?: DmarketOfferAttributes;
   imageUrl?: string;
   createdDate?: string | number;
+  discountPercent?: number;
+  instantPrice?: { DMC?: string; USD?: string; [key: string]: any };
+  instantPriceUsd?: number;
+  _raw?: any;
   [key: string]: any;
 }
 
@@ -197,8 +244,12 @@ export interface DmarketInventoryItem {
   priceUsd: string;
   tradable: boolean;
   inMarket: boolean;
-  attributes?: any;
+  isP2P?: boolean;
+  attributes?: DmarketOfferAttributes;
   imageUrl?: string;
+  instantPrice?: { DMC?: string; USD?: string; [key: string]: any };
+  instantPriceUsd?: number;
+  _raw?: any;
   [key: string]: any;
 }
 
@@ -564,7 +615,11 @@ export interface ElectronAPI {
     }>;
     createOffers: (
       requests: Array<{
-        assetId: string;
+        id?: string;
+        assetId?: string;
+        itemId?: string;
+        isP2P?: boolean;
+        listingMode?: "p2p" | "bot";
         priceCents?: number | string;
         priceUsd?: number | string;
       }>,
@@ -576,6 +631,9 @@ export interface ElectronAPI {
     updateOffers: (
       requests: Array<{
         id: string;
+        offerId?: string;
+        isP2P?: boolean;
+        listingMode?: "p2p" | "bot";
         priceCents?: number | string;
         priceUsd?: number | string;
       }>,
@@ -585,7 +643,13 @@ export interface ElectronAPI {
       success: boolean;
     }>;
     deleteOffers: (
-      requests: Array<{ id: string; assetId?: string }>,
+      requests: Array<{
+        id: string;
+        offerId?: string;
+        assetId?: string;
+        isP2P?: boolean;
+        listingMode?: "p2p" | "bot";
+      }>,
     ) => Promise<{
       offers: any[];
       failed: any[];

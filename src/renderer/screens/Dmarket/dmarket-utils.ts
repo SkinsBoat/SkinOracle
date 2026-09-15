@@ -328,3 +328,83 @@ export const formatItemFloat = (item: any): string | null => {
 
   return null;
 };
+
+/**
+ * Authoritative check if a DMarket listing offer or inventory item is in P2P mode
+ * (listed directly from the user's Steam inventory, rather than deposited to DMarket bot custody).
+ *
+ * Hallmarks of P2P:
+ * - provider === 'ICS' (In-Client / Steam inventory) vs 'CPU' (Central Platform Unit / Bot)
+ * - botId is empty string ("")
+ * - depositor is empty string ("")
+ */
+export const isDmarketP2POffer = (offer: any): boolean => {
+  if (!offer) return false;
+  if (typeof offer.isP2P === "boolean") return offer.isP2P;
+  if (offer.listingMode === "p2p") return true;
+  if (offer.listingMode === "bot") return false;
+
+  const attrs =
+    offer.attributes ||
+    offer.extra ||
+    offer._raw?.attributes ||
+    offer._raw?.extra ||
+    {};
+
+  if (attrs.provider === "ICS") return true;
+  if (attrs.provider === "CPU") return false;
+
+  if (typeof attrs.botId === "string") {
+    return attrs.botId.trim() === "";
+  }
+
+  if (attrs.depositor === "" && !attrs.botId) {
+    return true;
+  }
+
+  return false;
+};
+
+export const getDmarketListingMode = (offer: any): "p2p" | "bot" => {
+  return isDmarketP2POffer(offer) ? "p2p" : "bot";
+};
+
+/**
+ * Authoritative resolver for DMarket instant sell price (highest active buy order / instant cashout).
+ * DMarket returns instantPrice as:
+ * { "DMC": "", "USD": "6289" } where USD is integer cents ("6289" cents -> $62.89)
+ * or in some endpoints as numbers or decimal strings.
+ */
+export const resolveInstantPrice = (item: any): number | null => {
+  if (!item) return null;
+
+  if (typeof item.instantPriceUsd === "number" && item.instantPriceUsd > 0) {
+    return item.instantPriceUsd;
+  }
+
+  // DMarket standard item structure: "instantPrice": { "DMC": "", "USD": "6289" }
+  const rawUsd =
+    item.instantPrice?.USD ??
+    item.instantPrice?.usd ??
+    item._raw?.instantPrice?.USD ??
+    item._raw?.instantPrice?.usd;
+
+  if (rawUsd === undefined || rawUsd === null || rawUsd === "") return null;
+
+  const str = String(rawUsd).trim();
+  if (!str) return null;
+
+  const num = parseFloat(str);
+  if (isNaN(num) || num <= 0) return null;
+
+  // If decimal point exists (e.g. "62.89"), it's in dollars; otherwise DMarket returns cents ("6289" -> 62.89)
+  return str.includes(".") ? num : num / 100;
+};
+
+export {
+  parseCooldownSeconds,
+  formatCooldown,
+  loadStoredCooldowns,
+  saveStoredCooldowns,
+  type CooldownEntry,
+} from "./utils/cooldownUtils";

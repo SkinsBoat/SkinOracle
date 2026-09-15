@@ -39,6 +39,7 @@ import skinsMonkeyLogo from './skinsmonkey.svg';
 import skinVaultLogo from './skinvault.svg';
 import swapggLogo from './swapgg.jpg';
 import youpinLogo from './youpin.png';
+import steamLogo from './steamlogo.svg';
 
 export {
   oracleLogo,
@@ -82,5 +83,6 @@ export {
   skinVaultLogo,
   swapggLogo,
   youpinLogo,
+  steamLogo,
 };
 
