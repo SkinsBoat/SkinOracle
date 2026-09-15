@@ -1,66 +1,24 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
-import {
-  RotateCw,
-  Trash2,
-  Loader2,
-  RefreshCw,
-  Sliders,
-  AlertTriangle,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Edit3,
-  ExternalLink,
-  History,
-  Target,
-  Eye,
-  Zap,
-  CheckSquare,
-  Square,
-} from "lucide-react";
-import {
-  DmarketTargetItem,
-  AcceptedPriceInfo,
-} from "../../../../../shared/types";
-import TrendSparkline from "../../../../components/TrendSparkline";
-import { CopyMarketHashButton } from "../../../../components/CopyMarketHashButton";
-import { SkinImage } from "../../../../components/SkinImage";
-import {
-  TargetAnalysis,
-  getWearShortcut,
-  getTradeTitle,
-  getTradePrice,
-  getTradeAmount,
-  getTradeDate,
-} from "../../dmarket-utils";
+import { Loader2, Target } from "lucide-react";
+import { DmarketTargetItem, AcceptedPriceInfo } from "../../../../../shared/types";
+import { TargetAnalysis } from "../../dmarket-utils";
 import {
   getPersistedThreshold,
   setPersistedThreshold,
 } from "../../../../utils/storage";
+import {
+  TargetTabProps,
+  FilterAction,
+  calculateTargetDrift,
+  isAdvancedTarget,
+} from "./types";
+import { TargetToolbar } from "./components/TargetToolbar";
+import { TargetCard } from "./components/TargetCard";
+import { TargetHistoryView } from "./components/TargetHistoryView";
+import { TargetBatchBar } from "./components/TargetBatchBar";
 
-interface TargetTabProps {
-  hasKey: boolean | null;
-  targets: DmarketTargetItem[];
-  setTargets: React.Dispatch<React.SetStateAction<DmarketTargetItem[]>>;
-  loading: boolean;
-  fetchTargets: () => Promise<void>;
-  isSidebarExpanded: boolean;
-  onUserDataUpdated: () => Promise<void>;
-  onOpenLookupModal: (
-    title: string,
-    acceptedPrice?: number,
-    marketPrice?: number,
-    iconUrl?: string,
-  ) => void;
-  onOpenEditModal: (
-    target: DmarketTargetItem,
-    analysis?: TargetAnalysis,
-  ) => void;
-  onOpenMarket: (title: string) => void;
-  driftThresholdPercent?: number;
-  setDriftThresholdPercent?: React.Dispatch<React.SetStateAction<number>>;
-}
+export type { TargetTabProps };
 
 export const TargetTab: React.FC<TargetTabProps> = ({
   hasKey,
@@ -107,9 +65,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   }, [internalDriftThresholdPercent, propSetDriftThresholdPercent]);
 
   const [showExtraOptions, setShowExtraOptions] = useState(false);
-  const [filterAction, setFilterAction] = useState<
-    "all" | "action_required" | "overbid" | "underbid" | "safe"
-  >("all");
+  const [filterAction, setFilterAction] = useState<FilterAction>("all");
 
   const [targetAnalysis, setTargetAnalysis] = useState<
     Record<string, TargetAnalysis>
@@ -217,32 +173,12 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     }
   };
 
-  const getTargetDriftDetails = (target: DmarketTargetItem) => {
-    const analysis = targetAnalysis[target.targetId];
-    if (!analysis?.acceptedPrice) return null;
-
-    const currentPrice = parseFloat(target.priceCents) / 100;
-    const oraclePrice = analysis.acceptedPrice;
-
-    const drift =
-      oraclePrice > 0 ? (currentPrice - oraclePrice) / oraclePrice : 0;
-    const thresholdFraction = (driftThresholdPercent ?? 2) / 100;
-
-    const isOverbid = drift > thresholdFraction;
-    const isUnderbid = drift < -thresholdFraction;
-    const isActionRequired = isOverbid || isUnderbid;
-
-    return {
-      acceptedPrice: oraclePrice,
-      currentPrice,
-      drift,
-      driftPercent: drift * 100,
-      isActionRequired,
-      isOverbid,
-      isUnderbid,
-      trendMomentum14d: analysis.trendMomentum14d,
-    };
-  };
+  const getDrift = (target: DmarketTargetItem) =>
+    calculateTargetDrift(
+      target,
+      targetAnalysis[target.targetId],
+      driftThresholdPercent,
+    );
 
   const handleDeleteTarget = async (targetId: string, title: string) => {
     setProcessingId(targetId);
@@ -268,6 +204,13 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     target: DmarketTargetItem,
     acceptedPrice: number,
   ) => {
+    if (isAdvancedTarget(target)) {
+      toast.error(
+        `Cannot update "${target.title}": Advanced targets with custom attributes cannot be modified`,
+      );
+      return;
+    }
+
     const targetQty = parseInt(target.amount, 10) || 1;
     setProcessingId(target.targetId);
     const toastId = toast.loading(
@@ -323,6 +266,13 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     target: DmarketTargetItem,
     delta: number,
   ) => {
+    if (isAdvancedTarget(target)) {
+      toast.error(
+        `Cannot adjust quantity on "${target.title}": Advanced target has custom attributes`,
+      );
+      return;
+    }
+
     const currentQty = parseInt(target.amount, 10) || 1;
     const newQty = Math.max(1, currentQty + delta);
     if (newQty === currentQty) return;
@@ -370,14 +320,20 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       return;
     }
 
+    const advancedSelectedCount = targets.filter(
+      (t) => selectedTargets[t.targetId] && isAdvancedTarget(t),
+    ).length;
+
     const eligibleTargets = targets.filter((t) => {
       if (!selectedTargets[t.targetId]) return false;
+      if (isAdvancedTarget(t)) return false;
       const analysis = targetAnalysis[t.targetId];
       return !!analysis?.acceptedPrice;
     });
 
     const unmatchedTargets = targets.filter((t) => {
       if (!selectedTargets[t.targetId]) return false;
+      if (isAdvancedTarget(t)) return false;
       const analysis = targetAnalysis[t.targetId];
       return !analysis?.acceptedPrice;
     });
@@ -386,10 +342,23 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       eligibleTargets.length === 0 &&
       (!deleteUnmatched || unmatchedTargets.length === 0)
     ) {
-      toast.error(
-        "None of the selected targets have a matching Oracle accepted price",
-      );
+      if (advancedSelectedCount > 0) {
+        toast.error(
+          "Selected target(s) are advanced targets with custom attributes and cannot be updated",
+        );
+      } else {
+        toast.error(
+          "None of the selected targets have a matching Oracle accepted price",
+        );
+      }
       return;
+    }
+
+    if (advancedSelectedCount > 0) {
+      toast(
+        `Skipping ${advancedSelectedCount} advanced target(s) with custom attributes`,
+        { icon: "ℹ️" },
+      );
     }
 
     setBatchProcessing(true);
@@ -398,6 +367,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     let deletedCount = 0;
     const errors: string[] = [];
     const processedTitles = new Set<string>();
+
     const totalOperations =
       eligibleTargets.length + (deleteUnmatched ? unmatchedTargets.length : 0);
     const toastId = toast.loading(`Processing 0/${totalOperations} targets...`);
@@ -405,6 +375,9 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     // 1. Update priced targets
     for (let i = 0; i < eligibleTargets.length; i++) {
       const target = eligibleTargets[i];
+      if (isAdvancedTarget(target)) {
+        continue;
+      }
       if (processedTitles.has(target.title)) {
         continue;
       }
@@ -570,7 +543,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   const filteredTargets = useMemo(() => {
     return targets.filter((target) => {
       if (filterAction !== "all") {
-        const driftDetails = getTargetDriftDetails(target);
+        const driftDetails = getDrift(target);
         if (filterAction === "action_required") {
           if (!driftDetails || !driftDetails.isActionRequired) return false;
         } else if (filterAction === "overbid") {
@@ -592,7 +565,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
   const actionRequiredTargets = useMemo(() => {
     return targets.filter((t) => {
-      const d = getTargetDriftDetails(t);
+      if (isAdvancedTarget(t)) return false;
+      const d = getDrift(t);
       const isUnmatched =
         matchedCount > 0 && !targetAnalysis[t.targetId]?.acceptedPrice;
       return d?.isActionRequired || isUnmatched;
@@ -630,1012 +604,89 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
     targets.forEach((t) => {
-      next[t.targetId] = true;
+      if (!isAdvancedTarget(t)) {
+        next[t.targetId] = true;
+      }
     });
     setSelectedTargets(next);
+  };
+
+  const handleToggleSelectTarget = (targetId: string) => {
+    const target = targets.find((t) => t.targetId === targetId);
+    if (target && isAdvancedTarget(target)) {
+      toast.error("Advanced targets with custom attributes cannot be batch updated", {
+        id: "adv-target-select",
+      });
+      return;
+    }
+    setSelectedTargets((prev) => ({
+      ...prev,
+      [targetId]: !prev[targetId],
+    }));
   };
 
   const selectedCount = Object.values(selectedTargets).filter(Boolean).length;
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          backgroundColor: "var(--so-surface-card)",
-          border: "1px solid var(--so-border-medium)",
-          borderRadius: "var(--so-radius-md)",
-          padding: "8px 14px",
-          flexWrap: "wrap",
-          gap: "10px",
-        }}
-      >
-        {/* Left Controls: Sub-Tabs & Stats Pill */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: "3px",
-              backgroundColor: "var(--so-surface-panel)",
-              padding: "2px",
-              borderRadius: "var(--so-radius-sm)",
-              border: "1px solid var(--so-border-subtle)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setTargetSubTab("active")}
-              style={{
-                padding: "3px 10px",
-                fontSize: "11.5px",
-                fontWeight: 700,
-                borderRadius: "4px",
-                border: "none",
-                cursor: "pointer",
-                backgroundColor:
-                  targetSubTab === "active"
-                    ? "var(--so-primary)"
-                    : "transparent",
-                color:
-                  targetSubTab === "active"
-                    ? "#ffffff"
-                    : "var(--so-text-secondary)",
-                transition: "all 0.15s ease",
-              }}
-            >
-              Active ({targets.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetSubTab("history")}
-              style={{
-                padding: "3px 10px",
-                fontSize: "11.5px",
-                fontWeight: 700,
-                borderRadius: "4px",
-                border: "none",
-                cursor: "pointer",
-                backgroundColor:
-                  targetSubTab === "history"
-                    ? "var(--so-primary)"
-                    : "transparent",
-                color:
-                  targetSubTab === "history"
-                    ? "#ffffff"
-                    : "var(--so-text-secondary)",
-                transition: "all 0.15s ease",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <History size={12} /> History
-            </button>
-          </div>
-
-          {targetSubTab === "active" && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                backgroundColor: "var(--so-surface-panel)",
-                border: "1px solid var(--so-border-medium)",
-                padding: "4px 10px",
-                borderRadius: "var(--so-radius-sm)",
-                fontSize: "11.5px",
-                fontWeight: 700,
-              }}
-            >
-              <span style={{ color: "var(--so-text-muted)" }}>
-                Targets:{" "}
-                <strong style={{ color: "var(--so-text-primary)" }}>
-                  {targets.length}
-                </strong>
-              </span>
-              <span style={{ color: "var(--so-text-muted)" }}>
-                Matched:{" "}
-                <strong style={{ color: "var(--so-accent-cyan)" }}>
-                  {matchedCount}
-                </strong>
-              </span>
-              {actionRequiredCount > 0 && (
-                <span
-                  style={{
-                    color: "var(--so-text-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                >
-                  Action Req:{" "}
-                  <strong style={{ color: "#f59e0b" }}>
-                    {actionRequiredCount}
-                  </strong>
-                </span>
-              )}
-            </div>
-          )}
-
-          {targetSubTab === "active" && (
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <button
-                type="button"
-                onClick={() => setShowExtraOptions((prev) => !prev)}
-                className="btn btn-sm"
-                style={{
-                  backgroundColor: showExtraOptions
-                    ? "var(--so-surface-input)"
-                    : "transparent",
-                  color: showExtraOptions
-                    ? "var(--so-primary)"
-                    : "var(--so-text-muted)",
-                  border: "1px solid var(--so-border-subtle)",
-                  padding: "3px 7px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  cursor: "pointer",
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  borderRadius: "4px",
-                }}
-                title="Toggle Threshold & Options"
-              >
-                <Sliders size={12} />
-                <span style={{ fontSize: "10.5px" }}>
-                  {showExtraOptions ? "Hide" : "Options"}
-                </span>
-                {driftThresholdPercent !== 2 && (
-                  <span
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      backgroundColor: "var(--so-accent-blue)",
-                    }}
-                  />
-                )}
-                {showExtraOptions ? (
-                  <ChevronLeft size={13} />
-                ) : (
-                  <ChevronRight size={13} />
-                )}
-              </button>
-
-              <div
-                style={{
-                  maxWidth: showExtraOptions ? "220px" : "0px",
-                  opacity: showExtraOptions ? 1 : 0,
-                  overflow: "hidden",
-                  whiteSpace: "nowrap",
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    backgroundColor: "var(--so-surface-input)",
-                    border: "1px solid var(--so-border-medium)",
-                    padding: "2px 6px",
-                    borderRadius: "var(--so-radius-sm)",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "10.5px",
-                      fontWeight: 700,
-                      color: "var(--so-text-secondary)",
-                    }}
-                  >
-                    Threshold:
-                  </span>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max="20"
-                    value={driftThresholdPercent}
-                    onChange={(e) => {
-                      const parsed = parseFloat(e.target.value);
-                      setDriftThresholdPercent(
-                        isNaN(parsed) ? 0 : Math.max(0, parsed),
-                      );
-                    }}
-                    style={{
-                      width: "42px",
-                      padding: "1px 3px",
-                      fontSize: "11px",
-                      fontWeight: 800,
-                      textAlign: "center",
-                      backgroundColor: "var(--so-surface-card)",
-                      color: "var(--so-text-primary)",
-                      border: "1px solid var(--so-border-subtle)",
-                      borderRadius: "3px",
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "10.5px",
-                      fontWeight: 700,
-                      color: "var(--so-text-muted)",
-                    }}
-                  >
-                    %
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Controls: Drift Filter Pills & Oracle Load */}
-        {targetSubTab === "active" && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              {(
-                [
-                  { id: "all", label: "All" },
-                  { id: "action_required", label: "Action Req" },
-                  { id: "overbid", label: "Overbid" },
-                  { id: "underbid", label: "Underbid" },
-                  { id: "safe", label: "Safe" },
-                ] as const
-              ).map((pill) => (
-                <button
-                  key={pill.id}
-                  onClick={() => setFilterAction(pill.id)}
-                  style={{
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                    borderRadius: "12px",
-                    border: "1px solid",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    backgroundColor:
-                      filterAction === pill.id
-                        ? "var(--so-primary)"
-                        : "transparent",
-                    color:
-                      filterAction === pill.id
-                        ? "#ffffff"
-                        : "var(--so-text-secondary)",
-                    borderColor:
-                      filterAction === pill.id
-                        ? "var(--so-primary)"
-                        : "var(--so-border-subtle)",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {pill.label}
-                </button>
-              ))}
-            </div>
-
-            {actionRequiredCount > 0 && (
-              <button
-                type="button"
-                onClick={handleToggleSelectActionRequired}
-                className="btn btn-sm"
-                style={{
-                  backgroundColor: isAllActionRequiredSelected
-                    ? "rgba(245, 158, 11, 0.18)"
-                    : "rgba(245, 158, 11, 0.09)",
-                  color: "var(--so-text-primary, #e2e8f0)",
-                  border: `1px solid ${
-                    isAllActionRequiredSelected
-                      ? "rgba(245, 158, 11, 0.45)"
-                      : "rgba(245, 158, 11, 0.28)"
-                  }`,
-                  padding: "4px 10px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "11.5px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  borderRadius: "var(--so-radius-sm)",
-                  transition: "all 0.15s ease",
-                }}
-                title={
-                  isAllActionRequiredSelected
-                    ? "Click to unselect all action items"
-                    : "Click to select all active targets requiring action"
-                }
-              >
-                <AlertTriangle
-                  size={12}
-                  style={{
-                    color: isAllActionRequiredSelected ? "#fbbf24" : "#f59e0b",
-                  }}
-                />
-                <span>
-                  {isAllActionRequiredSelected
-                    ? "Unselect Action Items"
-                    : "Select Action Items"}
-                </span>
-                <span
-                  style={{
-                    backgroundColor: "rgba(245, 158, 11, 0.2)",
-                    color: "#f59e0b",
-                    padding: "1px 6px",
-                    borderRadius: "10px",
-                    fontSize: "10.5px",
-                    fontWeight: 700,
-                  }}
-                >
-                  {actionRequiredCount}
-                </span>
-              </button>
-            )}
-
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={fetchTargets}
-              disabled={loading}
-              title="Refresh DMarket active targets"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                fontSize: "11.5px",
-                padding: "5px 12px",
-              }}
-            >
-              {loading ? (
-                <Loader2 size={12} className="spin" />
-              ) : (
-                <RefreshCw size={12} />
-              )}
-              <span>Sync Targets</span>
-            </button>
-
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={loadAcceptedPrices}
-              disabled={loadingPrices}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                fontSize: "11.5px",
-                padding: "5px 12px",
-              }}
-            >
-              <RotateCw size={12} className={loadingPrices ? "spin" : ""} />
-              <span>
-                {acceptedPricesMeta ? "Re-load Oracle" : "Load Oracle"}
-              </span>
-            </button>
-          </div>
-        )}
-      </div>
+      <TargetToolbar
+        targetSubTab={targetSubTab}
+        setTargetSubTab={setTargetSubTab}
+        targetsCount={targets.length}
+        matchedCount={matchedCount}
+        actionRequiredCount={actionRequiredCount}
+        showExtraOptions={showExtraOptions}
+        setShowExtraOptions={setShowExtraOptions}
+        driftThresholdPercent={driftThresholdPercent}
+        setDriftThresholdPercent={setDriftThresholdPercent}
+        filterAction={filterAction}
+        setFilterAction={setFilterAction}
+        isAllActionRequiredSelected={isAllActionRequiredSelected}
+        onToggleSelectActionRequired={handleToggleSelectActionRequired}
+        onSyncTargets={fetchTargets}
+        loadingTargets={loading}
+        onLoadAcceptedPrices={loadAcceptedPrices}
+        loadingPrices={loadingPrices}
+        hasAcceptedPricesMeta={!!acceptedPricesMeta}
+      />
 
       {/* ── SUB-TAB: ACTIVE TARGETS (CARDS GRID) ─────────────────────── */}
       {targetSubTab === "active" && (
         <>
           {loading ? (
-            <div
-              style={{
-                padding: "60px 0",
-                textAlign: "center",
-                color: "var(--so-text-muted)",
-              }}
-            >
-              <Loader2
-                size={32}
-                className="spin"
-                style={{ margin: "0 auto 12px" }}
-              />
+            <div style={styles.loadingWrapper}>
+              <Loader2 size={32} className="spin" style={styles.loadingSpinner} />
               <div>Fetching active targets from DMarket...</div>
             </div>
           ) : filteredTargets.length === 0 ? (
-            <div
-              className="card"
-              style={{
-                textAlign: "center",
-                padding: "50px 20px",
-                color: "var(--so-text-muted)",
-                backgroundColor: "var(--so-surface-card)",
-                border: "1px solid var(--so-border-medium)",
-                borderRadius: "var(--so-radius-md)",
-              }}
-            >
-              <Target
-                size={38}
-                style={{ margin: "0 auto 12px", opacity: 0.4 }}
-              />
-              <div
-                style={{
-                  fontSize: "15px",
-                  fontWeight: 700,
-                  color: "var(--so-text-primary)",
-                }}
-              >
-                No targets found
-              </div>
-              <div style={{ fontSize: "12.5px", marginTop: "4px" }}>
+            <div className="card" style={styles.emptyCard}>
+              <Target size={38} style={styles.emptyIcon} />
+              <div style={styles.emptyTitle}>No targets found</div>
+              <div style={styles.emptySubtitle}>
                 {filterAction !== "all"
                   ? 'Try switching filter back to "All"'
                   : "No active buy targets found on your DMarket account"}
               </div>
             </div>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                gap: "10px",
-                paddingBottom: selectedCount > 0 ? "75px" : "12px",
-              }}
-            >
-              {filteredTargets.map((target) => {
-                const driftDetails = getTargetDriftDetails(target);
-                const isSelected = !!selectedTargets[target.targetId];
-                const currentPrice = parseFloat(target.priceCents) / 100;
-                const isProcessing = processingId === target.targetId;
-
-                const cardBorderColor = isSelected
-                  ? "var(--so-primary)"
-                  : driftDetails?.isOverbid
-                    ? "#ef4444"
-                    : driftDetails?.isUnderbid
-                      ? "#f59e0b"
-                      : "var(--so-border-medium)";
-
-                const match = target.title.match(/^(.+?)\s*\(([^)]+)\)$/);
-                const cleanTitle = match ? match[1] : target.title;
-                const wearShortcut = getWearShortcut(
-                  target.attributes?.cs2?.exterior || (match ? match[2] : ""),
-                );
-                const isStattrak =
-                  target.title.includes("StatTrak™") ||
-                  target.attributes?.cs2?.category === "CATEGORY_STATTRACK";
-                const phase = target.attributes?.cs2?.phase;
-
-                const imageUrl =
-                  target.attributes?.image ||
-                  `https://api.steamapis.com/image/item/730/${encodeURIComponent(target.title)}`;
-
-                return (
-                  <div
-                    key={target.targetId}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: "8px",
-                      margin: 0,
-                      padding: "10px",
-                      minHeight: "240px",
-                      height: "auto",
-                      boxSizing: "border-box",
-                      borderRadius: "var(--so-radius-md)",
-                      backgroundColor: "var(--so-surface-card)",
-                      border: `1px solid ${isSelected ? "var(--so-primary)" : cardBorderColor}`,
-                      boxShadow: isSelected
-                        ? "inset 0 0 0 1px var(--so-primary)"
-                        : "none",
-                      cursor: "pointer",
-                      userSelect: "none",
-                      transition: "border-color 0.15s ease",
-                    }}
-                    onClick={() =>
-                      setSelectedTargets((prev) => ({
-                        ...prev,
-                        [target.targetId]: !prev[target.targetId],
-                      }))
-                    }
-                  >
-                    {/* Top Action Row */}
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        height: "22px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "5px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenMarket(target.title);
-                          }}
-                          className="btn btn-sm"
-                          style={{
-                            padding: "3px 6px",
-                            background: "var(--so-surface-panel)",
-                            border: "1px solid var(--so-border-subtle)",
-                            borderRadius: "4px",
-                            color: "var(--so-text-secondary)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                          title="Open on DMarket Market (Browser)"
-                        >
-                          <ExternalLink size={13} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenLookupModal(
-                              target.title,
-                              driftDetails?.acceptedPrice,
-                              currentPrice,
-                              target.attributes?.image,
-                            );
-                          }}
-                          className="btn btn-sm"
-                          style={{
-                            padding: "3px 6px",
-                            background: "var(--so-surface-panel)",
-                            border: "1px solid var(--so-border-subtle)",
-                            borderRadius: "4px",
-                            color: "var(--so-accent-cyan)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                          title="Inspect Multi-Market Prices"
-                        >
-                          <Eye size={13} />
-                        </button>
-                        <CopyMarketHashButton name={target.title} />
-                      </div>
-
-                      {/* Selection Checkbox Indicator */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          color: isSelected
-                            ? "var(--so-primary)"
-                            : "var(--so-text-muted)",
-                          opacity: isSelected ? 1 : 0.45,
-                          transition: "all 0.15s ease",
-                        }}
-                        title={isSelected ? "Selected" : "Click card to select"}
-                      >
-                        {isSelected ? (
-                          <CheckSquare size={14} />
-                        ) : (
-                          <Square size={14} />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Drift Status Badge (Moved under actions) */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "flex-start",
-                        minHeight: "18px",
-                      }}
-                    >
-                      {driftDetails ? (
-                        driftDetails.isOverbid ? (
-                          <span
-                            className="badge"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "3px",
-                              backgroundColor: "rgba(239, 68, 68, 0.12)",
-                              color: "#f87171",
-                              border: "1px solid rgba(239, 68, 68, 0.3)",
-                              fontWeight: 700,
-                              fontSize: "9px",
-                              padding: "1px 6px",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            <AlertTriangle size={10} /> OVERBID (
-                            {driftDetails.driftPercent > 0
-                              ? `+${driftDetails.driftPercent.toFixed(0)}%`
-                              : `${driftDetails.driftPercent.toFixed(0)}%`}
-                            )
-                          </span>
-                        ) : driftDetails.isUnderbid ? (
-                          <span
-                            className="badge"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "3px",
-                              backgroundColor: "rgba(245, 158, 11, 0.12)",
-                              color: "#fbbf24",
-                              border: "1px solid rgba(245, 158, 11, 0.3)",
-                              fontWeight: 700,
-                              fontSize: "9px",
-                              padding: "1px 6px",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            <AlertTriangle size={10} /> UNDERBID (
-                            {driftDetails.driftPercent.toFixed(0)}%)
-                          </span>
-                        ) : (
-                          <span
-                            className="badge badge-success"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "3px",
-                              backgroundColor: "rgba(16, 185, 129, 0.12)",
-                              color: "#34d399",
-                              border: "1px solid rgba(16, 185, 129, 0.3)",
-                              fontWeight: 700,
-                              fontSize: "9px",
-                              padding: "1px 6px",
-                              borderRadius: "4px",
-                            }}
-                          >
-                            <CheckCircle2 size={10} /> SAFE (
-                            {driftDetails.driftPercent >= 0
-                              ? `+${driftDetails.driftPercent.toFixed(0)}%`
-                              : `${driftDetails.driftPercent.toFixed(0)}%`}
-                            )
-                          </span>
-                        )
-                      ) : (
-                        <span
-                          className="badge badge-secondary"
-                          style={{
-                            fontSize: "9px",
-                            padding: "1px 6px",
-                            borderRadius: "4px",
-                            color: "var(--so-text-muted)",
-                            border: "1px solid var(--so-border-subtle)",
-                          }}
-                        >
-                          ACTIVE
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Image Showcase */}
-                    <SkinImage src={imageUrl} alt={cleanTitle} />
-
-                    {/* Title & Wear Tags */}
-                    <div
-                      style={{
-                        textAlign: "center",
-                        minHeight: "32px",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontWeight: 800,
-                          fontSize: "11.5px",
-                          color: "var(--so-text-primary)",
-                          lineHeight: "1.2",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                        title={target.title}
-                      >
-                        {cleanTitle}
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "4px",
-                          marginTop: "3px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        {wearShortcut && (
-                          <span
-                            style={{
-                              fontSize: "9.5px",
-                              fontWeight: 800,
-                              padding: "0 4px",
-                              borderRadius: "3px",
-                              backgroundColor: "rgba(255, 255, 255, 0.08)",
-                              color: "var(--so-text-secondary)",
-                            }}
-                          >
-                            {wearShortcut}
-                          </span>
-                        )}
-                        {isStattrak && (
-                          <span
-                            style={{
-                              fontSize: "9.5px",
-                              fontWeight: 800,
-                              padding: "0 4px",
-                              borderRadius: "3px",
-                              backgroundColor: "rgba(249, 115, 22, 0.15)",
-                              color: "#fb923c",
-                            }}
-                          >
-                            ST™
-                          </span>
-                        )}
-                        {phase && phase !== "PHASE_TITLE_UNSPECIFIED" && (
-                          <span
-                            style={{
-                              fontSize: "9px",
-                              fontWeight: 700,
-                              padding: "0 4px",
-                              borderRadius: "3px",
-                              backgroundColor: "rgba(168, 85, 247, 0.15)",
-                              color: "#c084fc",
-                            }}
-                          >
-                            {phase.replace("PHASE_TITLE_", "")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* 14-Day Trend Sparkline */}
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <TrendSparkline
-                        name={target.title}
-                        momentum={driftDetails?.trendMomentum14d}
-                        height={30}
-                        onClick={() =>
-                          onOpenLookupModal(
-                            target.title,
-                            driftDetails?.acceptedPrice,
-                            currentPrice,
-                            target.attributes?.image,
-                          )
-                        }
-                      />
-                    </div>
-
-                    {/* Pricing Block */}
-                    <div
-                      style={{
-                        backgroundColor: driftDetails?.isOverbid
-                          ? "rgba(239, 68, 68, 0.12)"
-                          : driftDetails?.isUnderbid
-                            ? "rgba(245, 158, 11, 0.12)"
-                            : "var(--so-surface-input)",
-                        border: `1px solid ${
-                          driftDetails?.isOverbid
-                            ? "rgba(239, 68, 68, 0.3)"
-                            : driftDetails?.isUnderbid
-                              ? "rgba(245, 158, 11, 0.3)"
-                              : "var(--so-border-subtle)"
-                        }`,
-                        padding: "6px 8px",
-                        borderRadius: "var(--so-radius-sm)",
-                        fontSize: "11px",
-                      }}
-                    >
-                      {/* Quantity Stepper */}
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginBottom: "4px",
-                          alignItems: "center",
-                        }}
-                      >
-                        <span style={{ color: "var(--so-text-muted)" }}>
-                          Quantity
-                        </span>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleQuantityAdjust(target, -1)}
-                            style={{
-                              width: "18px",
-                              height: "18px",
-                              borderRadius: "3px",
-                              border: "1px solid var(--so-border-subtle)",
-                              background: "var(--so-surface-panel)",
-                              color: "var(--so-text-primary)",
-                              fontSize: "11px",
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              lineHeight: 1,
-                            }}
-                            title="Decrease Quantity"
-                          >
-                            -
-                          </button>
-                          <span
-                            style={{
-                              fontWeight: 800,
-                              color: "var(--so-primary)",
-                              minWidth: "16px",
-                              textAlign: "center",
-                              fontSize: "11.5px",
-                            }}
-                          >
-                            {target.amount || 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleQuantityAdjust(target, 1)}
-                            style={{
-                              width: "18px",
-                              height: "18px",
-                              borderRadius: "3px",
-                              border: "1px solid var(--so-border-subtle)",
-                              background: "var(--so-surface-panel)",
-                              color: "var(--so-text-primary)",
-                              fontSize: "11px",
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              lineHeight: 1,
-                            }}
-                            title="Increase Quantity"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* My Target Price */}
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        <span style={{ color: "var(--so-text-muted)" }}>
-                          Current Bid
-                        </span>
-                        <span
-                          className="tabular-nums"
-                          style={{
-                            fontWeight: 800,
-                            color: driftDetails?.isOverbid
-                              ? "#ef4444"
-                              : driftDetails?.isUnderbid
-                                ? "#f59e0b"
-                                : "#ffffff",
-                          }}
-                        >
-                          ${currentPrice.toFixed(2)}
-                        </span>
-                      </div>
-
-                      {/* Oracle Accepted Price */}
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span style={{ color: "var(--so-text-muted)" }}>
-                          Accepted
-                        </span>
-                        <span
-                          className="tabular-nums"
-                          style={{
-                            fontWeight: 800,
-                            color: "var(--so-accent-cyan)",
-                          }}
-                        >
-                          {driftDetails?.acceptedPrice
-                            ? `$${driftDetails.acceptedPrice.toFixed(2)}`
-                            : "---"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card Actions Footer */}
-                    <div
-                      style={{ display: "flex", gap: "5px" }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {driftDetails?.acceptedPrice && (
-                        <button
-                          onClick={() =>
-                            handleQuickUpdateToOracle(
-                              target,
-                              driftDetails.acceptedPrice,
-                            )
-                          }
-                          disabled={isProcessing}
-                          className="btn btn-primary btn-sm"
-                          style={{
-                            flex: 1,
-                            fontWeight: 700,
-                            fontSize: "11px",
-                            padding: "4px 6px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "4px",
-                          }}
-                          title="Update Target to Oracle Price"
-                        >
-                          {isProcessing ? (
-                            <Loader2 size={11} className="spin" />
-                          ) : (
-                            <Zap size={11} />
-                          )}
-                          <span>Update</span>
-                        </button>
-                      )}
-                      <button
-                        onClick={() =>
-                          onOpenEditModal(
-                            target,
-                            targetAnalysis[target.targetId],
-                          )
-                        }
-                        disabled={isProcessing}
-                        className="btn btn-secondary btn-sm"
-                        title="Edit Target Price / Quantity"
-                        style={{ padding: "4px 6px" }}
-                      >
-                        <Edit3 size={12} />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeleteTarget(target.targetId, target.title)
-                        }
-                        disabled={isProcessing}
-                        className="btn btn-danger btn-sm"
-                        title="Delete Target"
-                        style={{ padding: "4px 6px" }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={getCardsGridStyle(selectedCount > 0)}>
+              {filteredTargets.map((target) => (
+                <TargetCard
+                  key={target.targetId}
+                  target={target}
+                  analysis={targetAnalysis[target.targetId]}
+                  driftDetails={getDrift(target)}
+                  isSelected={!!selectedTargets[target.targetId]}
+                  isProcessing={processingId === target.targetId}
+                  onToggleSelect={handleToggleSelectTarget}
+                  onOpenMarket={onOpenMarket}
+                  onOpenLookupModal={onOpenLookupModal}
+                  onOpenEditModal={onOpenEditModal}
+                  onQuantityAdjust={handleQuantityAdjust}
+                  onQuickUpdateToOracle={handleQuickUpdateToOracle}
+                  onDeleteTarget={handleDeleteTarget}
+                />
+              ))}
             </div>
           )}
         </>
@@ -1643,547 +694,79 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
       {/* ── SUB-TAB: TARGET HISTORY / CLOSED TRADES ─────────────────── */}
       {targetSubTab === "history" && (
-        <div
-          style={{
-            backgroundColor: "var(--so-surface-card)",
-            border: "1px solid var(--so-border-medium)",
-            borderRadius: "var(--so-radius-md)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "12px 18px",
-              borderBottom: "1px solid var(--so-border-medium)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 800,
-                fontSize: "14px",
-                color: "var(--so-text-primary)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <History size={16} style={{ color: "var(--so-accent-cyan)" }} />{" "}
-              Completed Target Purchases
-            </div>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={fetchClosedTargets}
-              disabled={closedLoading}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                fontSize: "11.5px",
-              }}
-            >
-              <RefreshCw size={12} className={closedLoading ? "spin" : ""} />
-              <span>Refresh History</span>
-            </button>
-          </div>
-
-          {closedLoading ? (
-            <div
-              style={{
-                padding: "60px 0",
-                textAlign: "center",
-                color: "var(--so-text-muted)",
-              }}
-            >
-              <Loader2
-                size={32}
-                className="spin"
-                style={{ margin: "0 auto 12px" }}
-              />
-              <div>Loading closed targets history...</div>
-            </div>
-          ) : closedTrades.length === 0 ? (
-            <div
-              style={{
-                padding: "60px 0",
-                textAlign: "center",
-                color: "var(--so-text-muted)",
-              }}
-            >
-              <History
-                size={36}
-                style={{ margin: "0 auto 12px", opacity: 0.4 }}
-              />
-              <div
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  color: "var(--so-text-primary)",
-                }}
-              >
-                No completed target trades yet
-              </div>
-              <div style={{ fontSize: "12px", marginTop: "4px" }}>
-                When your buy targets are fulfilled by sellers, they appear
-                here.
-              </div>
-            </div>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: "12.5px",
-                  textAlign: "left",
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      backgroundColor: "var(--so-surface-sidebar)",
-                      borderBottom: "1px solid var(--so-border-medium)",
-                      color: "var(--so-text-muted)",
-                      fontSize: "11px",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    <th style={{ padding: "10px 14px" }}>Skin Title & Wear</th>
-                    <th
-                      style={{
-                        padding: "10px 14px",
-                        textAlign: "center",
-                        width: "70px",
-                      }}
-                    >
-                      Amount
-                    </th>
-                    <th
-                      style={{
-                        padding: "10px 14px",
-                        textAlign: "right",
-                        width: "130px",
-                      }}
-                    >
-                      Purchased Price
-                    </th>
-                    <th
-                      style={{
-                        padding: "10px 14px",
-                        textAlign: "center",
-                        width: "110px",
-                      }}
-                    >
-                      Status
-                    </th>
-                    <th
-                      style={{
-                        padding: "10px 14px",
-                        textAlign: "right",
-                        width: "170px",
-                      }}
-                    >
-                      Completed Date
-                    </th>
-                    <th
-                      style={{
-                        padding: "10px 14px",
-                        textAlign: "right",
-                        width: "60px",
-                      }}
-                    >
-                      Market
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {closedTrades.map((trade, idx) => {
-                    const title = getTradeTitle(trade);
-                    const price = getTradePrice(trade);
-                    const amount = getTradeAmount(trade);
-                    const dateStr = getTradeDate(trade);
-                    const status = trade.status || trade.Status || "FULFILLED";
-                    const cleanStatus = String(status)
-                      .replace(/^TargetClosedStatus/, "")
-                      .toUpperCase();
-
-                    const match = title.match(/^(.+?)\s*\(([^)]+)\)$/);
-                    const cleanTitle = match ? match[1] : title;
-                    const wearShortcut = getWearShortcut(
-                      trade.attributes?.cs2?.exterior ||
-                        (match ? match[2] : ""),
-                    );
-                    const isStattrak = title.includes("StatTrak™");
-                    const imageUrl =
-                      trade.attributes?.image ||
-                      trade.image ||
-                      `https://api.steamapis.com/image/item/730/${encodeURIComponent(title)}`;
-
-                    return (
-                      <tr
-                        key={
-                          trade.tradeId ||
-                          trade.OfferID ||
-                          trade.TargetID ||
-                          idx
-                        }
-                        style={{
-                          borderBottom: "1px solid var(--so-border-subtle)",
-                        }}
-                      >
-                        {/* Skin Thumbnail, Title & Wear */}
-                        <td style={{ padding: "10px 14px" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                            }}
-                          >
-                            <img
-                              src={imageUrl}
-                              alt={cleanTitle}
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.opacity = "0.3";
-                              }}
-                              style={{
-                                width: "36px",
-                                height: "36px",
-                                objectFit: "contain",
-                                borderRadius: "4px",
-                                backgroundColor: "rgba(0, 0, 0, 0.25)",
-                                padding: "2px",
-                                border: "1px solid var(--so-border-subtle)",
-                              }}
-                            />
-                            <div>
-                              <div
-                                style={{
-                                  fontWeight: 700,
-                                  color: "var(--so-text-primary)",
-                                  fontSize: "12.5px",
-                                }}
-                              >
-                                {cleanTitle}
-                              </div>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "4px",
-                                  marginTop: "2px",
-                                }}
-                              >
-                                {wearShortcut && (
-                                  <span
-                                    style={{
-                                      fontSize: "9.5px",
-                                      fontWeight: 800,
-                                      padding: "0 4px",
-                                      borderRadius: "3px",
-                                      backgroundColor:
-                                        "rgba(255, 255, 255, 0.08)",
-                                      color: "var(--so-text-secondary)",
-                                    }}
-                                  >
-                                    {wearShortcut}
-                                  </span>
-                                )}
-                                {isStattrak && (
-                                  <span
-                                    style={{
-                                      fontSize: "9.5px",
-                                      fontWeight: 800,
-                                      padding: "0 4px",
-                                      borderRadius: "3px",
-                                      backgroundColor:
-                                        "rgba(249, 115, 22, 0.15)",
-                                      color: "#fb923c",
-                                    }}
-                                  >
-                                    ST™
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Quantity */}
-                        <td
-                          style={{
-                            padding: "10px 14px",
-                            textAlign: "center",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {amount}
-                        </td>
-
-                        {/* Purchased Price */}
-                        <td
-                          style={{
-                            padding: "10px 14px",
-                            textAlign: "right",
-                            fontWeight: 800,
-                            fontSize: "13px",
-                            color: "var(--so-accent-cyan)",
-                          }}
-                        >
-                          {price !== "—" ? `$${price}` : "—"}
-                        </td>
-
-                        {/* Status */}
-                        <td
-                          style={{ padding: "10px 14px", textAlign: "center" }}
-                        >
-                          <span
-                            style={{
-                              fontSize: "10px",
-                              fontWeight: 800,
-                              padding: "2px 7px",
-                              borderRadius: "10px",
-                              backgroundColor: "rgba(56, 189, 248, 0.15)",
-                              color: "var(--so-accent-cyan)",
-                              border: "1px solid rgba(56, 189, 248, 0.3)",
-                            }}
-                          >
-                            {cleanStatus}
-                          </span>
-                        </td>
-
-                        {/* Completed Date */}
-                        <td
-                          style={{
-                            padding: "10px 14px",
-                            textAlign: "right",
-                            color: "var(--so-text-muted)",
-                            fontSize: "11.5px",
-                          }}
-                        >
-                          {dateStr}
-                        </td>
-
-                        {/* Action link */}
-                        <td
-                          style={{ padding: "10px 14px", textAlign: "right" }}
-                        >
-                          <button
-                            onClick={() => onOpenMarket(title)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: "3px 6px", borderRadius: "4px" }}
-                            title="Open on DMarket Market"
-                          >
-                            <ExternalLink size={12} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <TargetHistoryView
+          closedTrades={closedTrades}
+          closedLoading={closedLoading}
+          onFetchClosedTargets={fetchClosedTargets}
+          onOpenMarket={onOpenMarket}
+        />
       )}
 
       {/* ── FLOATING BATCH ACTIONS PANEL FOR TARGETS ── */}
       {targetSubTab === "active" && selectedCount > 0 && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "20px",
-            left: isSidebarExpanded ? "258px" : "96px",
-            right: "28px",
-            zIndex: 1000,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "16px",
-            backgroundColor: "rgba(17, 24, 39, 0.96)",
-            backdropFilter: "blur(12px)",
-            color: "#ffffff",
-            padding: "12px 20px",
-            borderRadius: "var(--so-radius-md)",
-            border: "1px solid var(--so-border-medium)",
-            boxShadow:
-              "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(37, 99, 235, 0.25)",
-            boxSizing: "border-box",
-            transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              fontWeight: 700,
-              fontSize: "13px",
-            }}
-          >
-            <span
-              style={{
-                backgroundColor: "rgba(37, 99, 235, 0.2)",
-                color: "var(--so-accent-cyan)",
-                border: "1px solid var(--so-primary)",
-                padding: "2px 9px",
-                borderRadius: "4px",
-                fontWeight: 900,
-                fontSize: "14px",
-              }}
-            >
-              {selectedCount}
-            </span>
-            <span>TARGETS SELECTED FOR BATCH OPERATIONS</span>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <button
-              onClick={handleSelectAll}
-              className="btn btn-sm btn-ghost"
-              style={{
-                fontWeight: 700,
-                padding: "6px 14px",
-                fontSize: "12px",
-                color: "#ffffff",
-              }}
-            >
-              Select All ({targets.length})
-            </button>
-
-            {actionRequiredCount > 0 && (
-              <button
-                onClick={handleToggleSelectActionRequired}
-                className="btn btn-sm btn-ghost"
-                style={{
-                  fontWeight: 700,
-                  padding: "6px 14px",
-                  fontSize: "12px",
-                  color: "#f59e0b",
-                  backgroundColor: isAllActionRequiredSelected
-                    ? "rgba(245, 158, 11, 0.18)"
-                    : "rgba(245, 158, 11, 0.08)",
-                  border: "1px solid rgba(245, 158, 11, 0.25)",
-                  borderRadius: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                }}
-                title={
-                  isAllActionRequiredSelected
-                    ? "Click to unselect action items"
-                    : "Click to select all targets requiring action"
-                }
-              >
-                <AlertTriangle size={12} style={{ color: "#f59e0b" }} />{" "}
-                {isAllActionRequiredSelected
-                  ? `Unselect Action (${actionRequiredCount})`
-                  : `Action Req (${actionRequiredCount})`}
-              </button>
-            )}
-
-            <button
-              onClick={clearSelection}
-              className="btn btn-sm btn-ghost"
-              style={{
-                fontWeight: 700,
-                padding: "6px 14px",
-                fontSize: "12px",
-                color: "#ffffff",
-              }}
-            >
-              Clear Selection
-            </button>
-
-            <button
-              onClick={handleBatchDelete}
-              disabled={batchProcessing}
-              className="btn btn-danger btn-sm"
-              style={{
-                fontWeight: 800,
-                padding: "6px 14px",
-                fontSize: "12px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                color: "#ffffff",
-              }}
-            >
-              <Trash2 size={13} />
-              <span>Delete Selected</span>
-            </button>
-
-            {unmatchedSelectedCount > 0 && (
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "11.5px",
-                  fontWeight: 600,
-                  color: deleteUnmatched
-                    ? "#f87171"
-                    : "var(--so-text-secondary)",
-                  cursor: "pointer",
-                  userSelect: "none",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  backgroundColor: deleteUnmatched
-                    ? "rgba(239, 68, 68, 0.12)"
-                    : "rgba(255, 255, 255, 0.04)",
-                  border: `1px solid ${
-                    deleteUnmatched
-                      ? "rgba(239, 68, 68, 0.35)"
-                      : "var(--so-border-subtle)"
-                  }`,
-                  transition: "all 0.15s ease",
-                }}
-                title="When updating, also delete selected targets that have no matching accepted price in Oracle cache"
-              >
-                <input
-                  type="checkbox"
-                  checked={deleteUnmatched}
-                  onChange={(e) => setDeleteUnmatched(e.target.checked)}
-                  style={{
-                    cursor: "pointer",
-                    accentColor: "#ef4444",
-                  }}
-                />
-                <span>Delete unmatched ({unmatchedSelectedCount})</span>
-              </label>
-            )}
-
-            <button
-              onClick={handleBatchUpdateToOracle}
-              disabled={batchProcessing}
-              className="btn btn-primary btn-sm"
-              style={{
-                fontWeight: 800,
-                padding: "6px 18px",
-                fontSize: "12px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                color: "#ffffff",
-              }}
-            >
-              {batchProcessing ? (
-                <>
-                  <Loader2 size={13} className="spin" />
-                  <span>UPDATING BATCH...</span>
-                </>
-              ) : (
-                <>
-                  <Zap size={13} />
-                  <span>MATCH ORACLE PRICES</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        <TargetBatchBar
+          selectedCount={selectedCount}
+          totalTargetsCount={targets.filter((t) => !isAdvancedTarget(t)).length}
+          actionRequiredCount={actionRequiredCount}
+          isAllActionRequiredSelected={isAllActionRequiredSelected}
+          unmatchedSelectedCount={unmatchedSelectedCount}
+          deleteUnmatched={deleteUnmatched}
+          setDeleteUnmatched={setDeleteUnmatched}
+          batchProcessing={batchProcessing}
+          isSidebarExpanded={isSidebarExpanded}
+          onSelectAll={handleSelectAll}
+          onToggleSelectActionRequired={handleToggleSelectActionRequired}
+          onClearSelection={clearSelection}
+          onBatchDelete={handleBatchDelete}
+          onBatchUpdateToOracle={handleBatchUpdateToOracle}
+        />
       )}
     </>
   );
+};
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+const getCardsGridStyle = (hasSelectedTargets: boolean): React.CSSProperties => ({
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+  gap: "10px",
+  paddingBottom: hasSelectedTargets ? "75px" : "12px",
+});
+
+const styles = {
+  loadingWrapper: {
+    padding: "60px 0",
+    textAlign: "center",
+    color: "var(--so-text-muted)",
+  } as React.CSSProperties,
+
+  loadingSpinner: {
+    margin: "0 auto 12px",
+  } as React.CSSProperties,
+
+  emptyCard: {
+    textAlign: "center",
+    padding: "50px 20px",
+    color: "var(--so-text-muted)",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-medium)",
+    borderRadius: "var(--so-radius-md)",
+  } as React.CSSProperties,
+
+  emptyIcon: {
+    margin: "0 auto 12px",
+    opacity: 0.4,
+  } as React.CSSProperties,
+
+  emptyTitle: {
+    fontSize: "15px",
+    fontWeight: 700,
+    color: "var(--so-text-primary)",
+  } as React.CSSProperties,
+
+  emptySubtitle: {
+    fontSize: "12.5px",
+    marginTop: "4px",
+  } as React.CSSProperties,
 };

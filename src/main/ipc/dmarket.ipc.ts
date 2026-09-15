@@ -635,6 +635,34 @@ if (ipcMain?.handle) {
       if (params?.orderBy) baseParams.orderBy = params.orderBy;
       if (params?.orderDir) baseParams.orderDir = params.orderDir;
 
+      const normalizeTargetItem = (raw: any) => {
+        const cs2Attrs = raw?.attributes?.cs2;
+        const extra = raw?.extra;
+        const isAdvanced = Boolean(
+          raw?.isAdvanced === true ||
+          cs2Attrs?.isAdvanced === true ||
+          extra?.isAdvanced === true,
+        );
+
+        return {
+          ...raw,
+          targetId: raw?.targetId || raw?.TargetID || raw?.id,
+          title: raw?.title || raw?.Title || raw?.name || "",
+          amount: String(raw?.amount || "1"),
+          priceCents:
+            raw?.priceCents !== undefined
+              ? String(raw.priceCents)
+              : String(raw?.price?.amount || raw?.price || "0"),
+          status: raw?.status || "active",
+          extra: {
+            ...(extra || cs2Attrs || {}),
+            isAdvanced,
+          },
+          isAdvanced,
+          _raw: raw,
+        };
+      };
+
       // Single page fetch when fetchAll is not requested
       if (!params?.fetchAll) {
         if (params?.cursor) baseParams.cursor = params.cursor;
@@ -643,9 +671,21 @@ if (ipcMain?.handle) {
           "/marketplace-api/v2/user/targets",
           baseParams,
         );
+        const rawList = Array.isArray(data?.targets)
+          ? data.targets
+          : Array.isArray(data?.items)
+            ? data.items
+            : [];
+
+        console.log("==================== [DMarket IPC RAW TARGETS RESPONSE] ====================");
+        console.log(`Total raw items in batch: ${rawList.length}`);
+        console.log("Sample of raw items from DMarket API (first 5):");
+        console.log(JSON.stringify(rawList.slice(0, 5), null, 2));
+        console.log("============================================================================");
+
         return {
-          items: Array.isArray(data?.items) ? data.items : [],
-          total: data?.total || "0",
+          items: rawList.map(normalizeTargetItem),
+          total: data?.total || String(rawList.length),
           cursor: data?.cursor || "",
         };
       }
@@ -666,9 +706,22 @@ if (ipcMain?.handle) {
           "/marketplace-api/v2/user/targets",
           pageParams,
         );
-        const items = Array.isArray(pageData?.items) ? pageData.items : [];
+        const items = Array.isArray(pageData?.targets)
+          ? pageData.targets
+          : Array.isArray(pageData?.items)
+            ? pageData.items
+            : [];
+
+        if (page === 1) {
+          console.log("==================== [DMarket IPC RAW TARGETS RESPONSE] ====================");
+          console.log(`Page 1 raw targets count: ${items.length}`);
+          console.log("Sample of raw targets from DMarket API (first 5):");
+          console.log(JSON.stringify(items.slice(0, 5), null, 2));
+          console.log("============================================================================");
+        }
+
         if (items.length > 0) {
-          allItems = allItems.concat(items);
+          allItems = allItems.concat(items.map(normalizeTargetItem));
         }
 
         currentCursor = pageData?.cursor || "";
@@ -1304,18 +1357,18 @@ if (ipcMain?.handle) {
 
         const inGameAssetId = String(
           attributes?.inGameAssetId ||
-            attributes?.inGameAssetID ||
-            item?.inGameAssetId ||
-            (assetId.includes(":") ? assetId : "") ||
-            "",
+          attributes?.inGameAssetID ||
+          item?.inGameAssetId ||
+          (assetId.includes(":") ? assetId : "") ||
+          "",
         ).trim();
 
         const steamAssetId = String(
           attributes?.steamAssetId ||
-            item?.steamAssetId ||
-            attributes?.inGameAssetID ||
-            item?.extra?.inGameAssetID ||
-            "",
+          item?.steamAssetId ||
+          attributes?.inGameAssetID ||
+          item?.extra?.inGameAssetID ||
+          "",
         ).trim();
 
         const instantPriceUsd = resolveDmarketInstantPrice(item);

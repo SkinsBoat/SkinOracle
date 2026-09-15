@@ -129,21 +129,109 @@ export interface ListingPriceInfo {
   trendMomentum14d?: number;
 }
 
+/**
+ * DMarket CS2 Target Attribute Category
+ */
+export type DmarketCS2Category =
+  | "CATEGORY_NORMAL"
+  | "CATEGORY_STATTRACK"
+  | "CATEGORY_SOUVENIR"
+  | "CATEGORY_STAR"
+  | "normal"
+  | "stattrak"
+  | "souvenir"
+  | string;
+
+/**
+ * DMarket CS2 Target Exterior / Wear
+ */
+export type DmarketCS2Exterior =
+  | "EXTERIOR_FACTORY_NEW"
+  | "EXTERIOR_MINIMAL_WEAR"
+  | "EXTERIOR_FIELD_TESTED"
+  | "EXTERIOR_WELL_WORN"
+  | "EXTERIOR_BATTLE_SCARRED"
+  | "factory new"
+  | "minimal wear"
+  | "field-tested"
+  | "well-worn"
+  | "battle-scarred"
+  | string;
+
+/**
+ * DMarket Target Status
+ */
+export type DmarketTargetStatus =
+  | "TARGET_STATUS_ACTIVE"
+  | "TARGET_STATUS_INACTIVE"
+  | "TARGET_STATUS_CLOSED"
+  | "active"
+  | "inactive"
+  | "closed"
+  | string;
+
+/**
+ * Detailed CS2 target attributes from DMarket API v2
+ */
+export interface DmarketTargetCS2Attributes {
+  category?: DmarketCS2Category;
+  exterior?: DmarketCS2Exterior;
+  phase?: string; // e.g. "PHASE_TITLE_UNSPECIFIED"
+  paintSeed?: number; // 0 for standard, >0 for specific paint seed
+  floatPart?: string; // e.g. "FLOAT_PART_UNSPECIFIED"
+  isAdvanced?: boolean; // false for standard targets, true for advanced targets
+  [key: string]: any;
+}
+
 export interface DmarketTargetAttributes {
-  categoryPath?: string;
+  categoryPath?: string; // e.g. "rifle/galil ar", "machinegun/m249"
   image?: string;
   title?: string;
   name?: string;
-  cs2?: {
-    category?: string;
-    exterior?: string;
-    phase?: string;
-    paintSeed?: number;
-    floatPart?: string;
-    isAdvanced?: boolean;
-  };
+  cs2?: DmarketTargetCS2Attributes;
+  [key: string]: any;
 }
 
+export interface DmarketTargetExtra {
+  category?: string;
+  exterior?: string;
+  paintSeed?: number;
+  isAdvanced?: boolean;
+  inGameAssetID?: string;
+  [key: string]: any;
+}
+
+/**
+ * Raw target object returned by DMarket API v2 (/marketplace-api/v2/user/targets)
+ */
+export interface DmarketRawTargetItem {
+  targetId: string;
+  title: string;
+  amount: string | number;
+  status: DmarketTargetStatus;
+  priceCents: string;
+  attributes?: DmarketTargetAttributes;
+  createdAt: string | number;
+  updatedAt: string | number;
+  extra?: DmarketTargetExtra;
+  gameId?: string;
+  ownerId?: string;
+  [key: string]: any;
+}
+
+/**
+ * Raw API response payload from DMarket targets endpoint
+ */
+export interface DmarketUserTargetsApiResponse {
+  targets?: DmarketRawTargetItem[];
+  items?: DmarketRawTargetItem[];
+  total?: string | number;
+  cursor?: string;
+}
+
+/**
+ * Application-normalized DMarket Target Item
+ */
 export interface DmarketTargetItem {
   targetId: string;
   title: string;
@@ -151,8 +239,12 @@ export interface DmarketTargetItem {
   status: string; // e.g. "TARGET_STATUS_ACTIVE"
   priceCents: string; // e.g. "1550"
   attributes: DmarketTargetAttributes;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | number;
+  updatedAt: string | number;
+  extra?: DmarketTargetExtra;
+  isAdvanced?: boolean;
+  _raw?: DmarketRawTargetItem;
+  [key: string]: any;
 }
 
 export interface DmarketBalance {
@@ -229,7 +321,7 @@ export interface DmarketOfferItem {
   imageUrl?: string;
   createdDate?: string | number;
   discountPercent?: number;
-  instantPrice?: { DMC?: string; USD?: string; [key: string]: any };
+  instantPrice?: { DMC?: string; USD?: string;[key: string]: any };
   instantPriceUsd?: number;
   _raw?: any;
   [key: string]: any;
@@ -247,7 +339,7 @@ export interface DmarketInventoryItem {
   isP2P?: boolean;
   attributes?: DmarketOfferAttributes;
   imageUrl?: string;
-  instantPrice?: { DMC?: string; USD?: string; [key: string]: any };
+  instantPrice?: { DMC?: string; USD?: string;[key: string]: any };
   instantPriceUsd?: number;
   _raw?: any;
   [key: string]: any;

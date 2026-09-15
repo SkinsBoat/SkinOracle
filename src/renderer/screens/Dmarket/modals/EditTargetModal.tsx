@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Edit3, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Edit3, X, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { DmarketTargetItem } from "../../../../shared/types";
 import { TargetAnalysis } from "../dmarket-utils";
+import { isAdvancedTarget } from "../tabs/TargetTab/types";
 import toast from "react-hot-toast";
 
 interface EditTargetModalProps {
@@ -25,6 +26,8 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
   const [amount, setAmount] = useState("1");
   const [submitting, setSubmitting] = useState(false);
 
+  const isAdvanced = isAdvancedTarget(target);
+
   useEffect(() => {
     if (target) {
       setPrice((parseFloat(target.priceCents) / 100).toFixed(2));
@@ -36,6 +39,10 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isAdvanced) {
+      toast.error("Cannot update advanced targets with custom attributes");
+      return;
+    }
     const numPrice = parseFloat(price);
     const numAmount = parseInt(amount, 10);
     if (isNaN(numPrice) || numPrice <= 0) {
@@ -142,7 +149,28 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
           </div>
         </div>
 
-        {targetAnalysis?.acceptedPrice && (
+        {isAdvanced && (
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: "var(--so-radius-sm)",
+              backgroundColor: "rgba(168, 85, 247, 0.1)",
+              border: "1px solid rgba(168, 85, 247, 0.35)",
+              color: "#c084fc",
+              fontSize: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+            <span>
+              This is an <strong>ADVANCED</strong> target with custom attributes (paint seed, float, etc.). Updating is disabled to prevent losing custom target parameters.
+            </span>
+          </div>
+        )}
+
+        {targetAnalysis?.acceptedPrice && !isAdvanced && (
           <div
             style={{
               padding: "10px 14px",
@@ -213,6 +241,7 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 required
+                disabled={submitting || isAdvanced}
                 style={{
                   width: "100%",
                   boxSizing: "border-box",
@@ -223,6 +252,8 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                   padding: "10px 14px",
                   fontSize: "14px",
                   fontWeight: 700,
+                  opacity: isAdvanced ? 0.5 : 1,
+                  cursor: isAdvanced ? "not-allowed" : "text",
                 }}
               />
             </div>
@@ -244,6 +275,7 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                 max="100"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                disabled={submitting || isAdvanced}
                 style={{
                   width: "100%",
                   boxSizing: "border-box",
@@ -254,6 +286,8 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                   padding: "10px 14px",
                   fontSize: "14px",
                   fontWeight: 700,
+                  opacity: isAdvanced ? 0.5 : 1,
+                  cursor: isAdvanced ? "not-allowed" : "text",
                 }}
               />
             </div>
@@ -278,7 +312,12 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={submitting}
+              disabled={submitting || isAdvanced}
+              style={{
+                opacity: isAdvanced ? 0.5 : 1,
+                cursor: isAdvanced ? "not-allowed" : "pointer",
+              }}
+              title={isAdvanced ? "Cannot update advanced targets" : "Confirm Update"}
             >
               {submitting ? (
                 <Loader2 size={14} className="spin" />
