@@ -30,24 +30,10 @@ export const getWearShortcut = (wear?: string): string => {
 export const getTradeTitle = (trade: any): string => {
   if (!trade) return "CS2 Item";
   let title =
-    trade.Title ||
     trade.title ||
-    trade.marketHashName ||
-    trade.MarketHashName ||
-    trade.market_hash_name ||
-    trade.name ||
-    trade.Name ||
-    trade.assetTitle ||
-    trade.AssetTitle ||
+    trade.Title ||
     trade.extra?.name ||
-    trade.extra?.title ||
-    trade.attributes?.title ||
-    trade.attributes?.Title ||
-    trade.attributes?.marketHashName ||
-    trade.attributes?.MarketHashName ||
-    trade.attributes?.market_hash_name ||
-    trade.attributes?.name ||
-    trade.attributes?.assetTitle ||
+    trade.name ||
     "CS2 Item";
 
   title = String(title).trim();
@@ -58,11 +44,10 @@ export const getTradeTitle = (trade: any): string => {
   // Reconstruct wear condition in parentheses if missing
   if (!title.match(/\([^)]+\)$/)) {
     const rawExt =
-      trade.attributes?.exterior ||
-      trade.attributes?.cs2?.exterior ||
       trade.extra?.exterior ||
+      trade.attributes?.exterior ||
+      trade.cs2?.exterior ||
       trade.exterior ||
-      trade.attributes?.Exterior ||
       "";
     const extStr = String(rawExt).toLowerCase().trim();
     let wearSuffix = "";
@@ -136,16 +121,8 @@ export const getItemListingPriceWithMap = (
   const possibleTitles = [
     item.title,
     item.Title,
-    item.marketHashName,
-    item.MarketHashName,
-    item.market_hash_name,
-    item.name,
-    item.Name,
-    item.assetTitle,
-    item.AssetTitle,
     item.extra?.name,
-    item.attributes?.title,
-    item.attributes?.marketHashName,
+    item.name,
   ].filter(Boolean) as string[];
 
   // 1. Direct exact match
@@ -158,11 +135,10 @@ export const getItemListingPriceWithMap = (
     const raw = String(t).trim();
     if (!raw.match(/\([^)]+\)$/)) {
       const rawExt =
-        item.attributes?.exterior ||
-        item.attributes?.cs2?.exterior ||
         item.extra?.exterior ||
+        item.attributes?.exterior ||
+        item.cs2?.exterior ||
         item.exterior ||
-        item.attributes?.Exterior ||
         "";
       const extStr = String(rawExt).toLowerCase().trim();
       let wearSuffix = "";
@@ -222,42 +198,24 @@ export const getTradePrice = (trade: any): string => {
   if (!trade) return "—";
   if (trade.priceUSD && trade.priceUSD !== "—") return trade.priceUSD;
 
-  const priceObj = trade.Price || trade.price;
-  let raw: any = undefined;
+  // DMarket standard price representation:
+  // 1. price: { DMC: "", USD: "6786" } (cents)
+  // 2. priceCents: 6786
+  const rawUsd =
+    trade.price?.USD ??
+    trade.Price?.USD ??
+    trade.priceCents ??
+    trade._raw?.price?.USD;
 
-  if (priceObj && typeof priceObj === "object") {
-    raw =
-      priceObj.Amount ??
-      priceObj.amount ??
-      priceObj.USD ??
-      priceObj.usd ??
-      priceObj.price ??
-      priceObj.Price;
-  } else if (typeof priceObj === "number" || typeof priceObj === "string") {
-    raw = priceObj;
+  if (rawUsd !== undefined && rawUsd !== null && rawUsd !== "") {
+    const num = typeof rawUsd === "number" ? rawUsd : parseFloat(String(rawUsd));
+    if (!isNaN(num)) {
+      const str = String(rawUsd);
+      return str.includes(".") ? num.toFixed(2) : (num / 100).toFixed(2);
+    }
   }
 
-  if (raw === undefined || raw === null || raw === "") {
-    raw =
-      trade.PriceCents ??
-      trade.priceCents ??
-      trade.PriceAmount ??
-      trade.priceAmount ??
-      trade.AmountCents ??
-      trade.amountCents;
-  }
-
-  if (raw === undefined || raw === null || raw === "") return "—";
-
-  const num = typeof raw === "number" ? raw : parseFloat(String(raw));
-  if (isNaN(num)) return "—";
-
-  const str = String(raw);
-  if (str.includes(".")) return num.toFixed(2);
-  if (priceObj?.USD !== undefined || priceObj?.usd !== undefined || num >= 50) {
-    return (num / 100).toFixed(2);
-  }
-  return num.toFixed(2);
+  return "—";
 };
 
 export const getTradeAmount = (trade: any): string => {
@@ -283,41 +241,41 @@ export type { TargetAnalysis, SoCloseResultItem } from "../../../shared/types";
 
 export const formatItemFloat = (item: any): string | null => {
   if (!item) return null;
-  const attr = item.attributes || {};
-  const cs2 = attr.cs2 || {};
-  const extra = item.extra || {};
 
-  // 1. Direct decimal float value (e.g. "0.049684781581163406" or 0.04968)
-  const candidateFloat =
-    cs2.float ??
-    attr.float ??
-    item.float ??
-    extra.floatValue ??
-    attr.floatValue;
+  // Direct DMarket CS2 float: item.cs2.floatValue (e.g. "0.07147438824176788")
+  const rawFloat =
+    item.cs2?.floatValue ??
+    item.cs2?.float ??
+    item._raw?.cs2?.floatValue ??
+    item._raw?.cs2?.float ??
+    item.attributes?.cs2?.floatValue ??
+    item.attributes?.cs2?.float ??
+    item.attributes?.float ??
+    item.float;
 
   if (
-    candidateFloat !== undefined &&
-    candidateFloat !== null &&
-    candidateFloat !== ""
+    rawFloat !== undefined &&
+    rawFloat !== null &&
+    rawFloat !== ""
   ) {
     const num =
-      typeof candidateFloat === "number"
-        ? candidateFloat
-        : parseFloat(String(candidateFloat));
+      typeof rawFloat === "number"
+        ? rawFloat
+        : parseFloat(String(rawFloat));
     if (!isNaN(num) && num >= 0 && num <= 1) {
       return num.toFixed(4);
     }
   }
 
-  // 2. Float Part / Sub-range bucket fallback (e.g. "FLOAT_PART_FN_4" -> "FN-4")
-  const candidatePart =
-    cs2.floatPart ??
-    attr.floatPart ??
-    attr.floatPartValue ??
-    extra.floatPartValue;
+  // Float Part sub-range bucket (e.g. "MW-0" or "FLOAT_PART_FN_4" -> "FN-4")
+  const rawPart =
+    item.cs2?.floatPartValue ??
+    item._raw?.cs2?.floatPartValue ??
+    item.attributes?.cs2?.floatPart ??
+    item.attributes?.floatPart;
 
-  if (candidatePart && typeof candidatePart === "string") {
-    const cleanPart = candidatePart
+  if (rawPart && typeof rawPart === "string") {
+    const cleanPart = rawPart
       .replace(/^FLOAT_PART_/i, "")
       .replace(/_/g, "-")
       .trim();
@@ -343,6 +301,15 @@ export const isDmarketP2POffer = (offer: any): boolean => {
   if (typeof offer.isP2P === "boolean") return offer.isP2P;
   if (offer.listingMode === "p2p") return true;
   if (offer.listingMode === "bot") return false;
+
+  // DMarket returns provider directly on item (provider: "ICS" for P2P, "CPU" for Bot)
+  const provider =
+    offer.provider ??
+    offer._raw?.provider ??
+    offer.attributes?.provider;
+
+  if (provider === "ICS") return true;
+  if (provider === "CPU") return false;
 
   const attrs =
     offer.attributes ||

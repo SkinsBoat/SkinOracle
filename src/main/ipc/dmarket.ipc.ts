@@ -256,25 +256,14 @@ export function resolveDmarketTitle(item: any): string {
   let rawTitle =
     item.title ||
     item.Title ||
+    item.extra?.name ||
+    item.name ||
     item.marketHashName ||
     item.MarketHashName ||
     item.market_hash_name ||
-    item.name ||
-    item.Name ||
     item.assetTitle ||
-    item.AssetTitle ||
     item.description ||
-    item.extra?.name ||
-    item.extra?.title ||
     item.attributes?.title ||
-    item.attributes?.Title ||
-    item.attributes?.marketHashName ||
-    item.attributes?.MarketHashName ||
-    item.attributes?.market_hash_name ||
-    item.attributes?.name ||
-    item.attributes?.Name ||
-    item.attributes?.assetTitle ||
-    item.attributes?.AssetTitle ||
     "";
 
   rawTitle = String(rawTitle).trim();
@@ -283,14 +272,14 @@ export function resolveDmarketTitle(item: any): string {
   }
 
   // If the title does not yet end with wear condition in parentheses (e.g. "(Field-Tested)")
-  // check if exterior is defined in attributes/extra and append it.
+  // check if exterior is defined in extra/attributes and append it.
   if (!rawTitle.match(/\([^)]+\)$/)) {
     const rawExt =
+      item.extra?.exterior ||
       item.attributes?.exterior ||
       item.attributes?.cs2?.exterior ||
-      item.extra?.exterior ||
+      item.cs2?.exterior ||
       item.exterior ||
-      item.attributes?.Exterior ||
       "";
     const extStr = String(rawExt).toLowerCase().trim();
     let wearSuffix = "";
@@ -361,26 +350,13 @@ export function resolveDmarketImageUrl(
   resolvedTitle?: string,
 ): string {
   const rawImage =
-    item?.imageUrl ||
-    item?.ImageUrl ||
-    item?.image_url ||
-    item?.ImageURL ||
     item?.image ||
     item?.Image ||
-    item?.icon_url ||
-    item?.iconUrl ||
-    item?.icon ||
-    item?.Icon ||
-    item?.attributes?.image ||
-    item?.attributes?.Image ||
-    item?.attributes?.imageUrl ||
-    item?.attributes?.image_url ||
-    item?.attributes?.icon_url ||
-    item?.attributes?.iconUrl ||
+    item?.imageUrl ||
+    item?.imageUri ||
     item?.extra?.image ||
-    item?.extra?.imageUrl ||
-    item?.extra?.image_url ||
-    item?.extra?.icon_url ||
+    item?.attributes?.image ||
+    item?.icon_url ||
     "";
 
   if (rawImage && typeof rawImage === "string") {
@@ -1199,7 +1175,7 @@ if (ipcMain?.handle) {
           listingMode,
           imageUrl,
           attributes,
-          instantPrice: item.instantPrice || item.instant_price,
+          instantPrice: item.instantPrice,
           instantPriceUsd: instantPriceUsd ?? undefined,
         };
       };
@@ -1361,7 +1337,7 @@ if (ipcMain?.handle) {
           inMarket,
           imageUrl,
           attributes,
-          instantPrice: item.instantPrice || item.instant_price,
+          instantPrice: item.instantPrice,
           instantPriceUsd: instantPriceUsd ?? undefined,
         };
       };

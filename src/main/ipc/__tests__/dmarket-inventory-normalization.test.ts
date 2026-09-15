@@ -245,6 +245,10 @@ describe("DMarket Inventory & Offer Normalization Engine", () => {
         1250,
       );
       expect(resolveDmarketPriceCents({ price: { USD: "1850" } })).toBe(1850);
+      // Real DMarket API payload structure
+      expect(
+        resolveDmarketPriceCents({ price: { DMC: "", USD: "6786" } }),
+      ).toBe(6786);
     });
   });
 
@@ -318,6 +322,27 @@ describe("DMarket Inventory & Offer Normalization Engine", () => {
       };
       // Must return numeric 4-digit float, NOT raw "FLOAT_" or "FLOAT_PART_FN_4"
       expect(formatItemFloat(item)).toBe("0.0497");
+    });
+
+    it("should format direct decimal float from item.cs2.floatValue (real DMarket API payload)", () => {
+      const realHuntsman = {
+        title: "★ StatTrak™ Huntsman Knife | Bright Water (Minimal Wear)",
+        cs2: {
+          category: "stattrak™",
+          exterior: "minimal wear",
+          floatValue: "0.07147438824176788",
+          floatPartValue: "MW-0",
+          paintSeed: 707,
+        },
+      };
+      expect(formatItemFloat(realHuntsman)).toBe("0.0715");
+
+      // When floatValue is missing, should use floatPartValue "MW-0"
+      expect(
+        formatItemFloat({
+          cs2: { floatPartValue: "MW-0" },
+        }),
+      ).toBe("MW-0");
     });
 
     it("should format direct decimal float from attributes.float or number", () => {
