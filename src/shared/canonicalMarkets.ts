@@ -40,6 +40,7 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
     id: "steam",
     name: "Steam Community Market",
     aliases: ["steam", "steam_market", "scm"],
+    isTradeMarket: true,
   },
   {
     id: "csmoney_market",
@@ -228,8 +229,8 @@ export function isMarketMatch(
 
 /**
  * Checks whether a raw or canonical market identifier belongs to a trade-bot / swap platform
- * with inflated virtual credit pricing (e.g. CS.MONEY Trade, Tradeit.gg, CSTrade, etc.).
- * These markets distort price averaging and should be excluded from Oracle valuation.
+ * or Steam (which has inflated wallet funds and 15% valve fee resulting in distinct price ranges).
+ * These markets distort cash price averaging and can be filtered out from cash market valuation.
  */
 export function isTradeMarket(marketId: string | null | undefined): boolean {
   if (!marketId || typeof marketId !== "string") return false;
@@ -265,6 +266,9 @@ export function isTradeMarket(marketId: string | null | undefined): boolean {
     raw === "lootfarm" ||
     raw === "pirateswap" ||
     raw === "rapidskins" ||
-    raw === "skinsmonkey"
+    raw === "skinsmonkey" ||
+    raw === "steam" ||
+    raw === "steam_market" ||
+    raw === "scm"
   );
 }

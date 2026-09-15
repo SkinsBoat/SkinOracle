@@ -88,6 +88,9 @@ describe("Canonical Market Registry & Normalization Engine", () => {
     expect(isTradeMarket("pirateswap")).toBe(true);
     expect(isTradeMarket("rapidskins")).toBe(true);
     expect(isTradeMarket("skinsmonkey")).toBe(true);
+    expect(isTradeMarket("steam")).toBe(true);
+    expect(isTradeMarket("steam_market")).toBe(true);
+    expect(isTradeMarket("scm")).toBe(true);
 
     // Cash / P2P / standard marketplace markets (must NOT be trade markets)
     expect(isTradeMarket("tradeit")).toBe(false); // CS2Cap cash store
@@ -100,7 +103,6 @@ describe("Canonical Market Registry & Normalization Engine", () => {
     expect(isTradeMarket("csmoney_p2p")).toBe(false);
     expect(isTradeMarket("csmoney_m")).toBe(false);
     expect(isTradeMarket("skinport")).toBe(false);
-    expect(isTradeMarket("steam")).toBe(false);
     expect(isTradeMarket("lisskins")).toBe(false);
     expect(isTradeMarket("skinland")).toBe(false);
     expect(isTradeMarket("skinflow")).toBe(false);

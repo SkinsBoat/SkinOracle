@@ -97,13 +97,14 @@ describe("useOracleStore - hideTradeMarkets & smart Select All", () => {
         expect(isTradeMarket(id)).toBe(false);
       }
 
-      // Explicitly verify known trade-bot providers are excluded
+      // Explicitly verify known trade-bot & non-cash providers (including Steam) are excluded
       expect(selected).not.toContain("cstrade");
       expect(selected).not.toContain("skinsmonkey");
       expect(selected).not.toContain("csmoney_t");
       expect(selected).not.toContain("skinswap_t");
       expect(selected).not.toContain("swapgg");
       expect(selected).not.toContain("lootfarm");
+      expect(selected).not.toContain("steam");
 
       // Cash marketplaces are included
       expect(selected).toContain("csfloat");
@@ -125,6 +126,7 @@ describe("useOracleStore - hideTradeMarkets & smart Select All", () => {
       expect(selected.length).toBe(CS2CAP_PROVIDERS.length);
       expect(selected).toContain("csmoney_t");
       expect(selected).toContain("cstrade");
+      expect(selected).toContain("steam");
     });
   });
 });

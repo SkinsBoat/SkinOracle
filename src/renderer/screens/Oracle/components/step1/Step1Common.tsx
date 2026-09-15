@@ -201,7 +201,7 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
       }}
       title={
         isTrade
-          ? "Trade-bot platform (prices may reflect marked-up virtual site credit) | Click to toggle | Right-click to solo"
+          ? "Trade-bot / Steam market (prices may reflect marked-up credit or Steam fees) | Click to toggle | Right-click to solo"
           : "Click to toggle | Right-click to solo"
       }
       style={{
@@ -292,7 +292,7 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
             border: "1px solid rgba(245, 158, 11, 0.35)",
             flexShrink: 0,
           }}
-          title="Trade-bot platform: prices may reflect marked-up virtual credit"
+          title="Trade / Steam platform: prices reflect marked-up virtual credit or Steam wallet fees"
         >
           <AlertTriangle size={10} style={{ color: "#f59e0b" }} />
           TRADE
