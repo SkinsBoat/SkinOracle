@@ -211,39 +211,11 @@ export default function AboutScreen() {
       ),
     },
     {
-      id: "cached-trends",
-      icon: <Database size={18} style={{ color: "#a855f7" }} />,
-      category: "Trends & Local SQLite DB",
-      badgeColor: "#a855f7",
-      question: "What happens if I refresh prices for items already saved in my local trends?",
-      answerContent: (
-        <div style={styles.faqBody}>
-          <div style={styles.faqHighlightBox}>
-            <CheckCircle2 size={16} style={{ color: "#10b981", flexShrink: 0, marginTop: "2px" }} />
-            <div style={styles.faqHighlightText}>
-              <strong>Zero data loss or duplication.</strong> The local trends and Accepted Prices engine operates on
-              an atomic SQLite schema:
-            </div>
-          </div>
-          <p style={styles.faqParagraph}>
-            When you refresh prices or pull latest market listings, the database executes an <code>INSERT OR REPLACE</code> keyed on{" "}
-            <code>(item_name, snapshot_date)</code>. If today’s snapshot already exists, it seamlessly refreshes today's
-            computed median price and active listing count with the freshest market numbers.
-          </p>
-          <p style={styles.faqParagraph}>
-            Crucially, historical snapshots from previous days are <strong>completely preserved</strong>. This maintains
-            your rolling 7-day, 14-day, and 30-day historical trend windows, which the <strong>OracleNexus v2</strong>{" "}
-            engine uses for momentum, elasticity, and volatility damping calculations.
-          </p>
-        </div>
-      ),
-    },
-    {
       id: "free-vs-paid",
       icon: <Coins size={18} style={{ color: "#f59e0b" }} />,
       category: "Workstations & Valuation",
       badgeColor: "#f59e0b",
-      question: "What features are completely free vs. paid in Skin Oracle?",
+      question: "Which features are free vs. paid in Skin Oracle?",
       answerContent: (
         <div style={styles.faqBody}>
           <div style={styles.faqGridTwoCol}>
@@ -289,6 +261,91 @@ export default function AboutScreen() {
               </ul>
             </div>
           </div>
+        </div>
+      ),
+    },
+    {
+      id: "risk-safety-exclusions",
+      icon: <ShieldCheck size={18} style={{ color: "#10b981" }} />,
+      category: "Valuation Engine & Risk Safety",
+      badgeColor: "#10b981",
+      question: "Why did I evaluate 10,000 items, but the engine only returned ~7,000 accepted prices?",
+      answerContent: (
+        <div style={styles.faqBody}>
+          <div style={styles.faqHighlightBox}>
+            <CheckCircle2 size={16} style={{ color: "#10b981", flexShrink: 0, marginTop: "2px" }} />
+            <div style={styles.faqHighlightText}>
+              <strong>Capital Protection by Design:</strong> Even after items pass your pre-filters, the valuation engine intentionally discards any item that violates your risk profile or fails automated safety shields. You only receive buy ceilings on safe, liquid, and profitable deals.
+            </div>
+          </div>
+          <div style={styles.faqGridTwoCol}>
+            <div style={styles.faqCardCol}>
+              <div style={styles.faqColHeader}>
+                <span style={styles.criteriaBadge}>RISK PROFILE</span>
+                <span style={styles.faqColTitle}>1. Strategy & Risk Profile Rules</span>
+              </div>
+              <ul style={styles.faqBulletList}>
+                <li>
+                  <strong>Target Margin & ROI Hurdles:</strong> Your selected strategy profile (Conservative, Balanced, or Aggressive) mandates minimum required margins. If an item cannot safely yield your target spread, no buy ceiling is output.
+                </li>
+                <li>
+                  <strong>Sales Velocity Requirements:</strong> Items lacking the turnover speed required by your risk profile are removed to prevent locking up capital in slow-moving inventory.
+                </li>
+                <li>
+                  <strong>Trend & Volatility Damping:</strong> In OracleNexus v2, skins exhibiting negative price momentum, decaying trend slopes, or excessive volatility are pruned.
+                </li>
+              </ul>
+            </div>
+
+            <div style={styles.faqCardCol}>
+              <div style={styles.faqColHeader}>
+                <span style={styles.riskBadge}>ENGINE SAFETY</span>
+                <span style={styles.faqColTitle}>2. Pricing Engine Safety Shields</span>
+              </div>
+              <ul style={styles.faqBulletList}>
+                <li>
+                  <strong>Zero / Stale Liquidity Suppression:</strong> The engine automatically rejects skins without verified recent trade sales, preventing you from acquiring dead inventory.
+                </li>
+                <li>
+                  <strong>Anti-Manipulation & Spike Filtering:</strong> Artificial listing spikes, spoofed ask prices, and manipulative marketplace outliers are discarded by volatility algorithms.
+                </li>
+                <li>
+                  <strong>Cross-Market Disconnects:</strong> When market data sources diverge sharply and consensus confidence is low, the engine refuses to guess an unhedged price.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p style={styles.faqParagraph}>
+            In short: evaluating 10,000 pre-filtered items and receiving ~7,000 accepted prices is the engine operating exactly as intended. The remaining ~3,000 items were identified as hazardous or unhedged risks that would otherwise expose your capital to bad debt or unsellable stock.
+          </p>
+        </div>
+      ),
+    },
+    {
+      id: "cached-trends",
+      icon: <Database size={18} style={{ color: "#a855f7" }} />,
+      category: "Trends & Local SQLite DB",
+      badgeColor: "#a855f7",
+      question: "What happens if I refresh prices for items already saved in my local trends?",
+      answerContent: (
+        <div style={styles.faqBody}>
+          <div style={styles.faqHighlightBox}>
+            <CheckCircle2 size={16} style={{ color: "#10b981", flexShrink: 0, marginTop: "2px" }} />
+            <div style={styles.faqHighlightText}>
+              <strong>Zero data loss or duplication.</strong> The local trends and Accepted Prices engine operates on
+              an atomic SQLite schema:
+            </div>
+          </div>
+          <p style={styles.faqParagraph}>
+            When you refresh prices or pull latest market listings, the database executes an <code>INSERT OR REPLACE</code> keyed on{" "}
+            <code>(item_name, snapshot_date)</code>. If today’s snapshot already exists, it seamlessly refreshes today's
+            computed median price and active listing count with the freshest market numbers.
+          </p>
+          <p style={styles.faqParagraph}>
+            Crucially, historical snapshots from previous days are <strong>completely preserved</strong>. This maintains
+            your rolling 7-day, 14-day, and 30-day historical trend windows, which the <strong>OracleNexus v2</strong>{" "}
+            engine uses for momentum, elasticity, and volatility damping calculations.
+          </p>
         </div>
       ),
     },
@@ -1165,6 +1222,26 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "rgba(245, 158, 11, 0.15)",
     color: "#f59e0b",
     border: "1px solid rgba(245, 158, 11, 0.3)",
+  },
+  criteriaBadge: {
+    fontSize: "10px",
+    fontWeight: 800,
+    letterSpacing: "0.5px",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    backgroundColor: "rgba(56, 189, 248, 0.15)",
+    color: "#38bdf8",
+    border: "1px solid rgba(56, 189, 248, 0.3)",
+  },
+  riskBadge: {
+    fontSize: "10px",
+    fontWeight: 800,
+    letterSpacing: "0.5px",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    color: "#10b981",
+    border: "1px solid rgba(16, 185, 129, 0.3)",
   },
   faqColTitle: {
     fontSize: "13px",

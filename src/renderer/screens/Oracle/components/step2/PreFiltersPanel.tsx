@@ -28,7 +28,10 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
 
         <div style={styles.headerRight}>
           {totalCacheCount > 0 && (
-            <div style={styles.passingCountBadge}>
+            <div
+              style={styles.passingCountBadge}
+              title="Items outside your pre-filter criteria (wear conditions, exclusions, and price range) are bypassed before valuation."
+            >
               Passing Filters: {passingFilterCount.toLocaleString()} /{" "}
               {totalCacheCount.toLocaleString()} items
             </div>
