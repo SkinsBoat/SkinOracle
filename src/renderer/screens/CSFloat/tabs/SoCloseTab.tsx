@@ -116,55 +116,14 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        gap: "10px",
-        minHeight: 0,
-      }}
-    >
+    <div style={styles.container}>
       {/* Control Bar */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          backgroundColor: "var(--so-surface-card)",
-          border: "1px solid var(--so-border-medium)",
-          borderRadius: "var(--so-radius-md)",
-          padding: "8px 14px",
-          flexWrap: "wrap",
-          gap: "10px",
-          flexShrink: 0,
-        }}
-      >
+      <div style={styles.controlBar}>
         {/* Left Scanner Inputs & Filters */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={styles.leftInputsWrapper}>
           {/* Price Range Filter Inputs */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "var(--so-surface-panel)",
-              border: "1px solid var(--so-border-medium)",
-              padding: "4px 8px",
-              borderRadius: "var(--so-radius-sm)",
-              fontSize: "11px",
-            }}
-          >
-            <span
-              style={{ fontWeight: 700, color: "var(--so-text-secondary)" }}
-            >
+          <div style={styles.filterPill}>
+            <span style={styles.filterLabel}>
               Price Range ($):
             </span>
             <input
@@ -189,19 +148,9 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 }
               }}
               placeholder="Min"
-              style={{
-                width: "72px",
-                padding: "2px 6px",
-                fontSize: "11px",
-                fontWeight: 800,
-                textAlign: "center",
-                borderRadius: "3px",
-                border: "1px solid var(--so-border-subtle)",
-                background: "var(--so-surface-card)",
-                color: "var(--so-text-primary)",
-              }}
+              style={styles.numberInputWide}
             />
-            <span style={{ color: "var(--so-text-muted)" }}>-</span>
+            <span style={styles.dashSeparator}>-</span>
             <input
               type="number"
               min="0"
@@ -224,55 +173,21 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 }
               }}
               placeholder="Max"
-              style={{
-                width: "72px",
-                padding: "2px 6px",
-                fontSize: "11px",
-                fontWeight: 800,
-                textAlign: "center",
-                borderRadius: "3px",
-                border: "1px solid var(--so-border-subtle)",
-                background: "var(--so-surface-card)",
-                color: "var(--so-text-primary)",
-              }}
+              style={styles.numberInputWide}
             />
             <button
               type="button"
               onClick={handleSetBalanceAsMax}
               title={`Set Max Price to Available Balance (${userData?.balance !== undefined ? `$${userData.balance.toFixed(2)}` : "$0.00"})`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "2px 4px",
-                borderRadius: "3px",
-                background: "var(--so-surface-card)",
-                border: "1px solid var(--so-border-subtle)",
-                color: "var(--so-accent-cyan)",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
+              style={styles.walletButton}
             >
               <Wallet size={12} />
             </button>
           </div>
 
           {/* Max Closeness Distance Input */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "var(--so-surface-panel)",
-              border: "1px solid var(--so-border-medium)",
-              padding: "4px 8px",
-              borderRadius: "var(--so-radius-sm)",
-              fontSize: "11px",
-            }}
-          >
-            <span
-              style={{ fontWeight: 700, color: "var(--so-text-secondary)" }}
-            >
+          <div style={styles.filterPill}>
+            <span style={styles.filterLabel}>
               Max Distance:
             </span>
             <input
@@ -282,57 +197,23 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
               onChange={(e) =>
                 setSoCloseMaxCloseness(parseFloat(e.target.value) || 1.0)
               }
-              style={{
-                width: "48px",
-                padding: "1px 4px",
-                fontSize: "11px",
-                fontWeight: 800,
-                textAlign: "center",
-                borderRadius: "3px",
-                border: "1px solid var(--so-border-subtle)",
-                background: "var(--so-surface-card)",
-                color: "var(--so-text-primary)",
-              }}
+              style={styles.numberInputDistance}
             />
-            <span
-              style={{
-                fontSize: "10.5px",
-                fontWeight: 800,
-                color: "var(--so-accent-cyan)",
-              }}
-            >
+            <span style={styles.distancePercentText}>
               (+{((soCloseMaxCloseness - 1) * 100).toFixed(0)}%)
             </span>
           </div>
 
           {/* Min Supply Stability Score (SSS) Filter */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              backgroundColor: "var(--so-surface-panel)",
-              border: "1px solid var(--so-border-medium)",
-              padding: "4px 8px",
-              borderRadius: "var(--so-radius-sm)",
-              fontSize: "11px",
-            }}
-          >
+          <div style={styles.filterPill}>
             <span
               title="Supply Stability Score (SSS) measures cross-market availability, anti-monopoly supply distribution across markets (HHI), and listed stock depth relative to price bracket."
-              style={{
-                fontWeight: 700,
-                color: "var(--so-text-secondary)",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                cursor: "help",
-              }}
+              style={styles.sssLabel}
             >
               SSS:
               <Info
                 size={12}
-                style={{ color: "var(--so-accent-cyan)", opacity: 0.85 }}
+                style={styles.sssInfoIcon}
               />
             </span>
             <input
@@ -347,30 +228,9 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                   isNaN(val) ? 0 : Math.max(0, Math.min(1.5, val)),
                 );
               }}
-              style={{
-                width: "44px",
-                padding: "1px 4px",
-                fontSize: "11px",
-                fontWeight: 800,
-                textAlign: "center",
-                borderRadius: "3px",
-                border: "1px solid var(--so-border-subtle)",
-                background: "var(--so-surface-card)",
-                color: "var(--so-text-primary)",
-              }}
+              style={styles.numberInputSss}
             />
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 800,
-                color:
-                  soCloseMinSssScore >= 1.2
-                    ? "var(--so-success-text)"
-                    : soCloseMinSssScore >= 0.8
-                      ? "var(--so-cyan-text)"
-                      : "var(--so-warning)",
-              }}
-            >
+            <span style={getSssTierStyle(soCloseMinSssScore)}>
               {soCloseMinSssScore >= 1.2
                 ? "Strict"
                 : soCloseMinSssScore >= 0.8
@@ -380,15 +240,8 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           </div>
 
           {/* Wear Condition Selector Badges */}
-          <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
-            <span
-              style={{
-                fontSize: "10.5px",
-                fontWeight: 700,
-                color: "var(--so-text-muted)",
-                marginRight: "2px",
-              }}
-            >
+          <div style={styles.wearsWrapper}>
+            <span style={styles.wearsLabel}>
               Wears:
             </span>
             {[
@@ -412,20 +265,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                       [w.key]: !prev[w.key],
                     }))
                   }
-                  style={{
-                    padding: "2px 6px",
-                    fontSize: "9.5px",
-                    fontWeight: 800,
-                    borderRadius: "3px",
-                    cursor: "pointer",
-                    backgroundColor: active
-                      ? "var(--so-primary)"
-                      : "var(--so-surface-panel)",
-                    color: active ? "#ffffff" : "var(--so-text-muted)",
-                    border: active
-                      ? "none"
-                      : "1px solid var(--so-border-subtle)",
-                  }}
+                  style={getWearBadgeStyle(active)}
                 >
                   {w.label}
                 </button>
@@ -435,12 +275,12 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
         </div>
 
         {/* Right Scan Button */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div style={styles.rightActionsGroup}>
           <button
             onClick={runSoCloseScan}
             disabled={isSoCloseRunning}
             className="btn btn-primary btn-sm"
-            style={{ fontWeight: 800 }}
+            style={styles.scanButton}
           >
             {isSoCloseRunning ? (
               <Loader2 size={14} className="spin" />
@@ -454,130 +294,55 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
 
       {/* Floating Selection Toolbar */}
       {selectedSoCloseCount > 0 && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            left: isSidebarExpanded ? "246px" : "84px",
-            right: "24px",
-            zIndex: 1000,
-            backgroundColor: "rgba(23, 23, 33, 0.94)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid var(--so-primary)",
-            borderRadius: "var(--so-radius-md)",
-            boxShadow:
-              "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(99, 102, 241, 0.25)",
-            padding: "12px 20px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "16px",
-            flexWrap: "wrap",
-            animation: "slideUp 0.2s ease-out",
-            transition: "left 0.2s ease",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span
-              style={{
-                fontSize: "13px",
-                fontWeight: 800,
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              <CheckSquare size={16} style={{ color: "var(--so-primary)" }} />
+        <div style={getFloatingToolbarStyle(isSidebarExpanded)}>
+          <div style={styles.floatingToolbarLeft}>
+            <span style={styles.floatingToolbarSelectedText}>
+              <CheckSquare size={16} style={styles.checkSquareIcon} />
               <span>{selectedSoCloseCount} Selected Opportunities</span>
             </span>
-            <div
-              style={{
-                width: "1px",
-                height: "16px",
-                backgroundColor: "var(--so-border-subtle)",
-              }}
-            />
+            <div style={styles.floatingToolbarDivider} />
             <button
               onClick={handleSelectAll}
               className="btn btn-sm btn-ghost"
-              style={{
-                fontSize: "11px",
-                padding: "3px 8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
+              style={styles.ghostToolbarButton}
             >
               <CheckSquare size={12} /> Select All
             </button>
             <button
               onClick={handleDeselectAll}
               className="btn btn-sm btn-ghost"
-              style={{
-                fontSize: "11px",
-                padding: "3px 8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                color: "var(--so-text-primary)",
-              }}
+              style={styles.ghostClearButton}
             >
               <Square size={12} /> Clear Selection
             </button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={styles.floatingToolbarRight}>
             {/* Value & Limit Indicator in Floating Bar */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontSize: "11px",
-                backgroundColor: "var(--so-surface-panel)",
-                padding: "4px 10px",
-                borderRadius: "var(--so-radius-sm)",
-                border: "1px solid var(--so-border-subtle)",
-              }}
-            >
-              <span style={{ color: "var(--so-text-muted)" }}>
+            <div style={styles.limitIndicatorPill}>
+              <span style={styles.statLabelMuted}>
                 Selected:{" "}
-                <strong className="tabular-nums" style={{ color: "#ffffff" }}>
+                <strong className="tabular-nums" style={styles.statWhiteText}>
                   ${selectedSoCloseTotal.toFixed(2)}
                 </strong>
               </span>
 
               {maxLimitValue > 0 && (
                 <>
-                  <span style={{ color: "var(--so-border-subtle)" }}>•</span>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      color: isLimitExceeded
-                        ? "#ef4444"
-                        : "var(--so-text-secondary)",
-                      fontWeight: 700,
-                    }}
-                  >
+                  <span style={styles.bulletSeparator}>•</span>
+                  <span style={getProjectedValueContainerStyle(isLimitExceeded)}>
                     {isLimitExceeded && (
-                      <AlertTriangle size={12} style={{ color: "#ef4444" }} />
+                      <AlertTriangle size={12} style={styles.limitWarningIcon} />
                     )}
                     <span>
                       Projected:{" "}
                       <strong
                         className="tabular-nums"
-                        style={{
-                          color: isLimitExceeded
-                            ? "#ef4444"
-                            : "var(--so-accent-cyan)",
-                        }}
+                        style={getProjectedTotalTextStyle(isLimitExceeded)}
                       >
                         ${projectedTotalValue.toFixed(2)}
                       </strong>
-                      <span style={{ color: "var(--so-text-muted)" }}>
+                      <span style={styles.statLabelMuted}>
                         {" "}
                         / ${maxLimitValue.toFixed(2)}
                       </span>
@@ -591,15 +356,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
               onClick={handleBatchCreateSoCloseOrders}
               disabled={batchSoCloseProcessing}
               className={`btn ${isLimitExceeded ? "btn-danger" : "btn-primary"} btn-sm`}
-              style={{
-                fontWeight: 800,
-                fontSize: "12px",
-                padding: "6px 14px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                color: "#ffffff",
-              }}
+              style={styles.batchCreateButton}
               title={
                 isLimitExceeded
                   ? `Warning: Total buy order exposure ($${projectedTotalValue.toFixed(2)}) exceeds 10x balance limit ($${maxLimitValue.toFixed(2)})`
@@ -616,11 +373,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             <button
               onClick={handleDeselectAll}
               className="btn btn-sm btn-ghost"
-              style={{
-                padding: "6px",
-                borderRadius: "50%",
-                color: "var(--so-text-primary)",
-              }}
+              style={styles.clearCircleButton}
               title="Clear selection"
             >
               <X size={14} />
@@ -630,15 +383,11 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
       )}
 
       {/* So Close Grid View */}
-      <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+      <div style={styles.gridScrollView}>
         {soCloseResults.length === 0 ? (
           <div
             className="card"
-            style={{
-              textAlign: "center",
-              padding: "50px 20px",
-              color: "var(--so-text-muted)",
-            }}
+            style={styles.emptyCard}
           >
             {isSoCloseRunning ? (
               <div>
@@ -648,23 +397,14 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
               <div>
                 <Zap
                   size={32}
-                  style={{
-                    marginBottom: "10px",
-                    opacity: 0.5,
-                    color: "var(--so-accent-cyan)",
-                  }}
+                  style={styles.emptyIcon}
                 />
                 <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: "15px",
-                    color: "var(--so-text-primary)",
-                    marginBottom: "4px",
-                  }}
+                  style={styles.emptyTitle}
                 >
                   No Opportunities Found
                 </div>
-                <div style={{ fontSize: "12px" }}>
+                <div style={styles.emptySubtitle}>
                   Click "Run So Close Scan" above to evaluate CSFloat market
                   prices against your Oracle Accepted Prices.
                 </div>
@@ -673,12 +413,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           </div>
         ) : (
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: "10px",
-              paddingBottom: selectedSoCloseCount > 0 ? "75px" : "12px",
-            }}
+            style={getCardsGridStyle(selectedSoCloseCount > 0)}
           >
             {soCloseResults.map((item) => {
               const isSelected = !!selectedSoCloseItems[item.name];
@@ -711,4 +446,333 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
       </div>
     </div>
   );
+};
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+const getSssTierStyle = (score: number): React.CSSProperties => ({
+  fontSize: "10px",
+  fontWeight: 800,
+  color:
+    score >= 1.2
+      ? "var(--so-success-text)"
+      : score >= 0.8
+        ? "var(--so-cyan-text)"
+        : "var(--so-warning)",
+});
+
+const getWearBadgeStyle = (active: boolean): React.CSSProperties => ({
+  padding: "2px 6px",
+  fontSize: "9.5px",
+  fontWeight: 800,
+  borderRadius: "3px",
+  cursor: "pointer",
+  backgroundColor: active
+    ? "var(--so-primary)"
+    : "var(--so-surface-panel)",
+  color: active ? "#ffffff" : "var(--so-text-muted)",
+  border: active ? "none" : "1px solid var(--so-border-subtle)",
+});
+
+const getFloatingToolbarStyle = (isSidebarExpanded: boolean): React.CSSProperties => ({
+  position: "fixed",
+  bottom: "24px",
+  left: isSidebarExpanded ? "246px" : "84px",
+  right: "24px",
+  zIndex: 1000,
+  backgroundColor: "rgba(23, 23, 33, 0.94)",
+  backdropFilter: "blur(12px)",
+  border: "1px solid var(--so-primary)",
+  borderRadius: "var(--so-radius-md)",
+  boxShadow:
+    "0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(99, 102, 241, 0.25)",
+  padding: "12px 20px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "16px",
+  flexWrap: "wrap",
+  animation: "slideUp 0.2s ease-out",
+  transition: "left 0.2s ease",
+});
+
+const getProjectedValueContainerStyle = (isLimitExceeded: boolean): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "4px",
+  color: isLimitExceeded ? "#ef4444" : "var(--so-text-secondary)",
+  fontWeight: 700,
+});
+
+const getProjectedTotalTextStyle = (isLimitExceeded: boolean): React.CSSProperties => ({
+  color: isLimitExceeded ? "#ef4444" : "var(--so-accent-cyan)",
+});
+
+const getCardsGridStyle = (hasSelection: boolean): React.CSSProperties => ({
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+  gap: "10px",
+  paddingBottom: hasSelection ? "75px" : "12px",
+});
+
+const styles = {
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    gap: "10px",
+    minHeight: 0,
+  } as React.CSSProperties,
+
+  controlBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-medium)",
+    borderRadius: "var(--so-radius-md)",
+    padding: "8px 14px",
+    flexWrap: "wrap",
+    gap: "10px",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  leftInputsWrapper: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    flexWrap: "wrap",
+  } as React.CSSProperties,
+
+  filterPill: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-medium)",
+    padding: "4px 8px",
+    borderRadius: "var(--so-radius-sm)",
+    fontSize: "11px",
+  } as React.CSSProperties,
+
+  filterLabel: {
+    fontWeight: 700,
+    color: "var(--so-text-secondary)",
+  } as React.CSSProperties,
+
+  numberInputWide: {
+    width: "72px",
+    padding: "2px 6px",
+    fontSize: "11px",
+    fontWeight: 800,
+    textAlign: "center",
+    borderRadius: "3px",
+    border: "1px solid var(--so-border-subtle)",
+    background: "var(--so-surface-card)",
+    color: "var(--so-text-primary)",
+  } as React.CSSProperties,
+
+  dashSeparator: {
+    color: "var(--so-text-muted)",
+  } as React.CSSProperties,
+
+  walletButton: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "2px 4px",
+    borderRadius: "3px",
+    background: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-subtle)",
+    color: "var(--so-accent-cyan)",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  } as React.CSSProperties,
+
+  numberInputDistance: {
+    width: "48px",
+    padding: "1px 4px",
+    fontSize: "11px",
+    fontWeight: 800,
+    textAlign: "center",
+    borderRadius: "3px",
+    border: "1px solid var(--so-border-subtle)",
+    background: "var(--so-surface-card)",
+    color: "var(--so-text-primary)",
+  } as React.CSSProperties,
+
+  distancePercentText: {
+    fontSize: "10.5px",
+    fontWeight: 800,
+    color: "var(--so-accent-cyan)",
+  } as React.CSSProperties,
+
+  sssLabel: {
+    fontWeight: 700,
+    color: "var(--so-text-secondary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    cursor: "help",
+  } as React.CSSProperties,
+
+  sssInfoIcon: {
+    color: "var(--so-accent-cyan)",
+    opacity: 0.85,
+  } as React.CSSProperties,
+
+  numberInputSss: {
+    width: "44px",
+    padding: "1px 4px",
+    fontSize: "11px",
+    fontWeight: 800,
+    textAlign: "center",
+    borderRadius: "3px",
+    border: "1px solid var(--so-border-subtle)",
+    background: "var(--so-surface-card)",
+    color: "var(--so-text-primary)",
+  } as React.CSSProperties,
+
+  wearsWrapper: {
+    display: "flex",
+    gap: "3px",
+    alignItems: "center",
+  } as React.CSSProperties,
+
+  wearsLabel: {
+    fontSize: "10.5px",
+    fontWeight: 700,
+    color: "var(--so-text-muted)",
+    marginRight: "2px",
+  } as React.CSSProperties,
+
+  rightActionsGroup: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+  } as React.CSSProperties,
+
+  scanButton: {
+    fontWeight: 800,
+  } as React.CSSProperties,
+
+  floatingToolbarLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  } as React.CSSProperties,
+
+  floatingToolbarSelectedText: {
+    fontSize: "13px",
+    fontWeight: 800,
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  } as React.CSSProperties,
+
+  checkSquareIcon: {
+    color: "var(--so-primary)",
+  } as React.CSSProperties,
+
+  floatingToolbarDivider: {
+    width: "1px",
+    height: "16px",
+    backgroundColor: "var(--so-border-subtle)",
+  } as React.CSSProperties,
+
+  ghostToolbarButton: {
+    fontSize: "11px",
+    padding: "3px 8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  } as React.CSSProperties,
+
+  ghostClearButton: {
+    fontSize: "11px",
+    padding: "3px 8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    color: "var(--so-text-primary)",
+  } as React.CSSProperties,
+
+  floatingToolbarRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  } as React.CSSProperties,
+
+  limitIndicatorPill: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontSize: "11px",
+    backgroundColor: "var(--so-surface-panel)",
+    padding: "4px 10px",
+    borderRadius: "var(--so-radius-sm)",
+    border: "1px solid var(--so-border-subtle)",
+  } as React.CSSProperties,
+
+  statLabelMuted: {
+    color: "var(--so-text-muted)",
+  } as React.CSSProperties,
+
+  statWhiteText: {
+    color: "#ffffff",
+  } as React.CSSProperties,
+
+  bulletSeparator: {
+    color: "var(--so-border-subtle)",
+  } as React.CSSProperties,
+
+  limitWarningIcon: {
+    color: "#ef4444",
+  } as React.CSSProperties,
+
+  batchCreateButton: {
+    fontWeight: 800,
+    fontSize: "12px",
+    padding: "6px 14px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#ffffff",
+  } as React.CSSProperties,
+
+  clearCircleButton: {
+    padding: "6px",
+    borderRadius: "50%",
+    color: "var(--so-text-primary)",
+  } as React.CSSProperties,
+
+  gridScrollView: {
+    flex: 1,
+    overflowY: "auto",
+    minHeight: 0,
+  } as React.CSSProperties,
+
+  emptyCard: {
+    textAlign: "center",
+    padding: "50px 20px",
+    color: "var(--so-text-muted)",
+  } as React.CSSProperties,
+
+  emptyIcon: {
+    marginBottom: "10px",
+    opacity: 0.5,
+    color: "var(--so-accent-cyan)",
+  } as React.CSSProperties,
+
+  emptyTitle: {
+    fontWeight: 700,
+    fontSize: "15px",
+    color: "var(--so-text-primary)",
+    marginBottom: "4px",
+  } as React.CSSProperties,
+
+  emptySubtitle: {
+    fontSize: "12px",
+  } as React.CSSProperties,
 };

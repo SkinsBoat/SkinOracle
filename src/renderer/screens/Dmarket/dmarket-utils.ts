@@ -375,3 +375,10 @@ export {
   saveStoredCooldowns,
   type CooldownEntry,
 } from "./utils/cooldownUtils";
+
+export {
+  TARGET_HOLD_DURATION_SECONDS,
+  getTargetHoldInfo,
+  parseTargetTimestamp,
+  type TargetHoldInfo,
+} from "./utils/targetHoldUtils";

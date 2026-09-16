@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Edit3, X, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Edit3, X, Loader2, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { DmarketTargetItem } from "../../../../shared/types";
 import { TargetAnalysis } from "../dmarket-utils";
-import { isAdvancedTarget } from "../tabs/TargetTab/types";
+import { isAdvancedTarget, getTargetHoldInfo } from "../tabs/TargetTab/types";
 import toast from "react-hot-toast";
 
 interface EditTargetModalProps {
@@ -25,8 +25,19 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("1");
   const [submitting, setSubmitting] = useState(false);
+  const [, setTick] = useState(0);
 
   const isAdvanced = isAdvancedTarget(target);
+  const holdInfo = getTargetHoldInfo(target);
+  const isHoldActive = holdInfo.isHoldActive;
+
+  useEffect(() => {
+    if (!target) return;
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [target]);
 
   useEffect(() => {
     if (target) {
@@ -41,6 +52,12 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
     e.preventDefault();
     if (isAdvanced) {
       toast.error("Cannot update advanced targets with custom attributes");
+      return;
+    }
+    if (isHoldActive) {
+      toast.error(
+        `Target is under DMarket 11-min hold (${holdInfo.formattedRemaining} remaining). Cannot update target until hold expires.`,
+      );
       return;
     }
     const numPrice = parseFloat(price);
@@ -170,6 +187,27 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
           </div>
         )}
 
+        {isHoldActive && (
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: "var(--so-radius-sm)",
+              backgroundColor: "rgba(245, 158, 11, 0.1)",
+              border: "1px solid rgba(245, 158, 11, 0.35)",
+              color: "#fbbf24",
+              fontSize: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <Clock size={16} style={{ flexShrink: 0 }} />
+            <span>
+              Target is under DMarket's <strong>11-minute hold</strong> (<strong>{holdInfo.formattedRemaining}</strong> remaining). Updates will be rejected by DMarket until the hold window expires.
+            </span>
+          </div>
+        )}
+
         {targetAnalysis?.acceptedPrice && !isAdvanced && (
           <div
             style={{
@@ -195,6 +233,7 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
             <button
               type="button"
               onClick={() => setPrice(targetAnalysis.acceptedPrice.toFixed(2))}
+              disabled={isHoldActive}
               style={{
                 padding: "3px 8px",
                 fontSize: "11px",
@@ -203,7 +242,8 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                 border: "1px solid var(--so-accent-cyan)",
                 backgroundColor: "transparent",
                 color: "var(--so-accent-cyan)",
-                cursor: "pointer",
+                cursor: isHoldActive ? "not-allowed" : "pointer",
+                opacity: isHoldActive ? 0.5 : 1,
               }}
             >
               Use This Price
@@ -241,7 +281,7 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 required
-                disabled={submitting || isAdvanced}
+                disabled={submitting || isAdvanced || isHoldActive}
                 style={{
                   width: "100%",
                   boxSizing: "border-box",
@@ -252,8 +292,8 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                   padding: "10px 14px",
                   fontSize: "14px",
                   fontWeight: 700,
-                  opacity: isAdvanced ? 0.5 : 1,
-                  cursor: isAdvanced ? "not-allowed" : "text",
+                  opacity: isAdvanced || isHoldActive ? 0.5 : 1,
+                  cursor: isAdvanced || isHoldActive ? "not-allowed" : "text",
                 }}
               />
             </div>
@@ -275,7 +315,7 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                 max="100"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                disabled={submitting || isAdvanced}
+                disabled={submitting || isAdvanced || isHoldActive}
                 style={{
                   width: "100%",
                   boxSizing: "border-box",
@@ -286,8 +326,8 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
                   padding: "10px 14px",
                   fontSize: "14px",
                   fontWeight: 700,
-                  opacity: isAdvanced ? 0.5 : 1,
-                  cursor: isAdvanced ? "not-allowed" : "text",
+                  opacity: isAdvanced || isHoldActive ? 0.5 : 1,
+                  cursor: isAdvanced || isHoldActive ? "not-allowed" : "text",
                 }}
               />
             </div>
@@ -312,19 +352,33 @@ export const EditTargetModal: React.FC<EditTargetModalProps> = ({
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={submitting || isAdvanced}
+              disabled={submitting || isAdvanced || isHoldActive}
               style={{
-                opacity: isAdvanced ? 0.5 : 1,
-                cursor: isAdvanced ? "not-allowed" : "pointer",
+                opacity: isAdvanced || isHoldActive ? 0.5 : 1,
+                cursor: isAdvanced || isHoldActive ? "not-allowed" : "pointer",
               }}
-              title={isAdvanced ? "Cannot update advanced targets" : "Confirm Update"}
+              title={
+                isAdvanced
+                  ? "Cannot update advanced targets"
+                  : isHoldActive
+                    ? `Cannot update: 11-min hold active (${holdInfo.formattedRemaining})`
+                    : "Confirm Update"
+              }
             >
               {submitting ? (
                 <Loader2 size={14} className="spin" />
+              ) : isHoldActive ? (
+                <Clock size={14} />
               ) : (
                 <CheckCircle2 size={14} />
               )}
-              <span>{submitting ? "Updating..." : "Confirm Update"}</span>
+              <span>
+                {submitting
+                  ? "Updating..."
+                  : isHoldActive
+                    ? `Hold (${holdInfo.formattedRemaining})`
+                    : "Confirm Update"}
+              </span>
             </button>
           </div>
         </form>

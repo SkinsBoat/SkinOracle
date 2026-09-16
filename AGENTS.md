@@ -51,7 +51,7 @@
     },
   });
   ```
-- Every new IPC channel must be registered in `ipcMain.handle` in `src/main/ipc/` and typed in `preload.ts` and `src/shared/types.ts`.
+- Every new IPC channel must be registered in `ipcMain.handle` in `src/main/ipc/` and typed in `preload.ts` and `src/shared/types/` (or `src/shared/types.ts`).
 
 ### 🔗 Rule 6: Centralized Endpoint Management
 - All API URLs must be declared in `src/main/constants/apiUrls.ts`.

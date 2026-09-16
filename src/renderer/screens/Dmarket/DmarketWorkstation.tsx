@@ -267,6 +267,8 @@ export default function DmarketWorkstation() {
       );
       const newTargetId = res?.newTargetId || target.targetId;
       const updatedPriceCents = String(Math.round(newPriceUsd * 100));
+      const nowIso = res?.updatedAt || new Date().toISOString();
+      const nowMs = Date.now();
 
       setTargets((prev) =>
         prev.map((t) =>
@@ -276,6 +278,11 @@ export default function DmarketWorkstation() {
               targetId: newTargetId,
               amount: String(newAmount || 1),
               priceCents: updatedPriceCents,
+              updatedAt: nowIso,
+              updatedAtMs: nowMs,
+              isHoldActive: true,
+              holdExpiresAt: nowMs + 660 * 1000,
+              holdRemainingSeconds: 660,
             }
             : t,
         ),

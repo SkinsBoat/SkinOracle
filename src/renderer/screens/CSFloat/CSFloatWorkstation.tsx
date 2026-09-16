@@ -1,5 +1,5 @@
 import { KeyRound, Loader2, Package, RefreshCw, Tag, Zap } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { csfloatLogo } from "../../../../assets/images";
@@ -1358,16 +1358,11 @@ export default function CSFloatWorkstation() {
   const selectedListingCount =
     Object.values(selectedListingItems).filter(Boolean).length;
 
+  const isPricesStatusLoaded =
+    activeTab === "listings" ? listingPricesLoaded : pricesLoaded;
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "calc(100vh - 48px)",
-        gap: "10px",
-        overflow: "hidden",
-      }}
-    >
+    <div style={styles.container}>
       {/* SINGLE ITEM LOOKUP MODAL */}
       <CSFloatLookupModal
         item={lookupModalItem}
@@ -1377,39 +1372,18 @@ export default function CSFloatWorkstation() {
       />
 
       {/* FIXED TOP SECTION (Controls, Header, Sub-Tabs & Stats) */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          flexShrink: 0,
-        }}
-      >
+      <div style={styles.topSection}>
         {/* API Key Missing Warning Banner */}
         {hasKey === false && (
-          <div
-            style={{
-              backgroundColor: "var(--so-warning-bg)",
-              border: "1px solid var(--so-warning-border)",
-              color: "var(--so-warning-text)",
-              padding: "10px 16px",
-              borderRadius: "var(--so-radius-md)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontWeight: 700,
-              fontSize: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <KeyRound size={16} style={{ color: "var(--so-warning)" }} />{" "}
-              CSFloat API Key is not configured. Please add your key in
-              Settings.
+          <div style={styles.warningBanner}>
+            <div style={styles.warningContent}>
+              <KeyRound size={16} style={styles.warningIcon} /> CSFloat API Key
+              is not configured. Please add your key in Settings.
             </div>
             <Link
               to="/settings"
               className="btn btn-secondary btn-sm"
-              style={{ textDecoration: "none", fontSize: "11px" }}
+              style={styles.warningLink}
             >
               Go to Settings
             </Link>
@@ -1417,74 +1391,22 @@ export default function CSFloatWorkstation() {
         )}
 
         {/* Main Header Bar */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "10px 16px",
-            backgroundColor: "var(--so-surface-header)",
-            border: "1px solid var(--so-border-medium)",
-            borderRadius: "var(--so-radius-md)",
-            gap: "12px",
-          }}
-        >
+        <div style={styles.headerBar}>
           {/* Brand & Status */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "3px",
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={styles.brandSection}>
+            <div style={styles.brandTitleWrapper}>
               <img
                 src={csfloatLogo}
                 alt="CSFloat"
-                style={{ height: 22, width: "auto", objectFit: "contain" }}
+                style={styles.logo}
               />
-              <span
-                style={{
-                  color: "var(--so-text-primary)",
-                  fontWeight: 800,
-                  fontSize: "15px",
-                  letterSpacing: "-0.3px",
-                }}
-              >
+              <span style={styles.brandTitle}>
                 CSFloat Workstation
               </span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  backgroundColor: (
-                    activeTab === "listings"
-                      ? listingPricesLoaded
-                      : pricesLoaded
-                  )
-                    ? "var(--so-success)"
-                    : "var(--so-warning)",
-                  display: "inline-block",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "10.5px",
-                  fontWeight: 700,
-                  letterSpacing: "0.4px",
-                  color: (
-                    activeTab === "listings"
-                      ? listingPricesLoaded
-                      : pricesLoaded
-                  )
-                    ? "var(--so-success-text)"
-                    : "var(--so-warning-text)",
-                }}
-              >
+            <div style={styles.statusIndicatorWrapper}>
+              <span style={getStatusDotStyle(isPricesStatusLoaded)} />
+              <span style={getStatusTextStyle(isPricesStatusLoaded)}>
                 {activeTab === "listings"
                   ? listingPricesLoaded
                     ? `ORACLE LISTING PRICES LOADED (${listingPricesMeta!.itemCount.toLocaleString()} ITEMS)`
@@ -1512,48 +1434,21 @@ export default function CSFloatWorkstation() {
           )}
 
           {/* Balance Widget */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              backgroundColor: "var(--so-surface-card)",
-              border: "1px solid var(--so-border-medium)",
-              padding: "5px 12px",
-              borderRadius: "var(--so-radius-md)",
-              flexShrink: 0,
-            }}
-          >
+          <div style={styles.balanceWidget}>
             {userData?.avatar && (
               <img
                 src={userData.avatar}
                 alt="avatar"
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: "4px",
-                  border: "1px solid var(--so-border-subtle)",
-                }}
+                style={styles.avatar}
               />
             )}
-            <div style={{ textAlign: "right" }}>
-              <div
-                style={{
-                  fontSize: "9px",
-                  color: "var(--so-text-muted)",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                }}
-              >
+            <div style={styles.balanceTextWrapper}>
+              <div style={styles.balanceLabel}>
                 CSFloat Balance
               </div>
               <div
                 className="tabular-nums"
-                style={{
-                  fontSize: "13.5px",
-                  fontWeight: 800,
-                  color: "#ffffff",
-                }}
+                style={styles.balanceValue}
               >
                 $
                 {userData?.balance !== undefined
@@ -1569,7 +1464,7 @@ export default function CSFloatWorkstation() {
               disabled={balanceLoading}
               className="btn btn-secondary btn-sm"
               title="Refresh Balance"
-              style={{ padding: "3px 6px" }}
+              style={styles.refreshBtn}
             >
               {balanceLoading ? (
                 <Loader2 size={12} className="spin" />
@@ -1581,57 +1476,29 @@ export default function CSFloatWorkstation() {
         </div>
 
         {/* Workstation Sub-Tabs Navigation */}
-        <div
-          style={{
-            display: "flex",
-            borderBottom: "1px solid var(--so-border-medium)",
-            gap: "6px",
-            paddingBottom: "2px",
-          }}
-        >
+        <div style={styles.tabsNav}>
           <button
             onClick={() => setActiveTab("buy_orders")}
             className={`btn ${activeTab === "buy_orders" ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              padding: "5px 12px",
-            }}
+            style={styles.tabButton}
           >
             <Package size={13} /> Buy Orders
           </button>
           <button
             onClick={() => setActiveTab("soclose")}
             className={`btn ${activeTab === "soclose" ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              padding: "5px 12px",
-            }}
+            style={styles.tabButton}
           >
             <Zap
               size={13}
-              style={{
-                color:
-                  activeTab === "soclose" ? "#ffffff" : "var(--so-accent-cyan)",
-              }}
+              style={getZapIconStyle(activeTab === "soclose")}
             />{" "}
             So Close Opportunities
           </button>
           <button
             onClick={() => setActiveTab("listings")}
             className={`btn ${activeTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              padding: "5px 12px",
-            }}
+            style={styles.tabButton}
           >
             <Tag size={13} /> Listings & Inventory
           </button>
@@ -1732,3 +1599,167 @@ export default function CSFloatWorkstation() {
     </div>
   );
 }
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+const getStatusDotStyle = (isLoaded: boolean): React.CSSProperties => ({
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  backgroundColor: isLoaded ? "var(--so-success)" : "var(--so-warning)",
+  display: "inline-block",
+});
+
+const getStatusTextStyle = (isLoaded: boolean): React.CSSProperties => ({
+  fontSize: "10.5px",
+  fontWeight: 700,
+  letterSpacing: "0.4px",
+  color: isLoaded ? "var(--so-success-text)" : "var(--so-warning-text)",
+});
+
+const getZapIconStyle = (isActive: boolean): React.CSSProperties => ({
+  color: isActive ? "#ffffff" : "var(--so-accent-cyan)",
+});
+
+const styles = {
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    height: "calc(100vh - 48px)",
+    gap: "10px",
+    overflow: "hidden",
+  } as React.CSSProperties,
+
+  topSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  warningBanner: {
+    backgroundColor: "var(--so-warning-bg)",
+    border: "1px solid var(--so-warning-border)",
+    color: "var(--so-warning-text)",
+    padding: "10px 16px",
+    borderRadius: "var(--so-radius-md)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontWeight: 700,
+    fontSize: "12px",
+  } as React.CSSProperties,
+
+  warningContent: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  } as React.CSSProperties,
+
+  warningIcon: {
+    color: "var(--so-warning)",
+  } as React.CSSProperties,
+
+  warningLink: {
+    textDecoration: "none",
+    fontSize: "11px",
+  } as React.CSSProperties,
+
+  headerBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "10px 16px",
+    backgroundColor: "var(--so-surface-header)",
+    border: "1px solid var(--so-border-medium)",
+    borderRadius: "var(--so-radius-md)",
+    gap: "12px",
+  } as React.CSSProperties,
+
+  brandSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "3px",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  brandTitleWrapper: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  } as React.CSSProperties,
+
+  logo: {
+    height: 22,
+    width: "auto",
+    objectFit: "contain",
+  } as React.CSSProperties,
+
+  brandTitle: {
+    color: "var(--so-text-primary)",
+    fontWeight: 800,
+    fontSize: "15px",
+    letterSpacing: "-0.3px",
+  } as React.CSSProperties,
+
+  statusIndicatorWrapper: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  } as React.CSSProperties,
+
+  balanceWidget: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-medium)",
+    padding: "5px 12px",
+    borderRadius: "var(--so-radius-md)",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  avatar: {
+    width: 24,
+    height: 24,
+    borderRadius: "4px",
+    border: "1px solid var(--so-border-subtle)",
+  } as React.CSSProperties,
+
+  balanceTextWrapper: {
+    textAlign: "right",
+  } as React.CSSProperties,
+
+  balanceLabel: {
+    fontSize: "9px",
+    color: "var(--so-text-muted)",
+    fontWeight: 700,
+    textTransform: "uppercase",
+  } as React.CSSProperties,
+
+  balanceValue: {
+    fontSize: "13.5px",
+    fontWeight: 800,
+    color: "#ffffff",
+  } as React.CSSProperties,
+
+  refreshBtn: {
+    padding: "3px 6px",
+  } as React.CSSProperties,
+
+  tabsNav: {
+    display: "flex",
+    borderBottom: "1px solid var(--so-border-medium)",
+    gap: "6px",
+    paddingBottom: "2px",
+  } as React.CSSProperties,
+
+  tabButton: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "12px",
+    padding: "5px 12px",
+  } as React.CSSProperties,
+};
+

@@ -12,7 +12,22 @@ import {
   DMARKET_CREATE_TARGETS,
   DMARKET_DELETE_TARGETS,
   DMARKET_CLOSED_TARGETS,
+  DMARKET_USER_INVENTORY,
+  DMARKET_USER_OFFERS,
+  DMARKET_CLOSED_OFFERS,
+  DMARKET_MARKETPLACE_OFFERS,
+  DMARKET_LAST_SALES,
+  DMARKET_OFFERS_BUY,
+  DMARKET_WITHDRAW_ASSETS,
+  DMARKET_CUSTOMIZED_FEES,
+  DMARKET_DEPOSIT_ASSETS,
+  DMARKET_DEPOSIT_BLOCKED_TITLES,
+  DMARKET_AGGREGATED_PRICES,
 } from "../constants/apiUrls";
+import {
+  getTargetHoldInfo,
+  parseTargetTimestamp,
+} from "../../shared/targetHoldUtils";
 
 // ─────────────────────────────────────────────────────────────────
 // DMarket Ed25519 Signature Utilities
@@ -615,6 +630,7 @@ if (ipcMain?.handle) {
         cursor?: string;
         limit?: number;
         title?: string;
+        treeFilters?: string;
         priceFrom?: number;
         priceTo?: number;
         orderBy?: string;
@@ -629,6 +645,7 @@ if (ipcMain?.handle) {
       };
 
       if (params?.title) baseParams.title = params.title;
+      if (params?.treeFilters) baseParams.treeFilters = params.treeFilters;
       if (params?.priceFrom !== undefined)
         baseParams.priceFrom = params.priceFrom;
       if (params?.priceTo !== undefined) baseParams.priceTo = params.priceTo;
@@ -644,16 +661,64 @@ if (ipcMain?.handle) {
           extra?.isAdvanced === true,
         );
 
+        const createdAt =
+          raw?.createdAt || raw?.CreatedAt || raw?.created_at || "";
+        const updatedAt =
+          raw?.updatedAt ||
+          raw?.UpdatedAt ||
+          raw?.updated_at ||
+          createdAt ||
+          "";
+        const createdAtMs = parseTargetTimestamp(createdAt);
+        const updatedAtMs = parseTargetTimestamp(updatedAt);
+
+        const holdInfo = getTargetHoldInfo({
+          createdAt,
+          updatedAt,
+          createdAtMs,
+          updatedAtMs,
+          _raw: raw,
+        });
+
+        const title =
+          raw?.title ||
+          raw?.Title ||
+          raw?.name ||
+          raw?.attributes?.title ||
+          "";
+
+        const image =
+          raw?.image ||
+          raw?.attributes?.image ||
+          raw?.attributes?.imageUri ||
+          raw?.attributes?.image_url ||
+          "";
+
+        const attributes = {
+          ...(raw?.attributes || {}),
+          ...(image ? { image } : {}),
+          ...(title ? { title } : {}),
+        };
+
         return {
           ...raw,
           targetId: raw?.targetId || raw?.TargetID || raw?.id,
-          title: raw?.title || raw?.Title || raw?.name || "",
+          title,
           amount: String(raw?.amount || "1"),
           priceCents:
             raw?.priceCents !== undefined
               ? String(raw.priceCents)
               : String(raw?.price?.amount || raw?.price || "0"),
           status: raw?.status || "active",
+          attributes,
+          image,
+          createdAt,
+          updatedAt,
+          createdAtMs,
+          updatedAtMs,
+          holdExpiresAt: holdInfo.holdExpiresAt,
+          holdRemainingSeconds: holdInfo.remainingSeconds,
+          isHoldActive: holdInfo.isHoldActive,
           extra: {
             ...(extra || cs2Attrs || {}),
             isAdvanced,
@@ -837,6 +902,73 @@ if (ipcMain?.handle) {
     return { success: true, result: res };
   });
 
+  // 5b. Batch Create Targets (Native OpenAPI Batch endpoint)
+  ipcMain.handle(
+    "dmarket:batch-create-targets",
+    async (
+      _,
+      requests: Array<{
+        Title: string;
+        Amount: string | number;
+        Price: { Currency: string; Amount: number };
+        Attrs?: { floatPartValue?: string; phase?: string; paintSeed?: number };
+      }>,
+    ) => {
+      console.log(
+        `[DMarket IPC] Batch creating ${requests?.length || 0} target(s)...`,
+      );
+      if (!Array.isArray(requests) || requests.length === 0) {
+        throw new Error("Targets array is required for batch target creation");
+      }
+
+      const body = {
+        GameID: DMARKET_CS2_GAME_ID,
+        Targets: requests.map((r) => ({
+          Amount: String(Math.max(1, Math.floor(Number(r.Amount || 1)))),
+          Price: {
+            Currency: r.Price?.Currency || "USD",
+            Amount: parseFloat(Number(r.Price?.Amount || 0).toFixed(2)),
+          },
+          Title: r.Title,
+          ...(r.Attrs && Object.keys(r.Attrs).length > 0 ? { Attrs: r.Attrs } : {}),
+        })),
+      };
+
+      const res = await dmarketRequest(
+        "POST",
+        "/marketplace-api/v1/user-targets/create",
+        undefined,
+        body,
+      );
+      return res;
+    },
+  );
+
+  // 5c. Batch Delete Targets (Native OpenAPI Batch endpoint)
+  ipcMain.handle(
+    "dmarket:batch-delete-targets",
+    async (_, targetIds: string[]) => {
+      console.log(
+        `[DMarket IPC] Batch deleting ${targetIds?.length || 0} target(s)...`,
+      );
+      if (!Array.isArray(targetIds) || targetIds.length === 0) {
+        throw new Error("Target IDs array is required for batch target deletion");
+      }
+
+      const body = {
+        Targets: targetIds.map((id) => ({ TargetID: String(id).trim() })),
+      };
+
+      const res = await dmarketRequest(
+        "POST",
+        "/marketplace-api/v1/user-targets/delete",
+        undefined,
+        body,
+      );
+      return res;
+    },
+  );
+
   // 6. Update Target Price (Direct in-place update via POST /exchange/v1/target/update with Delete+Create fallback)
   ipcMain.handle(
     "dmarket:update-target",
@@ -906,6 +1038,7 @@ if (ipcMain?.handle) {
               success: true,
               newTargetId: updatedItem.newTargetId,
               oldTargetId,
+              updatedAt: new Date().toISOString(),
               result: updateRes,
             };
           }
@@ -1001,6 +1134,7 @@ if (ipcMain?.handle) {
         success: true,
         newTargetId,
         oldTargetId,
+        updatedAt: new Date().toISOString(),
         result: createRes,
       };
     },
@@ -2155,11 +2289,12 @@ if (ipcMain?.handle) {
     "dmarket:get-closed-offers",
     async (_, limit: number = 50, cursor?: string) => {
       console.log("[DMarket IPC] Fetching closed offers sales history...");
+      // DMarket API v1 closed offers requires PascalCase query parameters (Limit, OrderDir, Cursor)
       const params: Record<string, any> = {
-        limit,
-        orderDir: "desc",
+        Limit: limit,
+        OrderDir: "desc",
       };
-      if (cursor) params.cursor = cursor;
+      if (cursor) params.Cursor = cursor;
 
       const data = await dmarketRequest(
         "GET",
@@ -2281,7 +2416,8 @@ if (ipcMain?.handle) {
   );
 
   // 15. Deposit Assets from Steam to DMarket
-  ipcMain.handle("dmarket:deposit-assets", async (_, assetIds: string[]) => {
+  // OpenAPI note: AssetID must be composite in-game asset IDs (instanceId:classId:assetId:appId)
+  ipcMain.handle("dmarket:deposit-assets", async (_, assetIds: any[]) => {
     console.log(
       `[DMarket IPC] Initiating deposit for ${assetIds?.length || 0} asset(s)...`,
     );
@@ -2290,8 +2426,31 @@ if (ipcMain?.handle) {
     }
 
     const formattedAssetIds = assetIds
-      .map((id) => String(id).trim())
+      .map((item: any) => {
+        if (!item) return "";
+        if (typeof item === "string") return item.trim();
+        return (
+          item.inGameAssetId ||
+          item.attributes?.inGameAssetId ||
+          item.assetId ||
+          item.id ||
+          ""
+        ).trim();
+      })
       .filter(Boolean);
+
+    if (formattedAssetIds.length === 0) {
+      throw new Error("No valid asset IDs resolved for deposit");
+    }
+
+    const nonComposite = formattedAssetIds.filter((id) => !id.includes(":"));
+    if (nonComposite.length > 0) {
+      console.warn(
+        `[DMarket IPC deposit-assets] ⚠️ Notice: DMarket requires composite inGameAssetId (instanceId:classId:assetId:appId). ${nonComposite.length} ID(s) do not contain colon delimiter:`,
+        nonComposite,
+      );
+    }
+
     const body = {
       AssetID: formattedAssetIds,
     };
@@ -2342,4 +2501,270 @@ if (ipcMain?.handle) {
       throw err;
     }
   });
+
+  // 18. Historical Market Sales (Aggregator)
+  ipcMain.handle(
+    "dmarket:get-last-sales",
+    async (
+      _,
+      params: {
+        title: string;
+        gameId?: string;
+        filters?: string;
+        txOperationType?: "Offer" | "Target" | "";
+        limit?: number;
+        offset?: number;
+      },
+    ) => {
+      console.log("[DMarket IPC] Fetching market sales history with params:", params);
+      if (!params?.title) {
+        throw new Error("Item title is required to fetch sales history");
+      }
+
+      const queryParams: Record<string, any> = {
+        gameId: params.gameId || DMARKET_CS2_GAME_ID,
+        title: params.title,
+      };
+
+      if (params.filters) queryParams.filters = params.filters;
+      if (params.txOperationType) queryParams.txOperationType = params.txOperationType;
+      if (params.limit !== undefined) {
+        queryParams.limit = String(Math.min(Math.max(1, params.limit), 20));
+      }
+      if (params.offset !== undefined) {
+        queryParams.offset = String(params.offset);
+      }
+
+      const res = await dmarketRequest(
+        "GET",
+        "/trade-aggregator/v1/last-sales",
+        queryParams,
+      );
+      return {
+        sales: Array.isArray(res?.sales) ? res.sales : [],
+      };
+    },
+  );
+
+  // 19. Aggregated Market Prices (Batch highest bid / lowest ask lookup)
+  ipcMain.handle(
+    "dmarket:get-aggregated-prices",
+    async (
+      _,
+      request: {
+        titles: string[];
+        game?: string;
+        limit?: string | number;
+        cursor?: string;
+      },
+    ) => {
+      console.log(
+        `[DMarket IPC] Fetching aggregated prices for ${request?.titles?.length || 0} titles...`,
+      );
+      if (!Array.isArray(request?.titles) || request.titles.length === 0) {
+        throw new Error("Titles array is required to fetch aggregated prices");
+      }
+
+      const body: Record<string, any> = {
+        filter: {
+          game: request.game || DMARKET_CS2_GAME_ID,
+          titles: request.titles,
+        },
+      };
+
+      if (request.limit !== undefined) body.limit = String(request.limit);
+      if (request.cursor) body.cursor = request.cursor;
+
+      const res = await dmarketRequest(
+        "POST",
+        "/marketplace-api/v1/aggregated-prices",
+        undefined,
+        body,
+      );
+      return {
+        aggregatedPrices: Array.isArray(res?.aggregatedPrices)
+          ? res.aggregatedPrices
+          : [],
+        nextCursor: res?.nextCursor || "",
+      };
+    },
+  );
+
+  // 20. Browse Public Marketplace Offers (Market search)
+  ipcMain.handle(
+    "dmarket:get-marketplace-offers",
+    async (
+      _,
+      params?: {
+        gameId?: string;
+        title?: string;
+        treeFilters?: string;
+        priceFrom?: number;
+        priceTo?: number;
+        orderBy?: string;
+        orderDir?: string;
+        limit?: number;
+        cursor?: string;
+      },
+    ) => {
+      console.log("[DMarket IPC] Browsing marketplace offers with params:", params);
+      const queryParams: Record<string, any> = {
+        gameId: params?.gameId || DMARKET_CS2_GAME_ID,
+        limit: Math.min(Math.max(1, params?.limit || 100), 100),
+      };
+
+      if (params?.title) queryParams.title = params.title;
+      if (params?.treeFilters) queryParams.treeFilters = params.treeFilters;
+      if (params?.priceFrom !== undefined) queryParams.priceFrom = params.priceFrom;
+      if (params?.priceTo !== undefined) queryParams.priceTo = params.priceTo;
+      if (params?.orderBy) queryParams.orderBy = params.orderBy;
+      if (params?.orderDir) queryParams.orderDir = params.orderDir;
+      if (params?.cursor) queryParams.cursor = params.cursor;
+
+      const res = await dmarketRequest(
+        "GET",
+        "/marketplace-api/v2/offers",
+        queryParams,
+      );
+      return {
+        items: Array.isArray(res?.items) ? res.items : [],
+        total: res?.total || String(res?.items?.length || 0),
+        cursor: res?.cursor || "",
+      };
+    },
+  );
+
+  // 21. Buy Offers with Direct Balance Execution
+  ipcMain.handle(
+    "dmarket:buy-offers",
+    async (
+      _,
+      request: {
+        offers: Array<{
+          offerId: string;
+          price: {
+            amount: string;
+            currency: string;
+          };
+          type: "dmarket" | "p2p";
+        }>;
+      },
+    ) => {
+      console.log(
+        `[DMarket IPC] Purchasing ${request?.offers?.length || 0} offer(s)...`,
+      );
+      if (!Array.isArray(request?.offers) || request.offers.length === 0) {
+        throw new Error("Offers array is required for purchasing offers");
+      }
+
+      const body = {
+        offers: request.offers.map((o) => ({
+          offerId: o.offerId,
+          price: {
+            amount: String(o.price?.amount || "0"),
+            currency: o.price?.currency || "USD",
+          },
+          type: o.type || "dmarket",
+        })),
+      };
+
+      const res = await dmarketRequest(
+        "PATCH",
+        "/exchange/v1/offers-buy",
+        undefined,
+        body,
+      );
+      console.log("[DMarket IPC] ✅ Buy offers response:", res);
+      return res;
+    },
+  );
+
+  // 22. Withdraw Assets to Steam
+  ipcMain.handle(
+    "dmarket:withdraw-assets",
+    async (
+      _,
+      request: {
+        assets: Array<{ id: string; gameId?: string; classId?: string }>;
+        requestId?: string;
+      },
+    ) => {
+      console.log(
+        `[DMarket IPC] Withdrawing ${request?.assets?.length || 0} asset(s) to Steam...`,
+      );
+      if (!Array.isArray(request?.assets) || request.assets.length === 0) {
+        throw new Error("Assets array is required for withdrawal");
+      }
+
+      const body = {
+        assets: request.assets.map((a) => ({
+          id: a.id,
+          gameId: a.gameId || DMARKET_CS2_GAME_ID,
+          classId: a.classId || "",
+        })),
+        requestId: request.requestId || `withdraw-${Date.now()}`,
+      };
+
+      const res = await dmarketRequest(
+        "POST",
+        "/exchange/v1/withdraw-assets",
+        undefined,
+        body,
+      );
+      console.log("[DMarket IPC] ✅ Withdraw assets response:", res);
+      return res;
+    },
+  );
+
+  // 23. List Low-Fee / Customized Items
+  ipcMain.handle(
+    "dmarket:get-customized-fees",
+    async (
+      _,
+      gameId: string = DMARKET_CS2_GAME_ID,
+      offerType: "dmarket" | "p2p" = "dmarket",
+      limit: number = 20,
+      offset: number = 0,
+    ) => {
+      console.log("[DMarket IPC] Fetching customized fees...");
+      const queryParams: Record<string, any> = {
+        gameId,
+        offerType,
+        limit,
+        offset,
+      };
+
+      const res = await dmarketRequest(
+        "GET",
+        "/exchange/v1/customized-fees",
+        queryParams,
+      );
+      return res;
+    },
+  );
+
+  // 24. Deposit Blocked Titles
+  ipcMain.handle(
+    "dmarket:get-deposit-blocked-titles",
+    async (
+      _,
+      gameId: string = DMARKET_CS2_GAME_ID,
+      limit: number = 100,
+      cursor?: string,
+    ) => {
+      console.log("[DMarket IPC] Fetching deposit blocked titles...");
+      const queryParams: Record<string, any> = {
+        gameId,
+        limit,
+      };
+      if (cursor) queryParams.cursor = cursor;
+
+      const res = await dmarketRequest(
+        "GET",
+        "/marketplace-api/v2/deposit-blocked-titles",
+        queryParams,
+      );
+      return res;
+    },
+  );
 }

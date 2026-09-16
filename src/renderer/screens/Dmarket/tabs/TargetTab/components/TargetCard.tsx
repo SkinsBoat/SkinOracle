@@ -10,13 +10,14 @@ import {
   CheckSquare,
   Square,
   Lock,
+  Clock,
 } from "lucide-react";
 import { DmarketTargetItem, TargetAnalysis } from "../../../../../../shared/types";
 import TrendSparkline from "../../../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../../../components/CopyMarketHashButton";
 import { SkinImage } from "../../../../../components/SkinImage";
 import { getWearShortcut } from "../../../dmarket-utils";
-import { TargetDriftDetails, isAdvancedTarget } from "../types";
+import { TargetDriftDetails, isAdvancedTarget, getTargetHoldInfo } from "../types";
 
 export interface TargetCardProps {
   target: DmarketTargetItem;
@@ -60,6 +61,8 @@ export const TargetCard: React.FC<TargetCardProps> = ({
 }) => {
   const currentPrice = parseFloat(target.priceCents) / 100;
   const isAdvanced = isAdvancedTarget(target);
+  const holdInfo = getTargetHoldInfo(target);
+  const isHoldActive = holdInfo.isHoldActive;
 
   const cardBorderColor = isSelected
     ? "var(--so-primary)"
@@ -185,6 +188,15 @@ export const TargetCard: React.FC<TargetCardProps> = ({
             ADVANCED
           </span>
         )}
+        {isHoldActive && (
+          <span
+            className="badge"
+            style={styles.badgeHold}
+            title={`DMarket 11-min Hold active (${holdInfo.formattedRemaining} remaining). Target modifications are rejected until hold expires.`}
+          >
+            <Clock size={10} /> HOLD ({holdInfo.formattedRemaining})
+          </span>
+        )}
       </div>
 
       {/* Image Showcase */}
@@ -234,16 +246,18 @@ export const TargetCard: React.FC<TargetCardProps> = ({
           <div style={styles.stepperContainer} onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
-              disabled={isAdvanced}
+              disabled={isAdvanced || isHoldActive}
               onClick={() => onQuantityAdjust(target, -1)}
               style={{
                 ...styles.stepperButton,
-                ...(isAdvanced ? styles.disabledStepperButton : {}),
+                ...(isAdvanced || isHoldActive ? styles.disabledStepperButton : {}),
               }}
               title={
                 isAdvanced
                   ? "Quantity locked: Advanced target with custom attributes"
-                  : "Decrease Quantity"
+                  : isHoldActive
+                    ? `Quantity locked: 11-min hold active (${holdInfo.formattedRemaining})`
+                    : "Decrease Quantity"
               }
             >
               -
@@ -253,16 +267,18 @@ export const TargetCard: React.FC<TargetCardProps> = ({
             </span>
             <button
               type="button"
-              disabled={isAdvanced}
+              disabled={isAdvanced || isHoldActive}
               onClick={() => onQuantityAdjust(target, 1)}
               style={{
                 ...styles.stepperButton,
-                ...(isAdvanced ? styles.disabledStepperButton : {}),
+                ...(isAdvanced || isHoldActive ? styles.disabledStepperButton : {}),
               }}
               title={
                 isAdvanced
                   ? "Quantity locked: Advanced target with custom attributes"
-                  : "Increase Quantity"
+                  : isHoldActive
+                    ? `Quantity locked: 11-min hold active (${holdInfo.formattedRemaining})`
+                    : "Increase Quantity"
               }
             >
               +
@@ -298,45 +314,66 @@ export const TargetCard: React.FC<TargetCardProps> = ({
           <button
             onClick={() =>
               !isAdvanced &&
+              !isHoldActive &&
               onQuickUpdateToOracle(target, driftDetails.acceptedPrice)
             }
-            disabled={isProcessing || isAdvanced}
+            disabled={isProcessing || isAdvanced || isHoldActive}
             className="btn btn-primary btn-sm"
             style={{
               ...styles.quickUpdateButton,
-              ...(isAdvanced ? styles.disabledQuickUpdateButton : {}),
+              ...(isAdvanced || isHoldActive ? styles.disabledQuickUpdateButton : {}),
             }}
             title={
               isAdvanced
                 ? "Update disabled: Advanced target with custom attributes"
-                : "Update Target to Oracle Price"
+                : isHoldActive
+                  ? `Update locked: 11-min hold active (${holdInfo.formattedRemaining} remaining)`
+                  : "Update Target to Oracle Price"
             }
           >
             {isProcessing ? (
               <Loader2 size={11} className="spin" />
             ) : isAdvanced ? (
               <Lock size={11} />
+            ) : isHoldActive ? (
+              <Clock size={11} />
             ) : (
               <Zap size={11} />
             )}
-            <span>{isAdvanced ? "Locked" : "Update"}</span>
+            <span>
+              {isAdvanced
+                ? "Locked"
+                : isHoldActive
+                  ? `Hold (${holdInfo.formattedRemaining})`
+                  : "Update"}
+            </span>
           </button>
         )}
         <button
-          onClick={() => !isAdvanced && onOpenEditModal(target, analysis)}
-          disabled={isProcessing || isAdvanced}
+          onClick={() =>
+            !isAdvanced && !isHoldActive && onOpenEditModal(target, analysis)
+          }
+          disabled={isProcessing || isAdvanced || isHoldActive}
           className="btn btn-secondary btn-sm"
           title={
             isAdvanced
               ? "Cannot edit advanced target with custom attributes"
-              : "Edit Target Price / Quantity"
+              : isHoldActive
+                ? `Cannot edit: 11-min hold active (${holdInfo.formattedRemaining})`
+                : "Edit Target Price / Quantity"
           }
           style={{
             ...styles.iconActionButton,
-            ...(isAdvanced ? styles.disabledIconButton : {}),
+            ...(isAdvanced || isHoldActive ? styles.disabledIconButton : {}),
           }}
         >
-          {isAdvanced ? <Lock size={12} /> : <Edit3 size={12} />}
+          {isAdvanced ? (
+            <Lock size={12} />
+          ) : isHoldActive ? (
+            <Clock size={12} />
+          ) : (
+            <Edit3 size={12} />
+          )}
         </button>
         <button
           onClick={() => onDeleteTarget(target.targetId, target.title)}
@@ -479,6 +516,19 @@ const styles = {
     padding: "1px 6px",
     borderRadius: "4px",
     textTransform: "uppercase",
+  } as React.CSSProperties,
+
+  badgeHold: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    color: "#f59e0b",
+    border: "1px solid rgba(245, 158, 11, 0.35)",
+    fontWeight: 700,
+    fontSize: "9px",
+    padding: "1px 6px",
+    borderRadius: "4px",
   } as React.CSSProperties,
 
   badgeOverbid: {

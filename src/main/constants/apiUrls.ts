@@ -14,6 +14,7 @@ export const DMARKET_API = "https://api.dmarket.com";
 export const DMARKET_CS2_GAME_ID = "a8db";
 export const DMARKET_SYNC_CSGO_GAME_ID = "CSGO";
 
+// SaaS & Valuation API Endpoints (Configurable via untracked .env.development in local dev)
 export const SAAS_API =
   process.env.SAAS_API_URL || "https://saas.skinsboat.com/api/v1";
 
@@ -53,9 +54,21 @@ export const DMARKET_TARGETS_BY_TITLE = (gameId: string, title: string) =>
   `${DMARKET_API}/marketplace-api/v1/targets-by-title/${gameId}/${encodeURIComponent(title)}`;
 export const DMARKET_AGGREGATED_PRICES = `${DMARKET_API}/marketplace-api/v1/aggregated-prices`;
 export const DMARKET_USER_INVENTORY_SYNC = `${DMARKET_API}/marketplace-api/v1/user-inventory/sync`;
+export const DMARKET_USER_INVENTORY = `${DMARKET_API}/marketplace-api/v2/user/inventory`;
+export const DMARKET_USER_OFFERS = `${DMARKET_API}/marketplace-api/v2/user/offers`;
+export const DMARKET_CLOSED_OFFERS = `${DMARKET_API}/marketplace-api/v1/user-offers/closed`;
+export const DMARKET_MARKETPLACE_OFFERS = `${DMARKET_API}/marketplace-api/v2/offers`;
 export const DMARKET_BATCH_CREATE_OFFERS = `${DMARKET_API}/marketplace-api/v2/offers:batchCreate`;
 export const DMARKET_BATCH_UPDATE_OFFERS = `${DMARKET_API}/marketplace-api/v2/offers:batchUpdate`;
 export const DMARKET_BATCH_DELETE_OFFERS = `${DMARKET_API}/marketplace-api/v2/offers:batchDelete`;
+export const DMARKET_LAST_SALES = `${DMARKET_API}/trade-aggregator/v1/last-sales`;
+export const DMARKET_OFFERS_BUY = `${DMARKET_API}/exchange/v1/offers-buy`;
+export const DMARKET_WITHDRAW_ASSETS = `${DMARKET_API}/exchange/v1/withdraw-assets`;
+export const DMARKET_CUSTOMIZED_FEES = `${DMARKET_API}/exchange/v1/customized-fees`;
+export const DMARKET_DEPOSIT_ASSETS = `${DMARKET_API}/marketplace-api/v1/deposit-assets`;
+export const DMARKET_DEPOSIT_STATUS = (depositId: string) =>
+  `${DMARKET_API}/marketplace-api/v1/deposit-status/${encodeURIComponent(depositId)}`;
+export const DMARKET_DEPOSIT_BLOCKED_TITLES = `${DMARKET_API}/marketplace-api/v2/deposit-blocked-titles`;
 
 // ── SaaS Auth Endpoints ───────────────────────────────────────────
 export const SAAS_AUTH_REGISTER = `${SAAS_API}/auth/register`;

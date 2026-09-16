@@ -331,13 +331,36 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke("dmarket:update-offers", requests),
     deleteOffers: (requests: any[]) =>
       safeInvoke("dmarket:delete-offers", requests),
+    batchCreateTargets: (requests: any[]) =>
+      safeInvoke("dmarket:batch-create-targets", requests),
+    batchDeleteTargets: (targetIds: string[]) =>
+      safeInvoke("dmarket:batch-delete-targets", targetIds),
     getClosedOffers: (limit?: number, cursor?: string) =>
       safeInvoke("dmarket:get-closed-offers", limit, cursor),
-    depositAssets: (assetIds: string[]) =>
+    depositAssets: (assetIds: any[]) =>
       safeInvoke("dmarket:deposit-assets", assetIds),
     getDepositStatus: (depositId: string) =>
       safeInvoke("dmarket:get-deposit-status", depositId),
     syncUserInventory: () => safeInvoke("dmarket:sync-user-inventory"),
+    getLastSales: (params: any) =>
+      safeInvoke("dmarket:get-last-sales", params),
+    getAggregatedPrices: (request: any) =>
+      safeInvoke("dmarket:get-aggregated-prices", request),
+    getMarketplaceOffers: (params?: any) =>
+      safeInvoke("dmarket:get-marketplace-offers", params),
+    buyOffers: (request: any) =>
+      safeInvoke("dmarket:buy-offers", request),
+    withdrawAssets: (request: any) =>
+      safeInvoke("dmarket:withdraw-assets", request),
+    getCustomizedFees: (
+      gameId?: string,
+      offerType?: string,
+      limit?: number,
+      offset?: number,
+    ) =>
+      safeInvoke("dmarket:get-customized-fees", gameId, offerType, limit, offset),
+    getDepositBlockedTitles: (gameId?: string, limit?: number, cursor?: string) =>
+      safeInvoke("dmarket:get-deposit-blocked-titles", gameId, limit, cursor),
   },
 
   // ── Balance (user balance & transaction ledger) ──

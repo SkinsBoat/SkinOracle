@@ -1,7 +1,7 @@
 import React from "react";
 import { DmarketTargetItem, TargetAnalysis } from "../../../../../shared/types";
 
-export type FilterAction = "all" | "action_required" | "overbid" | "underbid" | "safe";
+export type FilterAction = "all" | "action_required" | "overbid" | "underbid" | "safe" | "hold";
 
 export interface TargetDriftDetails {
   acceptedPrice: number;
@@ -77,3 +77,10 @@ export const calculateTargetDrift = (
     trendMomentum14d: analysis.trendMomentum14d,
   };
 };
+
+export {
+  TARGET_HOLD_DURATION_SECONDS,
+  getTargetHoldInfo,
+  parseTargetTimestamp,
+  type TargetHoldInfo,
+} from "../../utils/targetHoldUtils";

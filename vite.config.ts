@@ -1,34 +1,58 @@
 import * as fs from "fs";
 import * as path from "path";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import electron from "vite-plugin-electron/simple";
 import obfuscator from "vite-plugin-javascript-obfuscator";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  base: "./",
-  plugins: [
-    react(),
-    {
-      name: "copy-sql-wasm",
-      buildStart() {
-        const src = path.resolve(__dirname, "node_modules/sql.js/dist/sql-wasm.wasm");
-        const destDir = path.resolve(__dirname, "dist-electron");
-        if (fs.existsSync(src)) {
-          if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-          fs.copyFileSync(src, path.join(destDir, "sql-wasm.wasm"));
-        }
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+
+  // Expose loaded environment variables to the Electron process
+  process.env.SAAS_API_URL = env.SAAS_API_URL || process.env.SAAS_API_URL || "";
+  process.env.ORACLE_SERVER_URL =
+    env.ORACLE_SERVER_URL || process.env.ORACLE_SERVER_URL || "";
+
+  return {
+    base: "./",
+    plugins: [
+      react(),
+      {
+        name: "copy-sql-wasm",
+        buildStart() {
+          const src = path.resolve(
+            __dirname,
+            "node_modules/sql.js/dist/sql-wasm.wasm"
+          );
+          const destDir = path.resolve(__dirname, "dist-electron");
+          if (fs.existsSync(src)) {
+            if (!fs.existsSync(destDir))
+              fs.mkdirSync(destDir, { recursive: true });
+            fs.copyFileSync(src, path.join(destDir, "sql-wasm.wasm"));
+          }
+        },
       },
-    },
-    electron({
-      main: {
-        entry: "src/main/main.ts",
-      },
-      preload: {
-        input: "src/main/preload.ts",
-      },
-    }),
+      electron({
+        main: {
+          entry: "src/main/main.ts",
+          vite: {
+            define: {
+              ...(env.SAAS_API_URL && {
+                "process.env.SAAS_API_URL": JSON.stringify(env.SAAS_API_URL),
+              }),
+              ...(env.ORACLE_SERVER_URL && {
+                "process.env.ORACLE_SERVER_URL": JSON.stringify(
+                  env.ORACLE_SERVER_URL
+                ),
+              }),
+            },
+          },
+        },
+        preload: {
+          input: "src/main/preload.ts",
+        },
+      }),
     // Production anti-reverse engineering code obfuscation
     mode === "production" &&
       obfuscator({
@@ -50,9 +74,12 @@ export default defineConfig(({ mode }) => ({
         stringArrayThreshold: 0.75,
         unicodeEscapeSequence: false,
       } as any),
-  ].filter(Boolean),
-  server: {
-    port: 5173,
-    strictPort: false, // Auto switch port if 5173 is busy
-  },
-}));
+    ].filter(Boolean),
+    server: {
+      port: 5173,
+      strictPort: false, // Auto switch port if 5173 is busy
+    },
+  };
+});
+
+

@@ -17,6 +17,7 @@ export interface TargetToolbarProps {
   targetsCount: number;
   matchedCount: number;
   actionRequiredCount: number;
+  holdCount?: number;
   showExtraOptions: boolean;
   setShowExtraOptions: React.Dispatch<React.SetStateAction<boolean>>;
   driftThresholdPercent: number;
@@ -38,6 +39,7 @@ const FILTER_PILLS: Array<{ id: FilterAction; label: string }> = [
   { id: "overbid", label: "Overbid" },
   { id: "underbid", label: "Underbid" },
   { id: "safe", label: "Safe" },
+  { id: "hold", label: "Hold" },
 ];
 
 export const TargetToolbar: React.FC<TargetToolbarProps> = ({
@@ -46,6 +48,7 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
   targetsCount,
   matchedCount,
   actionRequiredCount,
+  holdCount,
   showExtraOptions,
   setShowExtraOptions,
   driftThresholdPercent,
@@ -100,6 +103,20 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
                 <strong style={styles.actionReqStatValue}>
                   {actionRequiredCount}
                 </strong>
+              </span>
+            )}
+            {holdCount !== undefined && holdCount > 0 && (
+              <span
+                style={{
+                  ...styles.actionReqStatLabel,
+                  backgroundColor: "rgba(245, 158, 11, 0.15)",
+                  borderColor: "rgba(245, 158, 11, 0.35)",
+                  color: "#fbbf24",
+                }}
+                title={`${holdCount} target(s) currently under 11-minute hold`}
+              >
+                On Hold:{" "}
+                <strong style={{ color: "#fbbf24" }}>{holdCount}</strong>
               </span>
             )}
           </div>

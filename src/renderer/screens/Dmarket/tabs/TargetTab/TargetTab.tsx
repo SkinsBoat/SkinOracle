@@ -12,6 +12,7 @@ import {
   FilterAction,
   calculateTargetDrift,
   isAdvancedTarget,
+  getTargetHoldInfo,
 } from "./types";
 import { TargetToolbar } from "./components/TargetToolbar";
 import { TargetCard } from "./components/TargetCard";
@@ -82,6 +83,19 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   const [deleteUnmatched, setDeleteUnmatched] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [batchProcessing, setBatchProcessing] = useState(false);
+
+  // Live timer tick for target hold countdowns
+  const [, setHoldTick] = useState(0);
+  useEffect(() => {
+    const hasAnyHold = targets.some((t) => getTargetHoldInfo(t).isHoldActive);
+    if (!hasAnyHold) return;
+
+    const interval = setInterval(() => {
+      setHoldTick((t) => t + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [targets]);
 
   const [closedTrades, setClosedTrades] = useState<any[]>([]);
   const [closedLoading, setClosedLoading] = useState(false);
@@ -211,6 +225,14 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       return;
     }
 
+    const holdInfo = getTargetHoldInfo(target);
+    if (holdInfo.isHoldActive) {
+      toast.error(
+        `Cannot update "${target.title}": 11-min hold active (${holdInfo.formattedRemaining} remaining)`,
+      );
+      return;
+    }
+
     const targetQty = parseInt(target.amount, 10) || 1;
     setProcessingId(target.targetId);
     const toastId = toast.loading(
@@ -225,6 +247,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       );
       const newTargetId = res?.newTargetId || target.targetId;
       const updatedPriceCents = String(Math.round(acceptedPrice * 100));
+      const nowIso = res?.updatedAt || new Date().toISOString();
+      const nowMs = Date.now();
 
       setTargets((prev) =>
         prev.map((t) =>
@@ -233,6 +257,11 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                 ...t,
                 targetId: newTargetId,
                 priceCents: updatedPriceCents,
+                updatedAt: nowIso,
+                updatedAtMs: nowMs,
+                isHoldActive: true,
+                holdExpiresAt: nowMs + 660 * 1000,
+                holdRemainingSeconds: 660,
               }
             : t,
         ),
@@ -273,6 +302,14 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       return;
     }
 
+    const holdInfo = getTargetHoldInfo(target);
+    if (holdInfo.isHoldActive) {
+      toast.error(
+        `Cannot adjust quantity on "${target.title}": 11-min hold active (${holdInfo.formattedRemaining} remaining)`,
+      );
+      return;
+    }
+
     const currentQty = parseInt(target.amount, 10) || 1;
     const newQty = Math.max(1, currentQty + delta);
     if (newQty === currentQty) return;
@@ -290,15 +327,24 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         currentPrice,
         newQty,
       );
-      if (res?.newTargetId && res.newTargetId !== target.targetId) {
-        setTargets((prev) =>
-          prev.map((t) =>
-            t.targetId === target.targetId
-              ? { ...t, targetId: res.newTargetId }
-              : t,
-          ),
-        );
-      }
+      const newTargetId = res?.newTargetId || target.targetId;
+      const nowIso = res?.updatedAt || new Date().toISOString();
+      const nowMs = Date.now();
+      setTargets((prev) =>
+        prev.map((t) =>
+          t.targetId === target.targetId
+            ? {
+                ...t,
+                targetId: newTargetId,
+                updatedAt: nowIso,
+                updatedAtMs: nowMs,
+                isHoldActive: true,
+                holdExpiresAt: nowMs + 660 * 1000,
+                holdRemainingSeconds: 660,
+              }
+            : t,
+        ),
+      );
     } catch (err: any) {
       toast.error(`Failed to adjust quantity: ${err.message}`);
       setTargets((prev) =>
@@ -324,9 +370,14 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       (t) => selectedTargets[t.targetId] && isAdvancedTarget(t),
     ).length;
 
+    const onHoldSelectedCount = targets.filter(
+      (t) => selectedTargets[t.targetId] && getTargetHoldInfo(t).isHoldActive,
+    ).length;
+
     const eligibleTargets = targets.filter((t) => {
       if (!selectedTargets[t.targetId]) return false;
       if (isAdvancedTarget(t)) return false;
+      if (getTargetHoldInfo(t).isHoldActive) return false;
       const analysis = targetAnalysis[t.targetId];
       return !!analysis?.acceptedPrice;
     });
@@ -334,6 +385,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     const unmatchedTargets = targets.filter((t) => {
       if (!selectedTargets[t.targetId]) return false;
       if (isAdvancedTarget(t)) return false;
+      if (getTargetHoldInfo(t).isHoldActive) return false;
       const analysis = targetAnalysis[t.targetId];
       return !analysis?.acceptedPrice;
     });
@@ -345,6 +397,10 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       if (advancedSelectedCount > 0) {
         toast.error(
           "Selected target(s) are advanced targets with custom attributes and cannot be updated",
+        );
+      } else if (onHoldSelectedCount > 0) {
+        toast.error(
+          `Selected target(s) are currently under 11-minute hold and cannot be updated yet`,
         );
       } else {
         toast.error(
@@ -358,6 +414,13 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       toast(
         `Skipping ${advancedSelectedCount} advanced target(s) with custom attributes`,
         { icon: "ℹ️" },
+      );
+    }
+
+    if (onHoldSelectedCount > 0) {
+      toast(
+        `Skipping ${onHoldSelectedCount} target(s) currently under 11-minute hold`,
+        { icon: "⏳" },
       );
     }
 
@@ -375,7 +438,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     // 1. Update priced targets
     for (let i = 0; i < eligibleTargets.length; i++) {
       const target = eligibleTargets[i];
-      if (isAdvancedTarget(target)) {
+      if (isAdvancedTarget(target) || getTargetHoldInfo(target).isHoldActive) {
         continue;
       }
       if (processedTitles.has(target.title)) {
@@ -400,6 +463,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         );
         const newTargetId = res?.newTargetId || target.targetId;
         const updatedPriceCents = String(Math.round(targetPrice * 100));
+        const nowIso = res?.updatedAt || new Date().toISOString();
+        const nowMs = Date.now();
 
         setTargets((prev) =>
           prev.map((t) =>
@@ -408,6 +473,11 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                   ...t,
                   targetId: newTargetId,
                   priceCents: updatedPriceCents,
+                  updatedAt: nowIso,
+                  updatedAtMs: nowMs,
+                  isHoldActive: true,
+                  holdExpiresAt: nowMs + 660 * 1000,
+                  holdRemainingSeconds: 660,
                 }
               : t,
           ),
@@ -552,11 +622,17 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           if (!driftDetails || !driftDetails.isUnderbid) return false;
         } else if (filterAction === "safe") {
           if (!driftDetails || driftDetails.isActionRequired) return false;
+        } else if (filterAction === "hold") {
+          if (!getTargetHoldInfo(target).isHoldActive) return false;
         }
       }
       return true;
     });
   }, [targets, filterAction, targetAnalysis, driftThresholdPercent]);
+
+  const holdCount = useMemo(() => {
+    return targets.filter((t) => getTargetHoldInfo(t).isHoldActive).length;
+  }, [targets]);
 
   const matchedCount = useMemo(() => {
     return targets.filter((t) => !!targetAnalysis[t.targetId]?.acceptedPrice)
@@ -635,6 +711,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         targetsCount={targets.length}
         matchedCount={matchedCount}
         actionRequiredCount={actionRequiredCount}
+        holdCount={holdCount}
         showExtraOptions={showExtraOptions}
         setShowExtraOptions={setShowExtraOptions}
         driftThresholdPercent={driftThresholdPercent}
