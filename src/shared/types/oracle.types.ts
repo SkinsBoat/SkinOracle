@@ -1,4 +1,54 @@
-// Oracle Valuation & Workstation Analysis Types
+export interface OracleStrategyProfile {
+  preset?: "conservative" | "balanced" | "aggressive" | "custom";
+  liquidityDepth?: "strict" | "moderate" | "broad";
+  valuationMargin?: "conservative" | "standard" | "competitive";
+  outlierProtection?: "strict" | "standard" | "permissive";
+}
+
+export interface NexusStrategyProfile {
+  preset?: "capital_shield" | "balanced" | "aggressive" | "custom";
+  trendWindow?: 7 | 14 | 30;
+  downsideCut?: "strict" | "standard" | "light";
+  volatilityFilter?: "strict" | "standard" | "permissive";
+}
+
+export interface EvaluatedOracleData {
+  finalAcceptedPrice: number;
+  supplyStabilityScore: number;
+  isHyperStable: boolean;
+  averageMarketPrice?: number;
+  lowestPrice?: number;
+  totalQty?: number;
+  marketCount?: number;
+  oracleVersion?: string;
+  nexusDelta?: number;
+  trendAdjustment?: number;
+  trendConfidence?: string;
+  trendMomentum7d?: number;
+  trendMomentum14d?: number;
+  trendMomentum30d?: number;
+  trendVolatility?: number;
+  priceStabilityIndex?: number;
+  marketConsensus?: string;
+  v1Benchmark?: number;
+  nexusConfidence?: string;
+  riskProfile?: string;
+  overEstimationRisk?: string;
+}
+
+export interface EvaluatedOracleItem {
+  name: string;
+  oracle: EvaluatedOracleData | null;
+}
+
+export interface OracleEvaluationResponse {
+  results: EvaluatedOracleItem[];
+  count?: number;
+  durationMs?: number;
+  engine?: string;
+  usageCount?: number;
+  dailyRemaining?: number;
+}
 
 export interface AcceptedPriceInfo {
   acceptedPrice: number;

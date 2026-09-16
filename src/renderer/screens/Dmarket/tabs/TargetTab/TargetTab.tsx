@@ -404,7 +404,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         );
       } else {
         toast.error(
-          "None of the selected targets have a matching Oracle accepted price",
+          "None of the selected targets have a matching Oracle accepted price. Toggle 'Delete unmatched' or use 'Delete Selected'.",
         );
       }
       return;
@@ -500,28 +500,63 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
     // 2. Delete unmatched targets if option checked
     if (deleteUnmatched && unmatchedTargets.length > 0) {
-      for (let j = 0; j < unmatchedTargets.length; j++) {
-        const target = unmatchedTargets[j];
-        toast.loading(
-          `[${eligibleTargets.length + j + 1}/${totalOperations}] Deleting unmatched: ${target.title}...`,
-          { id: toastId },
-        );
+      const unmatchedIds = unmatchedTargets.map((t) => t.targetId);
+      toast.loading(
+        `Deleting ${unmatchedIds.length} unmatched target(s)...`,
+        { id: toastId },
+      );
+
+      if (window.electronAPI?.dmarket?.batchDeleteTargets) {
         try {
-          await window.electronAPI.dmarket.deleteTarget(target.targetId);
+          const res = await window.electronAPI.dmarket.batchDeleteTargets(unmatchedIds);
+          const results = res?.Result || [];
+          const failedIds = new Set(
+            results.filter((r) => !r.Successful).map((r) => r.TargetID),
+          );
+          const successfullyDeletedIds = unmatchedIds.filter((id) => !failedIds.has(id));
+          deletedCount += successfullyDeletedIds.length;
           setTargets((prev) =>
-            prev.filter((t) => t.targetId !== target.targetId),
+            prev.filter((t) => !successfullyDeletedIds.includes(t.targetId)),
           );
-          deletedCount++;
+          if (failedIds.size > 0) {
+            failCount += failedIds.size;
+            errors.push(`Failed to delete ${failedIds.size} unmatched targets`);
+          }
         } catch (err: any) {
-          console.error(
-            `Batch delete error for unmatched target ${target.title}:`,
-            err,
-          );
-          failCount++;
-          errors.push(`Delete ${target.title}: ${err?.message || "Failed"}`);
+          console.error("Batch delete API failed, falling back to sequential:", err);
+          for (let j = 0; j < unmatchedTargets.length; j++) {
+            const target = unmatchedTargets[j];
+            try {
+              await window.electronAPI.dmarket.deleteTarget(target.targetId);
+              setTargets((prev) =>
+                prev.filter((t) => t.targetId !== target.targetId),
+              );
+              deletedCount++;
+            } catch (delErr: any) {
+              failCount++;
+              errors.push(`Delete ${target.title}: ${delErr?.message || "Failed"}`);
+            }
+            if (j < unmatchedTargets.length - 1) {
+              await new Promise((r) => setTimeout(r, 600));
+            }
+          }
         }
-        if (j < unmatchedTargets.length - 1) {
-          await new Promise((r) => setTimeout(r, 600));
+      } else {
+        for (let j = 0; j < unmatchedTargets.length; j++) {
+          const target = unmatchedTargets[j];
+          try {
+            await window.electronAPI.dmarket.deleteTarget(target.targetId);
+            setTargets((prev) =>
+              prev.filter((t) => t.targetId !== target.targetId),
+            );
+            deletedCount++;
+          } catch (delErr: any) {
+            failCount++;
+            errors.push(`Delete ${target.title}: ${delErr?.message || "Failed"}`);
+          }
+          if (j < unmatchedTargets.length - 1) {
+            await new Promise((r) => setTimeout(r, 600));
+          }
         }
       }
     }
@@ -530,8 +565,15 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     setSelectedTargets({});
     await onUserDataUpdated();
 
-    let resultMsg = `Batch complete: ${successCount} updated`;
-    if (deletedCount > 0) resultMsg += `, ${deletedCount} unmatched deleted`;
+    let resultMsg = "";
+    if (successCount > 0) {
+      resultMsg = `Batch complete: ${successCount} updated`;
+      if (deletedCount > 0) resultMsg += `, ${deletedCount} unmatched deleted`;
+    } else if (deletedCount > 0) {
+      resultMsg = `Batch complete: ${deletedCount} unmatched deleted`;
+    } else {
+      resultMsg = "Batch complete: 0 items updated";
+    }
     if (failCount > 0) resultMsg += `, ${failCount} failed`;
 
     if (failCount === 0) {
@@ -558,26 +600,58 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     let failCount = 0;
     const deleteErrors: string[] = [];
     const toastId = toast.loading(
-      `Deleting 0/${selectedIds.length} targets...`,
+      `Deleting ${selectedIds.length} target(s)...`,
     );
 
-    for (let i = 0; i < selectedIds.length; i++) {
-      const targetId = selectedIds[i];
+    if (window.electronAPI?.dmarket?.batchDeleteTargets) {
       try {
-        await window.electronAPI.dmarket.deleteTarget(targetId);
-        setTargets((prev) => prev.filter((t) => t.targetId !== targetId));
-        successCount++;
-      } catch (err: any) {
-        console.error(`Batch delete error for target ${targetId}:`, err);
-        failCount++;
-        deleteErrors.push(err?.message || "Delete failed");
-      }
-      toast.loading(`Deleted ${i + 1}/${selectedIds.length}...`, {
-        id: toastId,
-      });
+        const res = await window.electronAPI.dmarket.batchDeleteTargets(selectedIds);
+        const results = res?.Result || [];
+        const failedIds = new Set(
+          results.filter((r) => !r.Successful).map((r) => r.TargetID),
+        );
+        const successfullyDeletedIds = selectedIds.filter((id) => !failedIds.has(id));
+        successCount = successfullyDeletedIds.length;
+        setTargets((prev) =>
+          prev.filter((t) => !successfullyDeletedIds.includes(t.targetId)),
+        );
 
-      if (i < selectedIds.length - 1) {
-        await new Promise((r) => setTimeout(r, 600));
+        if (failedIds.size > 0) {
+          failCount = failedIds.size;
+          deleteErrors.push(`Failed to delete ${failedIds.size} target(s)`);
+        }
+      } catch (err: any) {
+        console.error("Batch delete API failed, falling back to sequential delete:", err);
+        for (let i = 0; i < selectedIds.length; i++) {
+          const targetId = selectedIds[i];
+          try {
+            await window.electronAPI.dmarket.deleteTarget(targetId);
+            setTargets((prev) => prev.filter((t) => t.targetId !== targetId));
+            successCount++;
+          } catch (e: any) {
+            failCount++;
+            deleteErrors.push(e?.message || "Delete failed");
+          }
+          if (i < selectedIds.length - 1) {
+            await new Promise((r) => setTimeout(r, 600));
+          }
+        }
+      }
+    } else {
+      for (let i = 0; i < selectedIds.length; i++) {
+        const targetId = selectedIds[i];
+        try {
+          await window.electronAPI.dmarket.deleteTarget(targetId);
+          setTargets((prev) => prev.filter((t) => t.targetId !== targetId));
+          successCount++;
+        } catch (err: any) {
+          console.error(`Batch delete error for target ${targetId}:`, err);
+          failCount++;
+          deleteErrors.push(err?.message || "Delete failed");
+        }
+        if (i < selectedIds.length - 1) {
+          await new Promise((r) => setTimeout(r, 600));
+        }
       }
     }
 
@@ -655,7 +729,18 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     return targets.filter(
       (t) =>
         selectedTargets[t.targetId] &&
+        !isAdvancedTarget(t) &&
         !targetAnalysis[t.targetId]?.acceptedPrice,
+    ).length;
+  }, [targets, selectedTargets, targetAnalysis]);
+
+  const eligibleSelectedCount = useMemo(() => {
+    return targets.filter(
+      (t) =>
+        selectedTargets[t.targetId] &&
+        !isAdvancedTarget(t) &&
+        !getTargetHoldInfo(t).isHoldActive &&
+        !!targetAnalysis[t.targetId]?.acceptedPrice,
     ).length;
   }, [targets, selectedTargets, targetAnalysis]);
 
@@ -702,6 +787,10 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   };
 
   const selectedCount = Object.values(selectedTargets).filter(Boolean).length;
+  const isOnlyUnmatchedSelected =
+    selectedCount > 0 &&
+    eligibleSelectedCount === 0 &&
+    unmatchedSelectedCount > 0;
 
   return (
     <>
@@ -787,6 +876,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           actionRequiredCount={actionRequiredCount}
           isAllActionRequiredSelected={isAllActionRequiredSelected}
           unmatchedSelectedCount={unmatchedSelectedCount}
+          eligibleSelectedCount={eligibleSelectedCount}
+          isOnlyUnmatchedSelected={isOnlyUnmatchedSelected}
           deleteUnmatched={deleteUnmatched}
           setDeleteUnmatched={setDeleteUnmatched}
           batchProcessing={batchProcessing}

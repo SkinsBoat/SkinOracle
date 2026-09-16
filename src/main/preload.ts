@@ -1,4 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
+import {
+  OracleStrategyProfile,
+  NexusStrategyProfile,
+  OracleEvaluationResponse,
+} from "../shared/types/oracle.types";
 
 /**
  * Clean helper function to invoke IPC channels and strip Electron's wrapper noise.
@@ -137,15 +142,30 @@ contextBridge.exposeInMainWorld("electronAPI", {
         unusedItems: number;
         refundedCents: number;
       }>("oracle:batch-finish", batchId, completedItems),
-    evaluate: (items: any[], options?: any, batchId?: string) =>
-      safeInvoke("oracle:evaluate", items, options, batchId),
-    evaluateNexus: (
-      items: any[],
-      options?: any,
-      nexusParams?: any,
+    evaluate: (
+      items: string[],
+      strategyProfile?: OracleStrategyProfile,
       batchId?: string,
     ) =>
-      safeInvoke("oracle:evaluate-nexus", items, options, nexusParams, batchId),
+      safeInvoke<OracleEvaluationResponse>(
+        "oracle:evaluate",
+        items,
+        strategyProfile,
+        batchId,
+      ),
+    evaluateNexus: (
+      items: string[],
+      strategyProfile?: OracleStrategyProfile,
+      nexusProfile?: NexusStrategyProfile,
+      batchId?: string,
+    ) =>
+      safeInvoke<OracleEvaluationResponse>(
+        "oracle:evaluate-nexus",
+        items,
+        strategyProfile,
+        nexusProfile,
+        batchId,
+      ),
     // Store the accepted price map (called by OracleDashboard after "Build Accepted Price")
     storeAcceptedPrices: (
       map: Record<

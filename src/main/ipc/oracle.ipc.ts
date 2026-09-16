@@ -5,6 +5,10 @@ import * as zlib from "zlib";
 import { saasAxios, oracleAxios } from "../services/saasAxios";
 
 import { trendStore } from "../services/trendStore";
+import {
+  OracleStrategyProfile,
+  NexusStrategyProfile,
+} from "../../shared/types/oracle.types";
 
 function compressPayload(payload: any): {
   body: Buffer;
@@ -130,7 +134,12 @@ ipcMain.handle(
 
 ipcMain.handle(
   "oracle:evaluate",
-  async (_, items: string[], options?: any, batchId?: string) => {
+  async (
+    _,
+    items: string[],
+    strategyProfile?: OracleStrategyProfile,
+    batchId?: string,
+  ) => {
     // Build request items from local price cache (strip redundant metadata & enforce max 30 lowest listings)
     const requestItems = items.map((name) => {
       const cached = priceCache[name];
@@ -167,7 +176,7 @@ ipcMain.handle(
 
     const payload = {
       items: requestItems,
-      options,
+      strategyProfile,
       batchId,
     };
     const { body, headers } = compressPayload(payload);
@@ -183,12 +192,12 @@ ipcMain.handle(
   async (
     _,
     items: string[],
-    options?: any,
-    nexusParams?: any,
+    strategyProfile?: OracleStrategyProfile,
+    nexusProfile?: NexusStrategyProfile,
     batchId?: string,
   ) => {
     // Strictly validate and cap windowDays: min 7, max 30 (default: 14)
-    const requestedDays = Number(nexusParams?.trendWindow) || 14;
+    const requestedDays = Number(nexusProfile?.trendWindow) || 14;
     const windowDays = Math.min(30, Math.max(7, requestedDays));
 
     const trendHistoryMap = await trendStore.getTrendHistoryBatch(
@@ -250,9 +259,9 @@ ipcMain.handle(
 
     const payload = {
       items: requestItems,
-      options,
-      nexusParams: {
-        ...nexusParams,
+      strategyProfile,
+      nexusProfile: {
+        ...nexusProfile,
         trendWindow: windowDays,
       },
       batchId,

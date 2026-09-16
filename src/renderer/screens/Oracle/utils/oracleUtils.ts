@@ -139,40 +139,6 @@ export function calculateSuggestedListingPrice(
   return roundToCsFloatStep(basePrice);
 }
 
-// Translate friendly strategy parameters to backend evaluation options without exposing internal math
-export function mapStrategyToBackendOptions(strategy: OracleStrategyProfile) {
-  let minGlobalQty = 100;
-  if (strategy.liquidityDepth === "strict") minGlobalQty = 250;
-  if (strategy.liquidityDepth === "broad") minGlobalQty = 10;
-
-  let safetyMultiplier = 1.0;
-  if (strategy.valuationMargin === "conservative") safetyMultiplier = 0.95;
-  if (strategy.valuationMargin === "competitive") safetyMultiplier = 1.03;
-
-  // Spike & Outlier Protection Parameter Mapping
-  let outlierCap = 1.28; // Default 28% ceiling above lowest listing price
-  let useStdDevFilter = false;
-  let stdDevThreshold = 0.1;
-
-  if (strategy.outlierProtection === "strict") {
-    outlierCap = 1.15; // Tight 15% cap (filters out high price spikes & artificial listings)
-    useStdDevFilter = true; // Enables Standard Deviation price agreement shield
-    stdDevThreshold = 0.08; // Trims items if market price variance > 8%
-  } else if (strategy.outlierProtection === "permissive") {
-    outlierCap = 1.5; // Broad 50% cap above lowest price
-    useStdDevFilter = false;
-  }
-
-  return {
-    minGlobalQty,
-    safetyMultiplier,
-    outlierCap,
-    useStdDevFilter,
-    stdDevThreshold,
-    outlierMode: strategy.outlierProtection,
-  };
-}
-
 export const NEXUS_PRESETS: Record<string, NexusStrategyProfile> = {
   capital_shield: {
     preset: "capital_shield",
@@ -193,26 +159,6 @@ export const NEXUS_PRESETS: Record<string, NexusStrategyProfile> = {
     volatilityFilter: "permissive",
   },
 };
-
-export function mapNexusProfileToParams(profile: NexusStrategyProfile) {
-  let maxTrendPenalty = -0.08;
-  if (profile.downsideCut === "strict") maxTrendPenalty = -0.1;
-  if (profile.downsideCut === "light") maxTrendPenalty = -0.05;
-
-  let volatilityThreshold = 0.5;
-  if (profile.volatilityFilter === "strict") volatilityThreshold = 0.35;
-  if (profile.volatilityFilter === "permissive") volatilityThreshold = 0.75;
-
-  return {
-    trendWindow: profile.trendWindow,
-    trendSensitivity: 0.2,
-    volatilityThreshold,
-    maxTrendPenalty,
-    maxTrendBonus: profile.preset === "capital_shield" ? 0.01 : 0.03,
-    minTrendConfidence: "C" as const,
-    maxDataAgeDays: 3,
-  };
-}
 
 export interface MarketQuantityAudit {
   totalListings: number;

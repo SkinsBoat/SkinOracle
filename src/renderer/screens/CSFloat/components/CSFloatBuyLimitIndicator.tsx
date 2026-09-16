@@ -120,62 +120,23 @@ export const CSFloatBuyLimitIndicator: React.FC<
 
   return (
     <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        gap: "4px",
-        backgroundColor: "var(--so-surface-card)",
-        border: `1px solid ${isExceeded ? "rgba(239, 68, 68, 0.5)" : "var(--so-border-medium)"}`,
-        borderRadius: "var(--so-radius-md)",
-        padding: "6px 12px",
-        flex: 1,
-        maxWidth: "460px",
-        minWidth: "280px",
-        boxShadow: statusTheme.shadow,
-        transition: "all 0.25s ease",
-      }}
+      style={getContainerStyle(isExceeded, statusTheme.shadow)}
       title={`CSFloat 10x Balance Limit: $${maxLimitValue.toFixed(2)} | Active: $${activeOrdersTotal.toFixed(2)} (${activeOrdersCount} orders) | Remaining: $${remainingCapacity.toFixed(2)} | Max Orders: 1,000`}
     >
       {/* Top Header Row: Title, Values & Dynamic Badge */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      <div style={styles.headerRow}>
+        <div style={styles.headerLeft}>
           <Gauge
             size={13}
             style={{ color: statusTheme.color, flexShrink: 0 }}
           />
-          <span
-            style={{
-              fontSize: "10px",
-              fontWeight: 800,
-              color: "var(--so-text-secondary)",
-              textTransform: "uppercase",
-              letterSpacing: "0.4px",
-            }}
-          >
+          <span style={styles.headerTitle}>
             CSFloat Buy Limit (10x)
           </span>
 
           <span
             className="tabular-nums"
-            style={{
-              fontSize: "10px",
-              fontWeight: 700,
-              padding: "1px 5px",
-              borderRadius: "3px",
-              backgroundColor: isCountExceeded
-                ? "rgba(239, 68, 68, 0.2)"
-                : "var(--so-surface-panel)",
-              color: isCountExceeded ? "#ef4444" : "var(--so-text-muted)",
-              border: `1px solid ${isCountExceeded ? "rgba(239, 68, 68, 0.4)" : "var(--so-border-subtle)"}`,
-            }}
+            style={getCountBadgeStyle(isCountExceeded)}
           >
             {totalProjectedCount.toLocaleString()} /{" "}
             {maxLimitCount.toLocaleString()} orders
@@ -183,22 +144,8 @@ export const CSFloatBuyLimitIndicator: React.FC<
         </div>
 
         {/* Dynamic Status Badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "3px",
-              backgroundColor: statusTheme.bgColor,
-              border: `1px solid ${statusTheme.borderColor}`,
-              color: statusTheme.color,
-              padding: "1px 6px",
-              borderRadius: "10px",
-              fontSize: "9.5px",
-              fontWeight: 800,
-              letterSpacing: "0.2px",
-            }}
-          >
+        <div style={styles.headerRight}>
+          <span style={getStatusBadgeStyle(statusTheme)}>
             {isExceeded ? (
               <AlertTriangle size={10} />
             ) : (
@@ -214,82 +161,31 @@ export const CSFloatBuyLimitIndicator: React.FC<
       </div>
 
       {/* Dynamic Visual Indicator Bar */}
-      <div
-        style={{
-          height: "7px",
-          width: "100%",
-          backgroundColor: "rgba(255, 255, 255, 0.08)",
-          borderRadius: "4px",
-          overflow: "hidden",
-          display: "flex",
-          position: "relative",
-          border: "1px solid rgba(255, 255, 255, 0.05)",
-        }}
-      >
+      <div style={styles.barTrack}>
         {/* Baseline Active Orders Fill */}
         <div
-          style={{
-            height: "100%",
-            width: `${activePct}%`,
-            background: statusTheme.barGradient,
-            transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-            borderRadius: selectedPct > 0 ? "4px 0 0 4px" : "4px",
-          }}
+          style={getActiveFillStyle(activePct, statusTheme.barGradient, selectedPct)}
         />
 
         {/* Selected Cards Fill (Preview Segment with animated striped pattern) */}
         {selectedPct > 0 && (
           <div
-            style={{
-              height: "100%",
-              width: `${selectedPct}%`,
-              background: `repeating-linear-gradient(
-                -45deg,
-                rgba(255, 255, 255, 0.22),
-                rgba(255, 255, 255, 0.22) 5px,
-                rgba(255, 255, 255, 0.06) 5px,
-                rgba(255, 255, 255, 0.06) 10px
-              ), ${statusTheme.previewGradient}`,
-              transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-              borderRadius: activePct > 0 ? "0 4px 4px 0" : "4px",
-            }}
+            style={getSelectedFillStyle(selectedPct, statusTheme.previewGradient, activePct)}
           />
         )}
 
         {/* Pulsing Overflow Indicator if limit is exceeded */}
-        {isExceeded && (
-          <div
-            style={{
-              position: "absolute",
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: "100%",
-              background:
-                "linear-gradient(90deg, transparent 60%, rgba(239, 68, 68, 0.8) 100%)",
-              pointerEvents: "none",
-            }}
-          />
-        )}
+        {isExceeded && <div style={styles.overflowPulse} />}
       </div>
 
       {/* Bottom Metrics Breakdown */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          fontSize: "9.5px",
-          color: "var(--so-text-muted)",
-          fontWeight: 700,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+      <div style={styles.bottomRow}>
+        <div style={styles.metricsLeft}>
           <span>
             Active:{" "}
             <strong
               className="tabular-nums"
-              style={{ color: "var(--so-text-primary)" }}
+              style={styles.activeOrdersText}
             >
               ${activeOrdersTotal.toFixed(2)}
             </strong>
@@ -306,7 +202,7 @@ export const CSFloatBuyLimitIndicator: React.FC<
           )}
 
           {!isSoClose && selectedOrdersCount > 0 && (
-            <span style={{ color: "var(--so-primary)" }}>
+            <span style={styles.selectedOrdersText}>
               (Selected:{" "}
               <strong className="tabular-nums">
                 ${selectedOrdersTotal.toFixed(2)}
@@ -316,22 +212,189 @@ export const CSFloatBuyLimitIndicator: React.FC<
           )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        <div style={styles.metricsRight}>
           <span>Total:</span>
           <strong
             className="tabular-nums"
-            style={{
-              color: isExceeded ? "#ef4444" : "#ffffff",
-              fontSize: "10.5px",
-            }}
+            style={getTotalValueStyle(isExceeded)}
           >
             ${totalProjectedValue.toFixed(2)}
           </strong>
-          <span style={{ color: "var(--so-text-muted)" }}>
+          <span style={styles.maxLimitText}>
             / ${maxLimitValue.toFixed(2)} Max
           </span>
         </div>
       </div>
     </div>
   );
+};
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+const getContainerStyle = (
+  isExceeded: boolean,
+  boxShadow: string,
+): React.CSSProperties => ({
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  gap: "4px",
+  backgroundColor: "var(--so-surface-card)",
+  border: `1px solid ${isExceeded ? "rgba(239, 68, 68, 0.5)" : "var(--so-border-medium)"}`,
+  borderRadius: "var(--so-radius-md)",
+  padding: "6px 12px",
+  flex: 1,
+  maxWidth: "460px",
+  minWidth: "280px",
+  boxShadow,
+  transition: "all 0.25s ease",
+});
+
+const getCountBadgeStyle = (isCountExceeded: boolean): React.CSSProperties => ({
+  fontSize: "10px",
+  fontWeight: 700,
+  padding: "1px 5px",
+  borderRadius: "3px",
+  backgroundColor: isCountExceeded
+    ? "rgba(239, 68, 68, 0.2)"
+    : "var(--so-surface-panel)",
+  color: isCountExceeded ? "#ef4444" : "var(--so-text-muted)",
+  border: `1px solid ${isCountExceeded ? "rgba(239, 68, 68, 0.4)" : "var(--so-border-subtle)"}`,
+});
+
+const getStatusBadgeStyle = (statusTheme: {
+  bgColor: string;
+  borderColor: string;
+  color: string;
+}): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "3px",
+  backgroundColor: statusTheme.bgColor,
+  border: `1px solid ${statusTheme.borderColor}`,
+  color: statusTheme.color,
+  padding: "1px 6px",
+  borderRadius: "10px",
+  fontSize: "9.5px",
+  fontWeight: 800,
+  letterSpacing: "0.2px",
+});
+
+const getActiveFillStyle = (
+  activePct: number,
+  background: string,
+  selectedPct: number,
+): React.CSSProperties => ({
+  height: "100%",
+  width: `${activePct}%`,
+  background,
+  transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+  borderRadius: selectedPct > 0 ? "4px 0 0 4px" : "4px",
+});
+
+const getSelectedFillStyle = (
+  selectedPct: number,
+  previewGradient: string,
+  activePct: number,
+): React.CSSProperties => ({
+  height: "100%",
+  width: `${selectedPct}%`,
+  background: `repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.22),
+    rgba(255, 255, 255, 0.22) 5px,
+    rgba(255, 255, 255, 0.06) 5px,
+    rgba(255, 255, 255, 0.06) 10px
+  ), ${previewGradient}`,
+  transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+  borderRadius: activePct > 0 ? "0 4px 4px 0" : "4px",
+});
+
+const getTotalValueStyle = (isExceeded: boolean): React.CSSProperties => ({
+  color: isExceeded ? "#ef4444" : "#ffffff",
+  fontSize: "10.5px",
+});
+
+const styles = {
+  headerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "8px",
+  } as React.CSSProperties,
+
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  } as React.CSSProperties,
+
+  headerTitle: {
+    fontSize: "10px",
+    fontWeight: 800,
+    color: "var(--so-text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.4px",
+  } as React.CSSProperties,
+
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  } as React.CSSProperties,
+
+  barTrack: {
+    height: "7px",
+    width: "100%",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: "4px",
+    overflow: "hidden",
+    display: "flex",
+    position: "relative",
+    border: "1px solid rgba(255, 255, 255, 0.05)",
+  } as React.CSSProperties,
+
+  overflowPulse: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: "100%",
+    background:
+      "linear-gradient(90deg, transparent 60%, rgba(239, 68, 68, 0.8) 100%)",
+    pointerEvents: "none",
+  } as React.CSSProperties,
+
+  bottomRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: "9.5px",
+    color: "var(--so-text-muted)",
+    fontWeight: 700,
+  } as React.CSSProperties,
+
+  metricsLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+  } as React.CSSProperties,
+
+  activeOrdersText: {
+    color: "var(--so-text-primary)",
+  } as React.CSSProperties,
+
+  selectedOrdersText: {
+    color: "var(--so-primary)",
+  } as React.CSSProperties,
+
+  metricsRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  } as React.CSSProperties,
+
+  maxLimitText: {
+    color: "var(--so-text-muted)",
+  } as React.CSSProperties,
 };

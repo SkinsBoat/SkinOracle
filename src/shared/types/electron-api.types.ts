@@ -13,6 +13,9 @@ import {
   AcceptedPriceInfo,
   OracleBatchStartResult,
   OracleBatchFinishResult,
+  OracleStrategyProfile,
+  NexusStrategyProfile,
+  OracleEvaluationResponse,
 } from "./oracle.types";
 import {
   CsFloatInventoryItem,
@@ -130,23 +133,15 @@ export interface ElectronAPI {
     ) => Promise<OracleBatchFinishResult>;
     evaluate: (
       items: string[],
-      options?: object,
+      strategyProfile?: OracleStrategyProfile,
       batchId?: string,
-    ) => Promise<{
-      results: Array<{ name: string; oracle: any | null }>;
-      usageCount: number;
-      dailyRemaining: number;
-    }>;
+    ) => Promise<OracleEvaluationResponse>;
     evaluateNexus: (
       items: string[],
-      options?: object,
-      nexusParams?: object,
+      strategyProfile?: OracleStrategyProfile,
+      nexusProfile?: NexusStrategyProfile,
       batchId?: string,
-    ) => Promise<{
-      results: Array<{ name: string; oracle: any | null }>;
-      usageCount: number;
-      dailyRemaining: number;
-    }>;
+    ) => Promise<OracleEvaluationResponse>;
     storeAcceptedPrices: (
       map: Record<string, AcceptedPriceInfo>,
     ) => Promise<{ stored: number; storedAt: string }>;

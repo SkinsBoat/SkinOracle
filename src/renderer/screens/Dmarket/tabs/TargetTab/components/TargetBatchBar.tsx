@@ -1,5 +1,12 @@
 import React from "react";
-import { AlertTriangle, Trash2, Zap, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Trash2,
+  Zap,
+  Loader2,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 
 export interface TargetBatchBarProps {
   selectedCount: number;
@@ -7,6 +14,8 @@ export interface TargetBatchBarProps {
   actionRequiredCount: number;
   isAllActionRequiredSelected: boolean;
   unmatchedSelectedCount: number;
+  eligibleSelectedCount?: number;
+  isOnlyUnmatchedSelected?: boolean;
   deleteUnmatched: boolean;
   setDeleteUnmatched: (val: boolean) => void;
   batchProcessing: boolean;
@@ -24,6 +33,8 @@ export const TargetBatchBar: React.FC<TargetBatchBarProps> = ({
   actionRequiredCount,
   isAllActionRequiredSelected,
   unmatchedSelectedCount,
+  eligibleSelectedCount,
+  isOnlyUnmatchedSelected,
   deleteUnmatched,
   setDeleteUnmatched,
   batchProcessing,
@@ -89,35 +100,65 @@ export const TargetBatchBar: React.FC<TargetBatchBarProps> = ({
         </button>
 
         {unmatchedSelectedCount > 0 && (
-          <label
-            style={getDeleteUnmatchedLabelStyle(deleteUnmatched)}
-            title="When updating, also delete selected targets that have no matching accepted price in Oracle cache"
+          <button
+            type="button"
+            onClick={() => setDeleteUnmatched(!deleteUnmatched)}
+            style={getDeleteUnmatchedToggleStyle(deleteUnmatched)}
+            title="Toggle whether updating also deletes selected targets that have no matching accepted price in Oracle cache"
           >
-            <input
-              type="checkbox"
-              checked={deleteUnmatched}
-              onChange={(e) => setDeleteUnmatched(e.target.checked)}
-              style={styles.unmatchedCheckbox}
-            />
+            {deleteUnmatched ? (
+              <CheckSquare size={13} style={styles.deleteCheckIcon} />
+            ) : (
+              <Square size={13} style={styles.deleteSquareIcon} />
+            )}
             <span>Delete unmatched ({unmatchedSelectedCount})</span>
-          </label>
+          </button>
         )}
 
         <button
           onClick={onBatchUpdateToOracle}
-          disabled={batchProcessing}
-          className="btn btn-primary btn-sm"
-          style={styles.batchUpdateButton}
+          disabled={
+            batchProcessing || (!!isOnlyUnmatchedSelected && !deleteUnmatched)
+          }
+          className={`btn btn-sm ${
+            isOnlyUnmatchedSelected && deleteUnmatched
+              ? "btn-danger"
+              : "btn-primary"
+          }`}
+          style={getBatchUpdateButtonStyle(
+            !!isOnlyUnmatchedSelected,
+            deleteUnmatched,
+          )}
+          title={
+            isOnlyUnmatchedSelected && !deleteUnmatched
+              ? "Selected targets have no price in Oracle cache. Toggle 'Delete unmatched' or use Delete Selected."
+              : undefined
+          }
         >
           {batchProcessing ? (
             <>
               <Loader2 size={13} className="spin" />
               <span>UPDATING BATCH...</span>
             </>
+          ) : isOnlyUnmatchedSelected && deleteUnmatched ? (
+            <>
+              <Trash2 size={13} />
+              <span>DELETE UNMATCHED ({unmatchedSelectedCount})</span>
+            </>
           ) : (
             <>
               <Zap size={13} />
-              <span>MATCH ORACLE PRICES</span>
+              <span>
+                {isOnlyUnmatchedSelected
+                  ? `NO ORACLE PRICE (${unmatchedSelectedCount})`
+                  : deleteUnmatched && unmatchedSelectedCount > 0
+                    ? `UPDATE & PRUNE (${selectedCount})`
+                    : `MATCH ORACLE PRICES${
+                        eligibleSelectedCount !== undefined
+                          ? ` (${eligibleSelectedCount})`
+                          : ""
+                      }`}
+              </span>
             </>
           )}
         </button>
@@ -165,24 +206,45 @@ const getActionReqButtonStyle = (isSelected: boolean): React.CSSProperties => ({
   gap: "5px",
 });
 
-const getDeleteUnmatchedLabelStyle = (isChecked: boolean): React.CSSProperties => ({
+const getDeleteUnmatchedToggleStyle = (
+  isChecked: boolean,
+): React.CSSProperties => ({
   display: "flex",
   alignItems: "center",
   gap: "6px",
-  fontSize: "11.5px",
+  fontSize: "12px",
   fontWeight: 600,
-  color: isChecked ? "#f87171" : "var(--so-text-secondary)",
+  color: isChecked ? "#f87171" : "var(--so-text-secondary, #94a3b8)",
   cursor: "pointer",
   userSelect: "none",
-  padding: "6px 10px",
+  padding: "6px 12px",
   borderRadius: "4px",
   backgroundColor: isChecked
-    ? "rgba(239, 68, 68, 0.12)"
-    : "rgba(255, 255, 255, 0.04)",
+    ? "rgba(239, 68, 68, 0.16)"
+    : "rgba(255, 255, 255, 0.05)",
   border: `1px solid ${
-    isChecked ? "rgba(239, 68, 68, 0.35)" : "var(--so-border-subtle)"
+    isChecked
+      ? "rgba(239, 68, 68, 0.45)"
+      : "var(--so-border-subtle, rgba(255, 255, 255, 0.1))"
   }`,
   transition: "all 0.15s ease",
+  outline: "none",
+});
+
+const getBatchUpdateButtonStyle = (
+  isOnlyUnmatchedSelected: boolean,
+  deleteUnmatched: boolean,
+): React.CSSProperties => ({
+  fontWeight: 800,
+  padding: "6px 18px",
+  fontSize: "12px",
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  color: "#ffffff",
+  opacity: isOnlyUnmatchedSelected && !deleteUnmatched ? 0.6 : 1,
+  cursor:
+    isOnlyUnmatchedSelected && !deleteUnmatched ? "not-allowed" : "pointer",
 });
 
 const styles = {
@@ -231,18 +293,13 @@ const styles = {
     color: "#ffffff",
   } as React.CSSProperties,
 
-  unmatchedCheckbox: {
-    cursor: "pointer",
-    accentColor: "#ef4444",
+  deleteCheckIcon: {
+    color: "#ef4444",
+    flexShrink: 0,
   } as React.CSSProperties,
 
-  batchUpdateButton: {
-    fontWeight: 800,
-    padding: "6px 18px",
-    fontSize: "12px",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    color: "#ffffff",
+  deleteSquareIcon: {
+    color: "var(--so-text-muted, #64748b)",
+    flexShrink: 0,
   } as React.CSSProperties,
 };

@@ -24,19 +24,12 @@ export interface BuildPreFilters {
   };
 }
 
-export interface OracleStrategyProfile {
-  preset: "conservative" | "balanced" | "aggressive" | "custom";
-  liquidityDepth: "strict" | "moderate" | "broad";
-  valuationMargin: "conservative" | "standard" | "competitive";
-  outlierProtection: "strict" | "standard" | "permissive";
-}
+import {
+  OracleStrategyProfile,
+  NexusStrategyProfile,
+} from "../../shared/types/oracle.types";
 
-export interface NexusStrategyProfile {
-  preset: "capital_shield" | "balanced" | "aggressive" | "custom";
-  trendWindow: 7 | 14 | 30;
-  downsideCut: "strict" | "standard" | "light";
-  volatilityFilter: "strict" | "standard" | "permissive";
-}
+export type { OracleStrategyProfile, NexusStrategyProfile };
 
 export type ListingStrategyMode = "lowest" | "average" | "undercut" | "markup";
 

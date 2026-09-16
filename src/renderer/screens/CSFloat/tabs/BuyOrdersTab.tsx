@@ -89,7 +89,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
   const [showExtraActions, setShowExtraActions] = useState(false);
   const [deleteUnmatched, setDeleteUnmatched] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "action" | "exceeds" | "drift" | "unmatched"
+    "all" | "action" | "exceeds" | "drift" | "unmatched" | "advanced"
   >("all");
 
   const selectedCount = Object.values(selectedItems).filter(Boolean).length;
@@ -103,6 +103,19 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
   }, [orders, userBalance]);
 
   const exceedsBalanceCount = exceedsBalanceOrders.length;
+
+  const isOrderAdvanced = (o: any) =>
+    Boolean(
+      o?.hybrid_properties &&
+        typeof o.hybrid_properties === "object" &&
+        Object.keys(o.hybrid_properties).length > 0,
+    );
+
+  const advancedOrders = useMemo(() => {
+    return orders.filter(isOrderAdvanced);
+  }, [orders]);
+
+  const advancedCount = advancedOrders.length;
 
   const driftOrders = useMemo(() => {
     return orders.filter((o) => {
@@ -142,6 +155,8 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
         return driftOrders;
       case "unmatched":
         return unmatchedOrders;
+      case "advanced":
+        return advancedOrders;
       case "all":
       default:
         return orders;
@@ -153,6 +168,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
     exceedsBalanceOrders,
     driftOrders,
     unmatchedOrders,
+    advancedOrders,
   ]);
 
   const unmatchedSelectedCount = useMemo(() => {
@@ -405,6 +421,21 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 style={getStatusChipStyle(statusFilter === "unmatched", "unmatched")}
               >
                 Unmatched ({unmatchedOrders.length})
+              </button>
+            )}
+
+            {advancedCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setStatusFilter(
+                    statusFilter === "advanced" ? "all" : "advanced",
+                  )
+                }
+                style={getStatusChipStyle(statusFilter === "advanced", "advanced")}
+                title={`Filter ${advancedCount} advanced buy orders with custom hybrid parameters`}
+              >
+                Advanced ({advancedCount})
               </button>
             )}
           </div>
@@ -732,7 +763,7 @@ const getExtraOptionsSliderStyle = (showExtraActions: boolean): React.CSSPropert
 
 const getStatusChipStyle = (
   active: boolean,
-  type: "all" | "action" | "exceeds" | "drift" | "unmatched",
+  type: "all" | "action" | "exceeds" | "drift" | "unmatched" | "advanced",
 ): React.CSSProperties => {
   if (type === "all") {
     return {
@@ -786,6 +817,19 @@ const getStatusChipStyle = (
       cursor: "pointer",
       backgroundColor: active ? "rgba(6, 182, 212, 0.22)" : "transparent",
       color: active ? "var(--so-accent-cyan)" : "var(--so-text-secondary)",
+      transition: "all 0.15s ease",
+    };
+  }
+  if (type === "advanced") {
+    return {
+      fontSize: "10.5px",
+      fontWeight: active ? 800 : 600,
+      padding: "2px 8px",
+      borderRadius: "3px",
+      border: `1px solid ${active ? "rgba(168, 85, 247, 0.5)" : "transparent"}`,
+      cursor: "pointer",
+      backgroundColor: active ? "rgba(168, 85, 247, 0.22)" : "transparent",
+      color: active ? "#c084fc" : "var(--so-text-secondary)",
       transition: "all 0.15s ease",
     };
   }

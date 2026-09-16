@@ -11,8 +11,6 @@ import { CS2CAP_PROVIDERS } from "../../../shared/cs2capProviders";
 import {
   passesSmartPreFilters,
   calculateSuggestedListingPrice,
-  mapStrategyToBackendOptions,
-  mapNexusProfileToParams,
   roundToCsFloatStep,
   auditCacheQuantityIntegrity,
   QuantityIntegrityReport,
@@ -503,10 +501,6 @@ export default function OracleDashboard() {
         : await window.electronAPI.oracle.startBatch(filteredItemNames.length);
       activeBatchId = batchStartRes.batchId;
 
-      const evalOptions = mapStrategyToBackendOptions(strategyProfile);
-      const nexusParams = isNexus
-        ? mapNexusProfileToParams(nexusProfile)
-        : undefined;
       const chunkSize = 1500;
 
       for (let i = 0; i < filteredItemNames.length; i += chunkSize) {
@@ -514,13 +508,13 @@ export default function OracleDashboard() {
         const evalRes = isNexus
           ? await window.electronAPI.oracle.evaluateNexus(
               chunk,
-              evalOptions,
-              nexusParams,
+              strategyProfile,
+              nexusProfile,
               activeBatchId || undefined,
             )
           : await window.electronAPI.oracle.evaluate(
               chunk,
-              evalOptions,
+              strategyProfile,
               activeBatchId || undefined,
             );
         totalEvaluated += chunk.length;
