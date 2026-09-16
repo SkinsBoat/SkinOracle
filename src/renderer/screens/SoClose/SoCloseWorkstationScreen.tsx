@@ -405,7 +405,7 @@ export default function SoCloseWorkstationScreen() {
         Object.keys(acceptedRes.map).length === 0
       ) {
         toast.error(
-          "No accepted prices found in memory. Please build accepted buy prices first.",
+          "No accepted prices found in memory. Please calculate accepted prices in Oracle Step 2 first.",
           { id: toastId },
         );
         setIsScanning(false);

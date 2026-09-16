@@ -270,21 +270,21 @@ export default function AboutScreen() {
             <div style={styles.faqCardCol}>
               <div style={styles.faqColHeader}>
                 <span style={styles.paidBadge}>PAID FEATURE</span>
-                <span style={styles.faqColTitle}>Building Accepted Prices</span>
+                <span style={styles.faqColTitle}>Calculating Accepted Prices (Buy Ceilings)</span>
               </div>
               <ul style={styles.faqBulletList}>
                 <li>
-                  <strong>Only Building Prices is Paid:</strong> You only pay when evaluating and building accepted prices.
-                  Once generated, you can use them as your purchasing targets, buy orders, and sniper thresholds across all
+                  <strong>Only Calculating Accepted Prices is Paid:</strong> You only pay when evaluating and calculating accepted prices (buy ceilings).
+                  Once calculated, you can use them as your purchasing targets, buy orders, and sniper thresholds across all
                   app sections completely for free with zero extra charges.
                 </li>
                 <li>
-                  <strong>One-Time Build, Infinite Reuse:</strong> You only need to build your accepted prices once; then
+                  <strong>One-Time Calculation, Infinite Reuse:</strong> You only need to calculate your accepted prices once; then
                   you can freely apply them across CSFloat, DMarket, and SoClose.
                 </li>
                 <li>
                   <strong>Baseline Prerequisite:</strong> An active Price Source (such as Skinsnipe or CS2Cap) is
-                  required as the base feed to build accepted prices.
+                  required as the base feed to calculate accepted prices.
                 </li>
               </ul>
             </div>

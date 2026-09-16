@@ -272,8 +272,8 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             style={styles.headerBadge}
           >
             {evaluatedSummary.lastBuiltAt
-              ? `✓ Built (${evaluatedSummary.totalEvaluated.toLocaleString()} Items)`
-              : "Not Built Yet"}
+              ? `✓ Calculated (${evaluatedSummary.totalEvaluated.toLocaleString()} Items)`
+              : "Not Calculated Yet"}
           </span>
           {isOpen ? (
             <ChevronUp size={18} style={styles.chevronIcon} />

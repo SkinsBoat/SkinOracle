@@ -579,7 +579,7 @@ export default function OracleDashboard() {
         } strategy!`,
       );
     } catch (err: any) {
-      console.error("[Oracle Dashboard] Build Accepted Price error:", err);
+      console.error("[Oracle Dashboard] Calculate Accepted Prices error:", err);
       const isRestartHold =
         err?.message?.includes("preparing for server restart") ||
         err?.message?.includes("ENGINE_RESTART_HOLD") ||
@@ -587,7 +587,7 @@ export default function OracleDashboard() {
 
       if (isRestartHold) {
         toast.error(
-          "⚠️ Server is currently preparing for restart. Building accepted prices is temporarily paused. Please wait 10 seconds.",
+          "⚠️ Server is currently preparing for restart. Calculating accepted prices is temporarily paused. Please wait 10 seconds.",
           { duration: 8000, icon: "⏳" },
         );
       } else if (totalEvaluated > 0) {
@@ -596,7 +596,7 @@ export default function OracleDashboard() {
           { duration: 8000 },
         );
       } else {
-        toast.error(`Build Accepted Price failed: ${err.message}`);
+        toast.error(`Calculate Accepted Prices failed: ${err.message}`);
       }
     } finally {
       // 2. Complete Batch Session & Auto-Refund Any Unused Items
@@ -654,7 +654,7 @@ export default function OracleDashboard() {
 
     setListingSummary((prev) => ({ ...prev, isBatchEvaluating: true }));
     const toastId = toast.loading(
-      `Building suggested listing prices using ${listingStrategy.mode.toUpperCase()} strategy...`,
+      `Generating suggested listing prices using ${listingStrategy.mode.toUpperCase()} strategy...`,
     );
 
     try {
@@ -736,8 +736,8 @@ export default function OracleDashboard() {
         { id: toastId },
       );
     } catch (err: any) {
-      console.error("[Oracle Dashboard] Build Listing Prices error:", err);
-      toast.error(`Build Listing Prices failed: ${err.message}`, {
+      console.error("[Oracle Dashboard] Generate Listing Prices error:", err);
+      toast.error(`Generate Listing Prices failed: ${err.message}`, {
         id: toastId,
       });
       setListingSummary((prev) => ({ ...prev, isBatchEvaluating: false }));
@@ -955,13 +955,13 @@ export default function OracleDashboard() {
           },
         ]);
 
-        toast.success(`Found in Built Accepted Price list!`, { id: toastId });
+        toast.success(`Found in Calculated Accepted Prices list!`, { id: toastId });
       } else {
         setResults([
           { name: hashName, source: "not_found", oracle: null, listings: [] },
         ]);
         toast.error(
-          `Item "${hashName}" is not in the Built Accepted Price list.`,
+          `Item "${hashName}" is not in the Calculated Accepted Prices list.`,
           { id: toastId },
         );
       }
@@ -1031,7 +1031,7 @@ export default function OracleDashboard() {
         onToggleHideTrade={setHideTradeMarkets}
       />
 
-      {/* Step 2: Builder Accepted Price Engine (Buy Ceilings) */}
+      {/* Step 2: Calculate Accepted Prices (Buy Ceilings) */}
       <Step2AcceptedPrices
         isOpen={openSteps.step2}
         onToggle={() => toggleStep("step2")}

@@ -101,7 +101,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
         <div style={styles.body}>
           <p className="card-desc" style={styles.cardDesc}>
             Enter an item market hash name below to look up its accepted price
-            from the built accepted price engine.
+            from the calculated accepted price engine.
           </p>
 
           <form
@@ -233,7 +233,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               )}
                               {r.source === "built_cache" && (
                                 <span className="badge badge-success">
-                                  BUILT CACHE
+                                  CALCULATED CACHE
                                 </span>
                               )}
                               {r.source === "oracle_api" && (

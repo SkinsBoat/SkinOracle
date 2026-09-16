@@ -57,14 +57,14 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
             size={16}
             style={getTitleZapIconStyle(isNexus)}
           />
-          Compute Target Workstation Accepted Prices (
+          Calculate Accepted Prices (Buy Ceilings) (
           {isNexus ? "Nexus Pro Dynamic" : "Standard Baseline"})
         </div>
         <div style={styles.descText}>
           {cacheStatus.itemCount === 0
-            ? "Scan or load price cache above to activate pricing generation"
+            ? "Scan or load price cache above to activate pricing calculation"
             : evaluatedSummary.lastBuiltAt
-              ? `Last built ${formatTimeAgo(evaluatedSummary.lastBuiltAt)} — ${evaluatedSummary.totalEvaluated.toLocaleString()} items generated using ${isNexus ? "NEXUS PRO" : strategyProfilePreset.toUpperCase()} strategy`
+              ? `Last calculated ${formatTimeAgo(evaluatedSummary.lastBuiltAt)} — ${evaluatedSummary.totalEvaluated.toLocaleString()} items evaluated using ${isNexus ? "NEXUS PRO" : strategyProfilePreset.toUpperCase()} strategy`
               : `Send merged price cache to SaaS Backend (${isNexus ? "OracleNexus v2" : "SkinOracle v20"}) → stores accepted prices in local memory`}
         </div>
         {isNexus &&
@@ -137,8 +137,8 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
             <Loader2 size={18} className="spin" style={styles.spinIcon} />
             <span>
               {evaluatedSummary.batchProgress
-                ? `Building… ${evaluatedSummary.batchProgress.percent}% (${evaluatedSummary.batchProgress.current.toLocaleString()}/${evaluatedSummary.batchProgress.total.toLocaleString()})`
-                : `Building… (${evaluatedSummary.totalEvaluated.toLocaleString()})`}
+                ? `Calculating… ${evaluatedSummary.batchProgress.percent}% (${evaluatedSummary.batchProgress.current.toLocaleString()}/${evaluatedSummary.batchProgress.total.toLocaleString()})`
+                : `Calculating… (${evaluatedSummary.totalEvaluated.toLocaleString()})`}
             </span>
           </span>
         ) : isBlocked ? (
@@ -147,12 +147,12 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
           </span>
         ) : evaluatedSummary.lastBuiltAt ? (
           <>
-            <RotateCw size={18} /> Rebuild Accepted Prices (
+            <RotateCw size={18} /> Recalculate Accepted Prices (
             {isNexus ? "Nexus Pro" : "Standard"})
           </>
         ) : (
           <>
-            <Zap size={18} /> Build Accepted Price (
+            <Zap size={18} /> Calculate Accepted Prices (
             {isNexus ? "Nexus Pro" : "Standard"})
           </>
         )}

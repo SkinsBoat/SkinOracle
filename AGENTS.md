@@ -111,8 +111,24 @@ Before submitting changes, creating a commit, or concluding a task in `electron-
 
 ---
 
-## 4. Documentation References
+## 4. UI/UX Language Tone, React TSX Architecture & Platform Rules
 
+To maintain high code quality and an institutional trader user experience:
+
+1. **Language Tone:** Adopt the tone of an institutional CS2 quant trading workstation (like Bloomberg or TradingView). Speak trader intent rather than software plumbing (e.g. *Scan/Stream* instead of *Fetch*, *Calculate/Recalculate* instead of *Build/Rebuild*).
+2. **Intent Separation:** Always qualify **Accepted Prices** with **`(Buy Ceilings)`** and **Listing Prices** with **`(Sell Targets)`** across UI titles, subtitles, and buttons.
+3. **Platform Naming Fidelity (DMarket):** On DMarket, the native term is **"Target" / "Targets"** (e.g., `Create Target`, `Target List`). **NEVER rename DMarket targets to "Buy Orders"**.
+4. **React TSX Styling Standard:** Never write massive inline style literals in the JSX return tree. All styles MUST be extracted out of the component function into a centralized `const styles: Record<string, React.CSSProperties> = { ... }` object at the bottom of the file, using pure helper functions for dynamic styling.
+5. **Modular Component Decomposition:** Avoid monolithic, overly long single files (>1000 lines). Decompose complex views into modular subcomponents under dedicated subdirectories.
+
+For complete specifications, review **[TONE_AND_UI_STYLE_GUIDE.md](./TONE_AND_UI_STYLE_GUIDE.md)**.
+
+---
+
+## 5. Documentation References
+
+- [TONE_AND_UI_STYLE_GUIDE.md](./TONE_AND_UI_STYLE_GUIDE.md) — UI/UX language tone, React TSX styling architecture, and platform terminology.
 - [SECURITY.md](./SECURITY.md) — Security policy, controls overview, and responsible disclosure.
 - [.agent/workflows/electron_security_guide.md](./.agent/workflows/electron_security_guide.md) — Deep technical guide and code patterns.
 > *Note: Internal VPS deployment guides and server operations runbooks (e.g. `PRODUCTION_RELEASE_GUIDE.md`) are strictly gitignored to keep this public repository free of private infrastructure details.*
+

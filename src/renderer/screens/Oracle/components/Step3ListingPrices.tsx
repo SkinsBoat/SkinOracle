@@ -74,7 +74,7 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
             style={styles.headerBadge}
           >
             {listingSummary.lastBuiltAt
-              ? `✓ Built (${listingSummary.totalEvaluated.toLocaleString()} Items - ${listingStrategy.mode.toUpperCase()})`
+              ? `✓ Generated (${listingSummary.totalEvaluated.toLocaleString()} Items - ${listingStrategy.mode.toUpperCase()})`
               : "Not Generated Yet"}
           </span>
           {isOpen ? (
@@ -306,16 +306,16 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
             >
               {listingSummary.isBatchEvaluating ? (
                 <>
-                  <Loader2 size={18} className="spin" /> Building Listing… (
+                  <Loader2 size={18} className="spin" /> Generating Listings… (
                   {listingSummary.totalEvaluated.toLocaleString()})
                 </>
               ) : listingSummary.lastBuiltAt ? (
                 <>
-                  <RotateCw size={18} /> Rebuild Listing Prices
+                  <RotateCw size={18} /> Regenerate Listing Prices
                 </>
               ) : (
                 <>
-                  <Tag size={18} /> Build Listing Prices
+                  <Tag size={18} /> Generate Listing Prices
                 </>
               )}
             </button>
