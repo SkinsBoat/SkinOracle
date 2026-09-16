@@ -72,7 +72,7 @@ export const ActiveListingsView: React.FC<ActiveListingsViewProps> = ({
                 className="spin"
                 style={{ color: "var(--so-primary)" }}
               />
-              <div>Fetching active sell offers from DMarket...</div>
+              <div>Loading active sell offers from DMarket...</div>
             </div>
           ) : (
             <div>

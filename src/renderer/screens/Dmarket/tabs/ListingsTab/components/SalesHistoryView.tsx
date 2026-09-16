@@ -37,7 +37,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                 className="spin"
                 style={{ color: "var(--so-primary)" }}
               />
-              <div>Fetching sales history from DMarket...</div>
+              <div>Loading sales history from DMarket...</div>
             </div>
           ) : (
             <div>

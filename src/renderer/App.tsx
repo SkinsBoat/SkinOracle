@@ -12,12 +12,14 @@ import {
   ShieldAlert,
   X,
   Target,
+  Info,
 } from "lucide-react";
 import {
   oracleLogo,
   csfloatLogo,
   skinsLogo,
   dmarketLogo,
+  skinsBoatLogo,
 } from "../../assets/images";
 import RegisterScreen from "./screens/Onboarding/RegisterScreen";
 import OtpScreen from "./screens/Onboarding/OtpScreen";
@@ -28,6 +30,7 @@ import DmarketWorkstation from "./screens/Dmarket/DmarketWorkstation";
 import SoCloseWorkstationScreen from "./screens/SoClose/SoCloseWorkstationScreen";
 import SkinscomWorkstation from "./screens/Skinscom/SkinscomWorkstation";
 import BalanceDashboard from "./screens/Balance/BalanceDashboard";
+import AboutScreen from "./screens/About/AboutScreen";
 import UpdateNotification from "./components/UpdateNotification";
 import MaintenanceScreen from "./screens/MaintenanceScreen";
 import VersionBlockedScreen from "./screens/VersionBlockedScreen";
@@ -160,7 +163,7 @@ export default function App() {
         >
           <img
             src={oracleLogo}
-            alt="SkinOracle"
+            alt="Skin Oracle"
             style={{
               width: 64,
               height: 64,
@@ -170,7 +173,7 @@ export default function App() {
           />
         </div>
         <div className="splash-text">
-          SkinOracle{" "}
+          Skin Oracle{" "}
           <span
             style={{
               fontSize: "12px",
@@ -338,7 +341,7 @@ export default function App() {
                   >
                     <img
                       src={oracleLogo}
-                      alt="SkinOracle Logo"
+                      alt="Skin Oracle Logo"
                       style={{
                         width: "32px",
                         height: "32px",
@@ -362,7 +365,7 @@ export default function App() {
                           letterSpacing: "-0.3px",
                         }}
                       >
-                        SkinOracle
+                        Skin Oracle
                       </span>
                       <span
                         style={{
@@ -426,8 +429,8 @@ export default function App() {
                 >
                   <img
                     src={oracleLogo}
-                    alt="SkinOracle (Beta)"
-                    title="SkinOracle (Beta)"
+                    alt="Skin Oracle (Beta)"
+                    title="Skin Oracle (Beta)"
                     style={{
                       width: "34px",
                       height: "34px",
@@ -743,6 +746,35 @@ export default function App() {
                   <Settings size={18} style={{ flexShrink: 0 }} />
                   {isSidebarExpanded && <span>Settings</span>}
                 </NavLink>
+
+                <NavLink
+                  to="/about"
+                  title={!isSidebarExpanded ? "About Skin Oracle" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) => ({
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
+                    gap: "12px",
+                    padding: "10px 12px",
+                    borderRadius: "var(--so-radius-sm)",
+                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
+                    backgroundColor: isActive
+                      ? "var(--so-primary)"
+                      : "transparent",
+                    textDecoration: "none",
+                    fontWeight: 700,
+                    fontSize: "13.5px",
+                    transition: "all 0.15s ease",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                  })}
+                >
+                  <Info size={18} style={{ flexShrink: 0 }} />
+                  {isSidebarExpanded && <span>About</span>}
+                </NavLink>
               </nav>
             </div>
 
@@ -756,6 +788,7 @@ export default function App() {
                 width: "100%",
               }}
             >
+
               <button
                 onClick={async () => {
                   if (window.electronAPI?.auth) {
@@ -800,7 +833,7 @@ export default function App() {
                     opacity: 0.7,
                   }}
                 >
-                  SkinOracle is an independent tool not affiliated with Valve,
+                  Skin Oracle is an independent tool not affiliated with Valve,
                   CSFloat, DMarket, or any listed marketplace. All trademarks
                   belong to their respective owners.
                 </div>
@@ -827,6 +860,7 @@ export default function App() {
               {/* <Route path="/skinscom" element={<SkinscomWorkstation />} /> */}
               <Route path="/balance" element={<BalanceDashboard />} />
               <Route path="/settings" element={<ApiKeysScreen />} />
+              <Route path="/about" element={<AboutScreen />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>

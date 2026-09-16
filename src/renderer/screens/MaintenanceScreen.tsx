@@ -57,7 +57,7 @@ export default function MaintenanceScreen() {
           marginBottom: "32px",
         }}
       >
-        SkinOracle is currently undergoing scheduled maintenance to improve
+        Skin Oracle is currently undergoing scheduled maintenance to improve
         system performance and reliability. All services are temporarily paused.
       </p>
 

@@ -776,12 +776,12 @@ export default function OracleDashboard() {
       await loadCacheKeys();
 
       if (result.criticalError) {
-        toast.error(`Fetch Stopped: ${result.criticalError}`, {
+        toast.error(`Scan Stopped: ${result.criticalError}`, {
           id: toastId,
           duration: 8000,
         });
       } else if (result.aborted) {
-        toast.error("Fetch process stopped by user.", { id: toastId });
+        toast.error("Scan stopped by user.", { id: toastId });
       } else if (result.errorCount && result.errorCount > 0) {
         toast.success(
           `Completed with ${result.errorCount} error(s). Cached ${result.itemCount.toLocaleString()} items!`,
@@ -789,12 +789,12 @@ export default function OracleDashboard() {
         );
       } else {
         toast.success(
-          `Fetched prices for ${result.itemCount.toLocaleString()} items across ${marketCount} Skinsnipe markets!`,
+          `Updated prices for ${result.itemCount.toLocaleString()} items across ${marketCount} Skinsnipe markets!`,
           { id: toastId },
         );
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to fetch prices from Skinsnipe", {
+      toast.error(err.message || "Failed to scan prices from Skinsnipe", {
         id: toastId,
         duration: 8000,
       });

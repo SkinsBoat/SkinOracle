@@ -16,6 +16,7 @@ import whiteMarketLogo from './white-market.png';
 import tradeItLogo from './tradit.svg';
 import skinSwapLogo from './logo-skinswap.png';
 import SkinsBaotLogo from './skin1.png';
+import skinsBoatLogo from './skinsboatlogo.jpg';
 import skinportLogo from './icon-skinport.png';
 import csmoneyLogo from './icon-csmoney.png';
 
@@ -84,5 +85,6 @@ export {
   swapggLogo,
   youpinLogo,
   steamLogo,
+  skinsBoatLogo,
 };
 

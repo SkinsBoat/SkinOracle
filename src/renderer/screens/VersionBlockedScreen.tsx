@@ -155,7 +155,7 @@ export default function VersionBlockedScreen({
           }}
         >
           {gateState.reason ||
-            "This build of SkinOracle is outdated and cannot connect to pricing and trading services."}
+            "This build of Skin Oracle is outdated and cannot connect to pricing and trading services."}
         </p>
 
         {/* Version Comparison Box */}
@@ -251,7 +251,7 @@ export default function VersionBlockedScreen({
                       color: "#ffffff",
                     }}
                   >
-                    SkinOracle v{updateState.info?.version} is available!
+                    Skin Oracle v{updateState.info?.version} is available!
                   </div>
                   <div
                     style={{
@@ -413,7 +413,7 @@ export default function VersionBlockedScreen({
                     Update Ready to Install (v{updateState.info?.version})
                   </div>
                   <div style={{ fontSize: "12px", color: "#94a3b8" }}>
-                    Restart SkinOracle to complete update installation.
+                    Restart Skin Oracle to complete update installation.
                   </div>
                 </div>
               </div>

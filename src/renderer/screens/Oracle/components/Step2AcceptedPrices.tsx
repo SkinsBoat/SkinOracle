@@ -184,7 +184,7 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
       setSimulatedDate(active);
       if (active) {
         toast(
-          `Simulating date: ${active}. Any refetched prices will be recorded as this date.`,
+          `Simulating date: ${active}. Any newly updated prices will be recorded as this date.`,
         );
       } else {
         toast("Reset to live today date.");

@@ -62,7 +62,7 @@ export const CostLedgerSummary: React.FC<CostLedgerSummaryProps> = ({
         </div>
         <div style={styles.descText}>
           {cacheStatus.itemCount === 0
-            ? "Fetch or load price cache above to activate pricing generation"
+            ? "Scan or load price cache above to activate pricing generation"
             : evaluatedSummary.lastBuiltAt
               ? `Last built ${formatTimeAgo(evaluatedSummary.lastBuiltAt)} — ${evaluatedSummary.totalEvaluated.toLocaleString()} items generated using ${isNexus ? "NEXUS PRO" : strategyProfilePreset.toUpperCase()} strategy`
               : `Send merged price cache to SaaS Backend (${isNexus ? "OracleNexus v2" : "SkinOracle v20"}) → stores accepted prices in local memory`}

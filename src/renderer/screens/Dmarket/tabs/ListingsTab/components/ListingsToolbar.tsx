@@ -333,7 +333,7 @@ export const ListingsToolbar: React.FC<ListingsToolbarProps> = ({
                   gap: "6px",
                   fontWeight: 700,
                 }}
-                title="Fetch currently cached inventory from DMarket"
+                title="Sync currently cached inventory from DMarket"
               >
                 {inventoryLoading ? (
                   <Loader2 size={13} className="spin" />

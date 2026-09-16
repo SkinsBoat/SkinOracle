@@ -658,7 +658,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
         {orders.length === 0 ? (
           <div className="card" style={styles.emptyCard}>
             {loading ? (
-              <div>Fetching live buy orders from CSFloat...</div>
+              <div>Loading live buy orders from CSFloat...</div>
             ) : (
               <div>
                 <Package

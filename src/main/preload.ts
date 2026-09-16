@@ -265,6 +265,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // ── App Helpers ────────────────────────────────────────────────
   app: {
     openExternal: (url: string) => safeInvoke("app:open-external", url),
+    getVersion: () => safeInvoke<string>("app:get-version"),
   },
 
   // ── System Configuration ───────────────────────────────────────

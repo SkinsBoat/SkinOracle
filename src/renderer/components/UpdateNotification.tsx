@@ -158,8 +158,8 @@ export default function UpdateNotification({
                   }}
                 >
                   {isMandatory
-                    ? "This update is required to connect to SkinOracle services."
-                    : "A new version of SkinOracle is ready to download."}
+                    ? "This update is required to connect to Skin Oracle services."
+                    : "A new version of Skin Oracle is ready to download."}
                 </p>
               </div>
             </div>

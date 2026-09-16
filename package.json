@@ -1,7 +1,7 @@
 {
   "name": "skin-oracle",
   "version": "0.1.21",
-  "description": "SkinOracle Desktop App",
+  "description": "Skin Oracle Desktop App - Powered by SkinsBoat",
   "author": {
     "name": "Skin Oracle",
     "email": "oracle@app.com"
@@ -57,7 +57,7 @@
   },
   "build": {
     "appId": "com.skinoracle.app",
-    "productName": "SkinOracle",
+    "productName": "Skin Oracle",
     "directories": {
       "output": "release"
     },

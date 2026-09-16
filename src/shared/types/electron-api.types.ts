@@ -210,6 +210,7 @@ export interface ElectronAPI {
   };
   app: {
     openExternal: (url: string) => Promise<void>;
+    getVersion: () => Promise<string>;
   };
   system: {
     getConfig: () => Promise<any>;

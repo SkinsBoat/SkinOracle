@@ -822,7 +822,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           {loading ? (
             <div style={styles.loadingWrapper}>
               <Loader2 size={32} className="spin" style={styles.loadingSpinner} />
-              <div>Fetching active targets from DMarket...</div>
+              <div>Loading active targets from DMarket...</div>
             </div>
           ) : filteredTargets.length === 0 ? (
             <div className="card" style={styles.emptyCard}>

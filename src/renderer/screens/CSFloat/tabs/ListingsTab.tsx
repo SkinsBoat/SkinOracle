@@ -375,7 +375,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
         {inventory.length === 0 ? (
           <div className="card" style={styles.emptyCard}>
             {inventoryLoading ? (
-              <div>Fetching CSFloat user inventory...</div>
+              <div>Loading CSFloat user inventory...</div>
             ) : (
               <div>
                 <Tag size={32} style={styles.emptyIcon} />

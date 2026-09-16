@@ -582,11 +582,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   >
                     {cacheStatus.isFetching ? (
                       <>
-                        <Loader2 size={16} className="spin" /> Fetching Skinsnipe Prices...
+                        <Loader2 size={16} className="spin" /> Scanning Skinsnipe Prices...
                       </>
                     ) : (
                       <>
-                        <Radio size={16} /> Fetch {selectedMarkets.length} Skinsnipe Markets
+                        <Radio size={16} /> Scan {selectedMarkets.length} Skinsnipe Markets
                       </>
                     )}
                   </button>
@@ -678,7 +678,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             className="spin"
                             style={styles.primaryIcon}
                           />
-                          Fetching Market {fetchProgress.currentMarketIndex} of{" "}
+                          Scanning Market {fetchProgress.currentMarketIndex} of{" "}
                           {fetchProgress.totalMarkets}:
                           <span style={styles.progressCurrentMarketPrimary}>
                             <MarketLogo
@@ -697,7 +697,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             className="spin"
                             style={styles.cyanTextIcon}
                           />
-                          Rate-Limit Cooldown: Fetching{" "}
+                          Rate-Limit Cooldown: Scanning{" "}
                           <span style={styles.progressCurrentMarketCyan}>
                             <MarketLogo
                               marketId={fetchProgress.currentMarket}
@@ -716,11 +716,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                       ) : fetchProgress.criticalError ||
                         fetchProgress.status === "aborted" ? (
                         <span style={styles.progressAbortedText}>
-                          <AlertCircle size={16} /> Fetch Process Aborted
+                          <AlertCircle size={16} /> Scan Process Aborted
                         </span>
                       ) : (
                         <span style={styles.progressCompletedText}>
-                          <Check size={16} /> Fetch Cycle Completed
+                          <Check size={16} /> Market Scan Completed
                         </span>
                       )}
                     </div>
@@ -741,7 +741,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           onClick={onCancelFetch}
                           style={styles.stopFetchingButton}
                         >
-                          <Square size={11} fill="#ffffff" /> Stop Fetching
+                          <Square size={11} fill="#ffffff" /> Stop Scan
                         </button>
                       )}
                     </div>

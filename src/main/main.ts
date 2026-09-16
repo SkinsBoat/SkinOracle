@@ -33,6 +33,7 @@ function createWindow() {
   const isDev = !!process.env.VITE_DEV_SERVER_URL;
 
   const win = new BrowserWindow({
+    title: "Skin Oracle",
     width: 1400,
     height: 900,
     minWidth: 1200,
@@ -110,18 +111,15 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
-  // Initialize auto-updater service & check for updates on startup
+  // Initialize auto-updater service (save API calls: only auto-check if version is strictly blocked)
   win.webContents.on("did-finish-load", () => {
     autoUpdateService.init();
-    // In production or if the version is blocked, check for updates immediately
-    const shouldCheck = !isDev || !currentGateResult?.allowed;
-    if (shouldCheck) {
-      const delay = !currentGateResult?.allowed ? 500 : 2500;
+    if (currentGateResult && !currentGateResult.allowed) {
       setTimeout(() => {
         autoUpdateService.checkForUpdates().catch((err) => {
-          console.warn("[AutoUpdate] Startup check skipped/failed:", err);
+          console.warn("[AutoUpdate] Blocked version check failed:", err);
         });
-      }, delay);
+      }, 500);
     }
   });
 }
@@ -134,6 +132,10 @@ ipcMain.handle("app:open-external", async (_, url: string) => {
 
 ipcMain.handle("app:open-releases", async () => {
   await shell.openExternal(APP_RELEASES_URL);
+});
+
+ipcMain.handle("app:get-version", () => {
+  return app.getVersion();
 });
 
 ipcMain.handle("system:get-config", async () => {

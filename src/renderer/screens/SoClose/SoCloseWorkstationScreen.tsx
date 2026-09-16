@@ -737,7 +737,7 @@ export default function SoCloseWorkstationScreen() {
                   )}
                   {cacheStatus.lastFetchedAt && (
                     <span
-                      title={`Fetched at: ${new Date(cacheStatus.lastFetchedAt).toLocaleString()}`}
+                      title={`Updated at: ${new Date(cacheStatus.lastFetchedAt).toLocaleString()}`}
                       style={{
                         fontSize: "10.5px",
                         fontWeight: 600,
@@ -747,7 +747,7 @@ export default function SoCloseWorkstationScreen() {
                         borderRadius: "4px",
                       }}
                     >
-                      Fetched {formatTimeAgo(cacheStatus.lastFetchedAt)}
+                      Updated {formatTimeAgo(cacheStatus.lastFetchedAt)}
                     </span>
                   )}
                 </div>

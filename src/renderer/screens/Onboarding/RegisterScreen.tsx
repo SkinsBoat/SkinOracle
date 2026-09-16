@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Zap, Mail } from "lucide-react";
-import { oracleLogo } from "../../../../assets/images";
+import { oracleLogo, skinsBoatLogo } from "../../../../assets/images";
 
 interface Props {
   onSuccess: () => void;
@@ -42,7 +42,7 @@ export default function RegisterScreen({ onSuccess }: Props) {
         <div className="auth-logo-badge" style={{ background: "transparent" }}>
           <img
             src={oracleLogo}
-            alt="SkinOracle"
+            alt="Skin Oracle"
             style={{
               width: 56,
               height: 56,
@@ -51,7 +51,7 @@ export default function RegisterScreen({ onSuccess }: Props) {
             }}
           />
         </div>
-        <h1 className="auth-title">SkinOracle</h1>
+        <h1 className="auth-title">Skin Oracle</h1>
         <p className="auth-subtitle">
           Enter your trader email to authenticate workstation access
         </p>
@@ -113,6 +113,42 @@ export default function RegisterScreen({ onSuccess }: Props) {
             </div>
           )}
         </form>
+
+        <div
+          style={{
+            marginTop: "22px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            fontSize: "11px",
+            color: "var(--so-text-muted)",
+          }}
+        >
+          <span>A product of</span>
+          <div
+            style={{
+              width: "18px",
+              height: "18px",
+              borderRadius: "4px",
+              backgroundColor: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              padding: "1px",
+            }}
+          >
+            <img
+              src={skinsBoatLogo}
+              alt="SkinsBoat"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </div>
+          <span style={{ fontWeight: 700, color: "var(--so-text-secondary)" }}>
+            SkinsBoat
+          </span>
+        </div>
       </div>
     </div>
   );

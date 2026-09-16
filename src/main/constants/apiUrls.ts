@@ -75,6 +75,12 @@ export const SAAS_AUTH_REGISTER = `${SAAS_API}/auth/register`;
 export const SAAS_AUTH_VERIFY = `${SAAS_API}/auth/verify`;
 export const SAAS_APP_VERSION_CHECK = `${SAAS_API}/app/version-check`;
 
-// ── Application Releases ──────────────────────────────────────────
+// ── Application Releases & Community ──────────────────────────────
 export const APP_RELEASES_URL =
   "https://github.com/SkinsBoat/SkinOracle/releases/latest";
+export const DISCORD_COMMUNITY_URL = "https://discord.gg/b62feTH5kS";
+export const TELEGRAM_COMMUNITY_URL = "https://t.me/skinsboat";
+export const SUPPORT_EMAIL = "support@skinsboat.com";
+export const SKINSBOAT_WEBSITE_URL = "https://skinsboat.com/oracle";
+export const GITHUB_REPO_URL = "https://github.com/SkinsBoat/SkinOracle";
+

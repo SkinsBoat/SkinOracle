@@ -288,7 +288,7 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
               </div>
               <div style={styles.actionDesc}>
                 {cacheStatus.itemCount === 0
-                  ? "Fetch or load price cache above to activate listing price generation"
+                  ? "Scan or load price cache above to activate listing price generation"
                   : listingSummary.lastBuiltAt
                     ? `Last built ${formatTimeAgo(listingSummary.lastBuiltAt)} — ${listingSummary.totalEvaluated.toLocaleString()} items generated using ${listingStrategy.mode.toUpperCase()} strategy`
                     : "Calculates optimal listing prices for market items based on active market data"}
