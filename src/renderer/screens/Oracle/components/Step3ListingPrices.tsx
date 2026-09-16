@@ -15,7 +15,6 @@ import {
   RotateCw,
 } from "lucide-react";
 import { ListingPriceStrategy } from "../../../store/useOracleStore";
-import { S } from "../OracleDashboard.styles";
 import { formatTimeAgo } from "../utils/oracleUtils";
 
 interface Step3ListingPricesProps {
@@ -48,54 +47,20 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
   onBuildListingPrices,
 }) => {
   return (
-    <div
-      className="card"
-      style={{
-        border: "1px solid var(--so-border-medium)",
-        padding: 0,
-        overflow: "hidden",
-      }}
-    >
+    <div className="card" style={styles.cardContainer}>
       {/* Accordion Header Bar */}
       <div
         onClick={onToggle}
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "16px 20px",
-          backgroundColor: isOpen
-            ? "var(--so-surface-panel)"
-            : "var(--so-surface-card)",
-          borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
-          cursor: "pointer",
-          userSelect: "none",
-          transition: "background-color 0.15s ease",
-        }}
+        style={getAccordionHeaderStyle(isOpen)}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={styles.headerLeft}>
           <div>
-            <div
-              style={{
-                fontSize: "15px",
-                fontWeight: 800,
-                color: "var(--so-text-primary)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <Tag size={18} style={{ color: "var(--so-success-text)" }} />{" "}
+            <div style={styles.headerTitle}>
+              <Tag size={18} style={styles.headerTagIcon} />{" "}
               Generate Listing Prices (Sell Targets)
             </div>
             {!isOpen && (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "var(--so-text-muted)",
-                  marginTop: "2px",
-                }}
-              >
+              <div style={styles.headerSubtitle}>
                 Configure selling strategy, outlier dump protection, & compute
                 optimal listing prices
               </div>
@@ -103,38 +68,32 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={styles.headerRight}>
           <span
             className={`badge ${listingSummary.lastBuiltAt ? "badge-success" : "badge-ghost"}`}
-            style={{ fontSize: "11px" }}
+            style={styles.headerBadge}
           >
             {listingSummary.lastBuiltAt
               ? `✓ Built (${listingSummary.totalEvaluated.toLocaleString()} Items - ${listingStrategy.mode.toUpperCase()})`
               : "Not Generated Yet"}
           </span>
           {isOpen ? (
-            <ChevronUp size={18} style={{ color: "var(--so-text-muted)" }} />
+            <ChevronUp size={18} style={styles.chevronIcon} />
           ) : (
-            <ChevronDown size={18} style={{ color: "var(--so-text-muted)" }} />
+            <ChevronDown size={18} style={styles.chevronIcon} />
           )}
         </div>
       </div>
 
       {isOpen && (
-        <div style={{ padding: "20px" }}>
-          <p
-            style={{
-              fontSize: "12.5px",
-              color: "var(--so-text-muted)",
-              marginBottom: "16px",
-            }}
-          >
+        <div style={styles.body}>
+          <p style={styles.bodyDesc}>
             Configure how workstations compute optimal selling and listing
             prices for your items based on active market data.
           </p>
 
           {/* Listing Strategy Mode Options */}
-          <div style={S.gridFourCols}>
+          <div style={styles.strategyGrid}>
             {/* 1. Equal to Lowest */}
             <button
               type="button"
@@ -145,43 +104,12 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                   offsetPercent: 0,
                 }))
               }
-              style={{
-                padding: "12px 14px",
-                borderRadius: "var(--so-radius-sm)",
-                backgroundColor:
-                  listingStrategy.mode === "lowest" &&
-                  listingStrategy.offsetPercent === 0
-                    ? "rgba(16, 185, 129, 0.12)"
-                    : "var(--so-surface-input)",
-                border:
-                  listingStrategy.mode === "lowest" &&
-                  listingStrategy.offsetPercent === 0
-                    ? "1.5px solid var(--so-success-text)"
-                    : "1px solid var(--so-border-subtle)",
-                cursor: "pointer",
-                textAlign: "left",
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-              }}
+              style={getModeButtonStyle("lowest", listingStrategy.mode, listingStrategy.offsetPercent)}
             >
-              <div
-                style={{
-                  fontWeight: 800,
-                  fontSize: "13px",
-                  color:
-                    listingStrategy.mode === "lowest" &&
-                    listingStrategy.offsetPercent === 0
-                      ? "var(--so-success-text)"
-                      : "var(--so-text-primary)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
+              <div style={getModeTitleStyle("lowest", listingStrategy.mode, listingStrategy.offsetPercent)}>
                 <Zap size={14} /> Equal to Lowest Price
               </div>
-              <div style={S.sectionDesc}>
+              <div style={styles.modeDesc}>
                 Match cheapest active market listing ($lowestPrice)
               </div>
             </button>
@@ -196,40 +124,12 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                   offsetPercent: 0,
                 }))
               }
-              style={{
-                padding: "12px 14px",
-                borderRadius: "var(--so-radius-sm)",
-                backgroundColor:
-                  listingStrategy.mode === "average"
-                    ? "rgba(70, 48, 235, 0.12)"
-                    : "var(--so-surface-input)",
-                border:
-                  listingStrategy.mode === "average"
-                    ? "1.5px solid var(--so-primary)"
-                    : "1px solid var(--so-border-subtle)",
-                cursor: "pointer",
-                textAlign: "left",
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-              }}
+              style={getModeButtonStyle("average", listingStrategy.mode, listingStrategy.offsetPercent)}
             >
-              <div
-                style={{
-                  fontWeight: 800,
-                  fontSize: "13px",
-                  color:
-                    listingStrategy.mode === "average"
-                      ? "var(--so-primary)"
-                      : "var(--so-text-primary)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
+              <div style={getModeTitleStyle("average", listingStrategy.mode, listingStrategy.offsetPercent)}>
                 <Scale size={14} /> Equal to Market Average
               </div>
-              <div style={S.sectionDesc}>
+              <div style={styles.modeDesc}>
                 List at overall fair market average ($averageMarketPrice)
               </div>
             </button>
@@ -244,40 +144,12 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                   offsetPercent: -1,
                 }))
               }
-              style={{
-                padding: "12px 14px",
-                borderRadius: "var(--so-radius-sm)",
-                backgroundColor:
-                  listingStrategy.mode === "undercut"
-                    ? "rgba(6, 182, 212, 0.12)"
-                    : "var(--so-surface-input)",
-                border:
-                  listingStrategy.mode === "undercut"
-                    ? "1.5px solid var(--so-cyan-text)"
-                    : "1px solid var(--so-border-subtle)",
-                cursor: "pointer",
-                textAlign: "left",
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-              }}
+              style={getModeButtonStyle("undercut", listingStrategy.mode, listingStrategy.offsetPercent)}
             >
-              <div
-                style={{
-                  fontWeight: 800,
-                  fontSize: "13px",
-                  color:
-                    listingStrategy.mode === "undercut"
-                      ? "var(--so-cyan-text)"
-                      : "var(--so-text-primary)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
+              <div style={getModeTitleStyle("undercut", listingStrategy.mode, listingStrategy.offsetPercent)}>
                 <Scissors size={14} /> Undercut Lowest (-1%)
               </div>
-              <div style={S.sectionDesc}>
+              <div style={styles.modeDesc}>
                 List 1% below cheapest listing for fast sale
               </div>
             </button>
@@ -292,70 +164,21 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                   offsetPercent: 2,
                 }))
               }
-              style={{
-                padding: "12px 14px",
-                borderRadius: "var(--so-radius-sm)",
-                backgroundColor:
-                  listingStrategy.mode === "markup"
-                    ? "rgba(245, 158, 11, 0.12)"
-                    : "var(--so-surface-input)",
-                border:
-                  listingStrategy.mode === "markup"
-                    ? "1.5px solid var(--so-warning-text)"
-                    : "1px solid var(--so-border-subtle)",
-                cursor: "pointer",
-                textAlign: "left",
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-              }}
+              style={getModeButtonStyle("markup", listingStrategy.mode, listingStrategy.offsetPercent)}
             >
-              <div
-                style={{
-                  fontWeight: 800,
-                  fontSize: "13px",
-                  color:
-                    listingStrategy.mode === "markup"
-                      ? "var(--so-warning-text)"
-                      : "var(--so-text-primary)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
+              <div style={getModeTitleStyle("markup", listingStrategy.mode, listingStrategy.offsetPercent)}>
                 <TrendingUp size={14} /> Markup (+2%)
               </div>
-              <div style={S.sectionDesc}>
+              <div style={styles.modeDesc}>
                 List 2% above lowest price to boost margin
               </div>
             </button>
           </div>
 
           {/* Forced Filtered Categories Banner for Listing Engine */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "10px 14px",
-              borderRadius: "var(--so-radius-sm)",
-              backgroundColor: "var(--so-surface-input)",
-              border: "1px solid var(--so-border-subtle)",
-              marginTop: "16px",
-              marginBottom: "16px",
-            }}
-          >
-            <Check
-              size={14}
-              style={{ color: "var(--so-text-muted)", flexShrink: 0 }}
-            />
-            <div
-              style={{
-                fontSize: "12px",
-                fontWeight: 600,
-                color: "var(--so-text-muted)",
-              }}
-            >
+          <div style={styles.excludedBanner}>
+            <Check size={14} style={styles.excludedBannerIcon} />
+            <div style={styles.excludedBannerText}>
               Forced Excluded Categories: Charms, Cases, Keys, Music Kits,
               Agents, Patches & Graffiti are automatically filtered out from
               listing price calculation.
@@ -363,42 +186,11 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
           </div>
 
           {/* Grouped Strategy Control Cards */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "14px",
-              marginTop: "16px",
-            }}
-          >
+          <div style={styles.controlCardsGrid}>
             {/* Card 1: Outlier Protection */}
-            <div
-              style={{
-                padding: "14px 16px",
-                borderRadius: "var(--so-radius-md)",
-                backgroundColor: "var(--so-surface-panel)",
-                border: "1px solid var(--so-border-subtle)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    cursor: "pointer",
-                    userSelect: "none",
-                  }}
-                >
+            <div style={styles.controlCard}>
+              <div style={styles.cardHeaderRow}>
+                <label style={styles.checkboxLabel}>
                   <input
                     type="checkbox"
                     checked={listingStrategy.ignoreOutliers ?? true}
@@ -408,58 +200,26 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                         ignoreOutliers: e.target.checked,
                       }))
                     }
-                    style={{
-                      width: "16px",
-                      height: "16px",
-                      accentColor: "var(--so-primary)",
-                      cursor: "pointer",
-                    }}
+                    style={styles.checkboxInput}
                   />
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      color: "var(--so-text-primary)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
+                  <span style={styles.cardTitle}>
                     <ShieldAlert
                       size={15}
-                      style={{ color: "var(--so-warning-text)" }}
+                      style={styles.outlierIcon}
                     />{" "}
                     Ignore Outlier Dump Listings
                   </span>
                 </label>
                 <span
                   title="Example: If an item's Market Average is $100 and threshold is 30%, any panic seller listing below $70 is ignored as a price dump so your listing price isn't dragged down artificially."
-                  style={{
-                    cursor: "help",
-                    color: "var(--so-primary)",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
+                  style={styles.helpIconWrapper}
                 >
                   <HelpCircle size={15} />
                 </span>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  opacity: (listingStrategy.ignoreOutliers ?? true) ? 1 : 0.45,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--so-text-muted)",
-                    fontWeight: 600,
-                  }}
-                >
+              <div style={getOutlierRowStyle(listingStrategy.ignoreOutliers ?? true)}>
+                <span style={styles.controlRowLabel}>
                   Skip listings more than
                 </span>
                 <input
@@ -473,79 +233,31 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                         parseFloat(e.target.value) || 0,
                     }))
                   }
-                  style={{
-                    ...S.numInputSmall,
-                    width: "56px",
-                    textAlign: "center",
-                  }}
+                  style={styles.numInputSmall}
                 />
-                <span
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--so-text-secondary)",
-                    fontWeight: 700,
-                  }}
-                >
+                <span style={styles.unitText}>
                   % below Market Avg
                 </span>
               </div>
             </div>
 
             {/* Card 2: Custom Strategy Offset */}
-            <div
-              style={{
-                padding: "14px 16px",
-                borderRadius: "var(--so-radius-md)",
-                backgroundColor: "var(--so-surface-panel)",
-                border: "1px solid var(--so-border-subtle)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "var(--so-text-primary)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <Sliders size={15} style={{ color: "var(--so-primary)" }} />{" "}
+            <div style={styles.controlCard}>
+              <div style={styles.cardHeaderRow}>
+                <span style={styles.cardTitle}>
+                  <Sliders size={15} style={styles.offsetIcon} />{" "}
                   Custom Strategy Offset
                 </span>
                 <span
                   title="Adjust your final computed listing price up or down by a percentage offset. Positive values increase your selling price, negative values lower it."
-                  style={{
-                    cursor: "help",
-                    color: "var(--so-primary)",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
+                  style={styles.helpIconWrapper}
                 >
                   <HelpCircle size={15} />
                 </span>
               </div>
 
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <span
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--so-text-muted)",
-                    fontWeight: 600,
-                  }}
-                >
+              <div style={styles.controlRow}>
+                <span style={styles.controlRowLabel}>
                   Price Offset Adjustment:
                 </span>
                 <input
@@ -558,19 +270,9 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                       offsetPercent: parseFloat(e.target.value) || 0,
                     }))
                   }
-                  style={{
-                    ...S.numInputMedium,
-                    width: "70px",
-                    textAlign: "center",
-                  }}
+                  style={styles.numInputMedium}
                 />
-                <span
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--so-text-secondary)",
-                    fontWeight: 700,
-                  }}
-                >
+                <span style={styles.unitText}>
                   %
                 </span>
               </div>
@@ -578,13 +280,13 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
           </div>
 
           {/* Action Trigger Box */}
-          <div style={S.actionTriggerBox}>
-            <div style={{ flex: 1 }}>
-              <div style={S.actionTitle}>
-                <Tag size={16} style={{ color: "var(--so-success-text)" }} />{" "}
+          <div style={styles.actionTriggerBox}>
+            <div style={styles.actionContent}>
+              <div style={styles.actionTitle}>
+                <Tag size={16} style={styles.actionTitleIcon} />{" "}
                 Compute Target Workstation Listing / Selling Prices
               </div>
-              <div style={S.actionDesc}>
+              <div style={styles.actionDesc}>
                 {cacheStatus.itemCount === 0
                   ? "Fetch or load price cache above to activate listing price generation"
                   : listingSummary.lastBuiltAt
@@ -600,7 +302,7 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                 cacheStatus.itemCount === 0 || listingSummary.isBatchEvaluating
               }
               className="btn btn-primary btn-lg"
-              style={S.actionBtnListing}
+              style={styles.actionBtnListing}
             >
               {listingSummary.isBatchEvaluating ? (
                 <>
@@ -623,3 +325,294 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
     </div>
   );
 };
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 20px",
+    backgroundColor: isOpen
+      ? "var(--so-surface-panel)"
+      : "var(--so-surface-card)",
+    borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
+    cursor: "pointer",
+    userSelect: "none",
+    transition: "background-color 0.15s ease",
+  };
+}
+
+function getModeButtonStyle(
+  modeKey: "lowest" | "average" | "undercut" | "markup",
+  currentMode: string,
+  offsetPercent: number
+): React.CSSProperties {
+  const isLowestActive = modeKey === "lowest" && currentMode === "lowest" && offsetPercent === 0;
+  const isAverageActive = modeKey === "average" && currentMode === "average";
+  const isUndercutActive = modeKey === "undercut" && currentMode === "undercut";
+  const isMarkupActive = modeKey === "markup" && currentMode === "markup";
+
+  let backgroundColor = "var(--so-surface-input)";
+  let border = "1px solid var(--so-border-subtle)";
+
+  if (isLowestActive) {
+    backgroundColor = "rgba(16, 185, 129, 0.12)";
+    border = "1.5px solid var(--so-success-text)";
+  } else if (isAverageActive) {
+    backgroundColor = "rgba(70, 48, 235, 0.12)";
+    border = "1.5px solid var(--so-primary)";
+  } else if (isUndercutActive) {
+    backgroundColor = "rgba(6, 182, 212, 0.12)";
+    border = "1.5px solid var(--so-cyan-text)";
+  } else if (isMarkupActive) {
+    backgroundColor = "rgba(245, 158, 11, 0.12)";
+    border = "1.5px solid var(--so-warning-text)";
+  }
+
+  return {
+    padding: "12px 14px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor,
+    border,
+    cursor: "pointer",
+    textAlign: "left",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  };
+}
+
+function getModeTitleStyle(
+  modeKey: "lowest" | "average" | "undercut" | "markup",
+  currentMode: string,
+  offsetPercent: number
+): React.CSSProperties {
+  const isLowestActive = modeKey === "lowest" && currentMode === "lowest" && offsetPercent === 0;
+  const isAverageActive = modeKey === "average" && currentMode === "average";
+  const isUndercutActive = modeKey === "undercut" && currentMode === "undercut";
+  const isMarkupActive = modeKey === "markup" && currentMode === "markup";
+
+  let color = "var(--so-text-primary)";
+  if (isLowestActive) color = "var(--so-success-text)";
+  else if (isAverageActive) color = "var(--so-primary)";
+  else if (isUndercutActive) color = "var(--so-cyan-text)";
+  else if (isMarkupActive) color = "var(--so-warning-text)";
+
+  return {
+    fontWeight: 800,
+    fontSize: "13px",
+    color,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+  };
+}
+
+function getOutlierRowStyle(enabled: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    opacity: enabled ? 1 : 0.45,
+  };
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  cardContainer: {
+    border: "1px solid var(--so-border-medium)",
+    padding: 0,
+    overflow: "hidden",
+  },
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  headerTitle: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  headerTagIcon: {
+    color: "var(--so-success-text)",
+  },
+  headerSubtitle: {
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+    marginTop: "2px",
+  },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  headerBadge: {
+    fontSize: "11px",
+  },
+  chevronIcon: {
+    color: "var(--so-text-muted)",
+  },
+  body: {
+    padding: "20px",
+  },
+  bodyDesc: {
+    fontSize: "12.5px",
+    color: "var(--so-text-muted)",
+    marginBottom: "16px",
+  },
+  strategyGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: "12px",
+  },
+  modeDesc: {
+    fontSize: "12.5px",
+    color: "var(--so-text-muted)",
+    marginBottom: "14px",
+  },
+  excludedBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px 14px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-input)",
+    border: "1px solid var(--so-border-subtle)",
+    marginTop: "16px",
+    marginBottom: "16px",
+  },
+  excludedBannerIcon: {
+    color: "var(--so-text-muted)",
+    flexShrink: 0,
+  },
+  excludedBannerText: {
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "var(--so-text-muted)",
+  },
+  controlCardsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+    gap: "14px",
+    marginTop: "16px",
+  },
+  controlCard: {
+    padding: "14px 16px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-subtle)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+  cardHeaderRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  checkboxLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    cursor: "pointer",
+    userSelect: "none",
+  },
+  checkboxInput: {
+    width: "16px",
+    height: "16px",
+    accentColor: "var(--so-primary)",
+    cursor: "pointer",
+  },
+  cardTitle: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  outlierIcon: {
+    color: "var(--so-warning-text)",
+  },
+  offsetIcon: {
+    color: "var(--so-primary)",
+  },
+  helpIconWrapper: {
+    cursor: "help",
+    color: "var(--so-primary)",
+    display: "flex",
+    alignItems: "center",
+  },
+  controlRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  controlRowLabel: {
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+    fontWeight: 600,
+  },
+  numInputSmall: {
+    width: "56px",
+    fontSize: "12px",
+    padding: "2px 4px",
+    textAlign: "center",
+    borderRadius: "var(--so-radius-sm)",
+    border: "1px solid var(--so-border-medium)",
+  },
+  numInputMedium: {
+    width: "70px",
+    fontSize: "12px",
+    padding: "5px 8px",
+    textAlign: "center",
+    borderRadius: "var(--so-radius-sm)",
+    border: "1px solid var(--so-border-medium)",
+  },
+  unitText: {
+    fontSize: "12px",
+    color: "var(--so-text-secondary)",
+    fontWeight: 700,
+  },
+  actionTriggerBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    padding: "16px 20px",
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-medium)",
+    borderRadius: "var(--so-radius-md)",
+    marginTop: "18px",
+  },
+  actionContent: {
+    flex: 1,
+  },
+  actionTitle: {
+    fontWeight: 800,
+    fontSize: "14px",
+    color: "var(--so-text-primary)",
+    marginBottom: "3px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  actionTitleIcon: {
+    color: "var(--so-success-text)",
+  },
+  actionDesc: {
+    fontSize: "12.5px",
+    color: "var(--so-text-muted)",
+  },
+  actionBtnListing: {
+    minWidth: "220px",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    color: "var(--so-success-text)",
+    border: "1px solid rgba(16, 185, 129, 0.4)",
+  },
+};
+

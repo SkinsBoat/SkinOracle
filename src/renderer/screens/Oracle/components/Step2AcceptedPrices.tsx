@@ -216,62 +216,23 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
   };
 
   return (
-    <div
-      className="card"
-      style={{
-        border: "1px solid var(--so-border-medium)",
-        padding: 0,
-        overflow: "hidden",
-      }}
-    >
+    <div className="card" style={styles.cardContainer}>
       {/* Accordion Header Bar */}
       <div
         onClick={onToggle}
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "16px 20px",
-          backgroundColor: isOpen
-            ? "var(--so-surface-panel)"
-            : "var(--so-surface-card)",
-          borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
-          cursor: "pointer",
-          userSelect: "none",
-          transition: "background-color 0.15s ease",
-        }}
+        style={getAccordionHeaderStyle(isOpen)}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={styles.headerLeft}>
           <div>
-            <div
-              style={{
-                fontSize: "15px",
-                fontWeight: 800,
-                color: "var(--so-text-primary)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
+            <div style={styles.headerTitle}>
               <Zap
                 size={18}
-                style={{
-                  color:
-                    selectedEngine === "nexus"
-                      ? "var(--so-primary)"
-                      : "var(--so-cyan-text)",
-                }}
+                style={getEngineIconStyle(selectedEngine)}
               />
               Calculate Accepted Prices (Buy Ceilings)
             </div>
             {!isOpen && (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "var(--so-text-muted)",
-                  marginTop: "2px",
-                }}
-              >
+              <div style={styles.headerSubtitle}>
                 Engine:{" "}
                 {selectedEngine === "nexus"
                   ? "OracleNexus v2 PRO (Trend-Shield)"
@@ -282,15 +243,10 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={styles.headerRight}>
           <span
             className={`badge ${selectedEngine === "nexus" ? "badge-primary" : "badge-cyan"}`}
-            style={{
-              fontSize: "11px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
+            style={styles.engineBadge}
           >
             {selectedEngine === "nexus" ? (
               <TrendingUp size={12} />
@@ -303,17 +259,8 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             <span
               className={`badge ${trendHealth.badgeClass}`}
               style={{
-                fontSize: "11px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                ...(trendHealth.isStale
-                  ? {
-                      backgroundColor: "rgba(239, 68, 68, 0.15)",
-                      color: "var(--so-danger-text, #ef4444)",
-                      border: "1px solid rgba(239, 68, 68, 0.35)",
-                    }
-                  : {}),
+                ...styles.trendHealthBadge,
+                ...getStaleBadgeStyle(trendHealth.isStale),
               }}
               title={trendHealth.warningMessage || undefined}
             >
@@ -322,23 +269,23 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
           )}
           <span
             className={`badge ${evaluatedSummary.lastBuiltAt ? "badge-cyan" : "badge-ghost"}`}
-            style={{ fontSize: "11px" }}
+            style={styles.headerBadge}
           >
             {evaluatedSummary.lastBuiltAt
               ? `✓ Built (${evaluatedSummary.totalEvaluated.toLocaleString()} Items)`
               : "Not Built Yet"}
           </span>
           {isOpen ? (
-            <ChevronUp size={18} style={{ color: "var(--so-text-muted)" }} />
+            <ChevronUp size={18} style={styles.chevronIcon} />
           ) : (
-            <ChevronDown size={18} style={{ color: "var(--so-text-muted)" }} />
+            <ChevronDown size={18} style={styles.chevronIcon} />
           )}
         </div>
       </div>
 
       {isOpen && (
-        <div style={{ padding: "20px" }}>
-          <p className="card-desc" style={{ marginBottom: "16px" }}>
+        <div style={styles.body}>
+          <p className="card-desc" style={styles.cardDesc}>
             Takes cached pricing data from active price providers and evaluates
             target accepted prices across CSFloat and Skins.com workstations.
           </p>
@@ -406,3 +353,92 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
     </div>
   );
 };
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 20px",
+    backgroundColor: isOpen
+      ? "var(--so-surface-panel)"
+      : "var(--so-surface-card)",
+    borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
+    cursor: "pointer",
+    userSelect: "none",
+    transition: "background-color 0.15s ease",
+  };
+}
+
+function getEngineIconStyle(selectedEngine: "standard" | "nexus"): React.CSSProperties {
+  return {
+    color: selectedEngine === "nexus" ? "var(--so-primary)" : "var(--so-cyan-text)",
+  };
+}
+
+function getStaleBadgeStyle(isStale?: boolean): React.CSSProperties {
+  if (!isStale) return {};
+  return {
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    color: "var(--so-danger-text, #ef4444)",
+    border: "1px solid rgba(239, 68, 68, 0.35)",
+  };
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  cardContainer: {
+    border: "1px solid var(--so-border-medium)",
+    padding: 0,
+    overflow: "hidden",
+  },
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  headerTitle: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  headerSubtitle: {
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+    marginTop: "2px",
+  },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  engineBadge: {
+    fontSize: "11px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+  },
+  trendHealthBadge: {
+    fontSize: "11px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+  },
+  headerBadge: {
+    fontSize: "11px",
+  },
+  chevronIcon: {
+    color: "var(--so-text-muted)",
+  },
+  body: {
+    padding: "20px",
+  },
+  cardDesc: {
+    marginBottom: "16px",
+  },
+};
+

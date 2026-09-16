@@ -180,56 +180,19 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
     resolveMarketCount(marketCounts, marketId);
 
   return (
-    <div
-      className="card"
-      style={{
-        border: "1px solid var(--so-border-medium)",
-        padding: 0,
-        overflow: "hidden",
-        background:
-          "linear-gradient(180deg, var(--so-surface-card) 0%, rgba(15, 23, 42, 0.6) 100%)",
-      }}
-    >
+    <div className="card" style={styles.cardContainer}>
       {/* Accordion Header Bar */}
       <div
         onClick={onToggle}
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "16px 20px",
-          backgroundColor: isOpen
-            ? "var(--so-surface-panel)"
-            : "var(--so-surface-card)",
-          borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
-          cursor: "pointer",
-          userSelect: "none",
-          transition: "background-color 0.15s ease",
-        }}
+        style={getAccordionHeaderStyle(isOpen)}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={styles.headerLeft}>
           <div>
-            <div
-              style={{
-                fontSize: "15px",
-                fontWeight: 800,
-                color: "var(--so-text-primary)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <Radio size={18} style={{ color: "var(--so-primary)" }} /> Market
-              Price Aggregation & Cache
+            <div style={styles.headerTitle}>
+              <Radio size={18} style={styles.radioIcon} /> Market Price Aggregation & Cache
             </div>
             {!isOpen && (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "var(--so-text-muted)",
-                  marginTop: "2px",
-                }}
-              >
+              <div style={styles.headerSubtitle}>
                 {import.meta.env.DEV
                   ? "Select target markets, fetch live Skinsnipe API data"
                   : "Select target markets and fetch live Skinsnipe API data"}
@@ -238,81 +201,39 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={styles.headerRight}>
           <span
             className={`badge ${cacheStatus.itemCount > 0 ? "badge-success" : "badge-cyan"}`}
-            style={{ fontSize: "11px" }}
+            style={styles.headerBadge}
           >
             {cacheStatus.itemCount > 0
               ? `✓ ${cacheStatus.itemCount.toLocaleString()} Items Cached`
               : "Cache Empty"}
           </span>
           {isOpen ? (
-            <ChevronUp size={18} style={{ color: "var(--so-text-muted)" }} />
+            <ChevronUp size={18} style={styles.chevronIcon} />
           ) : (
-            <ChevronDown size={18} style={{ color: "var(--so-text-muted)" }} />
+            <ChevronDown size={18} style={styles.chevronIcon} />
           )}
         </div>
       </div>
 
       {isOpen && (
-        <div style={{ padding: "20px" }}>
+        <div style={styles.bodyContainer}>
           {/* Pricing Provider Switcher Tab */}
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              marginBottom: "20px",
-              borderBottom: "1px solid var(--so-border-subtle)",
-              paddingBottom: "14px",
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={styles.providerSwitcher}>
             <button
               type="button"
               onClick={() => onChangePricingProvider?.("cs2cap")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 16px",
-                borderRadius: "var(--so-radius-sm)",
-                fontWeight: 700,
-                fontSize: "13px",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                backgroundColor:
-                  pricingProvider === "cs2cap"
-                    ? "var(--so-surface-card)"
-                    : "transparent",
-                border:
-                  pricingProvider === "cs2cap"
-                    ? "1px solid rgba(6, 182, 212, 0.45)"
-                    : "1px solid transparent",
-                color:
-                  pricingProvider === "cs2cap"
-                    ? "var(--so-text-primary)"
-                    : "var(--so-text-muted)",
-                boxShadow:
-                  pricingProvider === "cs2cap"
-                    ? "0 2px 6px rgba(0, 0, 0, 0.2)"
-                    : "none",
-              }}
+              style={getProviderTabStyle(pricingProvider === "cs2cap", "cs2cap")}
             >
               <img
                 src={cs2capLogo}
                 alt="CS2Cap"
-                style={{ height: 16, width: "auto", objectFit: "contain" }}
+                style={styles.providerLogoSmall}
               />
               CS2Cap
-              <span
-                className="badge badge-cyan"
-                style={{
-                  fontSize: "9.5px",
-                  padding: "2px 6px",
-                  textTransform: "uppercase",
-                }}
-              >
+              <span className="badge badge-cyan" style={styles.cs2capBadge}>
                 PRO / QUANT
               </span>
             </button>
@@ -320,51 +241,15 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
             <button
               type="button"
               onClick={() => onChangePricingProvider?.("skinsnipe")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 16px",
-                borderRadius: "var(--so-radius-sm)",
-                fontWeight: 700,
-                fontSize: "13px",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                backgroundColor:
-                  pricingProvider === "skinsnipe"
-                    ? "var(--so-surface-card)"
-                    : "transparent",
-                border:
-                  pricingProvider === "skinsnipe"
-                    ? "1px solid var(--so-primary)"
-                    : "1px solid transparent",
-                color:
-                  pricingProvider === "skinsnipe"
-                    ? "var(--so-text-primary)"
-                    : "var(--so-text-muted)",
-                boxShadow:
-                  pricingProvider === "skinsnipe"
-                    ? "0 2px 10px rgba(99, 102, 241, 0.2)"
-                    : "none",
-              }}
+              style={getProviderTabStyle(pricingProvider === "skinsnipe", "skinsnipe")}
             >
               <img
                 src={skinSnipeLogo}
                 alt="Skinsnipe"
-                style={{ height: 16, width: "auto", objectFit: "contain" }}
+                style={styles.providerLogoSmall}
               />
               Skinsnipe
-              <span
-                className="badge"
-                style={{
-                  fontSize: "9.5px",
-                  padding: "2px 6px",
-                  textTransform: "uppercase",
-                  backgroundColor: "rgba(99, 102, 241, 0.18)",
-                  color: "#818cf8",
-                  border: "1px solid rgba(99, 102, 241, 0.4)",
-                }}
-              >
+              <span className="badge" style={styles.skinsnipeBadge}>
                 STD PLAN
               </span>
             </button>
@@ -376,63 +261,22 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
             ───────────────────────────────────────────────────────────── */
             <div>
               {/* CS2Cap Header */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
-                  gap: "16px",
-                  marginBottom: "16px",
-                }}
-              >
+              <div style={styles.providerHeader}>
                 <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
+                  <div style={styles.providerHeaderTitleGroup}>
                     <img
                       src={cs2capLogo}
                       alt="CS2Cap"
-                      style={{
-                        height: 26,
-                        width: "auto",
-                        objectFit: "contain",
-                      }}
+                      style={styles.providerHeaderLogo}
                     />
-                    <h2
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: 800,
-                        color: "var(--so-text-primary)",
-                        margin: 0,
-                      }}
-                    >
+                    <h2 style={styles.providerHeaderTitle}>
                       CS2Cap
                     </h2>
-                    <span
-                      className="badge badge-cyan"
-                      style={{
-                        fontSize: "11px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
+                    <span className="badge badge-cyan" style={styles.cs2capLiveBadge}>
                       Live Stream
                     </span>
                   </div>
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      color: "var(--so-text-secondary)",
-                      marginTop: "6px",
-                      maxWidth: "720px",
-                      lineHeight: 1.5,
-                    }}
-                  >
+                  <p style={styles.cs2capHeaderDescription}>
                     Streams live price snapshots across 40+ global marketplaces
                     (Buff163, C5, CSFloat, AvanMarket, etc.) directly to your
                     local workstation.
@@ -441,16 +285,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               </div>
 
               {/* Dedicated CS2Cap Provider Selection Section */}
-              <div
-                style={{
-                  padding: "18px 20px",
-                  borderRadius: "var(--so-radius-md)",
-                  backgroundColor: "var(--so-surface-panel)",
-                  border: "1px solid var(--so-border-subtle)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                  marginBottom: "20px",
-                }}
-              >
+              <div style={styles.configSectionCard}>
                 <MarketSelectionToolbar
                   title="CS2Cap Target Providers Config"
                   selectedCount={visibleSelectedCs2capCount}
@@ -470,28 +305,14 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   badgeBorderColor="rgba(56, 189, 248, 0.4)"
                 />
 
-                <p
-                  style={{
-                    fontSize: "12.5px",
-                    color: "var(--so-text-muted)",
-                    marginBottom: "12px",
-                  }}
-                >
+                <p style={styles.configSectionDescription}>
                   Choose which of CS2Cap's {CS2CAP_PROVIDERS.length} supported
                   marketplaces to query during live NDJSON streaming.
                   Preferences are saved automatically.
                 </p>
 
                 {/* Interactive Provider Chips Grid */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fill, minmax(175px, 1fr))",
-                    gap: "8px",
-                    marginBottom: "8px",
-                  }}
-                >
+                <div style={styles.providerChipsGrid}>
                   {(hideTradeMarkets
                     ? CS2CAP_PROVIDERS.filter((p) => !isTradeMarket(p.id))
                     : CS2CAP_PROVIDERS
@@ -511,18 +332,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   ))}
                 </div>
 
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--so-text-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    marginTop: "8px",
-                    opacity: 0.75,
-                  }}
-                >
-                  <Info size={13} style={{ flexShrink: 0 }} />
+                <div style={styles.brandDisclaimer}>
+                  <Info size={13} style={styles.brandDisclaimerIcon} />
                   <span>
                     All brand logos and names are property of their respective
                     owners. SkinOracle is an independent tool and is not
@@ -533,79 +344,28 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               </div>
 
               {/* CS2Cap Status & Streaming Section */}
-              <div
-                style={{
-                  padding: "18px 20px",
-                  borderRadius: "var(--so-radius-md)",
-                  backgroundColor: "var(--so-surface-panel)",
-                  border: "1px solid var(--so-border-subtle)",
-                  marginBottom: "20px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "14px",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 800,
-                      fontSize: "14px",
-                      color: "var(--so-text-primary)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <Database size={16} style={{ color: "#06b6d4" }} /> CS2Cap
-                    Streaming Pipeline
+              <div style={styles.streamingSectionCard}>
+                <div style={styles.streamingSectionHeader}>
+                  <div style={styles.streamingSectionTitle}>
+                    <Database size={16} style={styles.cyanIcon} /> CS2Cap Streaming Pipeline
                     {hasCs2capKey ? (
-                      <span
-                        className="badge badge-success"
-                        style={{ fontSize: "11px" }}
-                      >
+                      <span className="badge badge-success" style={styles.badgeSmall}>
                         PRO / QUANT ACTIVE
                       </span>
                     ) : (
-                      <span
-                        className="badge badge-warning"
-                        style={{ fontSize: "11px" }}
-                      >
+                      <span className="badge badge-warning" style={styles.badgeSmall}>
                         API KEY REQUIRED
                       </span>
                     )}
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "10px",
-                      alignItems: "center",
-                    }}
-                  >
+                  <div style={styles.streamingSectionActions}>
                     {isCs2capStreaming ? (
                       <button
                         type="button"
                         className="btn btn-sm"
                         onClick={onCancelCs2capStream}
-                        style={{
-                          backgroundColor: "#dc2626",
-                          color: "#ffffff",
-                          border: "none",
-                          fontWeight: 700,
-                          fontSize: "12px",
-                          padding: "7px 14px",
-                          borderRadius: "6px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          cursor: "pointer",
-                        }}
+                        style={styles.cancelStreamButton}
                       >
                         <Square size={12} fill="#ffffff" /> Cancel Stream
                       </button>
@@ -619,21 +379,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           cacheStatus.isFetching ||
                           isBatchEvaluating
                         }
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
-                          border: "none",
-                          fontWeight: 800,
-                          fontSize: "13px",
-                          padding: "8px 18px",
-                          boxShadow: "0 4px 14px rgba(6, 182, 212, 0.3)",
-                          cursor:
-                            !hasCs2capKey ||
-                            cacheStatus.isFetching ||
-                            isBatchEvaluating
-                              ? "not-allowed"
-                              : "pointer",
-                        }}
+                        style={getStreamLiveButtonStyle(
+                          !hasCs2capKey ||
+                          cacheStatus.isFetching ||
+                          isBatchEvaluating
+                        )}
                       >
                         <Zap size={15} /> Stream Live Prices Snapshot
                       </button>
@@ -642,17 +392,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 </div>
 
                 {!hasCs2capKey && (
-                  <div
-                    style={{
-                      fontSize: "12.5px",
-                      color: "var(--so-text-secondary)",
-                      padding: "12px 14px",
-                      backgroundColor: "rgba(245, 158, 11, 0.1)",
-                      borderRadius: "6px",
-                      border: "1px solid rgba(245, 158, 11, 0.25)",
-                      marginBottom: "10px",
-                    }}
-                  >
+                  <div style={styles.cs2capMissingKeyBanner}>
                     ⚠️ CS2Cap API Key not configured. Go to{" "}
                     <strong>Settings → API Keys</strong> to add your CS2Cap Pro
                     or Quant API Key.
@@ -661,54 +401,16 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
                 {/* Active Streaming Meter */}
                 {cs2capProgress && (
-                  <div
-                    style={{
-                      marginTop: "14px",
-                      padding: "14px",
-                      backgroundColor:
-                        cs2capProgress.status === "error"
-                          ? "rgba(239, 68, 68, 0.08)"
-                          : "rgba(6, 182, 212, 0.08)",
-                      borderRadius: "8px",
-                      border:
-                        cs2capProgress.status === "error"
-                          ? "1px solid rgba(239, 68, 68, 0.3)"
-                          : "1px solid rgba(6, 182, 212, 0.25)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          color:
-                            cs2capProgress.status === "error"
-                              ? "var(--so-danger-text)"
-                              : "#06b6d4",
-                        }}
-                      >
+                  <div style={getStreamingMeterStyle(cs2capProgress.status === "error")}>
+                    <div style={styles.streamingMeterHeader}>
+                      <div style={getStreamingMeterStatusStyle(cs2capProgress.status === "error")}>
                         {cs2capProgress.status === "streaming" ? (
                           <>
-                            <Loader2 size={16} className="spin" /> Streaming
-                            NDJSON Catalog...
+                            <Loader2 size={16} className="spin" /> Streaming NDJSON Catalog...
                           </>
                         ) : cs2capProgress.status === "completed" ? (
                           <>
-                            <Check
-                              size={16}
-                              style={{ color: "var(--so-success-text)" }}
-                            />{" "}
-                            Stream Completed Successfully
+                            <Check size={16} style={styles.successIcon} /> Stream Completed Successfully
                           </>
                         ) : cs2capProgress.status === "aborted" ? (
                           <>
@@ -724,140 +426,40 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           </>
                         )}
                       </div>
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--so-text-secondary)",
-                          fontFamily: "monospace",
-                        }}
-                      >
+                      <span style={styles.streamingElapsedText}>
                         {(cs2capProgress.elapsedMs / 1000).toFixed(1)}s elapsed
                       </span>
                     </div>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(130px, 1fr))",
-                        gap: "8px",
-                        marginTop: "10px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          backgroundColor: "var(--so-surface-card)",
-                          padding: "8px 12px",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--so-text-muted)",
-                          }}
-                        >
-                          Lines Parsed
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 800,
-                            color: "var(--so-text-primary)",
-                          }}
-                        >
+                    <div style={styles.streamingMetricsGrid}>
+                      <div style={styles.metricBox}>
+                        <div style={styles.metricLabel}>Lines Parsed</div>
+                        <div style={styles.metricValuePrimary}>
                           {cs2capProgress.linesRead.toLocaleString()}
                         </div>
                       </div>
-                      <div
-                        style={{
-                          backgroundColor: "var(--so-surface-card)",
-                          padding: "8px 12px",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--so-text-muted)",
-                          }}
-                        >
-                          Unique Skins
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 800,
-                            color: "#06b6d4",
-                          }}
-                        >
+                      <div style={styles.metricBox}>
+                        <div style={styles.metricLabel}>Unique Skins</div>
+                        <div style={styles.metricValueCyan}>
                           {cs2capProgress.itemsCount.toLocaleString()}
                         </div>
                       </div>
-                      <div
-                        style={{
-                          backgroundColor: "var(--so-surface-card)",
-                          padding: "8px 12px",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--so-text-muted)",
-                          }}
-                        >
-                          Providers Seen
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 800,
-                            color: "var(--so-text-primary)",
-                          }}
-                        >
+                      <div style={styles.metricBox}>
+                        <div style={styles.metricLabel}>Providers Seen</div>
+                        <div style={styles.metricValuePrimary}>
                           {cs2capProgress.providersCount}
                         </div>
                       </div>
-                      <div
-                        style={{
-                          backgroundColor: "var(--so-surface-card)",
-                          padding: "8px 12px",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--so-text-muted)",
-                          }}
-                        >
-                          Transferred
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 800,
-                            color: "var(--so-text-primary)",
-                          }}
-                        >
-                          {(
-                            cs2capProgress.bytesReceived /
-                            (1024 * 1024)
-                          ).toFixed(2)}{" "}
-                          MB
+                      <div style={styles.metricBox}>
+                        <div style={styles.metricLabel}>Transferred</div>
+                        <div style={styles.metricValuePrimary}>
+                          {(cs2capProgress.bytesReceived / (1024 * 1024)).toFixed(2)} MB
                         </div>
                       </div>
                     </div>
 
                     {cs2capProgress.lastError && (
-                      <div
-                        style={{
-                          marginTop: "8px",
-                          fontSize: "12px",
-                          color: "var(--so-danger-text)",
-                        }}
-                      >
+                      <div style={styles.streamingErrorText}>
                         {cs2capProgress.lastError}
                       </div>
                     )}
@@ -876,71 +478,27 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
             ───────────────────────────────────────────────────────────── */
             <div>
               {/* Provider Header */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
-                  gap: "16px",
-                  marginBottom: "16px",
-                }}
-              >
+              <div style={styles.providerHeader}>
                 <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
+                  <div style={styles.providerHeaderTitleGroup}>
                     <img
                       src={skinSnipeLogo}
                       alt="Skinsnipe"
-                      style={{
-                        height: 26,
-                        width: "auto",
-                        objectFit: "contain",
-                      }}
+                      style={styles.providerHeaderLogo}
                     />
-                    <h2
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: 800,
-                        color: "var(--so-text-primary)",
-                        margin: 0,
-                      }}
-                    >
+                    <h2 style={styles.providerHeaderTitle}>
                       Skinsnipe
                     </h2>
-                    <span
-                      className="badge"
-                      style={{
-                        fontSize: "11px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        backgroundColor: "rgba(99, 102, 241, 0.18)",
-                        color: "#818cf8",
-                        border: "1px solid rgba(99, 102, 241, 0.4)",
-                      }}
-                    >
+                    <span className="badge" style={styles.skinsnipeStdBadge}>
                       STD PLAN
                     </span>
                   </div>
                   {!hasApiKey && (
-                    <p
-                      style={{
-                        fontSize: "13px",
-                        color: "var(--so-text-secondary)",
-                        marginTop: "6px",
-                        maxWidth: "680px",
-                        lineHeight: 1.5,
-                      }}
-                    >
+                    <p style={styles.skinsnipeHeaderDescription}>
                       Skinsnipe acts as a multi-market price aggregator for CS2
                       items. To fetch live market data directly from your
                       device,{" "}
-                      <span style={{ whiteSpace: "nowrap" }}>
+                      <span style={styles.whiteSpaceNowrap}>
                         a <strong>Skinsnipe Standard Plan</strong>
                       </span>{" "}
                       API key is required.
@@ -950,16 +508,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               </div>
 
               {/* Dedicated Skinsnipe Market Selection Section */}
-              <div
-                style={{
-                  padding: "18px 20px",
-                  borderRadius: "var(--so-radius-md)",
-                  backgroundColor: "var(--so-surface-panel)",
-                  border: "1px solid var(--so-border-subtle)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                  marginBottom: "20px",
-                }}
-              >
+              <div style={styles.configSectionCard}>
                 <MarketSelectionToolbar
                   title="Skinsnipe Target Markets Config"
                   selectedCount={visibleSelectedMarketsCount}
@@ -977,28 +526,13 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   badgeBorderColor="rgba(56, 189, 248, 0.4)"
                 />
 
-                <p
-                  style={{
-                    fontSize: "12.5px",
-                    color: "var(--so-text-muted)",
-                    marginBottom: "12px",
-                  }}
-                >
-                  Choose which of Skinsnipe's{" "}
-                  {SKINSNIPE_AVAILABLE_MARKETS.length} markets to query during
+                <p style={styles.configSectionDescription}>
+                  Choose which of Skinsnipe's {SKINSNIPE_AVAILABLE_MARKETS.length} markets to query during
                   live fetches. Preferences are saved automatically.
                 </p>
 
                 {/* Interactive Market Chips Grid */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fill, minmax(175px, 1fr))",
-                    gap: "8px",
-                    marginBottom: "12px",
-                  }}
-                >
+                <div style={styles.marketChipsGrid}>
                   {(hideTradeMarkets
                     ? SKINSNIPE_AVAILABLE_MARKETS.filter(
                         (m) => !isTradeMarket(m.id),
@@ -1020,33 +554,15 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   ))}
                 </div>
 
-                <div
-                  style={{
-                    fontSize: "11.5px",
-                    color: "var(--so-text-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
+                <div style={styles.estimatedCycleText}>
                   <Layers size={14} /> Right-click any market chip to solo it.
                   Estimated fetch cycle: ~
                   {Math.floor(estimatedFetchSeconds / 60)}m{" "}
                   {estimatedFetchSeconds % 60}s
                 </div>
 
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--so-text-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    marginTop: "8px",
-                    opacity: 0.75,
-                  }}
-                >
-                  <Info size={13} style={{ flexShrink: 0 }} />
+                <div style={styles.brandDisclaimer}>
+                  <Info size={13} style={styles.brandDisclaimerIcon} />
                   <span>
                     All brand logos and names are property of their respective
                     owners. SkinOracle is an independent tool and is not
@@ -1057,14 +573,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               </div>
 
               {/* Skinsnipe Fetch & Local Cache Loading Controls */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
+              <div style={styles.fetchControlsGroup}>
                 {hasApiKey && (
                   <button
                     className="btn btn-primary"
@@ -1073,13 +582,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   >
                     {cacheStatus.isFetching ? (
                       <>
-                        <Loader2 size={16} className="spin" /> Fetching
-                        Skinsnipe Prices...
+                        <Loader2 size={16} className="spin" /> Fetching Skinsnipe Prices...
                       </>
                     ) : (
                       <>
-                        <Radio size={16} /> Fetch {selectedMarkets.length}{" "}
-                        Skinsnipe Markets
+                        <Radio size={16} /> Fetch {selectedMarkets.length} Skinsnipe Markets
                       </>
                     )}
                   </button>
@@ -1088,7 +595,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 {import.meta.env.DEV && (
                   <label
                     className="btn btn-cyan"
-                    style={{ cursor: "pointer", margin: 0 }}
+                    style={styles.uploadJsonLabel}
                     title="Import an offline JSON price cache file"
                   >
                     <FileUp size={16} /> Load Cache JSON File
@@ -1096,43 +603,22 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                       type="file"
                       accept=".json"
                       onChange={onUploadJsonCache}
-                      style={{ display: "none" }}
+                      style={styles.hiddenInput}
                     />
                   </label>
                 )}
 
                 {!hasApiKey && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
+                  <div style={styles.demoCacheGroup}>
                     <button
                       type="button"
                       className="btn"
                       onClick={() => onLoadDemoCache(false)}
                       disabled={cacheStatus.isFetching || isBatchEvaluating}
-                      style={{
-                        background:
-                          "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-                        color: "#ffffff",
-                        fontWeight: 700,
-                        fontSize: "13px",
-                        padding: "8px 14px",
-                        border: "none",
-                        borderRadius: "var(--so-radius-sm)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                        boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
-                      }}
+                      style={styles.loadDemoButton}
                       title="Load demo historical dataset for offline simulation"
                     >
-                      <Sparkles size={15} /> Load Demo Cache (Offline
-                      Simulation)
+                      <Sparkles size={15} /> Load Demo Cache (Offline Simulation)
                     </button>
 
                     {isDemoCache && cacheStatus.itemCount > 0 && (
@@ -1141,14 +627,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                         className="btn btn-ghost btn-sm"
                         onClick={() => onLoadDemoCache(true)}
                         disabled={cacheStatus.isFetching || isBatchEvaluating}
-                        style={{
-                          fontSize: "11.5px",
-                          padding: "6px 10px",
-                          color: "var(--so-text-secondary)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
+                        style={styles.reloadDemoButton}
                         title="Re-download latest demo price dataset from SaaS cloud"
                       >
                         <RotateCw size={13} /> Re-download from Cloud
@@ -1160,50 +639,19 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 <CacheStatusInfo
                   itemCount={cacheStatus.itemCount}
                   lastFetchedAt={cacheStatus.lastFetchedAt}
-                  style={{ marginLeft: "auto", fontSize: "13px", marginTop: 0 }}
+                  style={styles.cacheStatusOffset}
                 />
               </div>
 
               {/* Demo Cache Warning Alert Box */}
               {isDemoCache && (
-                <div
-                  style={{
-                    marginTop: "16px",
-                    padding: "14px 18px",
-                    borderRadius: "var(--so-radius-md)",
-                    backgroundColor: "rgba(245, 158, 11, 0.1)",
-                    border: "1px solid rgba(245, 158, 11, 0.35)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "14px",
-                  }}
-                >
-                  <AlertTriangle
-                    size={24}
-                    style={{ color: "#f59e0b", flexShrink: 0 }}
-                  />
+                <div style={styles.demoAlertBox}>
+                  <AlertTriangle size={24} style={styles.demoAlertIcon} />
                   <div>
-                    <div
-                      style={{
-                        fontWeight: 800,
-                        fontSize: "13.5px",
-                        color: "#f59e0b",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      ⚠️ DEMO PRICE CACHE ACTIVE (HISTORICAL DATA — TESTING
-                      ONLY)
+                    <div style={styles.demoAlertTitle}>
+                      ⚠️ DEMO PRICE CACHE ACTIVE (HISTORICAL DATA — TESTING ONLY)
                     </div>
-                    <div
-                      style={{
-                        fontSize: "12.5px",
-                        color: "var(--so-text-secondary)",
-                        marginTop: "3px",
-                        lineHeight: 1.4,
-                      }}
-                    >
+                    <div style={styles.demoAlertBody}>
                       ⚠️ Price Cache Loaded (Offline Mode) This cache contains
                       sample historical price data intended for offline testing
                       and workflow simulation only. 🔴 WARNING: Do NOT use this
@@ -1217,59 +665,22 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               {/* Live Fetching Progress & Error Tracking Panel */}
               {fetchProgress && (
                 <div
-                  style={{
-                    marginTop: "16px",
-                    padding: "16px",
-                    borderRadius: "var(--so-radius-md)",
-                    backgroundColor:
-                      fetchProgress.criticalError ||
-                      fetchProgress.status === "aborted"
-                        ? "rgba(239, 68, 68, 0.08)"
-                        : "rgba(59, 130, 246, 0.08)",
-                    border:
-                      fetchProgress.criticalError ||
-                      fetchProgress.status === "aborted"
-                        ? "1px solid rgba(239, 68, 68, 0.3)"
-                        : "1px solid rgba(59, 130, 246, 0.3)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                  }}
+                  style={getProgressPanelStyle(
+                    Boolean(fetchProgress.criticalError || fetchProgress.status === "aborted")
+                  )}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        fontWeight: 700,
-                        fontSize: "13.5px",
-                      }}
-                    >
+                  <div style={styles.progressHeader}>
+                    <div style={styles.progressStatusText}>
                       {fetchProgress.status === "fetching" ? (
                         <>
                           <Loader2
                             size={16}
                             className="spin"
-                            style={{ color: "var(--so-primary)" }}
+                            style={styles.primaryIcon}
                           />
                           Fetching Market {fetchProgress.currentMarketIndex} of{" "}
                           {fetchProgress.totalMarkets}:
-                          <span
-                            style={{
-                              color: "var(--so-primary)",
-                              fontWeight: 800,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "5px",
-                            }}
-                          >
+                          <span style={styles.progressCurrentMarketPrimary}>
                             <MarketLogo
                               marketId={fetchProgress.currentMarket}
                               size={15}
@@ -1284,18 +695,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           <RotateCw
                             size={16}
                             className="spin"
-                            style={{ color: "var(--so-cyan-text)" }}
+                            style={styles.cyanTextIcon}
                           />
                           Rate-Limit Cooldown: Fetching{" "}
-                          <span
-                            style={{
-                              color: "var(--so-cyan-text)",
-                              fontWeight: 800,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "5px",
-                            }}
-                          >
+                          <span style={styles.progressCurrentMarketCyan}>
                             <MarketLogo
                               marketId={fetchProgress.currentMarket}
                               size={15}
@@ -1305,62 +708,26 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                             )?.name || fetchProgress.currentMarket}
                           </span>{" "}
                           in{" "}
-                          <span
-                            style={{
-                              color: "#fff",
-                              fontWeight: 900,
-                              fontSize: "13.5px",
-                            }}
-                          >
+                          <span style={styles.progressRemainingSeconds}>
                             {fetchProgress.sleepRemaining ?? 0}s
                           </span>
                           ...
                         </>
                       ) : fetchProgress.criticalError ||
                         fetchProgress.status === "aborted" ? (
-                        <span
-                          style={{
-                            color: "var(--so-danger-text)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
+                        <span style={styles.progressAbortedText}>
                           <AlertCircle size={16} /> Fetch Process Aborted
                         </span>
                       ) : (
-                        <span
-                          style={{
-                            color: "var(--so-success-text)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
+                        <span style={styles.progressCompletedText}>
                           <Check size={16} /> Fetch Cycle Completed
                         </span>
                       )}
                     </div>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                      }}
-                    >
+                    <div style={styles.progressHeaderRight}>
                       {fetchProgress.errorCount > 0 && (
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: 800,
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            backgroundColor: "rgba(239, 68, 68, 0.2)",
-                            color: "var(--so-danger-text)",
-                            border: "1px solid rgba(239, 68, 68, 0.4)",
-                          }}
-                        >
+                        <span style={styles.progressErrorCountBadge}>
                           ❌ {fetchProgress.errorCount} Error
                           {fetchProgress.errorCount > 1 ? "s" : ""}
                         </span>
@@ -1372,20 +739,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                           type="button"
                           className="btn btn-sm"
                           onClick={onCancelFetch}
-                          style={{
-                            backgroundColor: "#dc2626",
-                            color: "#ffffff",
-                            border: "none",
-                            fontWeight: 700,
-                            fontSize: "11.5px",
-                            padding: "4px 12px",
-                            borderRadius: "6px",
-                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.35)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "5px",
-                            cursor: "pointer",
-                          }}
+                          style={styles.stopFetchingButton}
                         >
                           <Square size={11} fill="#ffffff" /> Stop Fetching
                         </button>
@@ -1394,52 +748,30 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   </div>
 
                   {/* Progress Bar */}
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "6px",
-                      backgroundColor: "var(--so-surface-card)",
-                      borderRadius: "3px",
-                      overflow: "hidden",
-                    }}
-                  >
+                  <div style={styles.progressBarTrack}>
                     <div
-                      style={{
-                        height: "100%",
-                        width: `${Math.min(100, Math.round(((fetchProgress.completedMarkets || fetchProgress.currentMarketIndex - 1) / fetchProgress.totalMarkets) * 100))}%`,
-                        backgroundColor:
-                          fetchProgress.criticalError ||
-                          fetchProgress.status === "aborted"
-                            ? "var(--so-danger-text)"
-                            : "var(--so-primary)",
-                        transition: "width 0.3s ease",
-                      }}
+                      style={getProgressBarFillStyle(
+                        Boolean(fetchProgress.criticalError || fetchProgress.status === "aborted"),
+                        Math.min(
+                          100,
+                          Math.round(
+                            ((fetchProgress.completedMarkets || fetchProgress.currentMarketIndex - 1) /
+                              fetchProgress.totalMarkets) *
+                              100
+                          )
+                        )
+                      )}
                     />
                   </div>
 
                   {fetchProgress.criticalError && (
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "var(--so-danger-text)",
-                        backgroundColor: "rgba(239, 68, 68, 0.12)",
-                        padding: "8px 12px",
-                        borderRadius: "6px",
-                        lineHeight: 1.5,
-                      }}
-                    >
+                    <div style={styles.criticalErrorBox}>
                       {fetchProgress.criticalError}
                     </div>
                   )}
 
                   {!fetchProgress.criticalError && fetchProgress.lastError && (
-                    <div
-                      style={{
-                        fontSize: "11.5px",
-                        color: "var(--so-text-muted)",
-                      }}
-                    >
+                    <div style={styles.lastErrorText}>
                       Latest event: {fetchProgress.lastError}
                     </div>
                   )}
@@ -1452,3 +784,559 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
     </div>
   );
 };
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 20px",
+    backgroundColor: isOpen
+      ? "var(--so-surface-panel)"
+      : "var(--so-surface-card)",
+    borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
+    cursor: "pointer",
+    userSelect: "none",
+    transition: "background-color 0.15s ease",
+  };
+}
+
+function getProviderTabStyle(
+  active: boolean,
+  type: "cs2cap" | "skinsnipe"
+): React.CSSProperties {
+  const isCs2cap = type === "cs2cap";
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 16px",
+    borderRadius: "var(--so-radius-sm)",
+    fontWeight: 700,
+    fontSize: "13px",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    backgroundColor: active ? "var(--so-surface-card)" : "transparent",
+    border: active
+      ? isCs2cap
+        ? "1px solid rgba(6, 182, 212, 0.45)"
+        : "1px solid var(--so-primary)"
+      : "1px solid transparent",
+    color: active ? "var(--so-text-primary)" : "var(--so-text-muted)",
+    boxShadow: active
+      ? isCs2cap
+        ? "0 2px 6px rgba(0, 0, 0, 0.2)"
+        : "0 2px 10px rgba(99, 102, 241, 0.2)"
+      : "none",
+  };
+}
+
+function getStreamLiveButtonStyle(disabled: boolean): React.CSSProperties {
+  return {
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    border: "none",
+    fontWeight: 800,
+    fontSize: "13px",
+    padding: "8px 18px",
+    boxShadow: "0 4px 14px rgba(6, 182, 212, 0.3)",
+    cursor: disabled ? "not-allowed" : "pointer",
+  };
+}
+
+function getStreamingMeterStyle(isError: boolean): React.CSSProperties {
+  return {
+    marginTop: "14px",
+    padding: "14px",
+    backgroundColor: isError
+      ? "rgba(239, 68, 68, 0.08)"
+      : "rgba(6, 182, 212, 0.08)",
+    borderRadius: "8px",
+    border: isError
+      ? "1px solid rgba(239, 68, 68, 0.3)"
+      : "1px solid rgba(6, 182, 212, 0.25)",
+  };
+}
+
+function getStreamingMeterStatusStyle(isError: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontSize: "13px",
+    fontWeight: 700,
+    color: isError ? "var(--so-danger-text)" : "#06b6d4",
+  };
+}
+
+function getProgressPanelStyle(isAbortedOrError: boolean): React.CSSProperties {
+  return {
+    marginTop: "16px",
+    padding: "16px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: isAbortedOrError
+      ? "rgba(239, 68, 68, 0.08)"
+      : "rgba(59, 130, 246, 0.08)",
+    border: isAbortedOrError
+      ? "1px solid rgba(239, 68, 68, 0.3)"
+      : "1px solid rgba(59, 130, 246, 0.3)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  };
+}
+
+function getProgressBarFillStyle(
+  isAbortedOrError: boolean,
+  percent: number
+): React.CSSProperties {
+  return {
+    height: "100%",
+    width: `${percent}%`,
+    backgroundColor: isAbortedOrError
+      ? "var(--so-danger-text)"
+      : "var(--so-primary)",
+    transition: "width 0.3s ease",
+  };
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  cardContainer: {
+    border: "1px solid var(--so-border-medium)",
+    padding: 0,
+    overflow: "hidden",
+    background:
+      "linear-gradient(180deg, var(--so-surface-card) 0%, rgba(15, 23, 42, 0.6) 100%)",
+  },
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  headerTitle: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  radioIcon: {
+    color: "var(--so-primary)",
+  },
+  headerSubtitle: {
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+    marginTop: "2px",
+  },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  headerBadge: {
+    fontSize: "11px",
+  },
+  chevronIcon: {
+    color: "var(--so-text-muted)",
+  },
+  bodyContainer: {
+    padding: "20px",
+  },
+  providerSwitcher: {
+    display: "flex",
+    gap: "10px",
+    marginBottom: "20px",
+    borderBottom: "1px solid var(--so-border-subtle)",
+    paddingBottom: "14px",
+    flexWrap: "wrap",
+  },
+  providerLogoSmall: {
+    height: 16,
+    width: "auto",
+    objectFit: "contain",
+  },
+  cs2capBadge: {
+    fontSize: "9.5px",
+    padding: "2px 6px",
+    textTransform: "uppercase",
+  },
+  skinsnipeBadge: {
+    fontSize: "9.5px",
+    padding: "2px 6px",
+    textTransform: "uppercase",
+    backgroundColor: "rgba(99, 102, 241, 0.18)",
+    color: "#818cf8",
+    border: "1px solid rgba(99, 102, 241, 0.4)",
+  },
+  providerHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    gap: "16px",
+    marginBottom: "16px",
+  },
+  providerHeaderTitleGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  providerHeaderLogo: {
+    height: 26,
+    width: "auto",
+    objectFit: "contain",
+  },
+  providerHeaderTitle: {
+    fontSize: "18px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    margin: 0,
+  },
+  cs2capLiveBadge: {
+    fontSize: "11px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  cs2capHeaderDescription: {
+    fontSize: "13px",
+    color: "var(--so-text-secondary)",
+    marginTop: "6px",
+    maxWidth: "720px",
+    lineHeight: 1.5,
+  },
+  configSectionCard: {
+    padding: "18px 20px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-subtle)",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+    marginBottom: "20px",
+  },
+  configSectionDescription: {
+    fontSize: "12.5px",
+    color: "var(--so-text-muted)",
+    marginBottom: "12px",
+  },
+  providerChipsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))",
+    gap: "8px",
+    marginBottom: "8px",
+  },
+  brandDisclaimer: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    marginTop: "8px",
+    opacity: 0.75,
+  },
+  brandDisclaimerIcon: {
+    flexShrink: 0,
+  },
+  streamingSectionCard: {
+    padding: "18px 20px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-subtle)",
+    marginBottom: "20px",
+  },
+  streamingSectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "14px",
+    flexWrap: "wrap",
+    gap: "10px",
+  },
+  streamingSectionTitle: {
+    fontWeight: 800,
+    fontSize: "14px",
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  cyanIcon: {
+    color: "#06b6d4",
+  },
+  badgeSmall: {
+    fontSize: "11px",
+  },
+  streamingSectionActions: {
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+  },
+  cancelStreamButton: {
+    backgroundColor: "#dc2626",
+    color: "#ffffff",
+    border: "none",
+    fontWeight: 700,
+    fontSize: "12px",
+    padding: "7px 14px",
+    borderRadius: "6px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    cursor: "pointer",
+  },
+  cs2capMissingKeyBanner: {
+    fontSize: "12.5px",
+    color: "var(--so-text-secondary)",
+    padding: "12px 14px",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    borderRadius: "6px",
+    border: "1px solid rgba(245, 158, 11, 0.25)",
+    marginBottom: "10px",
+  },
+  streamingMeterHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "8px",
+  },
+  successIcon: {
+    color: "var(--so-success-text)",
+  },
+  streamingElapsedText: {
+    fontSize: "12px",
+    color: "var(--so-text-secondary)",
+    fontFamily: "monospace",
+  },
+  streamingMetricsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+    gap: "8px",
+    marginTop: "10px",
+  },
+  metricBox: {
+    backgroundColor: "var(--so-surface-card)",
+    padding: "8px 12px",
+    borderRadius: "6px",
+  },
+  metricLabel: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+  },
+  metricValuePrimary: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+  },
+  metricValueCyan: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "#06b6d4",
+  },
+  streamingErrorText: {
+    marginTop: "8px",
+    fontSize: "12px",
+    color: "var(--so-danger-text)",
+  },
+  skinsnipeStdBadge: {
+    fontSize: "11px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    backgroundColor: "rgba(99, 102, 241, 0.18)",
+    color: "#818cf8",
+    border: "1px solid rgba(99, 102, 241, 0.4)",
+  },
+  skinsnipeHeaderDescription: {
+    fontSize: "13px",
+    color: "var(--so-text-secondary)",
+    marginTop: "6px",
+    maxWidth: "680px",
+    lineHeight: 1.5,
+  },
+  whiteSpaceNowrap: {
+    whiteSpace: "nowrap",
+  },
+  marketChipsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))",
+    gap: "8px",
+    marginBottom: "12px",
+  },
+  estimatedCycleText: {
+    fontSize: "11.5px",
+    color: "var(--so-text-muted)",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  fetchControlsGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+  uploadJsonLabel: {
+    cursor: "pointer",
+    margin: 0,
+  },
+  hiddenInput: {
+    display: "none",
+  },
+  demoCacheGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  loadDemoButton: {
+    background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+    color: "#ffffff",
+    fontWeight: 700,
+    fontSize: "13px",
+    padding: "8px 14px",
+    border: "none",
+    borderRadius: "var(--so-radius-sm)",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
+  },
+  reloadDemoButton: {
+    fontSize: "11.5px",
+    padding: "6px 10px",
+    color: "var(--so-text-secondary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  },
+  cacheStatusOffset: {
+    marginLeft: "auto",
+    fontSize: "13px",
+    marginTop: 0,
+  },
+  demoAlertBox: {
+    marginTop: "16px",
+    padding: "14px 18px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    border: "1px solid rgba(245, 158, 11, 0.35)",
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+  },
+  demoAlertIcon: {
+    color: "#f59e0b",
+    flexShrink: 0,
+  },
+  demoAlertTitle: {
+    fontWeight: 800,
+    fontSize: "13.5px",
+    color: "#f59e0b",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  demoAlertBody: {
+    fontSize: "12.5px",
+    color: "var(--so-text-secondary)",
+    marginTop: "3px",
+    lineHeight: 1.4,
+  },
+  progressHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  progressStatusText: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontWeight: 700,
+    fontSize: "13.5px",
+  },
+  primaryIcon: {
+    color: "var(--so-primary)",
+  },
+  cyanTextIcon: {
+    color: "var(--so-cyan-text)",
+  },
+  progressCurrentMarketPrimary: {
+    color: "var(--so-primary)",
+    fontWeight: 800,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+  },
+  progressCurrentMarketCyan: {
+    color: "var(--so-cyan-text)",
+    fontWeight: 800,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+  },
+  progressRemainingSeconds: {
+    color: "#fff",
+    fontWeight: 900,
+    fontSize: "13.5px",
+  },
+  progressAbortedText: {
+    color: "var(--so-danger-text)",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  progressCompletedText: {
+    color: "var(--so-success-text)",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  progressHeaderRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  progressErrorCountBadge: {
+    fontSize: "11px",
+    fontWeight: 800,
+    padding: "2px 8px",
+    borderRadius: "4px",
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    color: "var(--so-danger-text)",
+    border: "1px solid rgba(239, 68, 68, 0.4)",
+  },
+  stopFetchingButton: {
+    backgroundColor: "#dc2626",
+    color: "#ffffff",
+    border: "none",
+    fontWeight: 700,
+    fontSize: "11.5px",
+    padding: "4px 12px",
+    borderRadius: "6px",
+    boxShadow: "0 2px 8px rgba(220, 38, 38, 0.35)",
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+    cursor: "pointer",
+  },
+  progressBarTrack: {
+    width: "100%",
+    height: "6px",
+    backgroundColor: "var(--so-surface-card)",
+    borderRadius: "3px",
+    overflow: "hidden",
+  },
+  criticalErrorBox: {
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "var(--so-danger-text)",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    padding: "8px 12px",
+    borderRadius: "6px",
+    lineHeight: 1.5,
+  },
+  lastErrorText: {
+    fontSize: "11.5px",
+    color: "var(--so-text-muted)",
+  },
+};
+

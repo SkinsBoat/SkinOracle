@@ -982,51 +982,17 @@ export default function OracleDashboard() {
     cacheStatus.itemCount > 0 && !evaluatedSummary.isBatchEvaluating;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div style={styles.container}>
       {/* Header Banner */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+      <div style={styles.headerBanner}>
         <div>
-          <h1
-            style={{
-              fontSize: "24px",
-              fontWeight: 800,
-              color: "var(--so-text-primary)",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <Sparkles size={24} style={{ color: "var(--so-primary)" }} /> Oracle
-            Pricing Central
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 800,
-                letterSpacing: "0.5px",
-                padding: "2px 7px",
-                borderRadius: "4px",
-                background: "rgba(6, 182, 212, 0.15)",
-                color: "#06b6d4",
-                border: "1px solid rgba(6, 182, 212, 0.35)",
-                textTransform: "uppercase",
-              }}
-            >
+          <h1 style={styles.headerTitle}>
+            <Sparkles size={24} style={styles.headerSparkles} /> Oracle Pricing Central
+            <span style={styles.betaBadge}>
               BETA
             </span>
           </h1>
-          <p
-            style={{
-              fontSize: "13.5px",
-              color: "var(--so-text-secondary)",
-              marginTop: "4px",
-            }}
-          >
+          <p style={styles.headerSubtitle}>
             Centralized pricing engine & persistent market price cache manager
             for all connected trading workstations.
           </p>
@@ -1117,3 +1083,46 @@ export default function OracleDashboard() {
     </div>
   );
 }
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+  },
+  headerBanner: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: "24px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  headerSparkles: {
+    color: "var(--so-primary)",
+  },
+  betaBadge: {
+    fontSize: "10px",
+    fontWeight: 800,
+    letterSpacing: "0.5px",
+    padding: "2px 7px",
+    borderRadius: "4px",
+    background: "rgba(6, 182, 212, 0.15)",
+    color: "#06b6d4",
+    border: "1px solid rgba(6, 182, 212, 0.35)",
+    textTransform: "uppercase",
+  },
+  headerSubtitle: {
+    fontSize: "13.5px",
+    color: "var(--so-text-secondary)",
+    marginTop: "4px",
+  },
+};
+

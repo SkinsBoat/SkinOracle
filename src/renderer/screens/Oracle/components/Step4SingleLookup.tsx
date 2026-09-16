@@ -22,7 +22,6 @@ import {
 } from "../../../../shared/canonicalMarkets";
 import { getMarketItemUrl } from "../../../utils/marketUrls";
 import { calculateSuggestedListingPrice } from "../utils/oracleUtils";
-import { S } from "../OracleDashboard.styles";
 import { TrendDetailedChart } from "../../../components/TrendDetailedChart";
 import { TrendSparkline } from "../../../components/TrendSparkline";
 import { MarketLogo } from "../../../components/MarketLogo";
@@ -65,54 +64,20 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
   };
 
   return (
-    <div
-      className="card"
-      style={{
-        border: "1px solid var(--so-border-medium)",
-        padding: 0,
-        overflow: "hidden",
-      }}
-    >
+    <div className="card" style={styles.cardContainer}>
       {/* Accordion Header Bar */}
       <div
         onClick={onToggle}
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "16px 20px",
-          backgroundColor: isOpen
-            ? "var(--so-surface-panel)"
-            : "var(--so-surface-card)",
-          borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
-          cursor: "pointer",
-          userSelect: "none",
-          transition: "background-color 0.15s ease",
-        }}
+        style={getAccordionHeaderStyle(isOpen)}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={styles.headerLeft}>
           <div>
-            <div
-              style={{
-                fontSize: "15px",
-                fontWeight: 800,
-                color: "var(--so-text-primary)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <Search size={18} style={{ color: "var(--so-warning-text)" }} />{" "}
+            <div style={styles.headerTitle}>
+              <Search size={18} style={styles.searchIcon} />{" "}
               Single Item Deep-Dive & Market Inspection
             </div>
             {!isOpen && (
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "var(--so-text-muted)",
-                  marginTop: "2px",
-                }}
-              >
+              <div style={styles.headerSubtitle}>
                 Search individual skin hash names & view live marketplace price
                 breakdown
               </div>
@@ -120,35 +85,35 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <span className="badge badge-ghost" style={{ fontSize: "11px" }}>
+        <div style={styles.headerRight}>
+          <span className="badge badge-ghost" style={styles.quickLookupBadge}>
             Quick Skin Lookup
           </span>
           {isOpen ? (
-            <ChevronUp size={18} style={{ color: "var(--so-text-muted)" }} />
+            <ChevronUp size={18} style={styles.chevronIcon} />
           ) : (
-            <ChevronDown size={18} style={{ color: "var(--so-text-muted)" }} />
+            <ChevronDown size={18} style={styles.chevronIcon} />
           )}
         </div>
       </div>
 
       {isOpen && (
-        <div style={{ padding: "20px" }}>
-          <p className="card-desc" style={{ marginBottom: "16px" }}>
+        <div style={styles.body}>
+          <p className="card-desc" style={styles.cardDesc}>
             Enter an item market hash name below to look up its accepted price
             from the built accepted price engine.
           </p>
 
           <form
             onSubmit={onLookupSingleItem}
-            style={{ display: "flex", gap: "10px", alignItems: "center" }}
+            style={styles.searchForm}
           >
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="e.g. AK-47 | Redline (Field-Tested)"
-              style={{ flex: 1 }}
+              style={styles.searchInput}
             />
 
             <button
@@ -156,15 +121,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
               className="btn btn-secondary"
               onClick={handlePaste}
               title="Paste skin name from clipboard"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 14px",
-                fontSize: "13px",
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-              }}
+              style={styles.pasteBtn}
             >
               <Clipboard size={15} /> Paste
             </button>
@@ -173,7 +130,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
               type="submit"
               className="btn btn-primary"
               disabled={evaluating || !searchQuery.trim()}
-              style={{ minWidth: "160px" }}
+              style={styles.submitBtn}
             >
               {evaluating ? (
                 <>
@@ -189,51 +146,22 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
 
           {/* Spot Check Result Card */}
           {results.length > 0 && (
-            <div className="card" style={{ marginTop: "20px" }}>
+            <div className="card" style={styles.resultsCard}>
               <div className="card-title">
-                <BarChart3 size={18} style={{ color: "var(--so-primary)" }} />{" "}
+                <BarChart3 size={18} style={styles.advisorIcon} />{" "}
                 Price Advisor & Market Breakdown
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                }}
-              >
+              <div style={styles.resultsList}>
                 {results.map((r) => {
                   if (!r.oracle) {
                     return (
-                      <div
-                        key={r.name}
-                        style={{
-                          padding: "16px",
-                          borderRadius: "var(--so-radius-md)",
-                          backgroundColor: "rgba(239, 68, 68, 0.1)",
-                          border: "1px solid rgba(239, 68, 68, 0.3)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontWeight: 800,
-                            fontSize: "14px",
-                            color: "var(--so-danger-text)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
+                      <div key={r.name} style={styles.notFoundCard}>
+                        <div style={styles.notFoundTitle}>
                           <AlertCircle size={16} /> "{r.name}" not found in
                           price cache.
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--so-text-muted)",
-                            marginTop: "4px",
-                          }}
-                        >
+                        <div style={styles.notFoundDesc}>
                           Ensure you enter the full item hash name including the
                           wear condition in parentheses (e.g. AK-47 | Redline
                           (Field-Tested)).
@@ -275,64 +203,21 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                   const buyTarget = oracle.finalAcceptedPrice || 0;
 
                   return (
-                    <div
-                      key={r.name}
-                      style={{
-                        backgroundColor: "var(--so-surface-panel)",
-                        border: "1px solid var(--so-border-medium)",
-                        padding: "20px",
-                        borderRadius: "var(--so-radius-md)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "16px",
-                      }}
-                    >
+                    <div key={r.name} style={styles.itemCard}>
                       {/* Item Header */}
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          flexWrap: "wrap",
-                          gap: "12px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "14px",
-                          }}
-                        >
+                      <div style={styles.itemHeader}>
+                        <div style={styles.itemHeaderLeft}>
                           <img
                             src={imageUrl}
                             alt={r.name}
                             onError={(e) => {
                               (e.target as HTMLElement).style.display = "none";
                             }}
-                            style={{
-                              width: 60,
-                              height: 60,
-                              objectFit: "contain",
-                              borderRadius: "var(--so-radius-sm)",
-                              backgroundColor: "var(--so-surface-input)",
-                              border: "1px solid var(--so-border-subtle)",
-                              padding: "4px",
-                              flexShrink: 0,
-                            }}
+                            style={styles.itemImage}
                           />
 
                           <div>
-                            <div
-                              style={{
-                                fontWeight: 800,
-                                fontSize: "17px",
-                                color: "var(--so-text-primary)",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "10px",
-                              }}
-                            >
+                            <div style={styles.itemTitleRow}>
                               <span>{cleanTitle}</span>
                               <TrendSparkline
                                 name={r.name}
@@ -340,24 +225,9 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                 height={26}
                               />
                             </div>
-                            <div
-                              style={{
-                                fontSize: "12.5px",
-                                color: "var(--so-text-muted)",
-                                marginTop: "4px",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                flexWrap: "wrap",
-                              }}
-                            >
+                            <div style={styles.itemMetaRow}>
                               {wear && (
-                                <span
-                                  style={{
-                                    color: "var(--so-text-secondary)",
-                                    fontWeight: 700,
-                                  }}
-                                >
+                                <span style={styles.wearText}>
                                   ({wear})
                                 </span>
                               )}
@@ -375,25 +245,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                 oracle.nexusDelta !== null && (
                                   <span
                                     className="badge"
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: "4px",
-                                      backgroundColor:
-                                        oracle.nexusDelta > 0
-                                          ? "rgba(16, 185, 129, 0.15)"
-                                          : oracle.nexusDelta < 0
-                                            ? "rgba(239, 68, 68, 0.15)"
-                                            : "rgba(99, 102, 241, 0.15)",
-                                      color:
-                                        oracle.nexusDelta > 0
-                                          ? "var(--so-success-text)"
-                                          : oracle.nexusDelta < 0
-                                            ? "var(--so-danger-text)"
-                                            : "var(--so-primary)",
-                                      border: `1px solid ${oracle.nexusDelta > 0 ? "rgba(16, 185, 129, 0.3)" : oracle.nexusDelta < 0 ? "rgba(239, 68, 68, 0.3)" : "rgba(99, 102, 241, 0.3)"}`,
-                                      fontWeight: 700,
-                                    }}
+                                    style={getNexusDeltaBadgeStyle(oracle.nexusDelta)}
                                   >
                                     <TrendingUp size={11} />
                                     NEXUS{" "}
@@ -407,7 +259,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               {oracle.trendConfidence && (
                                 <span
                                   className="badge badge-ghost"
-                                  style={{ fontSize: "11px" }}
+                                  style={styles.gradeBadge}
                                 >
                                   GRADE {oracle.trendConfidence}
                                 </span>
@@ -415,29 +267,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               {oracle.supplyStabilityScore !== undefined && (
                                 <span
                                   className="badge"
-                                  style={{
-                                    fontSize: "11px",
-                                    fontWeight: 700,
-                                    backgroundColor:
-                                      oracle.supplyStabilityScore >= 1.2
-                                        ? "rgba(16, 185, 129, 0.15)"
-                                        : oracle.supplyStabilityScore >= 0.8
-                                          ? "rgba(6, 182, 212, 0.15)"
-                                          : "rgba(245, 158, 11, 0.15)",
-                                    color:
-                                      oracle.supplyStabilityScore >= 1.2
-                                        ? "var(--so-success-text)"
-                                        : oracle.supplyStabilityScore >= 0.8
-                                          ? "var(--so-cyan-text)"
-                                          : "var(--so-warning)",
-                                    border: `1px solid ${
-                                      oracle.supplyStabilityScore >= 1.2
-                                        ? "rgba(16, 185, 129, 0.3)"
-                                        : oracle.supplyStabilityScore >= 0.8
-                                          ? "rgba(6, 182, 212, 0.3)"
-                                          : "rgba(245, 158, 11, 0.3)"
-                                    }`,
-                                  }}
+                                  style={getSssBadgeStyle(oracle.supplyStabilityScore)}
                                   title="Supply Stability Score (SSS) measures cross-market availability, anti-monopoly supply distribution across markets (HHI), and listed stock depth relative to price bracket."
                                 >
                                   SSS: {oracle.supplyStabilityScore.toFixed(1)}
@@ -454,39 +284,14 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                       </div>
 
                       {/* 4-Stat Metric Grid */}
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(130px, 1fr))",
-                          gap: "10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: "var(--so-radius-sm)",
-                            backgroundColor: "var(--so-surface-input)",
-                            border: "1px solid var(--so-border-subtle)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--so-text-muted)",
-                              fontWeight: 600,
-                            }}
-                          >
+                      <div style={styles.metricGrid}>
+                        <div style={styles.metricCard}>
+                          <div style={styles.metricLabel}>
                             Market Average
                           </div>
                           <div
                             className="tabular-nums"
-                            style={{
-                              fontSize: "15px",
-                              fontWeight: 800,
-                              color: "var(--so-primary)",
-                              marginTop: "2px",
-                            }}
+                            style={styles.metricPrimaryValue}
                           >
                             $
                             {oracle.averageMarketPrice
@@ -495,24 +300,8 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                           </div>
                         </div>
 
-                        <div
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: "var(--so-radius-sm)",
-                            backgroundColor: "var(--so-surface-input)",
-                            border: "1px solid var(--so-border-subtle)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--so-text-muted)",
-                              fontWeight: 600,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "5px",
-                            }}
-                          >
+                        <div style={styles.metricCard}>
+                          <div style={styles.metricLowestLabel}>
                             <span>Lowest Listing</span>
                             {marketListings.length > 0 && (
                               <MarketLogo
@@ -523,12 +312,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                           </div>
                           <div
                             className="tabular-nums"
-                            style={{
-                              fontSize: "15px",
-                              fontWeight: 800,
-                              color: "var(--so-text-primary)",
-                              marginTop: "2px",
-                            }}
+                            style={styles.metricTextValue}
                           >
                             $
                             {oracle.lowestPrice
@@ -537,31 +321,13 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                           </div>
                         </div>
 
-                        <div
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: "var(--so-radius-sm)",
-                            backgroundColor: "var(--so-surface-input)",
-                            border: "1px solid var(--so-border-subtle)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--so-text-muted)",
-                              fontWeight: 600,
-                            }}
-                          >
+                        <div style={styles.metricCard}>
+                          <div style={styles.metricLabel}>
                             Total Market Supply
                           </div>
                           <div
                             className="tabular-nums"
-                            style={{
-                              fontSize: "15px",
-                              fontWeight: 800,
-                              color: "var(--so-success-text)",
-                              marginTop: "2px",
-                            }}
+                            style={styles.metricSuccessValue}
                           >
                             {(() => {
                               const verifiedQty = marketListings.reduce(
@@ -573,12 +339,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               );
                               if (verifiedQty === 0 && hasUnverified) {
                                 return (
-                                  <span
-                                    style={{
-                                      fontSize: "12px",
-                                      color: "var(--so-warning-text, #f59e0b)",
-                                    }}
-                                  >
+                                  <span style={styles.unverifiedText}>
                                     Unverified
                                   </span>
                                 );
@@ -588,12 +349,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                   {verifiedQty.toLocaleString()} Qty
                                   {hasUnverified && (
                                     <span
-                                      style={{
-                                        fontSize: "11px",
-                                        color:
-                                          "var(--so-warning-text, #f59e0b)",
-                                        marginLeft: "4px",
-                                      }}
+                                      style={styles.unverifiedAsterisk}
                                       title="Some market sources omitted listing quantity"
                                     >
                                       *
@@ -605,31 +361,13 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                           </div>
                         </div>
 
-                        <div
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: "var(--so-radius-sm)",
-                            backgroundColor: "var(--so-surface-input)",
-                            border: "1px solid var(--so-border-subtle)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--so-text-muted)",
-                              fontWeight: 600,
-                            }}
-                          >
+                        <div style={styles.metricCard}>
+                          <div style={styles.metricLabel}>
                             Markets Tracked
                           </div>
                           <div
                             className="tabular-nums"
-                            style={{
-                              fontSize: "15px",
-                              fontWeight: 800,
-                              color: "var(--so-cyan-text)",
-                              marginTop: "2px",
-                            }}
+                            style={styles.metricCyanValue}
                           >
                             {marketListings.length || oracle.marketCount || 1}{" "}
                             Markets
@@ -653,46 +391,22 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                           listingStrategy,
                         );
                         return (
-                          <div style={S.targetBox}>
+                          <div style={styles.targetBox}>
                             {/* Left Column: Target Buy Ceiling */}
                             <div>
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--so-text-muted)",
-                                  textTransform: "uppercase",
-                                  fontWeight: 700,
-                                }}
-                              >
+                              <div style={styles.targetLabel}>
                                 Workstation Buy Ceiling
                               </div>
                               <div
                                 className="tabular-nums"
-                                style={{
-                                  fontSize: "24px",
-                                  fontWeight: 900,
-                                  color: "var(--so-success-text)",
-                                  marginTop: "2px",
-                                }}
+                                style={styles.buyCeilingValue}
                               >
                                 ${buyTarget.toFixed(2)}
                               </div>
-                              <div
-                                style={{
-                                  fontSize: "12px",
-                                  color: "var(--so-text-muted)",
-                                  marginTop: "2px",
-                                }}
-                              >
+                              <div style={styles.buyCeilingDesc}>
                                 {oracle.nexusDelta !== undefined &&
                                 oracle.nexusDelta !== null ? (
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: "6px",
-                                    }}
-                                  >
+                                  <span style={styles.nexusInlineMeta}>
                                     <span>
                                       Base: $
                                       {oracle.v1Benchmark
@@ -700,15 +414,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                         : "—"}
                                     </span>
                                     <span
-                                      style={{
-                                        color:
-                                          oracle.nexusDelta > 0
-                                            ? "var(--so-success-text)"
-                                            : oracle.nexusDelta < 0
-                                              ? "var(--so-danger-text)"
-                                              : "var(--so-text-muted)",
-                                        fontWeight: 700,
-                                      }}
+                                      style={getNexusDeltaTextStyle(oracle.nexusDelta)}
                                     >
                                       {oracle.nexusDelta > 0
                                         ? `+$${oracle.nexusDelta.toFixed(2)}`
@@ -718,7 +424,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                       Nexus
                                     </span>
                                     {oracle.trendAdjustment !== undefined && (
-                                      <span style={{ opacity: 0.8 }}>
+                                      <span style={styles.trendAdjText}>
                                         (
                                         {(oracle.trendAdjustment * 100).toFixed(
                                           1,
@@ -734,38 +440,18 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                             </div>
 
                             {/* Right Column: Local Suggested Listing Price */}
-                            <div
-                              style={{
-                                paddingLeft: "16px",
-                                borderLeft: "1px solid rgba(16, 185, 129, 0.2)",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--so-text-muted)",
-                                  textTransform: "uppercase",
-                                  fontWeight: 700,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                }}
-                              >
+                            <div style={styles.suggestedListingCol}>
+                              <div style={styles.suggestedListingLabel}>
                                 <Tag
                                   size={13}
-                                  style={{ color: "var(--so-primary)" }}
+                                  style={styles.tagPrimaryIcon}
                                 />{" "}
                                 Suggested Selling Price (
                                 {listingStrategy.mode.toUpperCase()})
                               </div>
                               <div
                                 className="tabular-nums"
-                                style={{
-                                  fontSize: "24px",
-                                  fontWeight: 900,
-                                  color: "var(--so-primary)",
-                                  marginTop: "2px",
-                                }}
+                                style={styles.suggestedListingValue}
                               >
                                 ${suggestedListing.toFixed(2)}
                               </div>
@@ -777,73 +463,26 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                       {/* Individual Market Breakdown Table */}
                       {marketListings.length > 0 && (
                         <div>
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              fontWeight: 700,
-                              color: "var(--so-text-primary)",
-                              marginBottom: "8px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "6px",
-                            }}
-                          >
+                          <div style={styles.marketBreakdownTitle}>
                             <Layers
                               size={14}
-                              style={{ color: "var(--so-cyan-text)" }}
+                              style={styles.cyanIcon}
                             />{" "}
                             Live Market Price Breakdown ({marketListings.length}{" "}
                             Markets)
                           </div>
 
-                          <div
-                            style={{
-                              overflowX: "auto",
-                              border: "1px solid var(--so-border-subtle)",
-                              borderRadius: "var(--so-radius-sm)",
-                            }}
-                          >
-                            <table
-                              style={{
-                                width: "100%",
-                                borderCollapse: "collapse",
-                                fontSize: "12.5px",
-                              }}
-                            >
+                          <div style={styles.tableWrapper}>
+                            <table style={styles.table}>
                               <thead>
-                                <tr
-                                  style={{
-                                    backgroundColor: "var(--so-surface-input)",
-                                    borderBottom:
-                                      "1px solid var(--so-border-subtle)",
-                                    textAlign: "left",
-                                    color: "var(--so-text-muted)",
-                                  }}
-                                >
-                                  <th
-                                    style={{
-                                      padding: "8px 12px",
-                                      fontWeight: 700,
-                                    }}
-                                  >
+                                <tr style={styles.tableHeaderRow}>
+                                  <th style={styles.thLeft}>
                                     Marketplace
                                   </th>
-                                  <th
-                                    style={{
-                                      padding: "8px 12px",
-                                      fontWeight: 700,
-                                      textAlign: "right",
-                                    }}
-                                  >
+                                  <th style={styles.thRight}>
                                     Lowest Active Price
                                   </th>
-                                  <th
-                                    style={{
-                                      padding: "8px 12px",
-                                      fontWeight: 700,
-                                      textAlign: "right",
-                                    }}
-                                  >
+                                  <th style={styles.thRight}>
                                     Active Quantity
                                   </th>
                                 </tr>
@@ -860,27 +499,9 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                   return (
                                     <tr
                                       key={m.marketId + idx}
-                                      style={{
-                                        borderBottom:
-                                          idx < marketListings.length - 1
-                                            ? "1px solid var(--so-border-subtle)"
-                                            : "none",
-                                        backgroundColor:
-                                          idx % 2 === 0
-                                            ? "transparent"
-                                            : "rgba(255, 255, 255, 0.02)",
-                                      }}
+                                      style={getTableRowStyle(idx, marketListings.length)}
                                     >
-                                      <td
-                                        style={{
-                                          padding: "8px 12px",
-                                          fontWeight: 700,
-                                          color: "var(--so-text-primary)",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: "8px",
-                                        }}
-                                      >
+                                      <td style={styles.tdMarket}>
                                         <MarketLogo
                                           marketId={m.marketId}
                                           marketName={marketName}
@@ -893,13 +514,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                             target="_blank"
                                             rel="noreferrer"
                                             title={`Open ${r.name} on ${marketName}`}
-                                            style={{
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              color:
-                                                "var(--so-text-muted, #94a3b8)",
-                                              transition: "color 0.15s ease",
-                                            }}
+                                            style={styles.marketLink}
                                             onMouseEnter={(e) =>
                                               (e.currentTarget.style.color =
                                                 "var(--so-accent-primary, #3b82f6)")
@@ -915,25 +530,12 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                         {isTradeMarket(m.marketId) && (
                                           <span
                                             className="badge"
-                                            style={{
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              gap: "3px",
-                                              fontSize: "9px",
-                                              fontWeight: 800,
-                                              padding: "1px 5px",
-                                              borderRadius: "3px",
-                                              backgroundColor:
-                                                "rgba(245, 158, 11, 0.15)",
-                                              color: "#f59e0b",
-                                              border:
-                                                "1px solid rgba(245, 158, 11, 0.35)",
-                                            }}
+                                            style={styles.tradeBadge}
                                             title="Trade bot / swap platform: prices may reflect marked-up virtual credit"
                                           >
                                             <AlertTriangle
                                               size={10}
-                                              style={{ color: "#f59e0b" }}
+                                              style={styles.tradeAlertIcon}
                                             />
                                             TRADE
                                           </span>
@@ -941,34 +543,19 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                       </td>
                                       <td
                                         className="tabular-nums"
-                                        style={{
-                                          padding: "8px 12px",
-                                          textAlign: "right",
-                                          fontWeight: 800,
-                                          color: "var(--so-primary)",
-                                        }}
+                                        style={styles.tdPrice}
                                       >
                                         ${m.price.toFixed(2)}
                                       </td>
                                       <td
                                         className="tabular-nums"
-                                        style={{
-                                          padding: "8px 12px",
-                                          textAlign: "right",
-                                          color: "var(--so-text-secondary)",
-                                          fontWeight: 600,
-                                        }}
+                                        style={styles.tdQuantity}
                                       >
                                         {m.quantity !== undefined ? (
                                           m.quantity.toLocaleString()
                                         ) : (
                                           <span
-                                            style={{
-                                              color:
-                                                "var(--so-warning-text, #f59e0b)",
-                                              fontSize: "11px",
-                                              fontWeight: 600,
-                                            }}
+                                            style={styles.unverifiedQtyText}
                                             title="Market source did not provide quantity for this listing"
                                           >
                                             Unverified
@@ -994,3 +581,440 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
     </div>
   );
 };
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 20px",
+    backgroundColor: isOpen
+      ? "var(--so-surface-panel)"
+      : "var(--so-surface-card)",
+    borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
+    cursor: "pointer",
+    userSelect: "none",
+    transition: "background-color 0.15s ease",
+  };
+}
+
+function getNexusDeltaBadgeStyle(delta: number): React.CSSProperties {
+  const isPos = delta > 0;
+  const isNeg = delta < 0;
+
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    backgroundColor: isPos
+      ? "rgba(16, 185, 129, 0.15)"
+      : isNeg
+        ? "rgba(239, 68, 68, 0.15)"
+        : "rgba(99, 102, 241, 0.15)",
+    color: isPos
+      ? "var(--so-success-text)"
+      : isNeg
+        ? "var(--so-danger-text)"
+        : "var(--so-primary)",
+    border: `1px solid ${isPos ? "rgba(16, 185, 129, 0.3)" : isNeg ? "rgba(239, 68, 68, 0.3)" : "rgba(99, 102, 241, 0.3)"}`,
+    fontWeight: 700,
+  };
+}
+
+function getNexusDeltaTextStyle(delta: number): React.CSSProperties {
+  return {
+    color:
+      delta > 0
+        ? "var(--so-success-text)"
+        : delta < 0
+          ? "var(--so-danger-text)"
+          : "var(--so-text-muted)",
+    fontWeight: 700,
+  };
+}
+
+function getSssBadgeStyle(score: number): React.CSSProperties {
+  return {
+    fontSize: "11px",
+    fontWeight: 700,
+    backgroundColor:
+      score >= 1.2
+        ? "rgba(16, 185, 129, 0.15)"
+        : score >= 0.8
+          ? "rgba(6, 182, 212, 0.15)"
+          : "rgba(245, 158, 11, 0.15)",
+    color:
+      score >= 1.2
+        ? "var(--so-success-text)"
+        : score >= 0.8
+          ? "var(--so-cyan-text)"
+          : "var(--so-warning)",
+    border: `1px solid ${
+      score >= 1.2
+        ? "rgba(16, 185, 129, 0.3)"
+        : score >= 0.8
+          ? "rgba(6, 182, 212, 0.3)"
+          : "rgba(245, 158, 11, 0.3)"
+    }`,
+  };
+}
+
+function getTableRowStyle(idx: number, total: number): React.CSSProperties {
+  return {
+    borderBottom:
+      idx < total - 1 ? "1px solid var(--so-border-subtle)" : "none",
+    backgroundColor:
+      idx % 2 === 0 ? "transparent" : "rgba(255, 255, 255, 0.02)",
+  };
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  cardContainer: {
+    border: "1px solid var(--so-border-medium)",
+    padding: 0,
+    overflow: "hidden",
+  },
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  headerTitle: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  searchIcon: {
+    color: "var(--so-warning-text)",
+  },
+  headerSubtitle: {
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+    marginTop: "2px",
+  },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  quickLookupBadge: {
+    fontSize: "11px",
+  },
+  chevronIcon: {
+    color: "var(--so-text-muted)",
+  },
+  body: {
+    padding: "20px",
+  },
+  cardDesc: {
+    marginBottom: "16px",
+  },
+  searchForm: {
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+  },
+  searchInput: {
+    flex: 1,
+  },
+  pasteBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "8px 14px",
+    fontSize: "13px",
+    fontWeight: 600,
+    whiteSpace: "nowrap",
+  },
+  submitBtn: {
+    minWidth: "160px",
+  },
+  resultsCard: {
+    marginTop: "20px",
+  },
+  advisorIcon: {
+    color: "var(--so-primary)",
+  },
+  resultsList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+  notFoundCard: {
+    padding: "16px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    border: "1px solid rgba(239, 68, 68, 0.3)",
+  },
+  notFoundTitle: {
+    fontWeight: 800,
+    fontSize: "14px",
+    color: "var(--so-danger-text)",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  notFoundDesc: {
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+    marginTop: "4px",
+  },
+  itemCard: {
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-medium)",
+    padding: "20px",
+    borderRadius: "var(--so-radius-md)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+  itemHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    gap: "12px",
+  },
+  itemHeaderLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+  },
+  itemImage: {
+    width: 60,
+    height: 60,
+    objectFit: "contain",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-input)",
+    border: "1px solid var(--so-border-subtle)",
+    padding: "4px",
+    flexShrink: 0,
+  },
+  itemTitleRow: {
+    fontWeight: 800,
+    fontSize: "17px",
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  itemMetaRow: {
+    fontSize: "12.5px",
+    color: "var(--so-text-muted)",
+    marginTop: "4px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flexWrap: "wrap",
+  },
+  wearText: {
+    color: "var(--so-text-secondary)",
+    fontWeight: 700,
+  },
+  gradeBadge: {
+    fontSize: "11px",
+  },
+  metricGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+    gap: "10px",
+  },
+  metricCard: {
+    padding: "10px 12px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-input)",
+    border: "1px solid var(--so-border-subtle)",
+  },
+  metricLabel: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+    fontWeight: 600,
+  },
+  metricLowestLabel: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+  },
+  metricPrimaryValue: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-primary)",
+    marginTop: "2px",
+  },
+  metricTextValue: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    marginTop: "2px",
+  },
+  metricSuccessValue: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-success-text)",
+    marginTop: "2px",
+  },
+  metricCyanValue: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-cyan-text)",
+    marginTop: "2px",
+  },
+  unverifiedText: {
+    fontSize: "12px",
+    color: "var(--so-warning-text, #f59e0b)",
+  },
+  unverifiedAsterisk: {
+    fontSize: "11px",
+    color: "var(--so-warning-text, #f59e0b)",
+    marginLeft: "4px",
+  },
+  targetBox: {
+    padding: "18px 20px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "rgba(16, 185, 129, 0.08)",
+    border: "1px solid rgba(16, 185, 129, 0.3)",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "16px",
+    alignItems: "center",
+  },
+  targetLabel: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+    textTransform: "uppercase",
+    fontWeight: 700,
+  },
+  buyCeilingValue: {
+    fontSize: "24px",
+    fontWeight: 900,
+    color: "var(--so-success-text)",
+    marginTop: "2px",
+  },
+  buyCeilingDesc: {
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+    marginTop: "2px",
+  },
+  nexusInlineMeta: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  trendAdjText: {
+    opacity: 0.8,
+  },
+  suggestedListingCol: {
+    paddingLeft: "16px",
+    borderLeft: "1px solid rgba(16, 185, 129, 0.2)",
+  },
+  suggestedListingLabel: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+    textTransform: "uppercase",
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  tagPrimaryIcon: {
+    color: "var(--so-primary)",
+  },
+  suggestedListingValue: {
+    fontSize: "24px",
+    fontWeight: 900,
+    color: "var(--so-primary)",
+    marginTop: "2px",
+  },
+  marketBreakdownTitle: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "var(--so-text-primary)",
+    marginBottom: "8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  cyanIcon: {
+    color: "var(--so-cyan-text)",
+  },
+  tableWrapper: {
+    overflowX: "auto",
+    border: "1px solid var(--so-border-subtle)",
+    borderRadius: "var(--so-radius-sm)",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    fontSize: "12.5px",
+  },
+  tableHeaderRow: {
+    backgroundColor: "var(--so-surface-input)",
+    borderBottom: "1px solid var(--so-border-subtle)",
+    textAlign: "left",
+    color: "var(--so-text-muted)",
+  },
+  thLeft: {
+    padding: "8px 12px",
+    fontWeight: 700,
+  },
+  thRight: {
+    padding: "8px 12px",
+    fontWeight: 700,
+    textAlign: "right",
+  },
+  tdMarket: {
+    padding: "8px 12px",
+    fontWeight: 700,
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  marketLink: {
+    display: "inline-flex",
+    alignItems: "center",
+    color: "var(--so-text-muted, #94a3b8)",
+    transition: "color 0.15s ease",
+  },
+  tradeBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    fontSize: "9px",
+    fontWeight: 800,
+    padding: "1px 5px",
+    borderRadius: "3px",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    color: "#f59e0b",
+    border: "1px solid rgba(245, 158, 11, 0.35)",
+  },
+  tradeAlertIcon: {
+    color: "#f59e0b",
+  },
+  tdPrice: {
+    padding: "8px 12px",
+    textAlign: "right",
+    fontWeight: 800,
+    color: "var(--so-primary)",
+  },
+  tdQuantity: {
+    padding: "8px 12px",
+    textAlign: "right",
+    color: "var(--so-text-secondary)",
+    fontWeight: 600,
+  },
+  unverifiedQtyText: {
+    color: "var(--so-warning-text, #f59e0b)",
+    fontSize: "11px",
+    fontWeight: 600,
+  },
+};
+

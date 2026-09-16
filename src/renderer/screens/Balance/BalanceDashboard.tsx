@@ -95,8 +95,7 @@ export default function BalanceDashboard() {
               color: "var(--so-text-secondary)",
             }}
           >
-            Real-time balance, daily free credit allowance, and pay-as-you-go
-            billing logs.
+            Real-time balance and pay-as-you-go billing ledger logs.
           </p>
         </div>
         <button
@@ -178,65 +177,68 @@ export default function BalanceDashboard() {
           </div>
         </div>
 
-        {/* Daily Free Allowance Card */}
-        <div
-          style={{
-            padding: "20px 24px",
-            borderRadius: "var(--so-radius-lg)",
-            backgroundColor: "var(--so-surface-panel)",
-            border: "1px solid rgba(14, 165, 233, 0.25)",
-            background:
-              "linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%)",
-          }}
-        >
+        {/* Daily Free Allowance Card (Hidden if set to 0 in DB) */}
+        {Boolean(balance && balance.dailyFreeAllowanceCents > 0) && (
           <div
             style={{
-              fontSize: "11px",
-              fontWeight: 700,
-              color: "var(--so-text-secondary)",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginBottom: "6px",
+              padding: "20px 24px",
+              borderRadius: "var(--so-radius-lg)",
+              backgroundColor: "var(--so-surface-panel)",
+              border: "1px solid rgba(14, 165, 233, 0.25)",
+              background:
+                "linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%)",
             }}
           >
-            Daily Free Credit Allowance
-          </div>
-          <div
-            style={{
-              fontSize: "32px",
-              fontWeight: 900,
-              color: "#38bdf8",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            $
-            {balance
-              ? (balance.dailyFreeRemainingCents / 100).toFixed(2)
-              : "0.00"}
-            <span
+            <div
               style={{
-                fontSize: "14px",
-                color: "var(--so-text-muted)",
-                fontWeight: 600,
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "var(--so-text-secondary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: "6px",
               }}
             >
-              {" "}
-              / $
-              {(balance ? balance.dailyFreeAllowanceCents / 100 : 0.5).toFixed(
-                2,
-              )}
-            </span>
+              Daily Free Credit Allowance
+            </div>
+            <div
+              style={{
+                fontSize: "32px",
+                fontWeight: 900,
+                color: "#38bdf8",
+                letterSpacing: "-0.5px",
+              }}
+            >
+              $
+              {balance
+                ? (balance.dailyFreeRemainingCents / 100).toFixed(2)
+                : "0.00"}
+              <span
+                style={{
+                  fontSize: "14px",
+                  color: "var(--so-text-muted)",
+                  fontWeight: 600,
+                }}
+              >
+                {" "}
+                / $
+                {(balance
+                  ? balance.dailyFreeAllowanceCents / 100
+                  : 0
+                ).toFixed(2)}
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "var(--so-text-muted)",
+                marginTop: "6px",
+              }}
+            >
+              Resets daily at 00:00 UTC (usable across all services)
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: "12px",
-              color: "var(--so-text-muted)",
-              marginTop: "6px",
-            }}
-          >
-            Resets daily at 00:00 UTC (usable across all services)
-          </div>
-        </div>
+        )}
 
         {/* Audit Count Card */}
         <div

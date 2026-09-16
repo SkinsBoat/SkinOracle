@@ -20,46 +20,15 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
   totalCacheCount,
 }) => {
   return (
-    <div
-      style={{
-        padding: "18px 20px",
-        borderRadius: "var(--so-radius-md)",
-        backgroundColor: "var(--so-surface-panel)",
-        border: "1px solid var(--so-border-medium)",
-        marginBottom: "18px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "14px",
-        }}
-      >
-        <div
-          style={{
-            fontWeight: 800,
-            fontSize: "14px",
-            color: "var(--so-text-primary)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <Sliders size={16} style={{ color: "var(--so-primary)" }} /> Section
-          1: Pre-Evaluation Filters
+    <div style={styles.panelContainer}>
+      <div style={styles.headerRow}>
+        <div style={styles.headerTitle}>
+          <Sliders size={16} style={styles.sliderIcon} /> Section 1: Pre-Evaluation Filters
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={styles.headerRight}>
           {totalCacheCount > 0 && (
-            <div
-              style={{
-                fontSize: "12px",
-                fontWeight: 700,
-                color: "var(--so-cyan-text)",
-              }}
-            >
+            <div style={styles.passingCountBadge}>
               Passing Filters: {passingFilterCount.toLocaleString()} /{" "}
               {totalCacheCount.toLocaleString()} items
             </div>
@@ -67,7 +36,7 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
           <button
             className="btn btn-sm btn-ghost"
             onClick={resetPreFilters}
-            style={{ fontSize: "11.5px", padding: "3px 8px" }}
+            style={styles.resetBtn}
           >
             <RefreshCw size={12} /> Reset Pre-Filters
           </button>
@@ -75,14 +44,7 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
       </div>
 
       {/* Quick Category & Special Exclusions Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "10px",
-          marginBottom: "16px",
-        }}
-      >
+      <div style={styles.exclusionsGrid}>
         {/* Exclude Souvenir */}
         <div
           onClick={() =>
@@ -91,56 +53,18 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
               excludeSouvenir: !p.excludeSouvenir,
             }))
           }
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 12px",
-            borderRadius: "var(--so-radius-sm)",
-            backgroundColor: preFilters.excludeSouvenir
-              ? "rgba(239, 68, 68, 0.12)"
-              : "var(--so-surface-input)",
-            border: preFilters.excludeSouvenir
-              ? "1px solid rgba(239, 68, 68, 0.4)"
-              : "1px solid var(--so-border-subtle)",
-            cursor: "pointer",
-            userSelect: "none",
-            transition: "all 0.15s ease",
-          }}
+          style={getExclusionCardStyle(preFilters.excludeSouvenir)}
         >
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: preFilters.excludeSouvenir
-                ? "var(--so-danger)"
-                : "transparent",
-              border: preFilters.excludeSouvenir
-                ? "none"
-                : "1px solid var(--so-border-medium)",
-            }}
-          >
+          <div style={getCheckboxBoxStyle(preFilters.excludeSouvenir)}>
             {preFilters.excludeSouvenir && (
-              <Check size={12} style={{ color: "#fff" }} />
+              <Check size={12} style={styles.checkIconWhite} />
             )}
           </div>
           <div>
-            <div
-              style={{
-                fontSize: "12.5px",
-                fontWeight: 700,
-                color: preFilters.excludeSouvenir
-                  ? "var(--so-danger-text)"
-                  : "var(--so-text-primary)",
-              }}
-            >
+            <div style={getExclusionTitleStyle(preFilters.excludeSouvenir)}>
               Exclude Souvenir Weapons
             </div>
-            <div style={{ fontSize: "11px", color: "var(--so-text-muted)" }}>
+            <div style={styles.exclusionDesc}>
               Removes Souvenir weapon skins
             </div>
           </div>
@@ -154,56 +78,18 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
               excludeStatTrak: !p.excludeStatTrak,
             }))
           }
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 12px",
-            borderRadius: "var(--so-radius-sm)",
-            backgroundColor: preFilters.excludeStatTrak
-              ? "rgba(239, 68, 68, 0.12)"
-              : "var(--so-surface-input)",
-            border: preFilters.excludeStatTrak
-              ? "1px solid rgba(239, 68, 68, 0.4)"
-              : "1px solid var(--so-border-subtle)",
-            cursor: "pointer",
-            userSelect: "none",
-            transition: "all 0.15s ease",
-          }}
+          style={getExclusionCardStyle(preFilters.excludeStatTrak)}
         >
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: preFilters.excludeStatTrak
-                ? "var(--so-danger)"
-                : "transparent",
-              border: preFilters.excludeStatTrak
-                ? "none"
-                : "1px solid var(--so-border-medium)",
-            }}
-          >
+          <div style={getCheckboxBoxStyle(preFilters.excludeStatTrak)}>
             {preFilters.excludeStatTrak && (
-              <Check size={12} style={{ color: "#fff" }} />
+              <Check size={12} style={styles.checkIconWhite} />
             )}
           </div>
           <div>
-            <div
-              style={{
-                fontSize: "12.5px",
-                fontWeight: 700,
-                color: preFilters.excludeStatTrak
-                  ? "var(--so-danger-text)"
-                  : "var(--so-text-primary)",
-              }}
-            >
+            <div style={getExclusionTitleStyle(preFilters.excludeStatTrak)}>
               Exclude StatTrak™ Items
             </div>
-            <div style={{ fontSize: "11px", color: "var(--so-text-muted)" }}>
+            <div style={styles.exclusionDesc}>
               Removes kill-tracker weapons
             </div>
           </div>
@@ -217,56 +103,18 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
               excludeStickers: !p.excludeStickers,
             }))
           }
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 12px",
-            borderRadius: "var(--so-radius-sm)",
-            backgroundColor: preFilters.excludeStickers
-              ? "rgba(239, 68, 68, 0.12)"
-              : "var(--so-surface-input)",
-            border: preFilters.excludeStickers
-              ? "1px solid rgba(239, 68, 68, 0.4)"
-              : "1px solid var(--so-border-subtle)",
-            cursor: "pointer",
-            userSelect: "none",
-            transition: "all 0.15s ease",
-          }}
+          style={getExclusionCardStyle(preFilters.excludeStickers)}
         >
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: preFilters.excludeStickers
-                ? "var(--so-danger)"
-                : "transparent",
-              border: preFilters.excludeStickers
-                ? "none"
-                : "1px solid var(--so-border-medium)",
-            }}
-          >
+          <div style={getCheckboxBoxStyle(preFilters.excludeStickers)}>
             {preFilters.excludeStickers && (
-              <Check size={12} style={{ color: "#fff" }} />
+              <Check size={12} style={styles.checkIconWhite} />
             )}
           </div>
           <div>
-            <div
-              style={{
-                fontSize: "12.5px",
-                fontWeight: 700,
-                color: preFilters.excludeStickers
-                  ? "var(--so-danger-text)"
-                  : "var(--so-text-primary)",
-              }}
-            >
+            <div style={getExclusionTitleStyle(preFilters.excludeStickers)}>
               Exclude Stickers
             </div>
-            <div style={{ fontSize: "11px", color: "var(--so-text-muted)" }}>
+            <div style={styles.exclusionDesc}>
               Removes standalone stickers
             </div>
           </div>
@@ -274,52 +122,18 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
 
         {/* Forced Group Exclusions: Charms, Cases, Keys, Music Kits, Agents, Patches, Graffiti */}
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 12px",
-            borderRadius: "var(--so-radius-sm)",
-            backgroundColor: "var(--so-surface-input)",
-            border: "1px solid var(--so-border-subtle)",
-            cursor: "not-allowed",
-            userSelect: "none",
-            opacity: 0.75,
-          }}
+          style={styles.lockedCard}
           title="Forced Excluded Commodity Group (Locked)"
         >
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "var(--so-border-medium)",
-              border: "none",
-            }}
-          >
-            <Check size={12} style={{ color: "var(--so-text-primary)" }} />
+          <div style={styles.lockedCheckboxBox}>
+            <Check size={12} style={styles.lockedCheckIcon} />
           </div>
           <div>
-            <div
-              style={{
-                fontSize: "12.5px",
-                fontWeight: 700,
-                color: "var(--so-text-muted)",
-              }}
-            >
+            <div style={styles.lockedTitle}>
               Exclude Charms, Cases, Packages, Keys, Music Kits, Agents, Patches
               & Graffiti
             </div>
-            <div
-              style={{
-                fontSize: "11px",
-                color: "var(--so-text-muted)",
-                opacity: 0.8,
-              }}
-            >
+            <div style={styles.lockedSubtitle}>
               Forced Filtered Out (Locked)
             </div>
           </div>
@@ -327,32 +141,14 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
       </div>
 
       {/* Wear Condition & Price Filters Row */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "flex-end",
-          justifyContent: "space-between",
-          gap: "16px",
-        }}
-      >
+      <div style={styles.bottomRow}>
         {/* Wear Condition Selector */}
-        <div style={{ flex: 1, minWidth: "300px" }}>
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "var(--so-text-secondary)",
-              marginBottom: "8px",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
+        <div style={styles.wearSection}>
+          <div style={styles.wearSectionTitle}>
             <Tag size={14} /> Allowed Wear Conditions:
           </div>
 
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <div style={styles.wearButtonsRow}>
             {[
               { key: "fn", label: "Factory New (FN)" },
               { key: "mw", label: "Minimal Wear (MW)" },
@@ -373,23 +169,7 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
                       wear.key as keyof BuildPreFilters["allowedWears"],
                     )
                   }
-                  style={{
-                    padding: "5px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                    backgroundColor: isSelected
-                      ? "rgba(99, 102, 241, 0.18)"
-                      : "var(--so-surface-input)",
-                    border: isSelected
-                      ? "1px solid var(--so-primary)"
-                      : "1px solid var(--so-border-subtle)",
-                    color: isSelected
-                      ? "var(--so-text-primary)"
-                      : "var(--so-text-muted)",
-                  }}
+                  style={getWearButtonStyle(isSelected)}
                 >
                   {isSelected ? "✓ " : "✕ "} {wear.label}
                 </button>
@@ -400,18 +180,10 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
 
         {/* Compact Inline Price Filters */}
         <div>
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "var(--so-text-secondary)",
-              marginBottom: "8px",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <div style={styles.priceSectionTitle}>
             Price Range ($):
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={styles.priceInputsRow}>
             <input
               type="number"
               min="0"
@@ -426,21 +198,9 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
                   minPrice: isNaN(val) ? 0 : val,
                 }));
               }}
-              style={{
-                width: "85px",
-                height: "29px",
-                padding: "4px 8px",
-                borderRadius: "var(--so-radius-sm)",
-                border: "1px solid var(--so-border-medium)",
-                backgroundColor: "var(--so-surface-input)",
-                color: "var(--so-text-primary)",
-                fontSize: "12px",
-                fontWeight: 600,
-                outline: "none",
-                boxSizing: "border-box",
-              }}
+              style={styles.priceInput}
             />
-            <span style={{ color: "var(--so-text-muted)", fontSize: "12px" }}>
+            <span style={styles.priceSeparator}>
               —
             </span>
             <input
@@ -457,19 +217,7 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
                   maxPrice: isNaN(val) ? 0 : val,
                 }));
               }}
-              style={{
-                width: "85px",
-                height: "29px",
-                padding: "4px 8px",
-                borderRadius: "var(--so-radius-sm)",
-                border: "1px solid var(--so-border-medium)",
-                backgroundColor: "var(--so-surface-input)",
-                color: "var(--so-text-primary)",
-                fontSize: "12px",
-                fontWeight: 600,
-                outline: "none",
-                boxSizing: "border-box",
-              }}
+              style={styles.priceInput}
             />
           </div>
         </div>
@@ -477,3 +225,207 @@ export const PreFiltersPanel: React.FC<PreFiltersPanelProps> = ({
     </div>
   );
 };
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+function getExclusionCardStyle(isActive: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px 12px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: isActive
+      ? "rgba(239, 68, 68, 0.12)"
+      : "var(--so-surface-input)",
+    border: isActive
+      ? "1px solid rgba(239, 68, 68, 0.4)"
+      : "1px solid var(--so-border-subtle)",
+    cursor: "pointer",
+    userSelect: "none",
+    transition: "all 0.15s ease",
+  };
+}
+
+function getCheckboxBoxStyle(isActive: boolean): React.CSSProperties {
+  return {
+    width: 16,
+    height: 16,
+    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: isActive ? "var(--so-danger)" : "transparent",
+    border: isActive ? "none" : "1px solid var(--so-border-medium)",
+  };
+}
+
+function getExclusionTitleStyle(isActive: boolean): React.CSSProperties {
+  return {
+    fontSize: "12.5px",
+    fontWeight: 700,
+    color: isActive ? "var(--so-danger-text)" : "var(--so-text-primary)",
+  };
+}
+
+function getWearButtonStyle(isSelected: boolean): React.CSSProperties {
+  return {
+    padding: "5px 12px",
+    borderRadius: "var(--so-radius-sm)",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    backgroundColor: isSelected
+      ? "rgba(99, 102, 241, 0.18)"
+      : "var(--so-surface-input)",
+    border: isSelected
+      ? "1px solid var(--so-primary)"
+      : "1px solid var(--so-border-subtle)",
+    color: isSelected ? "var(--so-text-primary)" : "var(--so-text-muted)",
+  };
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  panelContainer: {
+    padding: "18px 20px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-medium)",
+    marginBottom: "18px",
+  },
+  headerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "14px",
+  },
+  headerTitle: {
+    fontWeight: 800,
+    fontSize: "14px",
+    color: "var(--so-text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  sliderIcon: {
+    color: "var(--so-primary)",
+  },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  passingCountBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "var(--so-cyan-text)",
+  },
+  resetBtn: {
+    fontSize: "11.5px",
+    padding: "3px 8px",
+  },
+  exclusionsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "10px",
+    marginBottom: "16px",
+  },
+  checkIconWhite: {
+    color: "#fff",
+  },
+  exclusionDesc: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+  },
+  lockedCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px 12px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-input)",
+    border: "1px solid var(--so-border-subtle)",
+    cursor: "not-allowed",
+    userSelect: "none",
+    opacity: 0.75,
+  },
+  lockedCheckboxBox: {
+    width: 16,
+    height: 16,
+    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "var(--so-border-medium)",
+    border: "none",
+  },
+  lockedCheckIcon: {
+    color: "var(--so-text-primary)",
+  },
+  lockedTitle: {
+    fontSize: "12.5px",
+    fontWeight: 700,
+    color: "var(--so-text-muted)",
+  },
+  lockedSubtitle: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+    opacity: 0.8,
+  },
+  bottomRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: "16px",
+  },
+  wearSection: {
+    flex: 1,
+    minWidth: "300px",
+  },
+  wearSectionTitle: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "var(--so-text-secondary)",
+    marginBottom: "8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  wearButtonsRow: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  },
+  priceSectionTitle: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "var(--so-text-secondary)",
+    marginBottom: "8px",
+    whiteSpace: "nowrap",
+  },
+  priceInputsRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  priceInput: {
+    width: "85px",
+    height: "29px",
+    padding: "4px 8px",
+    borderRadius: "var(--so-radius-sm)",
+    border: "1px solid var(--so-border-medium)",
+    backgroundColor: "var(--so-surface-input)",
+    color: "var(--so-text-primary)",
+    fontSize: "12px",
+    fontWeight: 600,
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  priceSeparator: {
+    color: "var(--so-text-muted)",
+    fontSize: "12px",
+  },
+};
+
