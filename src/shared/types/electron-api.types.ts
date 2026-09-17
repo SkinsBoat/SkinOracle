@@ -180,6 +180,8 @@ export interface ElectronAPI {
     clear: () => Promise<number>;
     setSimulatedDate: (date: string | null) => Promise<string | null>;
     getSimulatedDate: () => Promise<string | null>;
+    getDbPath: () => Promise<string>;
+    revealInFolder: () => Promise<boolean>;
   };
   csfloat: {
     getMe: () => Promise<any>;

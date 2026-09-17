@@ -13,6 +13,7 @@ import {
 } from "../../../shared/types";
 import { useLayoutStore } from "../../store/useLayoutStore";
 import { useTrendStore } from "../../store/useTrendStore";
+import { confirmModal } from "../../store/useConfirmStore";
 import { CSFloatBuyLimitIndicator } from "./components/CSFloatBuyLimitIndicator";
 import { CSFloatLookupModal } from "./modals/CSFloatLookupModal";
 import { BuyOrdersTab } from "./tabs/BuyOrdersTab";
@@ -403,9 +404,13 @@ export default function CSFloatWorkstation() {
   const handleDeleteAllOrders = async () => {
     if (!orders.length) return;
 
-    const confirmed = window.confirm(
-      `⚠️ DANGER: Are you sure you want to CANCEL & DELETE ALL ${orders.length} active CSFloat buy orders?\n\nThis action cannot be undone.`,
-    );
+    const confirmed = await confirmModal({
+      title: "Cancel All Buy Orders?",
+      message: `Are you sure you want to cancel and delete all ${orders.length} active CSFloat buy orders? This action cannot be undone.`,
+      confirmText: `Cancel ${orders.length} Orders`,
+      cancelText: "Keep Orders",
+      variant: "danger",
+    });
     if (!confirmed) return;
 
     setBatchProcessing(true);
@@ -505,9 +510,13 @@ export default function CSFloatWorkstation() {
     );
     if (!selectedIds.length) return;
 
-    const confirmed = window.confirm(
-      `Are you sure you want to cancel and delete ${selectedIds.length} selected CSFloat buy orders?`,
-    );
+    const confirmed = await confirmModal({
+      title: "Cancel Selected Buy Orders?",
+      message: `Are you sure you want to cancel and delete ${selectedIds.length} selected CSFloat buy orders?`,
+      confirmText: `Cancel ${selectedIds.length} Orders`,
+      cancelText: "Keep Orders",
+      variant: "danger",
+    });
     if (!confirmed) return;
 
     setBatchProcessing(true);
@@ -1193,9 +1202,13 @@ export default function CSFloatWorkstation() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Are you sure you want to unlist ${listedToUnlist.length} active listings from CSFloat?`,
-    );
+    const confirmed = await confirmModal({
+      title: "Unlist Selected Items?",
+      message: `Are you sure you want to unlist ${listedToUnlist.length} active listings from CSFloat?`,
+      confirmText: `Unlist ${listedToUnlist.length} Items`,
+      cancelText: "Keep Listed",
+      variant: "warning",
+    });
     if (!confirmed) return;
 
     setBatchListingProcessing(true);

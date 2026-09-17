@@ -1,5 +1,6 @@
 import React from "react";
 import toast from "react-hot-toast";
+import { confirmModal } from "../../../store/useConfirmStore";
 import { Zap, ChevronUp, ChevronDown, TrendingUp, Cpu } from "lucide-react";
 import {
   BuildPreFilters,
@@ -159,12 +160,14 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
 
   const handleClearTrendHistory = async () => {
     if (!window.electronAPI?.trendStore?.clear) return;
-    if (
-      !confirm(
-        "Wipe all SQLite price snapshot history to test $0.00 cold-start safety?",
-      )
-    )
-      return;
+    const confirmed = await confirmModal({
+      title: "Wipe SQLite Snapshot History?",
+      message: "Are you sure you want to wipe all SQLite price snapshot history to test $0.00 cold-start safety? Historical snapshots will be cleared.",
+      confirmText: "Wipe History",
+      cancelText: "Cancel",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     try {
       setIsClearingHistory(true);
       const rows = await window.electronAPI.trendStore.clear();

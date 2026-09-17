@@ -1,4 +1,4 @@
-import { app, ipcMain } from "electron";
+import { app, ipcMain, shell } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import * as zlib from "zlib";
@@ -310,6 +310,25 @@ ipcMain.handle(
     return trendStore.getTrendHistoryBatch(itemNames, days || 14);
   },
 );
+
+ipcMain.handle("trend-store:get-db-path", async () => {
+  return trendStore.getDbPath();
+});
+
+ipcMain.handle("trend-store:reveal-in-folder", async () => {
+  const dbPath = trendStore.getDbPath();
+  if (fs.existsSync(dbPath)) {
+    shell.showItemInFolder(dbPath);
+    return true;
+  } else {
+    const dir = path.dirname(dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    await shell.openPath(dir);
+    return true;
+  }
+});
 
 // ── Oracle: store accepted prices (called by OracleDashboard after "Build Accepted Price") ──
 ipcMain.handle(

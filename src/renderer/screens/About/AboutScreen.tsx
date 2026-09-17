@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   ExternalLink,
@@ -10,7 +11,6 @@ import {
   Globe,
   Copy,
   Check,
-  RefreshCw,
   Sparkles,
   Terminal,
   HelpCircle,
@@ -20,6 +20,7 @@ import {
   Database,
   Coins,
   CheckCircle2,
+  Settings,
 } from "lucide-react";
 import { oracleLogo, skinsBoatLogo } from "../../../../assets/images";
 import {
@@ -30,7 +31,6 @@ import {
   GITHUB_REPO_URL,
   APP_RELEASES_URL,
 } from "../../constants/brandUrls";
-import { UpdateStatusState } from "../../../shared/types";
 
 // Clean GitHub SVG Icon
 function GithubIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
@@ -74,11 +74,9 @@ interface FaqItem {
 }
 
 export default function AboutScreen() {
+  const navigate = useNavigate();
   const [appVersion, setAppVersion] = useState<string>("0.1.21");
-  const [updateState, setUpdateState] = useState<UpdateStatusState | null>(null);
-  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
   const [emailCopied, setEmailCopied] = useState<boolean>(false);
-  const [specsCopied, setSpecsCopied] = useState<boolean>(false);
   const [expandedFaqId, setExpandedFaqId] = useState<string | null>("api-keys");
 
   useEffect(() => {
@@ -91,42 +89,6 @@ export default function AboutScreen() {
         })
         .catch(() => {});
     }
-
-    // Check for updates ONLY when landing on the About screen to save API calls
-    let isMounted = true;
-    if (window.electronAPI?.updater?.checkForUpdates) {
-      setIsCheckingUpdate(true);
-      window.electronAPI.updater
-        .checkForUpdates()
-        .then((res) => {
-          if (!isMounted) return;
-          if (res?.message && res.message.toLowerCase().includes("available")) {
-            toast.success(res.message);
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (isMounted) setIsCheckingUpdate(false);
-        });
-    }
-
-    // Listen to updater status
-    if (window.electronAPI?.updater?.onUpdateStatus) {
-      const unsub = window.electronAPI.updater.onUpdateStatus((state) => {
-        setUpdateState(state);
-        if (state.status !== "checking") {
-          setIsCheckingUpdate(false);
-        }
-      });
-      return () => {
-        isMounted = false;
-        unsub();
-      };
-    }
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   const handleOpenExternal = (url: string) => {
@@ -137,44 +99,11 @@ export default function AboutScreen() {
     }
   };
 
-  const handleCheckForUpdates = async () => {
-    setIsCheckingUpdate(true);
-    try {
-      if (window.electronAPI?.updater?.checkForUpdates) {
-        const res = await window.electronAPI.updater.checkForUpdates();
-        if (res?.message) {
-          toast.success(res.message);
-        }
-      } else {
-        toast("Updater is active in packaged builds.", { icon: "ℹ️" });
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to check for updates");
-    } finally {
-      setTimeout(() => setIsCheckingUpdate(false), 1200);
-    }
-  };
-
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(SUPPORT_EMAIL);
     setEmailCopied(true);
     toast.success(`Copied ${SUPPORT_EMAIL} to clipboard!`);
     setTimeout(() => setEmailCopied(false), 2500);
-  };
-
-  const handleCopyDiagnostics = () => {
-    const diagnostics = {
-      product: "Skin Oracle",
-      version: appVersion,
-      brand: "A SkinsBoat Product",
-      userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-      platform: navigator.platform,
-    };
-    navigator.clipboard.writeText(JSON.stringify(diagnostics, null, 2));
-    setSpecsCopied(true);
-    toast.success("System diagnostics copied to clipboard!");
-    setTimeout(() => setSpecsCopied(false), 2500);
   };
 
   const toggleFaq = (id: string) => {
@@ -346,6 +275,13 @@ export default function AboutScreen() {
             your rolling 7-day, 14-day, and 30-day historical trend windows, which the <strong>OracleNexus v2</strong>{" "}
             engine uses for momentum, elasticity, and volatility damping calculations.
           </p>
+          <div style={styles.faqDbInfoNote}>
+            <Database size={15} style={{ color: "#a855f7", flexShrink: 0, marginTop: "2px" }} />
+            <span style={styles.faqDbInfoText}>
+              Snapshot database is saved locally as <code>analytics.sqlite</code>. You can inspect storage metrics, prune retention, or open the local directory in{" "}
+              <strong style={{ color: "var(--so-primary-light, #93c5fd)" }}>Settings &gt; Database &amp; Storage</strong>.
+            </span>
+          </div>
         </div>
       ),
     },
@@ -407,21 +343,17 @@ export default function AboutScreen() {
         <div style={styles.actionStrip}>
           <div style={styles.actionButtonsWrap}>
             <button
-              onClick={handleCheckForUpdates}
-              disabled={isCheckingUpdate}
-              style={{
-                ...styles.primaryBtn,
-                cursor: isCheckingUpdate ? "wait" : "pointer",
-              }}
+              onClick={() => navigate("/settings")}
+              style={styles.primaryBtn}
               onMouseEnter={(e) => {
-                if (!isCheckingUpdate) e.currentTarget.style.backgroundColor = "var(--so-primary-hover)";
+                e.currentTarget.style.backgroundColor = "var(--so-primary-hover)";
               }}
               onMouseLeave={(e) => {
-                if (!isCheckingUpdate) e.currentTarget.style.backgroundColor = "var(--so-primary)";
+                e.currentTarget.style.backgroundColor = "var(--so-primary)";
               }}
             >
-              <RefreshCw size={14} className={isCheckingUpdate ? "spin" : ""} />
-              {isCheckingUpdate ? "Checking for Updates..." : "Check for Updates"}
+              <Settings size={14} />
+              Workstation Settings
             </button>
 
             <button
@@ -437,36 +369,11 @@ export default function AboutScreen() {
               <GithubIcon size={14} />
               Releases & Changelog
             </button>
-
-            <button
-              onClick={handleCopyDiagnostics}
-              style={styles.secondaryBtnMuted}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--so-text-primary)";
-                e.currentTarget.style.borderColor = "var(--so-border-strong)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--so-text-secondary)";
-                e.currentTarget.style.borderColor = "var(--so-border-medium)";
-              }}
-            >
-              {specsCopied ? <Check size={14} style={{ color: "#38bdf8" }} /> : <Copy size={14} />}
-              {specsCopied ? "Diagnostics Copied!" : "Copy Diagnostics"}
-            </button>
           </div>
 
           <div style={styles.updateStatusWrap}>
-            <span
-              style={{
-                ...styles.updateStatusDot,
-                backgroundColor: updateState?.status === "available" ? "#f59e0b" : "#10b981",
-              }}
-            />
-            <span>
-              {updateState?.status === "available"
-                ? `Update v${updateState.info?.version || "new"} is ready`
-                : "Desktop Client is up to date"}
-            </span>
+            <span style={styles.updateStatusDot} />
+            <span>Official Desktop Release</span>
           </div>
         </div>
       </div>
@@ -919,20 +826,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     transition: "all 0.15s ease",
   },
-  secondaryBtnMuted: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "8px 14px",
-    borderRadius: "var(--so-radius-sm)",
-    backgroundColor: "var(--so-surface-panel)",
-    color: "var(--so-text-secondary)",
-    border: "1px solid var(--so-border-medium)",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  },
   updateStatusWrap: {
     display: "flex",
     alignItems: "center",
@@ -944,6 +837,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "8px",
     height: "8px",
     borderRadius: "50%",
+    backgroundColor: "#10b981",
     display: "inline-block",
   },
   sectionHeader: {
@@ -1257,6 +1151,21 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: "6px",
+  },
+  faqDbInfoNote: {
+    marginTop: "12px",
+    padding: "10px 14px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "rgba(168, 85, 247, 0.08)",
+    border: "1px solid rgba(168, 85, 247, 0.2)",
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "10px",
+  },
+  faqDbInfoText: {
+    fontSize: "12px",
+    color: "var(--so-text-secondary)",
+    lineHeight: 1.5,
   },
   architectureGrid: {
     display: "grid",

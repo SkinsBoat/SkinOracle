@@ -224,6 +224,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke<string | null>("trend-store:set-simulated-date", date),
     getSimulatedDate: () =>
       safeInvoke<string | null>("trend-store:get-simulated-date"),
+    getDbPath: () => safeInvoke<string>("trend-store:get-db-path"),
+    revealInFolder: () => safeInvoke<boolean>("trend-store:reveal-in-folder"),
   },
 
   // ── CSFloat (buy orders & listings fired directly from user's device) ──

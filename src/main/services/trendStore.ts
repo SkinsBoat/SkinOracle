@@ -80,6 +80,10 @@ export class TrendStore {
     return this.simulatedDate || new Date().toISOString().slice(0, 10);
   }
 
+  public getDbPath(): string {
+    return this.dbPath;
+  }
+
   public static getInstance(customDbPath?: string): TrendStore {
     if (!TrendStore.instance || customDbPath) {
       TrendStore.instance = new TrendStore(customDbPath);

@@ -23,7 +23,7 @@ import {
 } from "../../assets/images";
 import RegisterScreen from "./screens/Onboarding/RegisterScreen";
 import OtpScreen from "./screens/Onboarding/OtpScreen";
-import ApiKeysScreen from "./screens/Settings/ApiKeysScreen";
+import SettingsScreen from "./screens/Settings";
 import OracleDashboard from "./screens/Oracle/OracleDashboard";
 import CSFloatWorkstation from "./screens/CSFloat/CSFloatWorkstation";
 import DmarketWorkstation from "./screens/Dmarket/DmarketWorkstation";
@@ -32,6 +32,7 @@ import SkinscomWorkstation from "./screens/Skinscom/SkinscomWorkstation";
 import BalanceDashboard from "./screens/Balance/BalanceDashboard";
 import AboutScreen from "./screens/About/AboutScreen";
 import UpdateNotification from "./components/UpdateNotification";
+import ConfirmModal from "./components/ConfirmModal";
 import MaintenanceScreen from "./screens/MaintenanceScreen";
 import VersionBlockedScreen from "./screens/VersionBlockedScreen";
 import { VersionGateState } from "../shared/types";
@@ -205,6 +206,7 @@ export default function App() {
       <UpdateNotification
         isMandatory={Boolean(versionGateState && !versionGateState.allowed)}
       />
+      <ConfirmModal />
 
       {systemConfig?.globalBannerMessage && (
         <div
@@ -859,7 +861,7 @@ export default function App() {
               <Route path="/soclose" element={<SoCloseWorkstationScreen />} />
               {/* <Route path="/skinscom" element={<SkinscomWorkstation />} /> */}
               <Route path="/balance" element={<BalanceDashboard />} />
-              <Route path="/settings" element={<ApiKeysScreen />} />
+              <Route path="/settings" element={<SettingsScreen />} />
               <Route path="/about" element={<AboutScreen />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
