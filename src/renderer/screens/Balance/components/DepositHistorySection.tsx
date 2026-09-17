@@ -8,21 +8,23 @@ import {
   AlertCircle,
   Lock,
   Coins,
+  PlusCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface DepositItem {
   id: string;
-  amountCents: number;
+  amountUsd?: number;
+  amountCents?: number;
   status: string;
   invoiceUrl: string | null;
-  invoiceId: string | null;
-  paymentId: string | null;
+  invoiceId?: string | null;
+  paymentId?: string | null;
   payCurrency: string | null;
   payAmount: string | null;
-  actuallyPaidFiat: number | null;
+  actuallyPaidFiat?: number | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   metadata?: any;
 }
 
@@ -130,7 +132,7 @@ export default function DepositHistorySection({
             balance.
           </p>
           <button onClick={onOpenDepositModal} style={styles.emptyActionBtn}>
-            + Create Deposit
+            <PlusCircle size={14} /> Deposit Funds
           </button>
         </div>
       ) : (
@@ -160,6 +162,13 @@ export default function DepositHistorySection({
                   Math.ceil((oneHourMs - ageMs) / 60000),
                 );
 
+                const amountVal =
+                  typeof dep.amountUsd === "number" && !isNaN(dep.amountUsd)
+                    ? dep.amountUsd
+                    : typeof dep.amountCents === "number" && !isNaN(dep.amountCents)
+                    ? dep.amountCents / 100
+                    : Number(dep.amountUsd ?? dep.amountCents ?? 0) || 0;
+
                 return (
                   <tr key={dep.id} style={styles.tableRow}>
                     {/* ID */}
@@ -177,7 +186,7 @@ export default function DepositHistorySection({
                     {/* Amount */}
                     <td style={styles.td}>
                       <span style={styles.amountText}>
-                        ${(dep.amountCents / 100).toFixed(2)} USD
+                        ${amountVal.toFixed(2)} USD
                       </span>
                     </td>
 
@@ -365,17 +374,17 @@ function getSyncBtnStyle(isLocked: boolean): React.CSSProperties {
     display: "inline-flex",
     alignItems: "center",
     gap: "5px",
-    padding: "5px 10px",
+    padding: "6px 12px",
     borderRadius: "var(--so-radius-sm, 6px)",
-    fontSize: "11px",
+    fontSize: "12px",
     fontWeight: 700,
     border: isLocked
-      ? "1px solid var(--so-border-subtle, #333)"
-      : "1px solid var(--so-border-medium, #444)",
+      ? "1px solid var(--so-border-subtle, rgba(255, 255, 255, 0.1))"
+      : "1px solid var(--so-border-medium, rgba(255, 255, 255, 0.2))",
     backgroundColor: isLocked
-      ? "rgba(255, 255, 255, 0.02)"
-      : "var(--so-surface-input, #222)",
-    color: isLocked ? "var(--so-text-muted, #777)" : "var(--so-text-primary, #fff)",
+      ? "rgba(255, 255, 255, 0.03)"
+      : "var(--so-surface-card, #1e293b)",
+    color: isLocked ? "var(--so-text-muted, #94a3b8)" : "var(--so-text-primary, #ffffff)",
     cursor: isLocked ? "not-allowed" : "pointer",
     opacity: isLocked ? 0.6 : 1,
     transition: "all 0.15s ease",
@@ -391,7 +400,6 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "var(--so-surface-panel, #18191f)",
     border: "1px solid var(--so-border-medium, #2a2b36)",
     overflow: "hidden",
-    marginBottom: "28px",
   },
   header: {
     padding: "14px 20px",
@@ -425,15 +433,16 @@ const styles: Record<string, React.CSSProperties> = {
   refreshBtn: {
     display: "flex",
     alignItems: "center",
-    gap: "5px",
-    padding: "5px 10px",
-    backgroundColor: "transparent",
-    border: "1px solid var(--so-border-subtle, #333)",
+    gap: "6px",
+    padding: "6px 12px",
+    backgroundColor: "var(--so-surface-card, #1e293b)",
+    border: "1px solid var(--so-border-medium, rgba(255, 255, 255, 0.15))",
     borderRadius: "var(--so-radius-sm, 6px)",
-    color: "var(--so-text-secondary, #aaa)",
-    fontSize: "11px",
+    color: "var(--so-text-primary, #ffffff)",
+    fontSize: "12px",
     fontWeight: 700,
     cursor: "pointer",
+    transition: "all 0.15s ease",
   },
   emptyContainer: {
     padding: "36px 20px",
@@ -541,15 +550,17 @@ const styles: Record<string, React.CSSProperties> = {
   openBtn: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "4px",
-    padding: "5px 9px",
+    gap: "5px",
+    padding: "6px 12px",
     borderRadius: "var(--so-radius-sm, 6px)",
-    fontSize: "11px",
+    fontSize: "12px",
     fontWeight: 700,
-    backgroundColor: "rgba(99, 102, 241, 0.12)",
-    border: "1px solid rgba(99, 102, 241, 0.3)",
-    color: "var(--so-primary, #6366f1)",
+    backgroundColor: "var(--so-primary, #6366f1)",
+    border: "none",
+    color: "#ffffff",
     cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(99, 102, 241, 0.25)",
+    transition: "all 0.15s ease",
   },
   creditedBadge: {
     display: "inline-flex",

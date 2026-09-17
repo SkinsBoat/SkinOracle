@@ -17,11 +17,19 @@ interface DepositModalProps {
   onDepositSuccess: () => void;
 }
 
-type DepositPhase = "input" | "creating" | "awaiting" | "success" | "failed";
+type DepositPhase =
+  | "input"
+  | "creating"
+  | "awaiting"
+  | "success"
+  | "failed"
+  | "timeout";
 
 const MIN_DEPOSIT_USD = 11.0;
 const MAX_DEPOSIT_USD = 50.0;
 const PRESET_AMOUNTS = [15, 25, 50];
+const POLL_INTERVAL_SECONDS = 30;
+const MAX_POLL_DURATION_SECONDS = 20 * 60; // 20 minutes
 
 export default function DepositModal({
   isOpen,
@@ -34,23 +42,44 @@ export default function DepositModal({
   const [activeDepositId, setActiveDepositId] = useState<string | null>(null);
   const [activeInvoiceUrl, setActiveInvoiceUrl] = useState<string | null>(null);
   const [depositStatus, setDepositStatus] = useState<string>("waiting");
-  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [countdown, setCountdown] = useState<number>(POLL_INTERVAL_SECONDS);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  const [isCheckingNow, setIsCheckingNow] = useState<boolean>(false);
 
-  // Clear polling interval when closing or unmounting
-  const stopPolling = useCallback(() => {
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-  }, []);
+  // Check deposit status with gateway
+  const checkDepositStatus = useCallback(
+    async (depositId: string, manual = false) => {
+      try {
+        if (manual) setIsCheckingNow(true);
+        const statusRes =
+          await window.electronAPI.balance.getDepositStatus(depositId);
+        const currentStatus = (statusRes.status || "").toLowerCase();
+        setDepositStatus(currentStatus);
 
-  useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, [stopPolling]);
+        if (currentStatus === "completed") {
+          setPhase("success");
+          toast.success("Deposit confirmed and credited to balance!");
+          onDepositSuccess();
+        } else if (currentStatus === "failed" || currentStatus === "expired") {
+          setPhase("failed");
+          setErrorMsg(
+            `Deposit ${currentStatus}. If you sent funds, contact support.`,
+          );
+        } else if (manual) {
+          toast(`Current Gateway Status: ${currentStatus.toUpperCase()}`, {
+            icon: "ℹ️",
+          });
+        }
+      } catch (err) {
+        // Silently tolerate transient polling errors
+      } finally {
+        if (manual) setIsCheckingNow(false);
+      }
+    },
+    [onDepositSuccess],
+  );
 
-  // Reset modal state when opening
+  // Reset modal state when opening/closing
   useEffect(() => {
     if (isOpen) {
       setAmountStr("25");
@@ -59,10 +88,38 @@ export default function DepositModal({
       setActiveDepositId(null);
       setActiveInvoiceUrl(null);
       setDepositStatus("waiting");
-    } else {
-      stopPolling();
+      setCountdown(POLL_INTERVAL_SECONDS);
+      setElapsedSeconds(0);
+      setIsCheckingNow(false);
     }
-  }, [isOpen, stopPolling]);
+  }, [isOpen]);
+
+  // 30-second interval polling with 20-minute timeout cap
+  useEffect(() => {
+    if (phase !== "awaiting" || !activeDepositId) return;
+
+    const timer = setInterval(() => {
+      setElapsedSeconds((prev) => {
+        const next = prev + 1;
+        if (next >= MAX_POLL_DURATION_SECONDS) {
+          setPhase("timeout");
+        }
+        return next;
+      });
+
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (activeDepositId) {
+            checkDepositStatus(activeDepositId, false);
+          }
+          return POLL_INTERVAL_SECONDS;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [phase, activeDepositId, checkDepositStatus]);
 
   if (!isOpen) return null;
 
@@ -87,7 +144,7 @@ export default function DepositModal({
       } else {
         window.open(url, "_blank");
       }
-    } catch (err: any) {
+    } catch {
       toast.error("Could not launch default browser");
     }
   };
@@ -110,15 +167,14 @@ export default function DepositModal({
       setActiveDepositId(res.depositId);
       setActiveInvoiceUrl(res.invoiceUrl);
       setDepositStatus(res.status || "waiting");
+      setCountdown(POLL_INTERVAL_SECONDS);
+      setElapsedSeconds(0);
       setPhase("awaiting");
 
-      // Launch the browser invoice automatically
+      // Launch browser checkout
       if (res.invoiceUrl) {
         await handleOpenBrowser(res.invoiceUrl);
       }
-
-      // Start polling deposit status every 4 seconds
-      startPollingStatus(res.depositId);
     } catch (err: any) {
       setPhase("input");
       const message =
@@ -128,33 +184,6 @@ export default function DepositModal({
       setErrorMsg(message);
       toast.error(message);
     }
-  };
-
-  const startPollingStatus = (depositId: string) => {
-    stopPolling();
-    pollTimerRef.current = setInterval(async () => {
-      try {
-        const statusRes =
-          await window.electronAPI.balance.getDepositStatus(depositId);
-        const currentStatus = (statusRes.status || "").toLowerCase();
-        setDepositStatus(currentStatus);
-
-        if (currentStatus === "completed") {
-          stopPolling();
-          setPhase("success");
-          toast.success("Deposit confirmed and credited to balance!");
-          onDepositSuccess();
-        } else if (currentStatus === "failed" || currentStatus === "expired") {
-          stopPolling();
-          setPhase("failed");
-          setErrorMsg(
-            `Deposit ${currentStatus}. If you sent funds, contact support.`,
-          );
-        }
-      } catch (err) {
-        // Silently tolerate transient polling errors
-      }
-    }, 4000);
   };
 
   return (
@@ -293,27 +322,88 @@ export default function DepositModal({
                   {depositStatus.toUpperCase()}
                 </span>
               </div>
+              <div style={styles.statusRow}>
+                <span style={styles.statusLabel}>Auto-Check:</span>
+                <span style={styles.autoCheckText}>
+                  Every 30s (Next in {countdown}s)
+                </span>
+              </div>
             </div>
 
-            {activeInvoiceUrl && (
-              <div style={styles.reopenWrapper}>
+            {/* Quick Action Controls */}
+            <div style={styles.awaitingControlsRow}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeDepositId) checkDepositStatus(activeDepositId, true);
+                }}
+                disabled={isCheckingNow}
+                style={styles.manualCheckBtn}
+                title="Query NOWPayments directly for live confirmation"
+              >
+                <RefreshCw
+                  size={14}
+                  className={isCheckingNow ? "spin" : ""}
+                />
+                <span>{isCheckingNow ? "Checking..." : "Check Status Now"}</span>
+              </button>
+
+              {activeInvoiceUrl && (
                 <button
                   type="button"
                   onClick={() => handleOpenBrowser(activeInvoiceUrl)}
                   style={styles.reopenBtn}
                 >
-                  <ExternalLink size={15} /> Reopen Checkout in Browser
+                  <ExternalLink size={14} /> Reopen Checkout
                 </button>
+              )}
+            </div>
+
+            {/* Reassuring Notification */}
+            <div style={styles.infoCard}>
+              <div style={styles.infoRow}>
+                <ShieldCheck size={16} style={styles.infoIcon} />
+                <div>
+                  <div style={styles.infoTitle}>Background Processing</div>
+                  <div style={styles.infoText}>
+                    Confirmations typically take 5–20 minutes. You do not need
+                    to keep this window open; your balance will automatically
+                    credit upon confirmation.
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
 
             <div style={styles.actionsRow}>
               <button
                 type="button"
                 onClick={onClose}
-                style={styles.secondaryBtn}
+                style={getPrimaryBtnStyle(false)}
               >
-                Close (Continues in Background)
+                Close & Track in Invoices
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase === "timeout" && (
+          <div>
+            <div style={styles.centerState}>
+              <Clock size={42} style={{ color: "#3b82f6", marginBottom: "12px" }} />
+              <h3 style={styles.stateTitle}>Monitoring Window Closed</h3>
+              <p style={styles.stateSubtitle}>
+                The 20-minute live monitoring session has ended. Your transaction
+                continues to process on the blockchain and will be credited to
+                your balance as soon as it confirms.
+              </p>
+            </div>
+            <div style={styles.actionsRow}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={getPrimaryBtnStyle(false)}
+              >
+                View in Deposit Invoices
               </button>
             </div>
           </div>
@@ -601,21 +691,49 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-text-primary, #f8fafc)",
     fontWeight: 800,
   },
-  reopenWrapper: {
-    textAlign: "center",
-    marginTop: "14px",
+  autoCheckText: {
+    fontSize: "12px",
+    color: "var(--so-text-muted, #94a3b8)",
+    fontFamily: "monospace",
+    fontWeight: 600,
   },
-  reopenBtn: {
+  awaitingControlsRow: {
+    display: "flex",
+    gap: "10px",
+    marginTop: "16px",
+    marginBottom: "16px",
+  },
+  manualCheckBtn: {
+    flex: 1,
     display: "inline-flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: "6px",
     fontSize: "12px",
     fontWeight: 700,
-    color: "var(--so-primary, #6366f1)",
-    background: "none",
-    border: "none",
+    padding: "9px 12px",
+    borderRadius: "8px",
+    border: "1px solid var(--so-border-medium, rgba(255, 255, 255, 0.2))",
+    backgroundColor: "var(--so-surface-card, #1e293b)",
+    color: "var(--so-text-primary, #ffffff)",
     cursor: "pointer",
-    padding: "6px 12px",
+    transition: "all 0.15s ease",
+  },
+  reopenBtn: {
+    flex: 1,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#ffffff",
+    backgroundColor: "var(--so-primary, #6366f1)",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    padding: "9px 12px",
+    transition: "all 0.15s ease",
   },
 };
 
