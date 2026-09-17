@@ -5,6 +5,7 @@ import {
   SKINSCOM_BUY_ORDERS,
   SKINSCOM_BUY_ORDER_BY_ID,
 } from "../constants/apiUrls";
+import { getAppUserAgent } from "../constants/userAgent";
 
 // ─────────────────────────────────────────────────────────────────
 // Skins.com buy order IPC handlers
@@ -17,6 +18,7 @@ function getHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
+    "User-Agent": getAppUserAgent(),
   };
 }
 

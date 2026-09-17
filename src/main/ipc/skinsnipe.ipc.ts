@@ -9,6 +9,7 @@ import { SKINSNIPE_LOWEST_PRICES } from "../constants/apiUrls";
 import { saasAxios } from "../services/saasAxios";
 import { trendStore } from "../services/trendStore";
 import { toCanonicalMarketId } from "../../shared/canonicalMarkets";
+import { getAppUserAgent } from "../constants/userAgent";
 
 // ─────────────────────────────────────────────────────────────────
 // Skinsnipe price fetching — runs on the trader's device using the
@@ -194,6 +195,7 @@ async function fetchMarket(apiKey: string, market: string): Promise<any[]> {
       Accept: "application/json",
       "Accept-Encoding": "br",
       Authorization: `Key ${apiKey}`,
+      "User-Agent": getAppUserAgent(),
     },
     httpsAgent: new https.Agent({ rejectUnauthorized: false }),
   });

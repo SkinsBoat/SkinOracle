@@ -4,7 +4,6 @@ import * as readline from "readline";
 import { Readable } from "stream";
 import { secureGet, STORAGE_KEYS } from "../../storage/secure-store";
 import { CS2CAP_PRICES_STREAM } from "../constants/apiUrls";
-import { setPriceCache } from "./oracle.ipc";
 import { setLocalPriceCache } from "./skinsnipe.ipc";
 import { trendStore } from "../services/trendStore";
 import { Cs2CapStreamProgress, Cs2CapFetchResult } from "../../shared/types";
@@ -14,6 +13,7 @@ import {
   PriceCache,
   CS2CAP_PROVIDERS,
 } from "../services/cs2capParser";
+import { getAppUserAgent } from "../constants/userAgent";
 
 let isFetching = false;
 let cancelRequested = false;
@@ -161,6 +161,7 @@ async function streamCs2CapCatalog(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       Accept: "application/x-ndjson, */*",
+      "User-Agent": getAppUserAgent(),
     },
     responseType: "stream",
     signal: activeAbortController.signal,

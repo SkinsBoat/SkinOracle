@@ -11,6 +11,7 @@ import {
   CSFLOAT_LISTING_BY_ID,
 } from "../constants/apiUrls";
 import { snapCsFloatBuyOrderPriceCents } from "../../shared/csfloatUtils";
+import { getAppUserAgent } from "../constants/userAgent";
 export { snapCsFloatBuyOrderPriceCents };
 
 // ─────────────────────────────────────────────────────────────────
@@ -22,7 +23,11 @@ export { snapCsFloatBuyOrderPriceCents };
 // ─────────────────────────────────────────────────────────────────
 
 function getHeaders(apiKey: string) {
-  return { Authorization: apiKey, "Content-Type": "application/json" };
+  return {
+    Authorization: apiKey,
+    "Content-Type": "application/json",
+    "User-Agent": getAppUserAgent(),
+  };
 }
 
 ipcMain.handle("csfloat:get-orders", async () => {

@@ -28,6 +28,7 @@ import {
   getTargetHoldInfo,
   parseTargetTimestamp,
 } from "../../shared/targetHoldUtils";
+import { getAppUserAgent } from "../constants/userAgent";
 
 // ─────────────────────────────────────────────────────────────────
 // DMarket Ed25519 Signature Utilities
@@ -109,6 +110,7 @@ export function buildDmarketHeaders(
     "X-Sign-Date": String(timestamp),
     "X-Request-Sign": `dmar ed25519 ${signature}`,
     "Content-Type": "application/json",
+    "User-Agent": getAppUserAgent(),
   };
 }
 
