@@ -391,5 +391,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getBalance: () => safeInvoke("balance:get-balance"),
     getHistory: (page?: number, limit?: number, filters?: any) =>
       safeInvoke("balance:get-history", page, limit, filters),
+    createDeposit: (amountUsd: number) =>
+      safeInvoke("balance:create-deposit", amountUsd),
+    getDepositStatus: (depositId: string) =>
+      safeInvoke("balance:get-deposit-status", depositId),
+    getDepositHistory: (page?: number, limit?: number) =>
+      safeInvoke("balance:get-deposit-history", page, limit),
+    syncDeposit: (depositId: string) =>
+      safeInvoke("balance:sync-deposit", depositId),
   },
 });

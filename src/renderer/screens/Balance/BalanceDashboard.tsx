@@ -8,8 +8,11 @@ import {
   History,
   FileText,
   CheckCircle2,
+  Coins,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import DepositModal from "./components/DepositModal";
+import DepositHistorySection from "./components/DepositHistorySection";
 
 interface Transaction {
   id: string;
@@ -37,6 +40,7 @@ export default function BalanceDashboard() {
   const [totalTxns, setTotalTxns] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState<boolean>(false);
 
   const fetchBalanceData = useCallback(async (targetPage = 1) => {
     try {
@@ -98,25 +102,46 @@ export default function BalanceDashboard() {
             Real-time balance and pay-as-you-go billing ledger logs.
           </p>
         </div>
-        <button
-          onClick={() => fetchBalanceData(page)}
-          disabled={isRefreshing}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            backgroundColor: "var(--so-surface-card)",
-            border: "1px solid var(--so-border-medium)",
-            borderRadius: "var(--so-radius-md)",
-            color: "var(--so-text-primary)",
-            fontSize: "13px",
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          <RefreshCw size={14} className={isRefreshing ? "spin" : ""} /> Refresh
-        </button>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            onClick={() => setIsDepositModalOpen(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 18px",
+              backgroundColor: "var(--so-primary, #6366f1)",
+              border: "none",
+              borderRadius: "var(--so-radius-md)",
+              color: "#ffffff",
+              fontSize: "13px",
+              fontWeight: 800,
+              cursor: "pointer",
+              boxShadow: "0 2px 10px rgba(99, 102, 241, 0.3)",
+            }}
+          >
+            <Coins size={15} /> Deposit Funds
+          </button>
+          <button
+            onClick={() => fetchBalanceData(page)}
+            disabled={isRefreshing}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 16px",
+              backgroundColor: "var(--so-surface-card)",
+              border: "1px solid var(--so-border-medium)",
+              borderRadius: "var(--so-radius-md)",
+              color: "var(--so-text-primary)",
+              fontSize: "13px",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            <RefreshCw size={14} className={isRefreshing ? "spin" : ""} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Balance Cards Overview */}
@@ -293,6 +318,12 @@ export default function BalanceDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Recent Deposit Invoices Section */}
+      <DepositHistorySection
+        onBalanceRefreshRequired={() => fetchBalanceData(page)}
+        onOpenDepositModal={() => setIsDepositModalOpen(true)}
+      />
 
       {/* Transaction History Section */}
       <div
@@ -592,6 +623,16 @@ export default function BalanceDashboard() {
           </div>
         )}
       </div>
+
+      {/* Deposit Funds Modal */}
+      <DepositModal
+        isOpen={isDepositModalOpen}
+        onClose={() => setIsDepositModalOpen(false)}
+        onDepositSuccess={() => {
+          fetchBalanceData(1);
+        }}
+      />
     </div>
   );
 }
+

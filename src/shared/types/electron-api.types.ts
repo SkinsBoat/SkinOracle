@@ -402,6 +402,52 @@ export interface ElectronAPI {
       page: number;
       totalPages: number;
     }>;
+    createDeposit: (amountUsd: number) => Promise<{
+      depositId: string;
+      invoiceUrl: string;
+      amountUsd: number;
+      amountCents: number;
+      status: string;
+    }>;
+    getDepositStatus: (depositId: string) => Promise<{
+      depositId: string;
+      status: string;
+      amountUsd: number;
+      invoiceUrl: string | null;
+      payCurrency: string | null;
+      payAmount: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    getDepositHistory: (
+      page?: number,
+      limit?: number,
+    ) => Promise<{
+      deposits: Array<{
+        id: string;
+        amountCents: number;
+        status: string;
+        invoiceUrl: string | null;
+        invoiceId: string | null;
+        paymentId: string | null;
+        payCurrency: string | null;
+        payAmount: string | null;
+        actuallyPaidFiat: number | null;
+        createdAt: string;
+        updatedAt: string;
+        metadata?: any;
+      }>;
+      total: number;
+      page: number;
+      totalPages: number;
+    }>;
+    syncDeposit: (depositId: string) => Promise<{
+      depositId: string;
+      status: string;
+      credited: boolean;
+      amountUsd: number;
+      message: string;
+    }>;
   };
 }
 
