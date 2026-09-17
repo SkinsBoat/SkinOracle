@@ -13,6 +13,8 @@ jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      ELECTRON_MIRROR: "https://npmmirror.com/mirrors/electron/"
 
     strategy:
       fail-fast: false
@@ -30,10 +32,19 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            echo "Running npm install (attempt $i/3)..."
+            npm install && exit 0
+            echo "npm install failed, retrying in 10s..."
+            sleep 10
+          done
+          exit 1
 
       - name: Install Windows native Rollup binary (fix npm issue #4828)
         if: matrix.os == 'windows-latest'
+        shell: bash
         run: npm install @rollup/rollup-win32-x64-msvc@^4.0.0 --no-save
 
       - name: Type check (TypeScript)
