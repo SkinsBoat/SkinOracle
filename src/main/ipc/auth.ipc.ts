@@ -9,14 +9,22 @@ import { saasAxios } from "../services/saasAxios";
 
 // ── Register: send email, receive OTP ─────────────────────────────
 ipcMain.handle("auth:register", async (_, email: string) => {
+  const cleanEmail = email?.trim() || "";
+  if (cleanEmail.includes("+")) {
+    throw new Error("Email aliases using '+' are not permitted. Please use your standard email address.");
+  }
   secureDelete(STORAGE_KEYS.JWT);
-  const res = await saasAxios.post("/auth/register", { email });
+  const res = await saasAxios.post("/auth/register", { email: cleanEmail });
   return res.data; // { message: "Verification code sent" }
 });
 
 // ── Verify OTP: receive JWT ────────────────────────────────────────
 ipcMain.handle("auth:verify", async (_, email: string, code: string) => {
-  const res = await saasAxios.post("/auth/verify", { email, code });
+  const cleanEmail = email?.trim() || "";
+  if (cleanEmail.includes("+")) {
+    throw new Error("Email aliases using '+' are not permitted. Please use your standard email address.");
+  }
+  const res = await saasAxios.post("/auth/verify", { email: cleanEmail, code });
   const { accessToken } = res.data;
   if (accessToken) secureSet(STORAGE_KEYS.JWT, accessToken);
   return res.data;

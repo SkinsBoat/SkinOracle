@@ -16,16 +16,22 @@ export default function RegisterScreen({ onSuccess }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = email.trim();
+    if (cleanEmail.includes("+")) {
+      setError("Email aliases using '+' are not permitted. Please enter your primary email address.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     const toastId = toast.loading("Sending verification code...");
 
     try {
-      await window.electronAPI.auth.register(email);
+      await window.electronAPI.auth.register(cleanEmail);
       toast.success("Verification code sent! (Check inbox & spam folder)", {
         id: toastId,
       });
-      navigate("/verify", { state: { email } });
+      navigate("/verify", { state: { email: cleanEmail } });
     } catch (err: any) {
       const msg =
         err?.message || "Failed to send code. Check your email address.";

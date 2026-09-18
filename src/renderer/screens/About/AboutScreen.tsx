@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   ExternalLink,
@@ -20,7 +19,7 @@ import {
   Database,
   Coins,
   CheckCircle2,
-  Settings,
+  RefreshCw,
 } from "lucide-react";
 import { oracleLogo, skinsBoatLogo } from "../../../../assets/images";
 import {
@@ -31,6 +30,7 @@ import {
   GITHUB_REPO_URL,
   APP_RELEASES_URL,
 } from "../../constants/brandUrls";
+import { UpdateStatusState } from "../../../shared/types";
 
 // Clean GitHub SVG Icon
 function GithubIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
@@ -74,10 +74,11 @@ interface FaqItem {
 }
 
 export default function AboutScreen() {
-  const navigate = useNavigate();
   const [appVersion, setAppVersion] = useState<string>("0.1.21");
   const [emailCopied, setEmailCopied] = useState<boolean>(false);
-  const [expandedFaqId, setExpandedFaqId] = useState<string | null>("api-keys");
+  const [expandedFaqId, setExpandedFaqId] = useState<string | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+  const [updateState, setUpdateState] = useState<UpdateStatusState | null>(null);
 
   useEffect(() => {
     // Fetch live app version through preload IPC
@@ -89,7 +90,40 @@ export default function AboutScreen() {
         })
         .catch(() => {});
     }
+
+    let isMounted = true;
+    if (window.electronAPI?.updater?.onUpdateStatus) {
+      const unsub = window.electronAPI.updater.onUpdateStatus((state) => {
+        if (!isMounted) return;
+        setUpdateState(state);
+        if (state.status !== "checking") {
+          setIsCheckingUpdate(false);
+        }
+      });
+      return () => {
+        isMounted = false;
+        unsub();
+      };
+    }
   }, []);
+
+  const handleCheckForUpdates = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      if (window.electronAPI?.updater?.checkForUpdates) {
+        const res = await window.electronAPI.updater.checkForUpdates();
+        if (res?.message) {
+          toast.success(res.message);
+        }
+      } else {
+        toast("Updater is active in packaged builds.", { icon: "ℹ️" });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to check for updates");
+    } finally {
+      setTimeout(() => setIsCheckingUpdate(false), 1200);
+    }
+  };
 
   const handleOpenExternal = (url: string) => {
     if (window.electronAPI?.app?.openExternal) {
@@ -116,25 +150,27 @@ export default function AboutScreen() {
       icon: <KeyRound size={18} style={{ color: "#38bdf8" }} />,
       category: "Security & Setup",
       badgeColor: "#38bdf8",
-      question: "Can I use Skin Oracle without sharing my marketplace API keys?",
+      question: "Are marketplace API keys required, and are my credentials ever uploaded or shared?",
       answerContent: (
         <div style={styles.faqBody}>
           <div style={styles.faqHighlightBox}>
             <CheckCircle2 size={16} style={{ color: "#10b981", flexShrink: 0, marginTop: "2px" }} />
             <div style={styles.faqHighlightText}>
-              <strong>Yes, 100%!</strong> You can use Skin Oracle, monitor valuations, and use the{" "}
-              <strong style={{ color: "var(--so-primary-light, #93c5fd)" }}>SoClose Scanner</strong> to find
-              undervalued deals and snipes without connecting any marketplace API keys.
+              <strong>No, marketplace keys are completely optional!</strong> You can run Skin Oracle, monitor valuations, calculate buy ceilings, and scan for undervalued deals via the{" "}
+              <strong style={{ color: "var(--so-primary-light, #93c5fd)" }}>SoClose Scanner</strong> without connecting any marketplace API keys.
             </div>
           </div>
           <p style={styles.faqParagraph}>
-            You only need to configure a <strong>Price Source</strong> (such as Skinsnipe or CS2Cap) so the app can stream
-            live listing prices and market data feeds.
+            You only need to configure a <strong>Price Source</strong> (such as Skinsnipe or CS2Cap) so the terminal can stream
+            live listing prices and market depth feeds.
           </p>
           <p style={styles.faqParagraph}>
             Third-party marketplace API keys (CSFloat or DMarket) are <strong>strictly optional</strong>. They are only
             required if you wish to trigger direct one-click trade execution or automated listing actions directly from
             your local machine.
+          </p>
+          <p style={styles.faqParagraph}>
+            <strong>Zero-Trust Guarantee:</strong> Even when configured, your keys are <strong>never uploaded, shared, or sent</strong> to SkinsBoat servers. All credentials and signing secrets remain encrypted exclusively on your local machine using your operating system's native hardware keychain (Windows DPAPI, macOS Keychain, or Linux Secret Service), and all trading requests fire directly from your local residential IP.
           </p>
         </div>
       ),
@@ -158,7 +194,7 @@ export default function AboutScreen() {
                   <strong>All Workstation Tabs:</strong> CSFloat Workstation, DMarket Workstation, and SoClose Scanner.
                 </li>
                 <li>
-                  <strong>Reusing Accepted Prices:</strong> Once you build your accepted prices, you can use them freely
+                  <strong>Reusing Accepted Prices:</strong> Once you calculate your accepted prices (buy ceilings), you can use them freely
                   across all app sections (for buy orders, buy targets, and deal sniping) with zero additional charge.
                 </li>
                 <li>
@@ -266,7 +302,7 @@ export default function AboutScreen() {
             </div>
           </div>
           <p style={styles.faqParagraph}>
-            When you refresh prices or pull latest market listings, the database executes an <code>INSERT OR REPLACE</code> keyed on{" "}
+            When you refresh prices or scan latest market listings, the database executes an <code>INSERT OR REPLACE</code> keyed on{" "}
             <code>(item_name, snapshot_date)</code>. If today’s snapshot already exists, it seamlessly refreshes today's
             computed median price and active listing count with the freshest market numbers.
           </p>
@@ -343,17 +379,23 @@ export default function AboutScreen() {
         <div style={styles.actionStrip}>
           <div style={styles.actionButtonsWrap}>
             <button
-              onClick={() => navigate("/settings")}
-              style={styles.primaryBtn}
+              type="button"
+              onClick={handleCheckForUpdates}
+              disabled={isCheckingUpdate}
+              style={getPrimaryBtnStyle(isCheckingUpdate)}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--so-primary-hover)";
+                if (!isCheckingUpdate) {
+                  e.currentTarget.style.backgroundColor = "var(--so-primary-hover)";
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--so-primary)";
+                if (!isCheckingUpdate) {
+                  e.currentTarget.style.backgroundColor = "var(--so-primary)";
+                }
               }}
             >
-              <Settings size={14} />
-              Workstation Settings
+              <RefreshCw size={13} className={isCheckingUpdate ? "spin" : ""} />
+              {isCheckingUpdate ? "Checking..." : "Check for Updates"}
             </button>
 
             <button
@@ -372,8 +414,12 @@ export default function AboutScreen() {
           </div>
 
           <div style={styles.updateStatusWrap}>
-            <span style={styles.updateStatusDot} />
-            <span>Official Desktop Release</span>
+            <span style={getUpdateStatusDotStyle(updateState?.status === "available")} />
+            <span>
+              {updateState?.status === "available"
+                ? `Update v${updateState.info?.version || "new"} is available`
+                : "Official Desktop Release"}
+            </span>
           </div>
         </div>
       </div>
@@ -631,6 +677,17 @@ export default function AboutScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Clean Extracted Styles Dictionary (Zero inline styles in main render flow)
 // ─────────────────────────────────────────────────────────────────────────────
+const getPrimaryBtnStyle = (isChecking: boolean): React.CSSProperties => ({
+  ...styles.primaryBtn,
+  cursor: isChecking ? "not-allowed" : "pointer",
+  opacity: isChecking ? 0.75 : 1,
+});
+
+const getUpdateStatusDotStyle = (isAvailable: boolean): React.CSSProperties => ({
+  ...styles.updateStatusDot,
+  backgroundColor: isAvailable ? "#f59e0b" : "#10b981",
+});
+
 const styles: Record<string, React.CSSProperties> = {
   container: {
     maxWidth: "1050px",
@@ -810,6 +867,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     fontSize: "13px",
     fontWeight: 700,
+    cursor: "pointer",
     transition: "all 0.15s ease",
   },
   secondaryBtn: {
