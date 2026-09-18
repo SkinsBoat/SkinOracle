@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { KeyRound, ArrowLeft } from "lucide-react";
+import { KeyRound, ArrowLeft, RotateCcw } from "lucide-react";
 import { oracleLogo, skinsBoatLogo } from "../../../../assets/images";
 
 interface Props {
@@ -15,7 +15,39 @@ export default function OtpScreen({ onSuccess }: Props) {
   const autoFillCode = (state as any)?.autoFillCode || "";
   const [code, setCode] = useState(autoFillCode);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(60);
   const [error, setError] = useState("");
+
+  // Live 60-second OTP cooldown timer
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  const handleResendCode = async () => {
+    if (cooldown > 0 || resending || !email) return;
+    setResending(true);
+    setError("");
+    const toastId = toast.loading("Resending verification code...");
+
+    try {
+      await window.electronAPI.auth.register(email);
+      toast.success("New verification code sent! (Check inbox & spam folder)", {
+        id: toastId,
+      });
+      setCooldown(60);
+    } catch (err: any) {
+      const msg = err?.message || "Failed to resend code. Please wait.";
+      setError(msg);
+      toast.error(msg, { id: toastId });
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,14 +136,27 @@ export default function OtpScreen({ onSuccess }: Props) {
             {loading ? "Verifying Code..." : "Verify Code & Access Workstation"}
           </button>
 
-          <button
-            type="button"
-            className="btn btn-outline"
-            style={{ width: "100%", marginTop: "4px" }}
-            onClick={() => navigate("/register")}
-          >
-            <ArrowLeft size={14} /> Back to Email Step
-          </button>
+          <div style={styles.actionRow}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={cooldown > 0 || resending || loading}
+              onClick={handleResendCode}
+              style={styles.actionBtn}
+            >
+              <RotateCcw size={13} className={resending ? "animate-spin" : ""} />
+              {cooldown > 0 ? `Resend code (${cooldown}s)` : "Resend code"}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={styles.actionBtn}
+              onClick={() => navigate("/register")}
+            >
+              <ArrowLeft size={13} /> Back
+            </button>
+          </div>
         </form>
 
         <div
@@ -153,3 +198,19 @@ export default function OtpScreen({ onSuccess }: Props) {
     </div>
   );
 }
+
+const styles = {
+  actionRow: {
+    display: "flex",
+    gap: "8px",
+    marginTop: "8px",
+  },
+  actionBtn: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    fontSize: "12px",
+  },
+} as const;

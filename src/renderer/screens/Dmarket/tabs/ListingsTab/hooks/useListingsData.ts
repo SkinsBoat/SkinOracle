@@ -192,9 +192,9 @@ export function useListingsData({
       } catch (err: any) {
         console.error("[DMarket Workstation] Error fetching offers:", err);
         if (toastId) {
-          toast.error(`Error fetching offers: ${err.message}`, { id: toastId });
+          toast.error(`Failed to load offers: ${err.message}`, { id: toastId });
         } else {
-          toast.error(`Error fetching offers: ${err.message}`);
+          toast.error(`Failed to load offers: ${err.message}`);
         }
       } finally {
         setOffersLoading(false);
@@ -238,9 +238,9 @@ export function useListingsData({
       } catch (err: any) {
         console.error("[DMarket Workstation] Error fetching inventory:", err);
         if (toastId) {
-          toast.error(`Error fetching inventory: ${err.message}`, { id: toastId });
+          toast.error(`Failed to load inventory: ${err.message}`, { id: toastId });
         } else {
-          toast.error(`Error fetching inventory: ${err.message}`);
+          toast.error(`Failed to load inventory: ${err.message}`);
         }
       } finally {
         setInventoryLoading(false);
@@ -353,7 +353,7 @@ export function useListingsData({
       });
     } catch (err: any) {
       console.error("[DMarket Workstation] Error fetching sales history:", err);
-      toast.error(`Error fetching sales history: ${err.message}`, {
+      toast.error(`Failed to load sales history: ${err.message}`, {
         id: toastId,
       });
     } finally {

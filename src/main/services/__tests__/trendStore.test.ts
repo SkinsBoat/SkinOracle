@@ -75,18 +75,26 @@ describe("TrendStore SQLite Service", () => {
       },
     };
 
-    const res1 = await store.saveDailySnapshots(cacheDay1, "2026-09-01");
+    const d1 = new Date();
+    d1.setDate(d1.getDate() - 2);
+    const date1 = d1.toISOString().slice(0, 10);
+
+    const d2 = new Date();
+    d2.setDate(d2.getDate() - 1);
+    const date2 = d2.toISOString().slice(0, 10);
+
+    const res1 = await store.saveDailySnapshots(cacheDay1, date1);
     expect(res1.inserted).toBe(2);
 
-    const res2 = await store.saveDailySnapshots(cacheDay2, "2026-09-02");
+    const res2 = await store.saveDailySnapshots(cacheDay2, date2);
     expect(res2.inserted).toBe(2);
 
     const stats = await store.getStats();
     expect(stats.daysCount).toBe(2);
     expect(stats.totalSnapshots).toBe(4);
     expect(stats.itemCoverage).toBe(2);
-    expect(stats.oldestDate).toBe("2026-09-01");
-    expect(stats.latestDate).toBe("2026-09-02");
+    expect(stats.oldestDate).toBe(date1);
+    expect(stats.latestDate).toBe(date2);
 
     const trends = await store.getTrendHistoryBatch(
       ["AK-47 | Redline (Field-Tested)"],
@@ -94,7 +102,7 @@ describe("TrendStore SQLite Service", () => {
     );
     const akTrend = trends["AK-47 | Redline (Field-Tested)"];
     expect(akTrend).toBeDefined();
-    expect(akTrend.labels).toEqual(["2026-09-01", "2026-09-02"]);
+    expect(akTrend.labels).toEqual([date1, date2]);
     expect(akTrend.overallAverages.length).toBe(2);
     expect(akTrend.overallAverages[0]).toBeCloseTo(12.55, 1);
     expect(akTrend.overallAverages[1]).toBeCloseTo(13.05, 1);
@@ -105,8 +113,16 @@ describe("TrendStore SQLite Service", () => {
       "Item A": { l: [{ m: "csfloat", p: 10.0 }] },
     };
 
-    await store.saveDailySnapshots(cache, "2026-07-01"); // 60+ days ago
-    await store.saveDailySnapshots(cache, "2026-09-07"); // today
+    const dOld = new Date();
+    dOld.setDate(dOld.getDate() - 60);
+    const dateOld = dOld.toISOString().slice(0, 10);
+
+    const dRecent = new Date();
+    dRecent.setDate(dRecent.getDate() - 5);
+    const dateRecent = dRecent.toISOString().slice(0, 10);
+
+    await store.saveDailySnapshots(cache, dateOld); // 60 days ago
+    await store.saveDailySnapshots(cache, dateRecent); // 5 days ago
 
     let stats = await store.getStats();
     expect(stats.daysCount).toBe(2);
@@ -116,7 +132,7 @@ describe("TrendStore SQLite Service", () => {
 
     stats = await store.getStats();
     expect(stats.daysCount).toBe(1);
-    expect(stats.latestDate).toBe("2026-09-07");
+    expect(stats.latestDate).toBe(dateRecent);
   });
 
   it("supports simulated date override for developer testing", async () => {

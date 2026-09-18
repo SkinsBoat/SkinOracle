@@ -77,7 +77,7 @@ export const EngineStrategyPanel: React.FC<EngineStrategyPanelProps> = ({
             <div style={styles.engineCardContent}>
               <div style={styles.engineTitleRow}>
                 <span style={getEngineTitleStyle(selectedEngine === "standard")}>
-                  🔮 SkinOracle v20 Standard
+                  SkinOracle v20 Standard
                 </span>
                 <span className="badge badge-ghost" style={styles.costBadge}>
                   {unitCostCents}¢ / item ($

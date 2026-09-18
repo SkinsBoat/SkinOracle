@@ -264,7 +264,7 @@ export default function OracleDashboard() {
     try {
       await window.electronAPI.skinsnipe.cancelFetch();
     } catch (err: any) {
-      toast.error(err.message || "Failed to cancel fetch");
+      toast.error(err.message || "Failed to cancel price scan");
     }
   };
 
@@ -433,7 +433,7 @@ export default function OracleDashboard() {
 
       if (allItemNames.length === 0) {
         toast.error(
-          "No price cache found. Please fetch prices via Skinsnipe or load a JSON cache file first.",
+          "No price cache found. Please scan prices via Skinsnipe or load a JSON cache file first.",
         );
         setEvaluatedSummary((prev) => ({
           ...prev,
@@ -647,7 +647,7 @@ export default function OracleDashboard() {
   const buildListingPrices = async () => {
     if (cacheStatus.itemCount === 0) {
       toast.error(
-        "Price cache is empty. Please fetch prices from Skinsnipe or load a JSON cache file first.",
+        "Price cache is empty. Please scan prices from Skinsnipe or load a JSON cache file first.",
       );
       return;
     }
@@ -750,7 +750,7 @@ export default function OracleDashboard() {
     );
 
     if (activeSelected.length === 0) {
-      toast.error("Please select at least one Skinsnipe market to fetch");
+      toast.error("Please select at least one Skinsnipe market to scan");
       return;
     }
 
@@ -758,7 +758,7 @@ export default function OracleDashboard() {
     setFetchProgress(null);
     const marketCount = activeSelected.length;
     const toastId = toast.loading(
-      `Initiating live fetch from Skinsnipe for ${marketCount} selected market${marketCount > 1 ? "s" : ""}...`,
+      `Initiating live scan from Skinsnipe for ${marketCount} selected market${marketCount > 1 ? "s" : ""}...`,
     );
 
     try {

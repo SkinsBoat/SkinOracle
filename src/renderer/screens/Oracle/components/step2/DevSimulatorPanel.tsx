@@ -172,7 +172,7 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
               <code>maxDataAgeDays: 3</code>). Because data is older than 3
               days, trend momentum adjustments and downside cuts will be{" "}
               <strong>BYPASSED</strong>, silently falling back to standard base
-              Oracle pricing. Please fetch or load a fresh price cache in Step 1
+              Oracle pricing. Please scan or load a fresh price cache in Step 1
               to record today&apos;s snapshot.
             </span>
           </div>

@@ -453,7 +453,7 @@ export class TrendStore {
     const entries = Object.entries(priceCache);
     if (entries.length === 0) {
       throw new Error(
-        "Price cache is empty. Please fetch prices or load cache first.",
+        "Price cache is empty. Please scan prices or load cache first.",
       );
     }
 

@@ -53,7 +53,7 @@ export function useAcceptedPrices(): UseAcceptedPricesReturn {
         if (!result || !result.map || result.itemCount === 0) {
           if (!silent) {
             toast.error(
-              "No accepted prices found. Please build prices in Oracle Workstation first.",
+              "No accepted prices found. Please calculate accepted prices in Oracle Dashboard first.",
               { id: toastId },
             );
           }

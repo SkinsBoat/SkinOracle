@@ -119,7 +119,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
         Object.keys(acceptedRes.map).length === 0
       ) {
         toast.error(
-          "No accepted prices found in memory. Please build Step 2 Accepted Prices in Oracle Dashboard first.",
+          "No accepted prices found in memory. Please calculate Step 2 Accepted Prices in Oracle Dashboard first.",
           { id: toastId },
         );
         setIsSoCloseRunning(false);

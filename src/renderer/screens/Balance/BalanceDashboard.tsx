@@ -81,7 +81,7 @@ export default function BalanceDashboard() {
       setTotalPages(histRes.totalPages || 1);
       setTotalTxns(histRes.total || 0);
     } catch (err: any) {
-      toast.error(err.message || "Failed to fetch balance information");
+      toast.error(err.message || "Failed to load balance information");
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

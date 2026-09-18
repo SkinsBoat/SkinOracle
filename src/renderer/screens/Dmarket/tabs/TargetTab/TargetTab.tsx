@@ -116,7 +116,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         { id: toastId },
       );
     } catch (err: any) {
-      toast.error(`Failed to fetch target history: ${err.message}`, {
+      toast.error(`Failed to load target history: ${err.message}`, {
         id: toastId,
       });
     } finally {
@@ -143,7 +143,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
       if (!result || result.itemCount === 0) {
         toast.error(
-          "No accepted prices found in memory. Please evaluate skins in Oracle Dashboard first.",
+          "No accepted prices found in memory. Please calculate accepted prices in Oracle Dashboard first.",
           { id: toastId },
         );
         setLoadingPrices(false);
