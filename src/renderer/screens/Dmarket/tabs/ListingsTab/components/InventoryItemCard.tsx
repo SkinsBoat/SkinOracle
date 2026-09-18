@@ -20,7 +20,6 @@ import {
   getTradeTitle,
   getItemListingPriceWithMap,
   formatItemFloat,
-  resolveInstantPrice,
 } from "../../../dmarket-utils";
 import { CopyMarketHashButton } from "../../../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../../../components/TrendSparkline";
@@ -68,10 +67,10 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
       ? Number(priceEntry.listingPrice.toFixed(2))
       : null;
 
-  const instantPrice = resolveInstantPrice(item);
-  const isOracleBelowInstant = Boolean(
-    instantPrice && targetPrice && targetPrice < instantPrice,
-  );
+  // NOTE (DMarket Instant Target / Insta-Sell):
+  // DMarket public Trading API (GET /marketplace-api/v2/user/inventory) does not return
+  // instantPrice or instantTargetId (only suggestedPrice & offerRecommendedPrice).
+  // Instant-sell UI and logic are deferred pending clarification from DMarket API support.
 
   const title = getTradeTitle(item);
   const match = title.match(/^(.+?)\s*\(([^)]+)\)$/);
@@ -95,9 +94,7 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
     ? "var(--so-primary)"
     : isLocked
       ? "rgba(245, 158, 11, 0.85)"
-      : isOracleBelowInstant
-        ? "#ef4444"
-        : "var(--so-border-medium)";
+      : "var(--so-border-medium)";
 
   return (
     <div
@@ -424,49 +421,6 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
           </span>
         </div>
 
-        {instantPrice && instantPrice > 0 ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "3px",
-              padding: "1px 0",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "3px",
-                color: isOracleBelowInstant
-                  ? "#f87171"
-                  : "var(--so-accent-cyan)",
-                fontWeight: isOracleBelowInstant ? 800 : 600,
-              }}
-              title="DMarket Instant Sell: Highest active buy order ready to purchase immediately"
-            >
-              <Zap
-                size={10}
-                style={{
-                  fill: isOracleBelowInstant ? "#f87171" : "var(--so-accent-cyan)",
-                }}
-              />
-              <span>Instant Buy Order</span>
-            </span>
-            <span
-              className="tabular-nums"
-              style={{
-                fontWeight: 800,
-                color: isOracleBelowInstant
-                  ? "#f87171"
-                  : "var(--so-accent-cyan)",
-              }}
-            >
-              ${instantPrice.toFixed(2)}
-            </span>
-          </div>
-        ) : null}
-
         {priceEntry?.lowestPrice ? (
           <div
             style={{
@@ -492,34 +446,12 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
         ) : null}
       </div>
 
-      {/* Visual Warning when Oracle Target is below Instant Sell Buy Order */}
-      {isOracleBelowInstant && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-            backgroundColor: "rgba(239, 68, 68, 0.18)",
-            border: "1px solid rgba(239, 68, 68, 0.45)",
-            borderRadius: "4px",
-            padding: "3px 6px",
-            fontSize: "10px",
-            color: "#f87171",
-            fontWeight: 700,
-            lineHeight: 1.2,
-          }}
-          title={`Warning: Oracle listing price ($${targetPrice?.toFixed(2)}) is BELOW DMarket Instant Buy Order ($${instantPrice?.toFixed(2)})!`}
-        >
-          <AlertTriangle size={12} style={{ flexShrink: 0, color: "#f87171" }} />
-          <span>Oracle &lt; Instant (${instantPrice?.toFixed(2)})</span>
-        </div>
-      )}
-
-      {/* Action Row */}
+      {/* Action Container */}
       <div
-        style={{ display: "flex", gap: "5px", alignItems: "center" }}
+        style={styles.actionContainer}
         onClick={(e) => e.stopPropagation()}
       >
+        <div style={styles.actionRow}>
         {!item.inMarket ? (
           <>
             {/* List P2P Primary Button */}
@@ -702,7 +634,22 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
             <span>{isLocked ? cooldown?.formatted : "Set Price & List"}</span>
           </button>
         )}
+        </div>
       </div>
     </div>
   );
+};
+
+const styles = {
+  actionContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+  } as React.CSSProperties,
+
+  actionRow: {
+    display: "flex",
+    gap: "5px",
+    alignItems: "center",
+  } as React.CSSProperties,
 };

@@ -9,10 +9,15 @@ import {
   CSFLOAT_ME_INVENTORY,
   CSFLOAT_LISTINGS,
   CSFLOAT_LISTING_BY_ID,
+  CSFLOAT_USER_STALL,
+  CSFLOAT_ITEM_BUY_ORDERS,
+  CSFLOAT_ME_TRADES,
 } from "../constants/apiUrls";
 import { snapCsFloatBuyOrderPriceCents } from "../../shared/csfloatUtils";
 import { getAppUserAgent } from "../constants/userAgent";
 export { snapCsFloatBuyOrderPriceCents };
+
+let cachedSteamId: string | null = null;
 
 // ─────────────────────────────────────────────────────────────────
 // CSFloat buy order IPC handlers
@@ -212,10 +217,9 @@ ipcMain.handle("csfloat:get-me", async () => {
   const res = await axios.get(CSFLOAT_ME, {
     headers: getHeaders(apiKey),
   });
-  console.log(
-    "[CSFloat IPC] /me Response data:",
-    JSON.stringify(res.data, null, 2),
-  );
+  if (res.data?.user?.steam_id) {
+    cachedSteamId = res.data.user.steam_id;
+  }
   return res.data;
 });
 
@@ -240,6 +244,210 @@ ipcMain.handle("csfloat:get-inventory", async () => {
     console.log(
       `[CSFloat IPC] ✅ Fetched ${inventory.length} inventory items.`,
     );
+
+    const listed = inventory.filter((i: any) => !!i.listing_id);
+    console.log(
+      `[CSFloat IPC] 🔎 Listed/Stall items count: ${listed.length}`,
+    );
+
+    // Track sold / queued / pending delivery trades and listings
+    const soldMap: Record<
+      string,
+      { is_sold: boolean; trade_state: string; trade_id?: string; price?: number }
+    > = {};
+
+    // 0. Query active seller trades on CSFloat to detect pending P2P deliveries
+    try {
+      const tradesRes = await axios.get(CSFLOAT_ME_TRADES, {
+        headers: getHeaders(apiKey),
+        params: { role: "seller", limit: 50 },
+      });
+      const tradesList = Array.isArray(tradesRes.data?.trades)
+        ? tradesRes.data.trades
+        : Array.isArray(tradesRes.data)
+          ? tradesRes.data
+          : [];
+
+      for (const t of tradesList) {
+        const isTradeActiveOrSold =
+          t.state === "queued" ||
+          t.state === "pending" ||
+          t.state === "waiting_for_trade" ||
+          t.contract?.state === "sold";
+
+        if (isTradeActiveOrSold) {
+          const soldInfo = {
+            is_sold: true,
+            trade_state: t.state || t.contract?.state || "queued",
+            trade_id: t.id,
+            price: t.contract?.price,
+          };
+          if (t.contract?.item?.asset_id) {
+            soldMap[t.contract.item.asset_id] = soldInfo;
+          }
+          if (t.contract_id) {
+            soldMap[t.contract_id] = soldInfo;
+          }
+          if (t.contract?.id) {
+            soldMap[t.contract.id] = soldInfo;
+          }
+        }
+      }
+      if (Object.keys(soldMap).length > 0) {
+        console.log(
+          `[CSFloat IPC] 📦 Found ${Object.keys(soldMap).length} active/pending seller trades.`,
+        );
+      }
+    } catch (tradeErr: any) {
+      console.warn(
+        "[CSFloat IPC] ⚠️ Could not fetch seller trades:",
+        tradeErr.message,
+      );
+    }
+
+    // CSFloat /me/inventory provides listing_id, but the active listing price
+    // lives in the user stall or listing endpoint. Enrich all listed items with price.
+    if (listed.length > 0) {
+      const priceMap: Record<string, { price: number; private?: boolean }> = {};
+
+      // 1. Batch fetch from user's stall via CSFloat stall endpoint
+      try {
+        if (!cachedSteamId) {
+          const meRes = await axios.get(CSFLOAT_ME, {
+            headers: getHeaders(apiKey),
+          });
+          cachedSteamId = meRes.data?.user?.steam_id || null;
+        }
+
+        if (cachedSteamId) {
+          let stallCursor: string | undefined = undefined;
+          let stallDone = false;
+          let pageCount = 0;
+
+          while (!stallDone && pageCount < 10) {
+            pageCount++;
+            const params: any = { limit: 100 };
+            if (stallCursor) params.cursor = stallCursor;
+
+            const stallRes = await axios.get(
+              CSFLOAT_USER_STALL(cachedSteamId),
+              {
+                headers: getHeaders(apiKey),
+                params,
+              },
+            );
+
+            const stallList = Array.isArray(stallRes.data?.data)
+              ? stallRes.data.data
+              : [];
+
+            for (const stallItem of stallList) {
+              if (stallItem.id && typeof stallItem.price === "number") {
+                priceMap[stallItem.id] = {
+                  price: stallItem.price,
+                  private: !!stallItem.private,
+                };
+                if (stallItem.item?.asset_id) {
+                  priceMap[stallItem.item.asset_id] = {
+                    price: stallItem.price,
+                    private: !!stallItem.private,
+                  };
+                }
+              }
+            }
+
+            stallCursor = stallRes.data?.cursor;
+            if (!stallCursor || stallList.length < 100) {
+              stallDone = true;
+            }
+          }
+        }
+      } catch (stallErr: any) {
+        console.warn(
+          "[CSFloat IPC] ⚠️ Could not fetch stall batch prices:",
+          stallErr.message,
+        );
+      }
+
+      // 2. Fallback for any listed items not found in public stall (e.g. private listings, sold listings, or race conditions)
+      const missingListings = listed.filter(
+        (i: any) => !priceMap[i.listing_id] && !priceMap[i.asset_id],
+      );
+
+      if (missingListings.length > 0) {
+        console.log(
+          `[CSFloat IPC] 🔄 Fetching ${missingListings.length} individual listing details for missing prices...`,
+        );
+        await Promise.allSettled(
+          missingListings.map(async (item: any) => {
+            try {
+              const listingRes = await axios.get(
+                CSFLOAT_LISTING_BY_ID(item.listing_id),
+                { headers: getHeaders(apiKey) },
+              );
+              const l = listingRes.data;
+              if (l && typeof l.price === "number") {
+                priceMap[item.listing_id] = {
+                  price: l.price,
+                  private: !!l.private,
+                };
+                if (item.asset_id) {
+                  priceMap[item.asset_id] = {
+                    price: l.price,
+                    private: !!l.private,
+                  };
+                }
+              }
+
+              // Also check if listing itself is marked sold or queued
+              if (l && (l.state === "sold" || l.state === "queued")) {
+                const soldInfo = {
+                  is_sold: true,
+                  trade_state: l.state,
+                  price: l.price,
+                };
+                soldMap[item.listing_id] = soldInfo;
+                if (item.asset_id) {
+                  soldMap[item.asset_id] = soldInfo;
+                }
+              }
+            } catch (err: any) {
+              console.warn(
+                `[CSFloat IPC] ⚠️ Failed to fetch listing ${item.listing_id}:`,
+                err.message,
+              );
+            }
+          }),
+        );
+      }
+
+      // 3. Attach price and private mode to inventory items
+      for (const item of inventory) {
+        const match = priceMap[item.listing_id] || priceMap[item.asset_id];
+        if (match) {
+          item.price = match.price;
+          if (match.private !== undefined && item.private === undefined) {
+            item.private = match.private;
+          }
+        }
+      }
+
+      console.log(
+        `[CSFloat IPC] ✅ Enriched ${Object.keys(priceMap).length} listed items with active prices.`,
+      );
+    }
+
+    // 4. Attach sold status to all inventory items matching soldMap
+    for (const item of inventory) {
+      const sold = soldMap[item.listing_id] || soldMap[item.asset_id];
+      if (sold) {
+        item.is_sold = true;
+        item.trade_state = sold.trade_state || "queued";
+        if (sold.trade_id) item.trade_id = sold.trade_id;
+        if (typeof sold.price === "number") item.price = sold.price;
+      }
+    }
+
     return inventory;
   } catch (err: any) {
     const errorData = err.response?.data || err.message;
@@ -397,3 +605,64 @@ ipcMain.handle(
     }
   },
 );
+
+ipcMain.handle(
+  "csfloat:get-item-buy-orders",
+  async (
+    _,
+    serializedInspect: string,
+    marketHashName: string,
+    gsSig: string,
+    limit: number = 3,
+  ) => {
+    const apiKey = secureGet(STORAGE_KEYS.CSFLOAT);
+    if (!apiKey) throw new Error("CSFloat API key not set");
+
+    if (!serializedInspect || !marketHashName || !gsSig) {
+      throw new Error(
+        "Missing serializedInspect, marketHashName, or gsSig for buy order query",
+      );
+    }
+
+    console.log(
+      `[CSFloat IPC] 🔎 Fetching item buy orders for "${marketHashName}" (sig: ${gsSig}, limit: ${limit})...`,
+    );
+
+    try {
+      const res = await axios.get(CSFLOAT_ITEM_BUY_ORDERS, {
+        headers: getHeaders(apiKey),
+        params: {
+          url: serializedInspect,
+          market_hash_name: marketHashName,
+          sig: gsSig,
+          limit,
+        },
+      });
+
+      const orders = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+      console.log(
+        `[CSFloat IPC] ✅ Fetched ${orders.length} item matching buy orders.`,
+      );
+      return orders;
+    } catch (err: any) {
+      const errorData = err.response?.data || err.message;
+      console.error(
+        "[CSFloat IPC] ❌ Error fetching item buy orders:",
+        errorData,
+      );
+      throw new Error(
+        errorData?.message ||
+          errorData?.error ||
+          (typeof errorData === "string"
+            ? errorData
+            : "Failed to fetch item buy orders"),
+      );
+    }
+  },
+);
+

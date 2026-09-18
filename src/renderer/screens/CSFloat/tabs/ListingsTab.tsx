@@ -16,10 +16,11 @@ import {
 import {
   CSFloatListingCard,
   ListingAnalysis,
+  CsFloatInventoryItem,
 } from "../components/CSFloatListingCard";
 
 interface ListingsTabProps {
-  inventory: any[];
+  inventory: CsFloatInventoryItem[];
   inventoryLoading: boolean;
   fetchInventory: () => Promise<void>;
   loadingListingPrices: boolean;
@@ -34,9 +35,17 @@ interface ListingsTabProps {
   >;
   listingProcessingId: string | null;
   batchListingProcessing: boolean;
-  handleCreateListing: (item: any, price?: number) => Promise<void>;
-  handleUpdateListing: (item: any, price: number) => Promise<void>;
-  handleUnlist: (item: any) => Promise<void>;
+  handleCreateListing: (
+    item: CsFloatInventoryItem,
+    price?: number,
+    forcePublic?: boolean,
+  ) => Promise<void>;
+  handleUpdateListing: (
+    item: CsFloatInventoryItem,
+    price: number,
+    forcePublic?: boolean,
+  ) => Promise<void>;
+  handleUnlist: (item: CsFloatInventoryItem) => Promise<void>;
   handleBatchCreateListings: () => Promise<void>;
   handleBatchUpdateListings: () => Promise<void>;
   handleBatchUnlist: () => Promise<void>;
@@ -78,23 +87,24 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
 }) => {
   const selectedListingCount =
     Object.values(selectedListingItems).filter(Boolean).length;
-  const listedCount = inventory.filter((i) => !!i.listing_id).length;
-  const unlistedCount = inventory.filter((i) => !i.listing_id).length;
+  const soldCount = inventory.filter((i) => i.is_sold).length;
+  const listedCount = inventory.filter((i) => !!i.listing_id && !i.is_sold).length;
+  const unlistedCount = inventory.filter((i) => !i.listing_id && !i.is_sold).length;
   const overpricedCount = inventory.filter(
-    (i) => listingAnalysis[i.asset_id]?.isOverpriced,
+    (i) => !i.is_sold && listingAnalysis[i.asset_id]?.isOverpriced,
   ).length;
   const underpricedCount = inventory.filter(
-    (i) => listingAnalysis[i.asset_id]?.isUnderpriced,
+    (i) => !i.is_sold && listingAnalysis[i.asset_id]?.isUnderpriced,
   ).length;
   const actionReqListingCount = overpricedCount + underpricedCount;
   const matchedListingCount = inventory.filter(
-    (i) => !!listingAnalysis[i.asset_id]?.targetListingPrice,
+    (i) => !i.is_sold && !!listingAnalysis[i.asset_id]?.targetListingPrice,
   ).length;
 
   const selectUnlistedListings = () => {
     const next: Record<string, boolean> = {};
     inventory.forEach((i) => {
-      if (!i.listing_id) next[i.asset_id] = true;
+      if (!i.listing_id && !i.is_sold) next[i.asset_id] = true;
     });
     setSelectedListingItems(next);
   };
@@ -102,6 +112,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
   const selectActionRequiredListings = () => {
     const next: Record<string, boolean> = {};
     inventory.forEach((i) => {
+      if (i.is_sold) return;
       const a = listingAnalysis[i.asset_id];
       if (a?.isOverpriced || a?.isUnderpriced) next[i.asset_id] = true;
     });
@@ -111,6 +122,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
   const selectOverpricedListings = () => {
     const next: Record<string, boolean> = {};
     inventory.forEach((i) => {
+      if (i.is_sold) return;
       if (listingAnalysis[i.asset_id]?.isOverpriced) next[i.asset_id] = true;
     });
     setSelectedListingItems(next);
@@ -119,6 +131,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
   const selectUnderpricedListings = () => {
     const next: Record<string, boolean> = {};
     inventory.forEach((i) => {
+      if (i.is_sold) return;
       if (listingAnalysis[i.asset_id]?.isUnderpriced) next[i.asset_id] = true;
     });
     setSelectedListingItems(next);
@@ -127,6 +140,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
   const selectAllMatchedListings = () => {
     const next: Record<string, boolean> = {};
     inventory.forEach((i) => {
+      if (i.is_sold) return;
       if (listingAnalysis[i.asset_id]?.targetListingPrice)
         next[i.asset_id] = true;
     });
@@ -140,7 +154,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
     inventory.forEach((i) => {
-      next[i.asset_id] = true;
+      if (!i.is_sold) next[i.asset_id] = true;
     });
     setSelectedListingItems(next);
   };
@@ -171,6 +185,11 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
                   {unlistedCount}
                 </strong>
               </span>
+              {soldCount > 0 && (
+                <span style={styles.statSold}>
+                  Sold: <strong>{soldCount}</strong>
+                </span>
+              )}
               {overpricedCount > 0 && (
                 <span style={styles.statOverpriced}>
                   Overpriced: <strong>{overpricedCount}</strong>
@@ -549,6 +568,10 @@ const styles = {
 
   statUnderpriced: {
     color: "#f59e0b",
+  } as React.CSSProperties,
+
+  statSold: {
+    color: "#a78bfa",
   } as React.CSSProperties,
 
   filterButtonsGroup: {

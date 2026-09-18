@@ -209,6 +209,20 @@ export interface ElectronAPI {
       priceCents: number,
       privateMode?: boolean,
     ) => Promise<any>;
+    getItemBuyOrders: (
+      serializedInspect: string,
+      marketHashName: string,
+      gsSig: string,
+      limit?: number,
+    ) => Promise<
+      Array<{
+        market_hash_name: string;
+        price: number;
+        qty: number;
+        hybrid_properties?: any;
+        [key: string]: any;
+      }>
+    >;
   };
   app: {
     openExternal: (url: string) => Promise<void>;

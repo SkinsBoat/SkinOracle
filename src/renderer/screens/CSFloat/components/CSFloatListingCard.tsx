@@ -13,24 +13,38 @@ import {
   Trash2,
   CheckSquare,
   Square,
+  Zap,
+  RotateCw,
 } from "lucide-react";
-import { ListingAnalysis } from "../../../../shared/types";
+import {
+  ListingAnalysis,
+  CsFloatInventoryItem,
+  CsFloatItemBuyOrder,
+} from "../../../../shared/types";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../components/TrendSparkline";
 import { SkinImage } from "../../../components/SkinImage";
 
-export type { ListingAnalysis };
+export type { ListingAnalysis, CsFloatInventoryItem, CsFloatItemBuyOrder };
 
 interface CSFloatListingCardProps {
-  item: any;
+  item: CsFloatInventoryItem;
   isSelected: boolean;
   onToggleSelect: () => void;
   analysis?: ListingAnalysis | null;
   isProcessing: boolean;
   isPrivateMode?: boolean;
-  onCreateListing: (item: any, price?: number) => void;
-  onUpdateListing: (item: any, price: number) => void;
-  onUnlist: (item: any) => void;
+  onCreateListing: (
+    item: CsFloatInventoryItem,
+    price?: number,
+    forcePublic?: boolean,
+  ) => void | Promise<void>;
+  onUpdateListing: (
+    item: CsFloatInventoryItem,
+    price: number,
+    forcePublic?: boolean,
+  ) => void | Promise<void>;
+  onUnlist: (item: CsFloatInventoryItem) => void | Promise<void>;
   onOpenMarket: (name: string) => void;
   onOpenLookup: (
     name: string,
@@ -70,22 +84,78 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
       : null;
 
   const currentListedPriceDollar =
-    isListed && item.price ? item.price / 100 : null;
+    isListed && typeof item.price === "number" && item.price > 0
+      ? item.price / 100
+      : null;
+
+  // Matching buy order state
+  const [matchingBuyOrders, setMatchingBuyOrders] = React.useState<
+    CsFloatItemBuyOrder[] | null
+  >(null);
+  const [loadingBuyOrders, setLoadingBuyOrders] = React.useState(false);
+  const [checkedBuyOrders, setCheckedBuyOrders] = React.useState(false);
+
+  const bestBuyOrder =
+    matchingBuyOrders && matchingBuyOrders.length > 0
+      ? matchingBuyOrders[0]
+      : null;
+  const bestBuyOrderDollar = bestBuyOrder ? bestBuyOrder.price / 100 : null;
+
+  const handleScanBuyOrders = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const inspectUrl = item.serialized_inspect || item.inspect_link;
+    const sig = item.gs_sig;
+    const mhn = item.market_hash_name || item.item_name;
+
+    if (!inspectUrl || !sig || !mhn) {
+      return;
+    }
+
+    setLoadingBuyOrders(true);
+    try {
+      const orders = await window.electronAPI.csfloat.getItemBuyOrders(
+        inspectUrl,
+        mhn,
+        sig,
+        3,
+      );
+      setMatchingBuyOrders(orders || []);
+      setCheckedBuyOrders(true);
+    } catch (err: any) {
+      console.warn("[CSFloat Card] Error scanning buy orders:", err.message);
+      setMatchingBuyOrders([]);
+      setCheckedBuyOrders(true);
+    } finally {
+      setLoadingBuyOrders(false);
+    }
+  };
+
+  const handleInstaSell = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!bestBuyOrderDollar || bestBuyOrderDollar <= 0) return;
+    if (!isListed) {
+      onCreateListing(item, bestBuyOrderDollar, true);
+    } else {
+      onUpdateListing(item, bestBuyOrderDollar, true);
+    }
+  };
 
   const cardBorderColor = isSelected
     ? "var(--so-primary)"
-    : analysis?.isOverpriced
-      ? "#ef4444"
-      : analysis?.isUnderpriced
-        ? "#f59e0b"
-        : isListed
-          ? "var(--so-success)"
-          : "var(--so-border-medium)";
+    : item.is_sold
+      ? "#8b5cf6"
+      : analysis?.isOverpriced
+        ? "#ef4444"
+        : analysis?.isUnderpriced
+          ? "#f59e0b"
+          : isListed
+            ? "var(--so-success)"
+            : "var(--so-border-medium)";
 
   return (
     <div
-      style={getCardContainerStyle(isSelected, cardBorderColor)}
-      onClick={onToggleSelect}
+      style={getCardContainerStyle(isSelected, cardBorderColor, item.is_sold)}
+      onClick={item.is_sold ? undefined : onToggleSelect}
     >
       {/* Top Action Row */}
       <div style={styles.headerRow}>
@@ -120,60 +190,71 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
           <CopyMarketHashButton name={name} />
         </div>
 
-        {/* Selection Checkbox Indicator */}
-        <div
-          style={getCheckmarkStyle(isSelected)}
-          title={isSelected ? "Selected" : "Click card to select"}
-        >
-          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
-        </div>
+        {/* Selection Checkbox Indicator (Hidden for sold items) */}
+        {!item.is_sold && (
+          <div
+            style={getCheckmarkStyle(isSelected)}
+            title={isSelected ? "Selected" : "Click card to select"}
+          >
+            {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+          </div>
+        )}
       </div>
 
       {/* Badges Row (Next Line to Prevent Overlapping) */}
       <div style={styles.badgesRow}>
-        <span style={getStallBadgeStyle(isListed)}>
-          {isListed ? (
-            item.private ? (
-              <Lock size={9} />
-            ) : (
-              <Globe size={9} />
-            )
-          ) : null}
-          {isListed ? "STALL" : "UNLISTED"}
-        </span>
-
-        {/* Analysis Badge */}
-        {!isListed ? (
-          <span className="badge badge-secondary" style={styles.badgeReadyToList}>
-            READY TO LIST
+        {item.is_sold ? (
+          <span style={styles.badgeSold}>
+            <CheckCircle2 size={10} />
+            <span>SOLD ({item.trade_state?.toUpperCase() || "QUEUED"})</span>
           </span>
-        ) : analysis ? (
-          analysis.isOverpriced ? (
-            <span className="badge" style={styles.badgeOverpriced}>
-              <AlertTriangle size={10} /> OVERPRICED (
-              {analysis.driftPercent > 0
-                ? `+${analysis.driftPercent.toFixed(0)}%`
-                : `${analysis.driftPercent.toFixed(0)}%`}
-              )
-            </span>
-          ) : analysis.isUnderpriced ? (
-            <span className="badge" style={styles.badgeUnderpriced}>
-              <AlertTriangle size={10} /> UNDERPRICED (
-              {analysis.driftPercent.toFixed(0)}%)
-            </span>
-          ) : (
-            <span className="badge badge-success" style={styles.badgeSafe}>
-              <CheckCircle2 size={10} /> SAFE (
-              {analysis.driftPercent >= 0
-                ? `+${analysis.driftPercent.toFixed(0)}%`
-                : `${analysis.driftPercent.toFixed(0)}%`}
-              )
-            </span>
-          )
         ) : (
-          <span className="badge badge-secondary" style={styles.badgeListed}>
-            LISTED
-          </span>
+          <>
+            <span style={getStallBadgeStyle(isListed)}>
+              {isListed ? (
+                item.private ? (
+                  <Lock size={9} />
+                ) : (
+                  <Globe size={9} />
+                )
+              ) : null}
+              {isListed ? "STALL" : "UNLISTED"}
+            </span>
+
+            {/* Analysis Badge */}
+            {!isListed ? (
+              <span className="badge badge-secondary" style={styles.badgeReadyToList}>
+                READY TO LIST
+              </span>
+            ) : analysis ? (
+              analysis.isOverpriced ? (
+                <span className="badge" style={styles.badgeOverpriced}>
+                  <AlertTriangle size={10} /> OVERPRICED (
+                  {analysis.driftPercent > 0
+                    ? `+${analysis.driftPercent.toFixed(0)}%`
+                    : `${analysis.driftPercent.toFixed(0)}%`}
+                  )
+                </span>
+              ) : analysis.isUnderpriced ? (
+                <span className="badge" style={styles.badgeUnderpriced}>
+                  <AlertTriangle size={10} /> UNDERPRICED (
+                  {analysis.driftPercent.toFixed(0)}%)
+                </span>
+              ) : (
+                <span className="badge badge-success" style={styles.badgeSafe}>
+                  <CheckCircle2 size={10} /> SAFE (
+                  {analysis.driftPercent >= 0
+                    ? `+${analysis.driftPercent.toFixed(0)}%`
+                    : `${analysis.driftPercent.toFixed(0)}%`}
+                  )
+                </span>
+              )
+            ) : (
+              <span className="badge badge-secondary" style={styles.badgeListed}>
+                LISTED
+              </span>
+            )}
+          </>
         )}
       </div>
 
@@ -219,18 +300,26 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
       {/* Pricing Info */}
       <div style={styles.pricingBox}>
         <div style={styles.pricingRow}>
-          <span style={styles.labelMuted}>Listed Price</span>
+          <span style={styles.labelMuted}>
+            {item.is_sold ? "Sold Price" : "Listed Price"}
+          </span>
           <span
             className="tabular-nums"
-            style={getListedPriceStyle(!!currentListedPriceDollar)}
+            style={
+              item.is_sold
+                ? styles.soldPriceText
+                : getListedPriceStyle(!!currentListedPriceDollar)
+            }
           >
             {currentListedPriceDollar
               ? `$${currentListedPriceDollar.toFixed(2)}`
-              : "Not Listed"}
+              : item.is_sold
+                ? "Sold"
+                : "Not Listed"}
           </span>
         </div>
 
-        <div style={styles.pricingRowBottom}>
+        <div style={styles.pricingRow}>
           <span style={styles.labelMuted}>Target Listing</span>
           <span
             className="tabular-nums"
@@ -241,6 +330,78 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
               : "---"}
           </span>
         </div>
+
+        {/* Lowest / Avg (Displayed directly under Target Listing) */}
+        {analysis?.lowestPrice && analysis?.averagePrice ? (
+          <div style={styles.pricingSubRow}>
+            <span style={styles.labelSubMuted}>Lowest / Avg</span>
+            <span className="tabular-nums" style={styles.subPriceText}>
+              ${analysis.lowestPrice.toFixed(2)} / $
+              {analysis.averagePrice.toFixed(2)}
+            </span>
+          </div>
+        ) : null}
+
+        <div style={styles.pricingRowBottom}>
+          <span style={styles.labelMuted}>Top Buy Order</span>
+          {loadingBuyOrders && !checkedBuyOrders ? (
+            <span style={styles.buyOrderLoading}>
+              <Loader2 size={11} className="spin" />
+            </span>
+          ) : checkedBuyOrders ? (
+            <div style={styles.buyOrderValueContainer}>
+              <button
+                type="button"
+                onClick={handleScanBuyOrders}
+                disabled={loadingBuyOrders}
+                style={styles.refreshBuyOrderBtn}
+                title="Refresh matching buy orders"
+              >
+                <RotateCw
+                  size={10}
+                  className={loadingBuyOrders ? "spin" : ""}
+                />
+              </button>
+              {bestBuyOrderDollar ? (
+                <span
+                  className="tabular-nums"
+                  style={styles.buyOrderPriceHighlight}
+                  title={
+                    matchingBuyOrders && matchingBuyOrders.length > 1
+                      ? `Top Buy Orders: ${matchingBuyOrders.map((o) => `$${(o.price / 100).toFixed(2)} (x${o.qty || 1})`).join(", ")}`
+                      : `Top matching buy order: $${bestBuyOrderDollar.toFixed(2)}`
+                  }
+                >
+                  <Zap size={10} style={styles.zapIcon} />
+                  <span>${bestBuyOrderDollar.toFixed(2)}</span>
+                  {matchingBuyOrders && matchingBuyOrders.length > 1 && (
+                    <span style={styles.buyOrderCountBadge}>
+                      ({matchingBuyOrders.length})
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span style={styles.buyOrderNone}>None</span>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleScanBuyOrders}
+              disabled={
+                loadingBuyOrders ||
+                (!item.serialized_inspect && !item.inspect_link) ||
+                !item.gs_sig
+              }
+              className="btn btn-xs"
+              style={styles.scanBuyOrderBtn}
+              title="Scan matching buy orders for this item"
+            >
+              <Zap size={10} />
+              <span>Check</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Action Button */}
@@ -248,25 +409,45 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
         style={styles.actionsRow}
         onClick={(e) => e.stopPropagation()}
       >
-        {!isListed ? (
-          <button
-            onClick={() => onCreateListing(item, analysis?.targetListingPrice)}
-            disabled={isProcessing || !analysis?.targetListingPrice}
-            className="btn btn-primary btn-sm"
-            style={styles.listBtn}
-            title={
-              analysis?.targetListingPrice
-                ? `List at $${analysis.targetListingPrice.toFixed(2)} (${isPrivateMode ? "Private" : "Public"})`
-                : "No recommended listing price"
-            }
-          >
-            {isProcessing ? (
-              <Loader2 size={11} className="spin" />
-            ) : (
-              <PlusCircle size={12} />
+        {item.is_sold ? (
+          <div style={styles.soldBanner}>
+            <CheckCircle2 size={12} style={styles.soldBannerIcon} />
+            <span>🎉 SOLD — Awaiting Steam Trade</span>
+          </div>
+        ) : !isListed ? (
+          <>
+            <button
+              onClick={() => onCreateListing(item, analysis?.targetListingPrice)}
+              disabled={isProcessing || !analysis?.targetListingPrice}
+              className="btn btn-primary btn-sm"
+              style={styles.listBtn}
+              title={
+                analysis?.targetListingPrice
+                  ? `List at $${analysis.targetListingPrice.toFixed(2)} (${isPrivateMode ? "Private" : "Public"})`
+                  : "No recommended listing price"
+              }
+            >
+              {isProcessing ? (
+                <Loader2 size={11} className="spin" />
+              ) : (
+                <PlusCircle size={12} />
+              )}
+              <span>List {isPrivateMode ? "(Priv)" : "(Pub)"}</span>
+            </button>
+
+            {bestBuyOrderDollar && (
+              <button
+                onClick={handleInstaSell}
+                disabled={isProcessing}
+                className="btn btn-sm"
+                style={styles.instaSellBtn}
+                title={`Instantly sell to highest buy order at $${bestBuyOrderDollar.toFixed(2)} (Public)`}
+              >
+                <Zap size={11} style={styles.zapIcon} />
+                <span>Insta-Sell ${bestBuyOrderDollar.toFixed(2)}</span>
+              </button>
             )}
-            <span>List {isPrivateMode ? "(Priv)" : "(Pub)"}</span>
-          </button>
+          </>
         ) : (
           <>
             <button
@@ -288,6 +469,20 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
               )}
               <span>Update</span>
             </button>
+
+            {bestBuyOrderDollar && (
+              <button
+                onClick={handleInstaSell}
+                disabled={isProcessing}
+                className="btn btn-sm"
+                style={styles.instaSellBtn}
+                title={`Reprice listing to $${bestBuyOrderDollar.toFixed(2)} to immediately fill buy order`}
+              >
+                <Zap size={11} style={styles.zapIcon} />
+                <span>Insta-Sell ${bestBuyOrderDollar.toFixed(2)}</span>
+              </button>
+            )}
+
             <button
               onClick={() => onUnlist(item)}
               disabled={isProcessing}
@@ -313,6 +508,7 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
 const getCardContainerStyle = (
   isSelected: boolean,
   cardBorderColor: string,
+  isSold?: boolean,
 ): React.CSSProperties => ({
   display: "flex",
   flexDirection: "column",
@@ -327,7 +523,7 @@ const getCardContainerStyle = (
   backgroundColor: "var(--so-surface-card)",
   border: `1px solid ${isSelected ? "var(--so-primary)" : cardBorderColor}`,
   boxShadow: isSelected ? "inset 0 0 0 1px var(--so-primary)" : "none",
-  cursor: "pointer",
+  cursor: isSold ? "default" : "pointer",
   userSelect: "none",
 });
 
@@ -556,7 +752,152 @@ const styles = {
     gap: "3px",
   } as React.CSSProperties,
 
+  pricingSubRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "3px",
+    fontSize: "9.5px",
+  } as React.CSSProperties,
+
+  labelSubMuted: {
+    color: "var(--so-text-muted)",
+    fontSize: "9.5px",
+  } as React.CSSProperties,
+
+  subPriceText: {
+    color: "var(--so-text-secondary)",
+    fontWeight: 600,
+    fontSize: "9.5px",
+  } as React.CSSProperties,
+
   unlistBtn: {
     padding: "4px 6px",
+  } as React.CSSProperties,
+
+  scanBuyOrderBtn: {
+    padding: "2px 8px",
+    fontSize: "10px",
+    fontWeight: 800,
+    height: "20px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    color: "#ffffff",
+    backgroundColor: "rgba(99, 102, 241, 0.42)",
+    border: "1px solid #818cf8",
+    borderRadius: "4px",
+    cursor: "pointer",
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
+    transition: "all 0.15s ease",
+  } as React.CSSProperties,
+
+  buyOrderValueContainer: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+  } as React.CSSProperties,
+
+  refreshBuyOrderBtn: {
+    background: "rgba(255, 255, 255, 0.05)",
+    border: "1px solid var(--so-border-subtle)",
+    padding: "2px 4px",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "var(--so-text-secondary)",
+    borderRadius: "3px",
+    transition: "all 0.15s ease",
+  } as React.CSSProperties,
+
+  buyOrderPriceHighlight: {
+    fontSize: "11px",
+    fontWeight: 800,
+    color: "var(--so-success-text)",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+  } as React.CSSProperties,
+
+  zapIcon: {
+    fill: "currentColor",
+  } as React.CSSProperties,
+
+  buyOrderCountBadge: {
+    fontSize: "9.5px",
+    color: "var(--so-text-muted)",
+    fontWeight: 600,
+    marginLeft: "2px",
+  } as React.CSSProperties,
+
+  buyOrderNone: {
+    fontSize: "10.5px",
+    color: "var(--so-text-muted)",
+  } as React.CSSProperties,
+
+  buyOrderLoading: {
+    display: "inline-flex",
+    alignItems: "center",
+    color: "var(--so-primary)",
+  } as React.CSSProperties,
+
+  instaSellBtn: {
+    backgroundColor: "rgba(245, 158, 11, 0.18)",
+    border: "1px solid #f59e0b",
+    color: "#fbbf24",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
+    padding: "4px 8px",
+    fontSize: "10.5px",
+    fontWeight: 700,
+    borderRadius: "4px",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    whiteSpace: "nowrap",
+  } as React.CSSProperties,
+
+  badgeSold: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    backgroundColor: "rgba(139, 92, 246, 0.2)",
+    color: "#a78bfa",
+    border: "1px solid rgba(139, 92, 246, 0.45)",
+    borderRadius: "4px",
+    padding: "2px 6px",
+    fontSize: "9.5px",
+    fontWeight: 800,
+    letterSpacing: "0.4px",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+  } as React.CSSProperties,
+
+  soldPriceText: {
+    color: "#a78bfa",
+    fontWeight: 800,
+    fontSize: "12px",
+  } as React.CSSProperties,
+
+  soldBanner: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    backgroundColor: "rgba(139, 92, 246, 0.15)",
+    border: "1px solid rgba(139, 92, 246, 0.35)",
+    borderRadius: "var(--so-radius-sm)",
+    padding: "6px 8px",
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#c4b5fd",
+    textAlign: "center",
+  } as React.CSSProperties,
+
+  soldBannerIcon: {
+    color: "#a78bfa",
+    flexShrink: 0,
   } as React.CSSProperties,
 };

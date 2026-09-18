@@ -262,6 +262,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
       privateMode?: boolean,
     ) =>
       safeInvoke("csfloat:update-listing", listingId, priceCents, privateMode),
+    getItemBuyOrders: (
+      serializedInspect: string,
+      marketHashName: string,
+      gsSig: string,
+      limit?: number,
+    ) =>
+      safeInvoke(
+        "csfloat:get-item-buy-orders",
+        serializedInspect,
+        marketHashName,
+        gsSig,
+        limit,
+      ),
   },
 
   // ── App Helpers ────────────────────────────────────────────────

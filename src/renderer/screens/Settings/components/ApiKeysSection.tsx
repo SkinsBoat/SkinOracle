@@ -90,10 +90,22 @@ export const ApiKeysSection: React.FC = () => {
             : type === "dmarket"
               ? "DMarket API keys"
               : "Skins.com session token";
+
+    const providerName =
+      type === "skinsnipe"
+        ? "Skinsnipe"
+        : type === "cs2cap"
+          ? "CS2Cap"
+          : type === "csfloat"
+            ? "CSFloat"
+            : type === "dmarket"
+              ? "DMarket"
+              : "Skins.com";
+
     const confirmed = await confirmModal({
-      title: "Revoke Credentials?",
-      message: `Are you sure you want to revoke and remove your ${label}? It will be securely deleted from your OS hardware-encrypted keychain.`,
-      confirmText: "Revoke Key",
+      title: type === "dmarket" ? "Remove API Keys?" : "Remove API Key?",
+      message: `Are you sure you want to remove your ${label} from Skin Oracle? It will be deleted from your local hardware-encrypted keychain. Your key remains active on ${providerName}.`,
+      confirmText: type === "dmarket" ? "Remove Keys" : "Remove Key",
       cancelText: "Keep Key",
       variant: "danger",
     });
@@ -118,11 +130,11 @@ export const ApiKeysSection: React.FC = () => {
         await window.electronAPI.settings.revokeSkinscomToken();
         setSkinscomToken("");
       }
-      toast.success(`${label} revoked & removed!`);
+      toast.success(`${label} removed from device`);
       const updated = await window.electronAPI.settings.getKeysStatus();
       setKeysStatus(updated);
     } catch (err: any) {
-      toast.error(`Failed to revoke key: ${err.message}`);
+      toast.error(`Failed to remove key: ${err.message}`);
     } finally {
       setSaving(null);
     }
@@ -232,7 +244,7 @@ export const ApiKeysSection: React.FC = () => {
                   disabled={saving === "revoke_skinsnipe"}
                 >
                   <Trash2 size={14} />
-                  {saving === "revoke_skinsnipe" ? "Revoking..." : "Revoke"}
+                  {saving === "revoke_skinsnipe" ? "Removing..." : "Remove"}
                 </button>
               )}
             </div>
@@ -284,7 +296,7 @@ export const ApiKeysSection: React.FC = () => {
                   disabled={saving === "revoke_cs2cap"}
                 >
                   <Trash2 size={14} />
-                  {saving === "revoke_cs2cap" ? "Revoking..." : "Revoke"}
+                  {saving === "revoke_cs2cap" ? "Removing..." : "Remove"}
                 </button>
               )}
             </div>
@@ -345,7 +357,7 @@ export const ApiKeysSection: React.FC = () => {
                   disabled={saving === "revoke_csfloat"}
                 >
                   <Trash2 size={14} />
-                  {saving === "revoke_csfloat" ? "Revoking..." : "Revoke"}
+                  {saving === "revoke_csfloat" ? "Removing..." : "Remove"}
                 </button>
               )}
             </div>
@@ -404,7 +416,7 @@ export const ApiKeysSection: React.FC = () => {
                     disabled={saving === "revoke_dmarket"}
                   >
                     <Trash2 size={14} />
-                    {saving === "revoke_dmarket" ? "Revoking..." : "Revoke Keys"}
+                    {saving === "revoke_dmarket" ? "Removing..." : "Remove Keys"}
                   </button>
                 )}
               </div>
@@ -456,7 +468,7 @@ export const ApiKeysSection: React.FC = () => {
                   disabled={saving === "revoke_skinscom"}
                 >
                   <Trash2 size={14} />
-                  {saving === "revoke_skinscom" ? "Revoking..." : "Revoke"}
+                  {saving === "revoke_skinscom" ? "Removing..." : "Remove"}
                 </button>
               )}
             </div>

@@ -669,7 +669,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                   No Active Buy Orders Found
                 </div>
                 <div style={styles.emptySubtitle}>
-                  Click "Sync Buy Orders" above to fetch your current active
+                  Click "Sync Buy Orders" above to sync your current active
                   orders from CSFloat.
                 </div>
               </div>

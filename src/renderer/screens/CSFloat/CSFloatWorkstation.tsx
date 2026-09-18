@@ -859,6 +859,7 @@ export default function CSFloatWorkstation() {
 
       const newAnalysis: Record<string, ListingAnalysis> = {};
       inventory.forEach((item) => {
+        if (item.is_sold) return;
         const name = item.market_hash_name || item.item_name;
         if (!name) return;
 
@@ -919,6 +920,7 @@ export default function CSFloatWorkstation() {
   const handleCreateListing = async (
     item: CsFloatInventoryItem,
     customPrice?: number,
+    forcePublic?: boolean,
   ) => {
     const analysis = listingAnalysis[item.asset_id];
     const targetPrice =
@@ -935,18 +937,39 @@ export default function CSFloatWorkstation() {
 
     setListingProcessingId(item.asset_id);
     const priceCents = Math.round(targetPrice * 100);
-    const modeLabel = isPrivateMode ? "Private" : "Public";
+    const effectivePrivate = forcePublic ? false : isPrivateMode;
+    const modeLabel = effectivePrivate ? "Private" : "Public";
     const toastId = toast.loading(
       `Creating ${modeLabel} listing at $${targetPrice.toFixed(2)}...`,
     );
 
     try {
-      const res = await window.electronAPI.csfloat.createListing(
+      const res: any = await window.electronAPI.csfloat.createListing(
         item.asset_id,
         priceCents,
-        isPrivateMode,
+        effectivePrivate,
       );
-      const createdListingId = res?.id || res?.listing?.id || "listed";
+
+      const firstTrade =
+        Array.isArray(res?.trades) && res.trades.length > 0
+          ? res.trades[0]
+          : null;
+      const isSold = Boolean(
+        firstTrade ||
+          res?.state === "sold" ||
+          res?.contract?.state === "sold",
+      );
+
+      const createdListingId =
+        firstTrade?.contract_id ||
+        firstTrade?.contract?.id ||
+        res?.id ||
+        res?.listing?.id ||
+        "listed";
+
+      const finalPriceCents = firstTrade?.contract?.price ?? priceCents;
+      const tradeState = firstTrade?.state || (isSold ? "sold" : undefined);
+      const tradeId = firstTrade?.id;
 
       setInventory((prev) =>
         prev.map((invItem) =>
@@ -954,8 +977,15 @@ export default function CSFloatWorkstation() {
             ? {
                 ...invItem,
                 listing_id: createdListingId,
-                price: priceCents,
-                private: isPrivateMode,
+                price: finalPriceCents,
+                private: effectivePrivate,
+                ...(isSold
+                  ? {
+                      is_sold: true,
+                      trade_state: tradeState,
+                      trade_id: tradeId,
+                    }
+                  : {}),
               }
             : invItem,
         ),
@@ -971,7 +1001,7 @@ export default function CSFloatWorkstation() {
             lowestPrice: targetPrice,
             averagePrice: targetPrice,
           }),
-          currentPrice: targetPrice,
+          currentPrice: finalPriceCents / 100,
           isListed: true,
           drift: 0,
           driftPercent: 0,
@@ -981,10 +1011,17 @@ export default function CSFloatWorkstation() {
         },
       }));
 
-      toast.success(
-        `Listing created successfully ($${targetPrice.toFixed(2)} - ${modeLabel})`,
-        { id: toastId },
-      );
+      if (isSold) {
+        toast.success(
+          `🎉 Item sold! Trade queued on CSFloat ($${(finalPriceCents / 100).toFixed(2)})`,
+          { id: toastId },
+        );
+      } else {
+        toast.success(
+          `Listing created successfully ($${targetPrice.toFixed(2)} - ${modeLabel})`,
+          { id: toastId },
+        );
+      }
     } catch (err: any) {
       toast.error(`Failed to create listing: ${err.message}`, { id: toastId });
     } finally {
@@ -995,29 +1032,52 @@ export default function CSFloatWorkstation() {
   const handleUpdateListing = async (
     item: CsFloatInventoryItem,
     targetPrice: number,
+    forcePublic?: boolean,
   ) => {
     if (!item.listing_id) return;
 
     setListingProcessingId(item.asset_id);
     const priceCents = Math.round(targetPrice * 100);
+    const effectivePrivate = forcePublic ? false : isPrivateMode;
     const toastId = toast.loading(
       `Updating listing price to $${targetPrice.toFixed(2)}...`,
     );
 
     try {
-      await window.electronAPI.csfloat.updateListing(
+      const res: any = await window.electronAPI.csfloat.updateListing(
         item.listing_id,
         priceCents,
-        isPrivateMode,
+        effectivePrivate,
       );
+
+      const firstTrade =
+        Array.isArray(res?.trades) && res.trades.length > 0
+          ? res.trades[0]
+          : null;
+      const isSold = Boolean(
+        firstTrade ||
+          res?.state === "sold" ||
+          res?.contract?.state === "sold",
+      );
+
+      const finalPriceCents = firstTrade?.contract?.price ?? priceCents;
+      const tradeState = firstTrade?.state || (isSold ? "sold" : undefined);
+      const tradeId = firstTrade?.id;
 
       setInventory((prev) =>
         prev.map((invItem) =>
           invItem.asset_id === item.asset_id
             ? {
                 ...invItem,
-                price: priceCents,
-                private: isPrivateMode,
+                price: finalPriceCents,
+                private: effectivePrivate,
+                ...(isSold
+                  ? {
+                      is_sold: true,
+                      trade_state: tradeState,
+                      trade_id: tradeId,
+                    }
+                  : {}),
               }
             : invItem,
         ),
@@ -1033,7 +1093,7 @@ export default function CSFloatWorkstation() {
             lowestPrice: targetPrice,
             averagePrice: targetPrice,
           }),
-          currentPrice: targetPrice,
+          currentPrice: finalPriceCents / 100,
           isListed: true,
           drift: 0,
           driftPercent: 0,
@@ -1043,9 +1103,16 @@ export default function CSFloatWorkstation() {
         },
       }));
 
-      toast.success(`Listing updated to $${targetPrice.toFixed(2)}`, {
-        id: toastId,
-      });
+      if (isSold) {
+        toast.success(
+          `🎉 Item sold! Trade queued on CSFloat ($${(finalPriceCents / 100).toFixed(2)})`,
+          { id: toastId },
+        );
+      } else {
+        toast.success(`Listing updated to $${targetPrice.toFixed(2)}`, {
+          id: toastId,
+        });
+      }
     } catch (err: any) {
       toast.error(`Failed to update listing: ${err.message}`, { id: toastId });
     } finally {
@@ -1104,7 +1171,7 @@ export default function CSFloatWorkstation() {
       (id) => selectedListingItems[id],
     );
     const unlistedToCreate = inventory.filter(
-      (i) => selectedIds.includes(i.asset_id) && !i.listing_id,
+      (i) => selectedIds.includes(i.asset_id) && !i.listing_id && !i.is_sold,
     );
 
     if (!unlistedToCreate.length) {
@@ -1148,7 +1215,7 @@ export default function CSFloatWorkstation() {
       (id) => selectedListingItems[id],
     );
     const listedToUpdate = inventory.filter(
-      (i) => selectedIds.includes(i.asset_id) && i.listing_id,
+      (i) => selectedIds.includes(i.asset_id) && i.listing_id && !i.is_sold,
     );
 
     if (!listedToUpdate.length) {
@@ -1194,7 +1261,7 @@ export default function CSFloatWorkstation() {
       (id) => selectedListingItems[id],
     );
     const listedToUnlist = inventory.filter(
-      (i) => selectedIds.includes(i.asset_id) && i.listing_id,
+      (i) => selectedIds.includes(i.asset_id) && i.listing_id && !i.is_sold,
     );
 
     if (!listedToUnlist.length) {

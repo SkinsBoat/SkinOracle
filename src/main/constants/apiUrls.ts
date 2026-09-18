@@ -31,6 +31,10 @@ export const CSFLOAT_ME_INVENTORY = `${CSFLOAT_API}/me/inventory`;
 export const CSFLOAT_LISTINGS = `${CSFLOAT_API}/listings`;
 export const CSFLOAT_LISTING_BY_ID = (listingId: string) =>
   `${CSFLOAT_API}/listings/${listingId}`;
+export const CSFLOAT_USER_STALL = (userId: string) =>
+  `${CSFLOAT_API}/users/${userId}/stall`;
+export const CSFLOAT_ITEM_BUY_ORDERS = `${CSFLOAT_API}/buy-orders/item`;
+export const CSFLOAT_ME_TRADES = `${CSFLOAT_API}/me/trades`;
 
 // ── Skins.com Endpoints ───────────────────────────────────────────
 export const SKINSCOM_BUY_ORDERS = `${SKINSCOM_API}/buy-orders`;

@@ -338,9 +338,16 @@ export const getDmarketListingMode = (offer: any): "p2p" | "bot" => {
 
 /**
  * Authoritative resolver for DMarket instant sell price (highest active buy order / instant cashout).
- * DMarket returns instantPrice as:
- * { "DMC": "", "USD": "6289" } where USD is integer cents ("6289" cents -> $62.89)
- * or in some endpoints as numbers or decimal strings.
+ *
+ * NOTE ON DMARKET INSTANT PRICE & INSTA-SELL:
+ * DMarket's public Trading API (GET /marketplace-api/v2/user/inventory) does NOT return
+ * `instantPrice` or `instantTargetId` (only `suggestedPrice` and `offerRecommendedPrice`).
+ * While the dmarket.com web client receives `instantPrice` and an explicit `instantTargetId`,
+ * all workstation UI buttons, price warnings, and batch insta-sell actions are deferred
+ * until DMarket support confirms whether the public Trading API supports instant target matching
+ * or requires dedicated instantTargetId payloads.
+ *
+ * This pure utility is retained for tests and future activation once confirmed by DMarket.
  */
 export const resolveInstantPrice = (item: any): number | null => {
   if (!item) return null;

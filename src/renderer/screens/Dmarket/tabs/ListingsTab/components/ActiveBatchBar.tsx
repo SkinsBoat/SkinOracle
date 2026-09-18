@@ -108,6 +108,7 @@ export const ActiveBatchBar: React.FC<ActiveBatchBarProps> = ({
           Clear Selection
         </button>
 
+
         <button
           onClick={onBatchDelist}
           disabled={batchListingProcessing}

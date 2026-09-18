@@ -172,6 +172,12 @@ export function useListingsData({
         const res = await window.electronAPI.dmarket.getOffers({
           fetchAll: true,
         });
+        (window as any).lastDmarketOffers = res;
+        console.log("[DMarket Workstation] 🏷️ getOffers Response:", res);
+        console.log(
+          "[DMarket Workstation] 🏷️ Sample Offer items JSON:",
+          JSON.stringify(res?.items?.slice(0, 3), null, 2),
+        );
         const items = Array.isArray(res?.items) ? res.items : [];
         setOffers(items);
         if (toastId) {
@@ -223,6 +229,12 @@ export function useListingsData({
         const res = await window.electronAPI.dmarket.getInventory({
           fetchAll: true,
         });
+        (window as any).lastDmarketInventory = res;
+        console.log("[DMarket Workstation] 📦 getInventory Response:", res);
+        console.log(
+          "[DMarket Workstation] 📦 Sample Inventory items JSON:",
+          JSON.stringify(res?.items?.slice(0, 3), null, 2),
+        );
         const items: DmarketInventoryItem[] = Array.isArray(res?.items)
           ? res.items
           : [];
@@ -866,6 +878,12 @@ export function useListingsData({
     },
     [inventory, selectedInventory, listingPriceMap, fetchInventory, fetchOffers],
   );
+
+  // NOTE (DMarket Instant Target / Insta-Sell):
+  // DMarket public Trading API (GET /marketplace-api/v2/user/inventory) does not return
+  // instantPrice or instantTargetId (only suggestedPrice & offerRecommendedPrice).
+  // Instant-sell UI, price-matching shortcuts, and batch insta-sell operations are deferred
+  // until confirmed with DMarket API support regarding how instant matching is officially supported.
 
   const initialFetchedRef = useRef(false);
 

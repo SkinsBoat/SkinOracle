@@ -16,7 +16,6 @@ import {
   getTradeTitle,
   formatItemFloat,
   isDmarketP2POffer,
-  resolveInstantPrice,
 } from "../../../dmarket-utils";
 import { CopyMarketHashButton } from "../../../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../../../components/TrendSparkline";
@@ -71,29 +70,20 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
     : parseFloat(offer.priceUsd) || 0;
 
   const isLocked = Boolean(cooldown && cooldown.remainingSeconds > 0);
-  const instantPrice = resolveInstantPrice(offer);
-  const isOracleBelowInstant = Boolean(
-    instantPrice &&
-      analysis?.targetListingPrice &&
-      analysis.targetListingPrice < instantPrice,
-  );
-  const isCurrentBelowInstant = Boolean(
-    instantPrice &&
-      currentPriceDollar > 0 &&
-      currentPriceDollar < instantPrice,
-  );
+
+  // NOTE (DMarket Instant Target / Insta-Sell):
+  // Instant-sell UI and logic are deferred pending clarification from DMarket API support
+  // regarding target-matching endpoints and instantTargetId requirements.
 
   const cardBorderColor = isSelected
     ? "var(--so-primary)"
     : isLocked
       ? "rgba(245, 158, 11, 0.85)"
-      : isOracleBelowInstant
+      : analysis?.isOverpriced
         ? "#ef4444"
-        : analysis?.isOverpriced
-          ? "#ef4444"
-          : analysis?.isUnderpriced
-            ? "#f59e0b"
-            : "var(--so-border-medium)";
+        : analysis?.isUnderpriced
+          ? "#f59e0b"
+          : "var(--so-border-medium)";
 
   return (
     <div
@@ -484,51 +474,6 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
           </span>
         </div>
 
-        {instantPrice && instantPrice > 0 ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "3px",
-              padding: "1px 0",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "3px",
-                color:
-                  isOracleBelowInstant || isCurrentBelowInstant
-                    ? "#f87171"
-                    : "var(--so-accent-cyan)",
-                fontWeight: isOracleBelowInstant ? 800 : 600,
-              }}
-              title="DMarket Instant Sell: Highest active buy order ready to purchase immediately"
-            >
-              <Zap
-                size={10}
-                style={{
-                  fill: isOracleBelowInstant ? "#f87171" : "var(--so-accent-cyan)",
-                }}
-              />
-              <span>Instant Buy Order</span>
-            </span>
-            <span
-              className="tabular-nums"
-              style={{
-                fontWeight: 800,
-                color:
-                  isOracleBelowInstant || isCurrentBelowInstant
-                    ? "#f87171"
-                    : "var(--so-accent-cyan)",
-              }}
-            >
-              ${instantPrice.toFixed(2)}
-            </span>
-          </div>
-        ) : null}
-
         {analysis?.lowestPrice ? (
           <div
             style={{
@@ -552,55 +497,12 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
         ) : null}
       </div>
 
-      {/* Visual Warning when Oracle Target or Current Listing is below Instant Sell Buy Order */}
-      {isOracleBelowInstant && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-            backgroundColor: "rgba(239, 68, 68, 0.18)",
-            border: "1px solid rgba(239, 68, 68, 0.45)",
-            borderRadius: "4px",
-            padding: "3px 6px",
-            fontSize: "10px",
-            color: "#f87171",
-            fontWeight: 700,
-            lineHeight: 1.2,
-          }}
-          title={`Warning: Oracle recommended listing ($${analysis?.targetListingPrice?.toFixed(2)}) is BELOW DMarket Instant Buy Order ($${instantPrice?.toFixed(2)})! You could sell instantly for more.`}
-        >
-          <AlertTriangle size={12} style={{ flexShrink: 0, color: "#f87171" }} />
-          <span>Oracle &lt; Instant (${instantPrice?.toFixed(2)})</span>
-        </div>
-      )}
-      {!isOracleBelowInstant && isCurrentBelowInstant && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-            backgroundColor: "rgba(245, 158, 11, 0.18)",
-            border: "1px solid rgba(245, 158, 11, 0.45)",
-            borderRadius: "4px",
-            padding: "3px 6px",
-            fontSize: "10px",
-            color: "#fbbf24",
-            fontWeight: 700,
-            lineHeight: 1.2,
-          }}
-          title={`Notice: Current listing price ($${currentPriceDollar.toFixed(2)}) is lower than Instant Buy Order ($${instantPrice?.toFixed(2)}).`}
-        >
-          <Zap size={12} style={{ flexShrink: 0 }} />
-          <span>Listed &lt; Instant (${instantPrice?.toFixed(2)})</span>
-        </div>
-      )}
-
-      {/* Actions Row */}
+      {/* Actions Container */}
       <div
-        style={{ display: "flex", gap: "6px" }}
+        style={styles.actionContainer}
         onClick={(e) => e.stopPropagation()}
       >
+        <div style={styles.actionRow}>
         {analysis?.targetListingPrice && analysis.targetListingPrice > 0 ? (
           <button
             onClick={() =>
@@ -623,9 +525,7 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
             title={
               isLocked
                 ? `Locked on DMarket cooldown: ${cooldown?.formatted} remaining`
-                : isOracleBelowInstant
-                  ? `⚠️ WARNING: Oracle target ($${analysis.targetListingPrice.toFixed(2)}) is BELOW Instant Buy Order ($${instantPrice?.toFixed(2)})!`
-                  : `Update to Oracle price ($${analysis.targetListingPrice.toFixed(2)})`
+                : `Update to Oracle price ($${analysis.targetListingPrice.toFixed(2)})`
             }
           >
             {isProcessing ? (
@@ -673,7 +573,22 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
             <Trash2 size={12} />
           )}
         </button>
+        </div>
       </div>
     </div>
   );
+};
+
+const styles = {
+  actionContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+  } as React.CSSProperties,
+
+  actionRow: {
+    display: "flex",
+    gap: "6px",
+    alignItems: "center",
+  } as React.CSSProperties,
 };
