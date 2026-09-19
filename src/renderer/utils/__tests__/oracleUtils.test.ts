@@ -290,3 +290,44 @@ describe("evaluateTrendHealth", () => {
     expect(res.warningMessage).toBeNull();
   });
 });
+
+describe("NEXUS_PRESETS configuration & parameter integrity", () => {
+  it("defines distinct parameter configurations for capital_shield, balanced, and aggressive presets", async () => {
+    const { NEXUS_PRESETS } = await import(
+      "../../screens/Oracle/utils/oracleUtils"
+    );
+
+    expect(NEXUS_PRESETS.capital_shield).toEqual({
+      preset: "capital_shield",
+      trendWindow: 14,
+      downsideCut: "strict",
+      volatilityFilter: "strict",
+    });
+
+    expect(NEXUS_PRESETS.balanced).toEqual({
+      preset: "balanced",
+      trendWindow: 14,
+      downsideCut: "standard",
+      volatilityFilter: "standard",
+    });
+
+    expect(NEXUS_PRESETS.aggressive).toEqual({
+      preset: "aggressive",
+      trendWindow: 7,
+      downsideCut: "light",
+      volatilityFilter: "permissive",
+    });
+
+    // Ensure presets differ across downsideCut, volatilityFilter, and trendWindow
+    expect(NEXUS_PRESETS.capital_shield.downsideCut).not.toBe(
+      NEXUS_PRESETS.aggressive.downsideCut,
+    );
+    expect(NEXUS_PRESETS.capital_shield.volatilityFilter).not.toBe(
+      NEXUS_PRESETS.aggressive.volatilityFilter,
+    );
+    expect(NEXUS_PRESETS.balanced.downsideCut).not.toBe(
+      NEXUS_PRESETS.aggressive.downsideCut,
+    );
+  });
+});
+

@@ -25,12 +25,21 @@ describe("Market Link Generators", () => {
     );
   });
 
-  it("handleDmarketReferenceLink handles StatTrak vs normal category flags", () => {
-    expect(handleDmarketReferenceLink("StatTrak™ AK-47 | Redline (FT)")).toBe(
-      "https://dmarket.com/ingame-items/item-list/csgo-skins?category_0=stattrak_tm&title=StatTrak%E2%84%A2%20AK-47%20%7C%20Redline%20(FT)",
+  it("handleDmarketReferenceLink handles StatTrak, Souvenir, and normal query parameters", () => {
+    expect(handleDmarketReferenceLink("MAC-10 | Fade (Minimal Wear)")).toBe(
+      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=MAC-10%20%7C%20Fade%20(Minimal%20Wear)&souvenir=false&stattrak=false",
     );
-    expect(handleDmarketReferenceLink("AK-47 | Redline (FT)")).toBe(
-      "https://dmarket.com/ingame-items/item-list/csgo-skins?category_1=not_souvenir&category_0=not_stattrak_tm&title=AK-47%20%7C%20Redline%20(FT)",
+    expect(handleDmarketReferenceLink("Nova | Hyper Beast (Minimal Wear)")).toBe(
+      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=Nova%20%7C%20Hyper%20Beast%20(Minimal%20Wear)&souvenir=false&stattrak=false",
+    );
+    expect(handleDmarketReferenceLink("StatTrak™ AK-47 | Redline (FT)")).toBe(
+      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=StatTrak%E2%84%A2%20AK-47%20%7C%20Redline%20(FT)&souvenir=false",
+    );
+    expect(handleDmarketReferenceLink("Souvenir MAC-10 | Amber Fade (Minimal Wear)")).toBe(
+      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=Souvenir%20MAC-10%20%7C%20Amber%20Fade%20(Minimal%20Wear)&stattrak=false",
+    );
+    expect(handleDmarketReferenceLink(null)).toBe(
+      "https://dmarket.com/ingame-items/item-list/csgo-skins",
     );
   });
 

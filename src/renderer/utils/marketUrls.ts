@@ -25,10 +25,19 @@ export function handleDmarketReferenceLink(
   if (!name) return "https://dmarket.com/ingame-items/item-list/csgo-skins";
   const encodedTitle = encodeURIComponent(name);
   const base = "https://dmarket.com/ingame-items/item-list/csgo-skins";
-  if (name.includes("StatTrak")) {
-    return `${base}?category_0=stattrak_tm&title=${encodedTitle}`;
+
+  const isStatTrak = /stattrak/i.test(name);
+  const isSouvenir = /souvenir/i.test(name);
+
+  const queryParams: string[] = [`title=${encodedTitle}`];
+  if (!isSouvenir) {
+    queryParams.push("souvenir=false");
   }
-  return `${base}?category_1=not_souvenir&category_0=not_stattrak_tm&title=${encodedTitle}`;
+  if (!isStatTrak) {
+    queryParams.push("stattrak=false");
+  }
+
+  return `${base}?${queryParams.join("&")}`;
 }
 
 export function handleWaxpeerReferenceLink(

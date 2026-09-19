@@ -27,6 +27,7 @@ import { SoCloseTab } from "./tabs/SoCloseTab/SoCloseTab";
 import { ListingsTab } from "./tabs/ListingsTab/ListingsTab";
 import { ItemLookupModal } from "./modals/ItemLookupModal";
 import { EditTargetModal } from "./modals/EditTargetModal";
+import { handleDmarketReferenceLink } from "../../utils/marketUrls";
 
 // Re-export utility functions for unit tests & backward compatibility
 export {
@@ -242,7 +243,7 @@ export default function DmarketWorkstation() {
 
   // Open item in external DMarket marketplace
   const handleOpenDmarketMarket = (title: string) => {
-    const url = `https://dmarket.com/ingame-items/item-list/csgo-skins?title=${encodeURIComponent(title)}`;
+    const url = handleDmarketReferenceLink(title);
     if (window.electronAPI?.app?.openExternal) {
       window.electronAPI.app.openExternal(url);
     } else {
