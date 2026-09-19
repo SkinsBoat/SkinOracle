@@ -9,6 +9,7 @@ import {
   Loader2,
   Clock,
   Zap,
+  Handshake,
 } from "lucide-react";
 import { DmarketOfferItem, ListingAnalysis } from "../../../../../../shared/types";
 import {
@@ -19,7 +20,10 @@ import {
 } from "../../../dmarket-utils";
 import { CopyMarketHashButton } from "../../../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../../../components/TrendSparkline";
+import { useDealMakerStore } from "../../../../../store/useDealMakerStore";
+import { extractWearFromName } from "../../../../../utils/storage";
 import { SkinImage } from "../../../../../components/SkinImage";
+import toast from "react-hot-toast";
 import { steamLogo, dmarketLogo } from "../../../../../utils/marketLogos";
 
 export interface ActiveOfferCardProps {
@@ -169,6 +173,46 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
             <Eye size={13} />
           </button>
           <CopyMarketHashButton name={offer.title} />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isLocked) {
+                toast.error(`Cannot broadcast "${cleanTitle}": Offer is currently on cooldown / locked.`);
+                return;
+              }
+              useDealMakerStore.getState().openCreateModal({
+                marketHashName: offer.title,
+                wear: wearShortcut || extractWearFromName(offer.title),
+                floatValue: floatVal || undefined,
+                imageUrl: offer.imageUrl,
+                marketplace: 'dmarket',
+                startingPrice: currentPriceDollar || analysis?.targetListingPrice || undefined,
+                tradable: !isLocked,
+                isLocked,
+              });
+            }}
+            disabled={isLocked}
+            className="btn btn-sm"
+            style={{
+              padding: "3px 6px",
+              background: isLocked ? "rgba(100, 116, 139, 0.12)" : "rgba(56, 189, 248, 0.12)",
+              border: isLocked ? "1px solid rgba(100, 116, 139, 0.25)" : "1px solid rgba(56, 189, 248, 0.3)",
+              borderRadius: "4px",
+              color: isLocked ? "#64748b" : "#38bdf8",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: isLocked ? "not-allowed" : "pointer",
+              opacity: isLocked ? 0.5 : 1,
+            }}
+            title={
+              isLocked
+                ? "Cannot broadcast: Offer is locked / on cooldown"
+                : "Broadcast to DealMaker ($0.40 fee)"
+            }
+          >
+            <Handshake size={12} />
+          </button>
         </div>
 
         {/* Analysis Drift Badge */}

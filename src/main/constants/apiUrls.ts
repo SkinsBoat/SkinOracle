@@ -88,3 +88,25 @@ export const SUPPORT_EMAIL = "support@skinsboat.com";
 export const SKINSBOAT_WEBSITE_URL = "https://skinsboat.com/oracle";
 export const GITHUB_REPO_URL = "https://github.com/SkinsBoat/SkinOracle";
 
+// ── 10-Minute Flash DealMaker Endpoints ────────────────────────────
+export const DEALMAKER_API = `${SAAS_API}/dealmaker`;
+export const DEALMAKER_ACTIVE = `${DEALMAKER_API}/active`;
+export const DEALMAKER_STREAM = `${DEALMAKER_API}/stream`;
+export const DEALMAKER_BY_ID = (id: string) => `${DEALMAKER_API}/${id}`;
+export const DEALMAKER_OFFER = (id: string) => `${DEALMAKER_API}/${id}/offer`;
+export const DEALMAKER_LISTING_LINK = (id: string) => `${DEALMAKER_API}/${id}/listing-link`;
+export const DEALMAKER_MY_DEALS = `${DEALMAKER_API}/user/my-deals`;
+export const DEALMAKER_MY_OFFERS = `${DEALMAKER_API}/user/my-offers`;
+export const DEALMAKER_PRESENCE = `${DEALMAKER_API}/presence`;
+
+// Backward-compatibility aliases
+export const AUCTIONS_API = DEALMAKER_API;
+export const AUCTIONS_ACTIVE = DEALMAKER_ACTIVE;
+export const AUCTIONS_STREAM = DEALMAKER_STREAM;
+export const AUCTION_BY_ID = DEALMAKER_BY_ID;
+export const AUCTION_BID = DEALMAKER_OFFER;
+export const AUCTION_LISTING_LINK = DEALMAKER_LISTING_LINK;
+export const AUCTIONS_MY_AUCTIONS = DEALMAKER_MY_DEALS;
+export const AUCTIONS_MY_BIDS = DEALMAKER_MY_OFFERS;
+export const AUCTIONS_PRESENCE = DEALMAKER_PRESENCE;
+

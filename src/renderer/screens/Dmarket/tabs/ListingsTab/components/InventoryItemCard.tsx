@@ -10,7 +10,9 @@ import {
   Clock,
   Zap,
   AlertTriangle,
+  Handshake,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   DmarketInventoryItem,
   ListingPriceInfo,
@@ -23,6 +25,8 @@ import {
 } from "../../../dmarket-utils";
 import { CopyMarketHashButton } from "../../../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../../../components/TrendSparkline";
+import { useDealMakerStore } from "../../../../../store/useDealMakerStore";
+import { extractWearFromName } from "../../../../../utils/storage";
 import { SkinImage } from "../../../../../components/SkinImage";
 import { steamLogo, dmarketLogo } from "../../../../../utils/marketLogos";
 
@@ -61,6 +65,8 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
   cooldown,
 }) => {
   const isLocked = Boolean(cooldown && cooldown.remainingSeconds > 0);
+  const isTradable = Boolean(item.tradable);
+  const isTradeLockedOrBotLocked = !isTradable || isLocked;
   const priceEntry = getItemListingPriceWithMap(item, listingPriceMap);
   const targetPrice =
     priceEntry && priceEntry.listingPrice > 0
@@ -181,6 +187,57 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
             <Eye size={13} />
           </button>
           <CopyMarketHashButton name={title} />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isTradeLockedOrBotLocked) {
+                toast.error(
+                  !isTradable
+                    ? `Cannot broadcast "${cleanTitle}": Item is trade-locked and non-tradable.`
+                    : `Cannot broadcast "${cleanTitle}": Item is currently under cooldown.`
+                );
+                return;
+              }
+              useDealMakerStore.getState().openCreateModal({
+                marketHashName: title,
+                wear: wearShortcut || extractWearFromName(title),
+                floatValue: floatVal || undefined,
+                inspectUrl: (item.attributes?.inspectUrl || item.extra?.inspectUrl) || undefined,
+                imageUrl: itemImageUrl,
+                marketplace: 'dmarket',
+                startingPrice: targetPrice || undefined,
+                tradable: isTradable,
+                isLocked,
+              });
+            }}
+            disabled={isTradeLockedOrBotLocked}
+            className="btn btn-sm"
+            style={{
+              padding: "3px 6px",
+              background: isTradeLockedOrBotLocked
+                ? "rgba(100, 116, 139, 0.12)"
+                : "rgba(56, 189, 248, 0.12)",
+              border: isTradeLockedOrBotLocked
+                ? "1px solid rgba(100, 116, 139, 0.25)"
+                : "1px solid rgba(56, 189, 248, 0.3)",
+              borderRadius: "4px",
+              color: isTradeLockedOrBotLocked ? "#64748b" : "#38bdf8",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: isTradeLockedOrBotLocked ? "not-allowed" : "pointer",
+              opacity: isTradeLockedOrBotLocked ? 0.5 : 1,
+            }}
+            title={
+              isTradeLockedOrBotLocked
+                ? !isTradable
+                  ? "Cannot broadcast: Item is trade-locked / locked non-tradable"
+                  : "Cannot broadcast: Item is under cooldown"
+                : "Broadcast to DealMaker ($0.40 fee)"
+            }
+          >
+            <Handshake size={12} />
+          </button>
         </div>
 
         <div

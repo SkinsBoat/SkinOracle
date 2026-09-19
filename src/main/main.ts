@@ -21,6 +21,7 @@ import "./ipc/skinscom.ipc";
 import "./ipc/dmarket.ipc";
 import "./ipc/updater.ipc";
 import { setupBalanceIPC } from "./ipc/balance.ipc";
+import { setupDealMakerIPC } from "./ipc/dealmaker.ipc";
 import "../storage/secure-store";
 import { autoUpdateService } from "./services/autoUpdater";
 
@@ -28,6 +29,7 @@ import { autoUpdateService } from "./services/autoUpdater";
 app.disableHardwareAcceleration();
 
 setupBalanceIPC();
+setupDealMakerIPC();
 
 function createWindow() {
   const isDev = !!process.env.VITE_DEV_SERVER_URL;

@@ -22,6 +22,16 @@ import {
   ListingPriceInfo,
 } from "./csfloat.types";
 import {
+  DealMakerItem,
+  DealMakerOffer,
+  CreateDealPayload,
+  PlaceOfferPayload,
+  AuctionItem,
+  AuctionBid,
+  CreateAuctionPayload,
+  PlaceBidPayload,
+} from "./dealmaker.types";
+import {
   DmarketUserProfile,
   DmarketBalance,
   DmarketTargetItem,
@@ -463,7 +473,64 @@ export interface ElectronAPI {
       message: string;
     }>;
   };
+
+  dealmaker: {
+    create: (payload: CreateDealPayload) => Promise<DealMakerItem>;
+    getActive: () => Promise<DealMakerItem[]>;
+    getById: (
+      dealId: string,
+    ) => Promise<{ auction: DealMakerItem; bids: DealMakerOffer[] }>;
+    placeOffer: (
+      dealId: string,
+      payload: PlaceOfferPayload,
+    ) => Promise<{ auction: DealMakerItem; bid: DealMakerOffer }>;
+    submitListingLink: (
+      dealId: string,
+      listingUrl: string,
+    ) => Promise<DealMakerItem>;
+    getMyDeals: () => Promise<DealMakerItem[]>;
+    getMyOffers: () => Promise<{
+      wonAuctions: DealMakerItem[];
+      activeBidAuctions: DealMakerItem[];
+    }>;
+    getPresence: () => Promise<{ activeTradersCount: number }>;
+    openExternalLink: (url: string) => Promise<{ success: boolean }>;
+  };
+
+  auction: {
+    create: (payload: CreateAuctionPayload) => Promise<AuctionItem>;
+    getActive: () => Promise<AuctionItem[]>;
+    getById: (
+      auctionId: string,
+    ) => Promise<{ auction: AuctionItem; bids: AuctionBid[] }>;
+    placeBid: (
+      auctionId: string,
+      payload: PlaceBidPayload,
+    ) => Promise<{ auction: AuctionItem; bid: AuctionBid }>;
+    submitListingLink: (
+      auctionId: string,
+      listingUrl: string,
+    ) => Promise<AuctionItem>;
+    getMyAuctions: () => Promise<AuctionItem[]>;
+    getMyBids: () => Promise<{
+      wonAuctions: AuctionItem[];
+      activeBidAuctions: AuctionItem[];
+    }>;
+    getPresence: () => Promise<{ activeTradersCount: number }>;
+    openExternalLink: (url: string) => Promise<{ success: boolean }>;
+  };
 }
+
+export type {
+  DealMakerItem,
+  DealMakerOffer,
+  CreateDealPayload,
+  PlaceOfferPayload,
+  AuctionItem,
+  AuctionBid,
+  CreateAuctionPayload,
+  PlaceBidPayload,
+};
 
 declare global {
   interface Window {

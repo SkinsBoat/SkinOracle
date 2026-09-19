@@ -413,4 +413,36 @@ contextBridge.exposeInMainWorld("electronAPI", {
     syncDeposit: (depositId: string) =>
       safeInvoke("balance:sync-deposit", depositId),
   },
+
+  // ── 10-Minute Flash DealMaker Floor ────────────────────────────
+  dealmaker: {
+    create: (payload: any) => safeInvoke("dealmaker:create", payload),
+    getActive: () => safeInvoke("dealmaker:get-active"),
+    getById: (dealId: string) => safeInvoke("dealmaker:get-by-id", dealId),
+    placeOffer: (dealId: string, payload: any) =>
+      safeInvoke("dealmaker:place-offer", dealId, payload),
+    submitListingLink: (dealId: string, listingUrl: string) =>
+      safeInvoke("dealmaker:submit-listing-link", dealId, listingUrl),
+    getMyDeals: () => safeInvoke("dealmaker:get-my-deals"),
+    getMyOffers: () => safeInvoke("dealmaker:get-my-offers"),
+    getPresence: () => safeInvoke("dealmaker:get-presence"),
+    openExternalLink: (url: string) =>
+      safeInvoke("dealmaker:open-external-link", url),
+  },
+
+  // Backward-compatibility auction namespace
+  auction: {
+    create: (payload: any) => safeInvoke("dealmaker:create", payload),
+    getActive: () => safeInvoke("dealmaker:get-active"),
+    getById: (auctionId: string) => safeInvoke("dealmaker:get-by-id", auctionId),
+    placeBid: (auctionId: string, payload: any) =>
+      safeInvoke("dealmaker:place-offer", auctionId, payload),
+    submitListingLink: (auctionId: string, listingUrl: string) =>
+      safeInvoke("dealmaker:submit-listing-link", auctionId, listingUrl),
+    getMyAuctions: () => safeInvoke("dealmaker:get-my-deals"),
+    getMyBids: () => safeInvoke("dealmaker:get-my-offers"),
+    getPresence: () => safeInvoke("dealmaker:get-presence"),
+    openExternalLink: (url: string) =>
+      safeInvoke("dealmaker:open-external-link", url),
+  },
 });

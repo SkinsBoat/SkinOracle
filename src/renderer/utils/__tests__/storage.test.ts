@@ -4,6 +4,9 @@ import {
   safeSetItem,
   getPersistedThreshold,
   setPersistedThreshold,
+  getSavedStoreUrl,
+  setSavedStoreUrl,
+  extractWearFromName,
 } from "../storage";
 
 describe("storage utils", () => {
@@ -95,6 +98,42 @@ describe("storage utils", () => {
 
       safeSetItem("negative_key", "-5");
       expect(getPersistedThreshold("negative_key")).toBe(2);
+    });
+  });
+
+  describe("getSavedStoreUrl & setSavedStoreUrl", () => {
+    it("returns empty string when no store url is saved", () => {
+      expect(getSavedStoreUrl("csfloat")).toBe("");
+      expect(getSavedStoreUrl("dmarket")).toBe("");
+    });
+
+    it("saves and retrieves CSFloat stall url", () => {
+      const url = "https://csfloat.com/stall/76561199736567863";
+      setSavedStoreUrl("csfloat", url);
+      expect(getSavedStoreUrl("csfloat")).toBe(url);
+      expect(getSavedStoreUrl("CSFLOAT")).toBe(url);
+    });
+
+    it("saves and retrieves DMarket personal store url", () => {
+      const url = "https://dmarket.com/ingame-items/item-list/csgo-skins?sagaAddress=0xc232b9755d49d5d68804b306f0C16f5118f58A03";
+      setSavedStoreUrl("dmarket", url);
+      expect(getSavedStoreUrl("dmarket")).toBe(url);
+      expect(getSavedStoreUrl("DMARKET")).toBe(url);
+    });
+  });
+
+  describe("extractWearFromName", () => {
+    it("correctly extracts wear abbreviations", () => {
+      expect(extractWearFromName("AK-47 | Redline (Field-Tested)")).toBe("FT");
+      expect(extractWearFromName("AWP | Asiimov (Battle-Scarred)")).toBe("BS");
+      expect(extractWearFromName("M4A4 | Howl (Factory New)")).toBe("FN");
+      expect(extractWearFromName("Desert Eagle | Blaze (Minimal Wear)")).toBe("MW");
+      expect(extractWearFromName("USP-S | Kill Confirmed (Well-Worn)")).toBe("WW");
+    });
+
+    it("falls back to FT when no wear pattern is found", () => {
+      expect(extractWearFromName("StatTrak Music Kit")).toBe("FT");
+      expect(extractWearFromName("")).toBe("FT");
     });
   });
 });
