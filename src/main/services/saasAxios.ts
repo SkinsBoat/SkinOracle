@@ -75,8 +75,15 @@ export function extractApiErrorDetails(err: any): NormalizedApiErrorDetails {
 
   let displayMessage = rawMessage;
 
-  // For database schema errors or internal crashes with tracking errorId, present clear info with reference
-  if (errorId && (code === "DATABASE_SCHEMA_ERROR" || code === "DATABASE_CONNECTION_ERROR" || code === "INTERNAL_SERVER_ERROR")) {
+  // For database schema errors, upstream crashes, or email delivery failures with tracking errorId, present clear info with reference
+  if (
+    errorId &&
+    (code === "DATABASE_SCHEMA_ERROR" ||
+      code === "DATABASE_CONNECTION_ERROR" ||
+      code === "INTERNAL_SERVER_ERROR" ||
+      code === "EMAIL_DELIVERY_FAILED" ||
+      code === "UPSTREAM_GATEWAY_ERROR")
+  ) {
     displayMessage = `${rawMessage} (Ref: ${errorId})`;
   }
 
