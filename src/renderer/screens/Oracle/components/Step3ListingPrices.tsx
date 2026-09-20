@@ -104,40 +104,42 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
             {formatTimeAgo(listingSummary.lastBuiltAt)}
           </span>
 
-          {/* Quick Action Button to generate or regenerate sell targets based on current configs */}
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            style={styles.headerActionBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              onBuildListingPrices();
-            }}
-            disabled={
-              cacheStatus.itemCount === 0 || listingSummary.isBatchEvaluating
-            }
-            title={
-              cacheStatus.itemCount === 0
-                ? "Price cache required (Scan Step 1 first)"
-                : listingSummary.lastBuiltAt
-                ? `Regenerate Sell Targets using ${listingStrategy.mode.toUpperCase()} strategy`
-                : `Generate Sell Targets using ${listingStrategy.mode.toUpperCase()} strategy`
-            }
-          >
-            {listingSummary.isBatchEvaluating ? (
-              <>
-                <Loader2 size={13} className="spin" /> Generating…
-              </>
-            ) : listingSummary.lastBuiltAt ? (
-              <>
-                <RotateCw size={13} /> Regenerate
-              </>
-            ) : (
-              <>
-                <Tag size={13} /> Generate
-              </>
-            )}
-          </button>
+          {/* Quick Action Button — only shown when collapsed */}
+          {!isOpen && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={styles.headerActionBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBuildListingPrices();
+              }}
+              disabled={
+                cacheStatus.itemCount === 0 || listingSummary.isBatchEvaluating
+              }
+              title={
+                cacheStatus.itemCount === 0
+                  ? "Price cache required (Scan Step 1 first)"
+                  : listingSummary.lastBuiltAt
+                  ? `Regenerate Sell Targets using ${listingStrategy.mode.toUpperCase()} strategy`
+                  : `Generate Sell Targets using ${listingStrategy.mode.toUpperCase()} strategy`
+              }
+            >
+              {listingSummary.isBatchEvaluating ? (
+                <>
+                  <Loader2 size={13} className="spin" /> Generating…
+                </>
+              ) : listingSummary.lastBuiltAt ? (
+                <>
+                  <RotateCw size={13} /> Regenerate
+                </>
+              ) : (
+                <>
+                  <Tag size={13} /> Generate
+                </>
+              )}
+            </button>
+          )}
 
           {isOpen ? (
             <ChevronUp size={18} style={styles.chevronIcon} />

@@ -233,84 +233,87 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
             {formatTimeAgo(cacheStatus.lastFetchedAt)}
           </span>
 
-          {/* Quick Action Button based on provider and current configs */}
-          {pricingProvider === "cs2cap" ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              style={styles.headerActionBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isCs2capStreaming) {
-                  onCancelCs2capStream?.();
-                } else {
-                  onStreamCs2cap?.();
-                }
-              }}
-              disabled={
-                !hasCs2capKey ||
-                cacheStatus.isFetching ||
-                isBatchEvaluating
-              }
-              title={
-                !hasCs2capKey
-                  ? "CS2Cap API Key required"
-                  : isCs2capStreaming
-                  ? "Cancel active stream"
-                  : "Stream CS2Cap prices into local cache"
-              }
-            >
-              {isCs2capStreaming ? (
-                <>
-                  <Loader2 size={13} className="spin" /> Streaming…
-                </>
+          {!isOpen && (
+            <>
+              {pricingProvider === "cs2cap" ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={styles.headerActionBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isCs2capStreaming) {
+                      onCancelCs2capStream?.();
+                    } else {
+                      onStreamCs2cap?.();
+                    }
+                  }}
+                  disabled={
+                    !hasCs2capKey ||
+                    cacheStatus.isFetching ||
+                    isBatchEvaluating
+                  }
+                  title={
+                    !hasCs2capKey
+                      ? "CS2Cap API Key required"
+                      : isCs2capStreaming
+                      ? "Cancel active stream"
+                      : "Stream CS2Cap prices into local cache"
+                  }
+                >
+                  {isCs2capStreaming ? (
+                    <>
+                      <Loader2 size={13} className="spin" /> Streaming…
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={13} />{" "}
+                      {cacheStatus.itemCount > 0 ? "Restream" : "Stream"}
+                    </>
+                  )}
+                </button>
               ) : (
-                <>
-                  <Zap size={13} />{" "}
-                  {cacheStatus.itemCount > 0 ? "Restream" : "Stream"}
-                </>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={styles.headerActionBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (cacheStatus.isFetching) {
+                      onCancelFetch();
+                    } else {
+                      onFetchPrices();
+                    }
+                  }}
+                  disabled={
+                    cacheStatus.isFetching ||
+                    isBatchEvaluating ||
+                    (!hasApiKey && !isDemoCache) ||
+                    selectedMarkets.length === 0
+                  }
+                  title={
+                    !hasApiKey && !isDemoCache
+                      ? "Skinsnipe API Key required"
+                      : selectedMarkets.length === 0
+                      ? "Select at least 1 market"
+                      : cacheStatus.isFetching
+                      ? "Cancel active market scan"
+                      : "Scan prices from selected markets"
+                  }
+                >
+                  {cacheStatus.isFetching ? (
+                    <>
+                      <Loader2 size={13} className="spin" /> Scanning…
+                    </>
+                  ) : (
+                    <>
+                      <RotateCw size={13} />{" "}
+                      {cacheStatus.itemCount > 0 ? "Rescan" : "Scan"}
+                    </>
+                  )}
+                </button>
               )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              style={styles.headerActionBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (cacheStatus.isFetching) {
-                  onCancelFetch();
-                } else {
-                  onFetchPrices();
-                }
-              }}
-              disabled={
-                cacheStatus.isFetching ||
-                isBatchEvaluating ||
-                (!hasApiKey && !isDemoCache) ||
-                selectedMarkets.length === 0
-              }
-              title={
-                !hasApiKey && !isDemoCache
-                  ? "Skinsnipe API Key required"
-                  : selectedMarkets.length === 0
-                  ? "Select at least 1 market"
-                  : cacheStatus.isFetching
-                  ? "Cancel active market scan"
-                  : "Scan prices from selected markets"
-              }
-            >
-              {cacheStatus.isFetching ? (
-                <>
-                  <Loader2 size={13} className="spin" /> Scanning…
-                </>
-              ) : (
-                <>
-                  <RotateCw size={13} />{" "}
-                  {cacheStatus.itemCount > 0 ? "Rescan" : "Scan"}
-                </>
-              )}
-            </button>
+            </>
           )}
 
           {isOpen ? (

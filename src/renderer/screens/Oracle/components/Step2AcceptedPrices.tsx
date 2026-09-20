@@ -317,47 +317,49 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             {formatTimeAgo(evaluatedSummary.lastBuiltAt)}
           </span>
 
-          {/* Quick Action Button to calculate or recalculate buy ceilings based on current engine */}
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            style={styles.headerActionBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleBuildAcceptedPrices();
-            }}
-            disabled={
-              !effectiveCanBuild ||
-              evaluatedSummary.isBatchEvaluating ||
-              cacheStatus.itemCount === 0
-            }
-            title={
-              cacheStatus.itemCount === 0
-                ? "Price cache required (Scan Step 1 first)"
-                : isNexusTrendBlocked
-                ? `Nexus Pro requires at least 3 days of trend history (${trendStats?.daysCount ?? 0}/3 days)`
-                : evaluatedSummary.lastBuiltAt
-                ? "Recalculate Buy Ceilings using current engine & filters"
-                : "Calculate Buy Ceilings"
-            }
-          >
-            {evaluatedSummary.isBatchEvaluating ? (
-              <>
-                <Loader2 size={13} className="spin" />
-                {evaluatedSummary.batchProgress
-                  ? `${evaluatedSummary.batchProgress.percent}%`
-                  : "Calculating…"}
-              </>
-            ) : evaluatedSummary.lastBuiltAt ? (
-              <>
-                <RotateCw size={13} /> Recalculate
-              </>
-            ) : (
-              <>
-                <Zap size={13} /> Calculate
-              </>
-            )}
-          </button>
+          {/* Quick Action Button — only shown when collapsed */}
+          {!isOpen && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={styles.headerActionBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleBuildAcceptedPrices();
+              }}
+              disabled={
+                !effectiveCanBuild ||
+                evaluatedSummary.isBatchEvaluating ||
+                cacheStatus.itemCount === 0
+              }
+              title={
+                cacheStatus.itemCount === 0
+                  ? "Price cache required (Scan Step 1 first)"
+                  : isNexusTrendBlocked
+                  ? `Nexus Pro requires at least 3 days of trend history (${trendStats?.daysCount ?? 0}/3 days)`
+                  : evaluatedSummary.lastBuiltAt
+                  ? "Recalculate Buy Ceilings using current engine & filters"
+                  : "Calculate Buy Ceilings"
+              }
+            >
+              {evaluatedSummary.isBatchEvaluating ? (
+                <>
+                  <Loader2 size={13} className="spin" />
+                  {evaluatedSummary.batchProgress
+                    ? `${evaluatedSummary.batchProgress.percent}%`
+                    : "Calculating…"}
+                </>
+              ) : evaluatedSummary.lastBuiltAt ? (
+                <>
+                  <RotateCw size={13} /> Recalculate
+                </>
+              ) : (
+                <>
+                  <Zap size={13} /> Calculate
+                </>
+              )}
+            </button>
+          )}
 
           {isOpen ? (
             <ChevronUp size={18} style={styles.chevronIcon} />
