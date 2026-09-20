@@ -7,7 +7,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  LayoutDashboard,
   Wallet,
   ShieldAlert,
   X,
@@ -161,35 +160,16 @@ export default function App() {
   if (isLoggedIn === null) {
     return (
       <div className="splash">
-        <div
-          className="splash-logo"
-          style={{ background: "transparent", width: "auto", height: "auto" }}
-        >
+        <div className="splash-logo" style={styles.splashLogo}>
           <img
             src={oracleLogo}
             alt="Skin Oracle"
-            style={{
-              width: 64,
-              height: 64,
-              objectFit: "contain",
-              filter: "drop-shadow(0 4px 12px rgba(37, 99, 235, 0.4))",
-            }}
+            style={styles.splashImg}
           />
         </div>
         <div className="splash-text">
           Skin Oracle{" "}
-          <span
-            style={{
-              fontSize: "12px",
-              fontWeight: 800,
-              color: "#06b6d4",
-              padding: "1px 6px",
-              borderRadius: "4px",
-              border: "1px solid rgba(6, 182, 212, 0.4)",
-              verticalAlign: "middle",
-              marginLeft: "4px",
-            }}
-          >
+          <span style={styles.splashBetaBadge}>
             BETA
           </span>
         </div>
@@ -214,22 +194,7 @@ export default function App() {
 
       {systemConfig?.globalBannerMessage && (
         <div
-          style={{
-            backgroundColor:
-              systemConfig.globalBannerType === "error"
-                ? "var(--so-error)"
-                : systemConfig.globalBannerType === "warning"
-                  ? "var(--so-warning)"
-                  : "var(--so-primary)",
-            color: "#fff",
-            padding: "8px 16px",
-            textAlign: "center",
-            fontSize: "13px",
-            fontWeight: 700,
-            zIndex: 10000,
-            width: "100%",
-            flexShrink: 0,
-          }}
+          style={getGlobalBannerStyle(systemConfig.globalBannerType)}
         >
           {systemConfig.globalBannerMessage}
         </div>
@@ -237,31 +202,9 @@ export default function App() {
 
       {/* OS Encryption Unavailable Warning — only shown when safeStorage falls back to base64 */}
       {encryptionWarning && !encryptionWarningDismissed && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "9px 16px",
-            backgroundColor: "rgba(180, 120, 0, 0.18)",
-            borderBottom: "1px solid rgba(234, 179, 8, 0.4)",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          <ShieldAlert size={15} style={{ color: "#eab308", flexShrink: 0 }} />
-          <span
-            style={{
-              fontSize: "12.5px",
-              color: "#fde68a",
-              fontWeight: 600,
-              flex: 1,
-            }}
-          >
+        <div style={styles.encryptionWarningBanner}>
+          <ShieldAlert size={15} style={styles.shieldIcon} />
+          <span style={styles.encryptionWarningText}>
             OS encryption is unavailable on this system. Your API keys are
             stored as base64 (not hardware-protected). Avoid using SkinOracle on
             a shared or public machine.
@@ -272,17 +215,7 @@ export default function App() {
               safeSetItem("so_enc_warn_dismissed", "true");
             }}
             title="Dismiss"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#ca8a04",
-              display: "flex",
-              alignItems: "center",
-              padding: "2px",
-              borderRadius: "4px",
-              flexShrink: 0,
-            }}
+            style={styles.dismissButton}
           >
             <X size={14} />
           </button>
@@ -296,96 +229,30 @@ export default function App() {
       ) : isLoggedIn ? (
         <div
           className="app-container"
-          style={{
-            display: "flex",
-            height: systemConfig?.globalBannerMessage
-              ? "calc(100vh - 34px)"
-              : "100vh",
-            width: "100vw",
-            overflow: "hidden",
-          }}
+          style={getAppContainerStyle(Boolean(systemConfig?.globalBannerMessage))}
         >
           {/* Expandable/Collapsible Sidebar */}
           <aside
             className={`app-sidebar ${isSidebarExpanded ? "expanded" : "collapsed"}`}
-            style={{
-              width: isSidebarExpanded ? "230px" : "68px",
-              transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              backgroundColor: "var(--so-surface-sidebar)",
-              borderRight: "1px solid var(--so-border-medium)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              padding: "14px 10px",
-              flexShrink: 0,
-              zIndex: 100,
-              boxSizing: "border-box",
-            }}
+            style={getSidebarStyle(isSidebarExpanded)}
           >
             {/* Sidebar Top: Header Brand + Arrow Toggle */}
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-            >
+            <div style={styles.sidebarTop}>
               {/* Header Container */}
               {isSidebarExpanded ? (
                 /* Expanded Header: Brand Left, Arrow Toggle Right */
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "2px 4px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      overflow: "hidden",
-                    }}
-                  >
+                <div style={styles.headerExpanded}>
+                  <div style={styles.headerBrandGroup}>
                     <img
                       src={oracleLogo}
                       alt="Skin Oracle Logo"
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        objectFit: "contain",
-                        flexShrink: 0,
-                      }}
+                      style={styles.logoImgExpanded}
                     />
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "15px",
-                          fontWeight: 800,
-                          color: "var(--so-text-primary)",
-                          letterSpacing: "-0.3px",
-                        }}
-                      >
+                    <div style={styles.titleGroup}>
+                      <span style={styles.titleText}>
                         Skin Oracle
                       </span>
-                      <span
-                        style={{
-                          fontSize: "9px",
-                          fontWeight: 800,
-                          letterSpacing: "0.5px",
-                          padding: "1px 5px",
-                          borderRadius: "4px",
-                          background: "rgba(6, 182, 212, 0.15)",
-                          color: "#06b6d4",
-                          border: "1px solid rgba(6, 182, 212, 0.35)",
-                          textTransform: "uppercase",
-                        }}
-                      >
+                      <span style={styles.betaBadge}>
                         BETA
                       </span>
                     </div>
@@ -394,20 +261,7 @@ export default function App() {
                   <button
                     onClick={toggleSidebar}
                     title="Collapse sidebar"
-                    style={{
-                      width: "26px",
-                      height: "26px",
-                      borderRadius: "6px",
-                      backgroundColor: "var(--so-surface-card)",
-                      border: "1px solid var(--so-border-strong)",
-                      color: "var(--so-text-secondary)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                      padding: 0,
-                    }}
+                    style={styles.collapseButton}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.color = "#ffffff";
                       e.currentTarget.style.backgroundColor =
@@ -424,44 +278,18 @@ export default function App() {
                 </div>
               ) : (
                 /* Collapsed Header: Clean Brand Logo Top, Arrow Toggle Directly Below */
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "2px 0",
-                  }}
-                >
+                <div style={styles.headerCollapsed}>
                   <img
                     src={oracleLogo}
                     alt="Skin Oracle (Beta)"
                     title="Skin Oracle (Beta)"
-                    style={{
-                      width: "34px",
-                      height: "34px",
-                      objectFit: "contain",
-                      filter: "drop-shadow(0 2px 6px rgba(37, 99, 235, 0.4))",
-                    }}
+                    style={styles.logoImgCollapsed}
                   />
 
                   <button
                     onClick={toggleSidebar}
                     title="Expand sidebar"
-                    style={{
-                      width: "34px",
-                      height: "22px",
-                      borderRadius: "4px",
-                      backgroundColor: "var(--so-surface-card)",
-                      border: "1px solid var(--so-border-medium)",
-                      color: "var(--so-text-secondary)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                      padding: 0,
-                    }}
+                    style={styles.expandButton}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.color = "#ffffff";
                       e.currentTarget.style.backgroundColor =
@@ -482,36 +310,68 @@ export default function App() {
               )}
 
               {/* Navigation Items */}
-              <nav
-                style={{ display: "flex", flexDirection: "column", gap: "6px" }}
-              >
+              <nav style={styles.navContainer}>
                 <NavLink
                   to="/"
-                  title={!isSidebarExpanded ? "Oracle Dashboard" : undefined}
+                  title={!isSidebarExpanded ? "Pricing Central" : undefined}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
-                  style={({ isActive }) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
-                    backgroundColor: isActive
-                      ? "var(--so-primary)"
-                      : "transparent",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "13.5px",
-                    transition: "all 0.15s ease",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  })}
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
                 >
-                  <LayoutDashboard size={18} style={{ flexShrink: 0 }} />
-                  {isSidebarExpanded && <span>Dashboard</span>}
+                  {({ isActive }) => (
+                    <>
+                      <Sparkles
+                        size={18}
+                        style={getNavIconStyle(isActive, "accent")}
+                      />
+                      {isSidebarExpanded && <span>Pricing Central</span>}
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/dealmaker"
+                  title={!isSidebarExpanded ? "Deal Maker" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Handshake
+                        size={18}
+                        style={getNavIconStyle(isActive, "accent")}
+                      />
+                      {isSidebarExpanded && <span>Deal Maker</span>}
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/soclose"
+                  title={!isSidebarExpanded ? "So Close Scanner" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Target
+                        size={18}
+                        style={getNavIconStyle(isActive, "accent")}
+                      />
+                      {isSidebarExpanded && <span>So Close</span>}
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
@@ -520,34 +380,14 @@ export default function App() {
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
-                  style={({ isActive }) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
-                    backgroundColor: isActive
-                      ? "var(--so-primary)"
-                      : "transparent",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "13.5px",
-                    transition: "all 0.15s ease",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  })}
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
                 >
                   <img
                     src={csfloatLogo}
                     alt="CSFloat"
-                    style={{
-                      width: 18,
-                      height: 18,
-                      objectFit: "contain",
-                      flexShrink: 0,
-                    }}
+                    style={styles.marketIcon}
                   />
                   {isSidebarExpanded && <span>CSFloat</span>}
                 </NavLink>
@@ -558,106 +398,16 @@ export default function App() {
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
-                  style={({ isActive }) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
-                    backgroundColor: isActive
-                      ? "var(--so-primary)"
-                      : "transparent",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "13.5px",
-                    transition: "all 0.15s ease",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  })}
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
                 >
                   <img
                     src={dmarketLogo}
                     alt="DMarket"
-                    style={{
-                      width: 18,
-                      height: 18,
-                      objectFit: "contain",
-                      flexShrink: 0,
-                    }}
+                    style={styles.marketIcon}
                   />
                   {isSidebarExpanded && <span>DMarket</span>}
-                </NavLink>
-
-                <NavLink
-                  to="/soclose"
-                  title={!isSidebarExpanded ? "SoClose Scanner" : undefined}
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
-                  }
-                  style={({ isActive }) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
-                    backgroundColor: isActive
-                      ? "var(--so-primary)"
-                      : "transparent",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "13.5px",
-                    transition: "all 0.15s ease",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  })}
-                >
-                  <Target
-                    size={18}
-                    style={{
-                      flexShrink: 0,
-                      color: "var(--so-primary)",
-                    }}
-                  />
-                  {isSidebarExpanded && <span>SoClose</span>}
-                </NavLink>
-
-                <NavLink
-                  to="/dealmaker"
-                  title={!isSidebarExpanded ? "DealMaker" : undefined}
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
-                  }
-                  style={({ isActive }) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
-                    backgroundColor: isActive
-                      ? "var(--so-primary)"
-                      : "transparent",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "13.5px",
-                    transition: "all 0.15s ease",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  })}
-                >
-                  <Handshake
-                    size={18}
-                    style={{
-                      flexShrink: 0,
-                      color: "var(--so-primary)",
-                    }}
-                  />
-                  {isSidebarExpanded && <span>DealMaker</span>}
                 </NavLink>
 
                 {/* Skins.com Workstation NavLink - Temporarily Commented Out
@@ -665,24 +415,11 @@ export default function App() {
                   to="/skinscom"
                   title={!isSidebarExpanded ? 'Skins.com Workstation' : undefined}
                   className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
-                  style={({ isActive }) => ({
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isSidebarExpanded ? 'flex-start' : 'center',
-                    gap: '12px',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--so-radius-sm)',
-                    color: isActive ? '#ffffff' : 'var(--so-text-secondary)',
-                    backgroundColor: isActive ? 'var(--so-primary)' : 'transparent',
-                    textDecoration: 'none',
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    transition: 'all 0.15s ease',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                  })}
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
                 >
-                  <img src={skinsLogo} alt="Skins.com" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
+                  <img src={skinsLogo} alt="Skins.com" style={styles.marketIcon} />
                   {isSidebarExpanded && <span>Skins.com</span>}
                 </NavLink>
                 */}
@@ -697,61 +434,21 @@ export default function App() {
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
-                  style={({ isActive }) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isSidebarExpanded
-                      ? "space-between"
-                      : "center",
-                    gap: "10px",
-                    padding: "10px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
-                    backgroundColor: isActive
-                      ? "var(--so-primary)"
-                      : "transparent",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "13.5px",
-                    transition: "all 0.15s ease",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  })}
+                  style={({ isActive }) =>
+                    getBalanceNavLinkStyle(isActive, isSidebarExpanded)
+                  }
                 >
                   {({ isActive }) => (
                     <>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                        }}
-                      >
+                      <div style={styles.balanceGroup}>
                         <Wallet
                           size={18}
-                          style={{
-                            flexShrink: 0,
-                            color: isActive
-                              ? "#ffffff"
-                              : "var(--so-text-secondary)",
-                          }}
+                          style={getNavIconStyle(isActive, "accent")}
                         />
                         {isSidebarExpanded && <span>Balance</span>}
                       </div>
                       {isSidebarExpanded && userBalance && (
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: 800,
-                            padding: "2px 7px",
-                            borderRadius: "10px",
-                            backgroundColor: isActive
-                              ? "rgba(255, 255, 255, 0.2)"
-                              : "rgba(14, 165, 233, 0.12)",
-                            color: isActive ? "#ffffff" : "#38bdf8",
-                            border: `1px solid ${isActive ? "rgba(255, 255, 255, 0.3)" : "rgba(14, 165, 233, 0.28)"}`,
-                          }}
-                        >
+                        <span style={getBalanceBadgeStyle(isActive)}>
                           {userBalance}
                         </span>
                       )}
@@ -765,27 +462,19 @@ export default function App() {
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
-                  style={({ isActive }) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
-                    backgroundColor: isActive
-                      ? "var(--so-primary)"
-                      : "transparent",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "13.5px",
-                    transition: "all 0.15s ease",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  })}
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
                 >
-                  <Settings size={18} style={{ flexShrink: 0 }} />
-                  {isSidebarExpanded && <span>Settings</span>}
+                  {({ isActive }) => (
+                    <>
+                      <Settings
+                        size={18}
+                        style={getNavIconStyle(isActive, "muted")}
+                      />
+                      {isSidebarExpanded && <span>Settings</span>}
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
@@ -794,42 +483,25 @@ export default function App() {
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
-                  style={({ isActive }) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "var(--so-radius-sm)",
-                    color: isActive ? "#ffffff" : "var(--so-text-secondary)",
-                    backgroundColor: isActive
-                      ? "var(--so-primary)"
-                      : "transparent",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "13.5px",
-                    transition: "all 0.15s ease",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  })}
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
                 >
-                  <Info size={18} style={{ flexShrink: 0 }} />
-                  {isSidebarExpanded && <span>About</span>}
+                  {({ isActive }) => (
+                    <>
+                      <Info
+                        size={18}
+                        style={getNavIconStyle(isActive, "muted")}
+                      />
+                      {isSidebarExpanded && <span>About</span>}
+                    </>
+                  )}
                 </NavLink>
               </nav>
             </div>
 
             {/* Sidebar Bottom: Logout Action & Disclaimer */}
-            <div
-              style={{
-                marginTop: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                width: "100%",
-              }}
-            >
-
+            <div style={styles.sidebarBottom}>
               <button
                 onClick={async () => {
                   if (window.electronAPI?.auth) {
@@ -838,42 +510,14 @@ export default function App() {
                   setIsLoggedIn(false);
                 }}
                 title={!isSidebarExpanded ? "Logout" : undefined}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: isSidebarExpanded ? "flex-start" : "center",
-                  gap: "12px",
-                  padding: "10px 12px",
-                  borderRadius: "var(--so-radius-sm)",
-                  color: "var(--so-danger-text)",
-                  backgroundColor: "rgba(220, 38, 38, 0.1)",
-                  border: "1px solid rgba(220, 38, 38, 0.25)",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  fontSize: "13.5px",
-                  width: "100%",
-                  transition: "all 0.15s ease",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  boxSizing: "border-box",
-                }}
+                style={getLogoutButtonStyle(isSidebarExpanded)}
               >
-                <LogOut size={18} style={{ flexShrink: 0 }} />
+                <LogOut size={18} style={styles.navIcon} />
                 {isSidebarExpanded && <span>Logout</span>}
               </button>
 
               {isSidebarExpanded && (
-                <div
-                  style={{
-                    fontSize: "10px",
-                    lineHeight: 1.35,
-                    color: "var(--so-text-muted)",
-                    padding: "8px 4px 0 4px",
-                    borderTop: "1px solid var(--so-border-subtle)",
-                    textAlign: "center",
-                    opacity: 0.7,
-                  }}
-                >
+                <div style={styles.disclaimer}>
                   Skin Oracle is an independent tool not affiliated with Valve,
                   CSFloat, DMarket, or any listed marketplace. All trademarks
                   belong to their respective owners.
@@ -883,16 +527,7 @@ export default function App() {
           </aside>
 
           {/* Main Content Area */}
-          <main
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "24px 28px",
-              backgroundColor: "var(--so-bg)",
-              boxSizing: "border-box",
-              height: "100vh",
-            }}
-          >
+          <main style={styles.mainContent}>
             <Routes>
               <Route path="/" element={<OracleDashboard />} />
               <Route path="/csfloat" element={<CSFloatWorkstation />} />
@@ -924,3 +559,330 @@ export default function App() {
     </HashRouter>
   );
 }
+
+// ── Pure Dynamic Style Helpers ───────────────────────────────────────────────
+
+const getGlobalBannerStyle = (type?: string): React.CSSProperties => ({
+  backgroundColor:
+    type === "error"
+      ? "var(--so-error)"
+      : type === "warning"
+        ? "var(--so-warning)"
+        : "var(--so-primary)",
+  color: "#fff",
+  padding: "8px 16px",
+  textAlign: "center",
+  fontSize: "13px",
+  fontWeight: 700,
+  zIndex: 10000,
+  width: "100%",
+  flexShrink: 0,
+});
+
+const getAppContainerStyle = (hasBanner: boolean): React.CSSProperties => ({
+  display: "flex",
+  height: hasBanner ? "calc(100vh - 34px)" : "100vh",
+  width: "100vw",
+  overflow: "hidden",
+});
+
+const getSidebarStyle = (isExpanded: boolean): React.CSSProperties => ({
+  width: isExpanded ? "230px" : "68px",
+  transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+  backgroundColor: "var(--so-surface-sidebar)",
+  borderRight: "1px solid var(--so-border-medium)",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+  padding: "14px 10px",
+  flexShrink: 0,
+  zIndex: 100,
+  boxSizing: "border-box",
+});
+
+const getNavLinkStyle = (
+  isActive: boolean,
+  isExpanded: boolean,
+): React.CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: isExpanded ? "flex-start" : "center",
+  gap: "12px",
+  padding: "10px 12px",
+  borderRadius: "var(--so-radius-sm)",
+  color: isActive ? "#ffffff" : "var(--so-text-secondary)",
+  backgroundColor: isActive ? "var(--so-primary)" : "transparent",
+  textDecoration: "none",
+  fontWeight: 700,
+  fontSize: "13.5px",
+  transition: "all 0.15s ease",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+});
+
+const getBalanceNavLinkStyle = (
+  isActive: boolean,
+  isExpanded: boolean,
+): React.CSSProperties => ({
+  ...getNavLinkStyle(isActive, isExpanded),
+  justifyContent: isExpanded ? "space-between" : "center",
+  gap: "10px",
+});
+
+const getNavIconStyle = (
+  isActive: boolean,
+  variant: "accent" | "muted" = "accent",
+): React.CSSProperties => ({
+  flexShrink: 0,
+  color: isActive ? "#ffffff" : variant === "accent" ? "#38bdf8" : "#cbd5e1",
+  transition: "color 0.15s ease",
+});
+
+const getBalanceBadgeStyle = (isActive: boolean): React.CSSProperties => ({
+  fontSize: "11px",
+  fontWeight: 800,
+  padding: "2px 7px",
+  borderRadius: "10px",
+  backgroundColor: isActive
+    ? "rgba(255, 255, 255, 0.2)"
+    : "rgba(14, 165, 233, 0.12)",
+  color: isActive ? "#ffffff" : "#38bdf8",
+  border: `1px solid ${
+    isActive ? "rgba(255, 255, 255, 0.3)" : "rgba(14, 165, 233, 0.28)"
+  }`,
+});
+
+const getLogoutButtonStyle = (isExpanded: boolean): React.CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: isExpanded ? "flex-start" : "center",
+  gap: "12px",
+  padding: "10px 12px",
+  borderRadius: "var(--so-radius-sm)",
+  color: "var(--so-danger-text)",
+  backgroundColor: "rgba(220, 38, 38, 0.1)",
+  border: "1px solid rgba(220, 38, 38, 0.25)",
+  cursor: "pointer",
+  fontWeight: 700,
+  fontSize: "13.5px",
+  width: "100%",
+  transition: "all 0.15s ease",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  boxSizing: "border-box",
+});
+
+// ── Static Component Styles ──────────────────────────────────────────────────
+
+const styles = {
+  splashLogo: {
+    background: "transparent",
+    width: "auto",
+    height: "auto",
+  } as React.CSSProperties,
+
+  splashImg: {
+    width: 64,
+    height: 64,
+    objectFit: "contain",
+    filter: "drop-shadow(0 4px 12px rgba(37, 99, 235, 0.4))",
+  } as React.CSSProperties,
+
+  splashBetaBadge: {
+    fontSize: "12px",
+    fontWeight: 800,
+    color: "#06b6d4",
+    padding: "1px 6px",
+    borderRadius: "4px",
+    border: "1px solid rgba(6, 182, 212, 0.4)",
+    verticalAlign: "middle",
+    marginLeft: "4px",
+  } as React.CSSProperties,
+
+  encryptionWarningBanner: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "9px 16px",
+    backgroundColor: "rgba(180, 120, 0, 0.18)",
+    borderBottom: "1px solid rgba(234, 179, 8, 0.4)",
+    backdropFilter: "blur(8px)",
+  } as React.CSSProperties,
+
+  shieldIcon: {
+    color: "#eab308",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  encryptionWarningText: {
+    fontSize: "12.5px",
+    color: "#fde68a",
+    fontWeight: 600,
+    flex: 1,
+  } as React.CSSProperties,
+
+  dismissButton: {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "#ca8a04",
+    display: "flex",
+    alignItems: "center",
+    padding: "2px",
+    borderRadius: "4px",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  sidebarTop: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  } as React.CSSProperties,
+
+  headerExpanded: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "2px 4px",
+  } as React.CSSProperties,
+
+  headerBrandGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    overflow: "hidden",
+  } as React.CSSProperties,
+
+  logoImgExpanded: {
+    width: "32px",
+    height: "32px",
+    objectFit: "contain",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  titleGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    whiteSpace: "nowrap",
+  } as React.CSSProperties,
+
+  titleText: {
+    fontSize: "15px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    letterSpacing: "-0.3px",
+  } as React.CSSProperties,
+
+  betaBadge: {
+    fontSize: "9px",
+    fontWeight: 800,
+    letterSpacing: "0.5px",
+    padding: "1px 5px",
+    borderRadius: "4px",
+    background: "rgba(6, 182, 212, 0.15)",
+    color: "#06b6d4",
+    border: "1px solid rgba(6, 182, 212, 0.35)",
+    textTransform: "uppercase",
+  } as React.CSSProperties,
+
+  collapseButton: {
+    width: "26px",
+    height: "26px",
+    borderRadius: "6px",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-strong)",
+    color: "var(--so-text-secondary)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    padding: 0,
+  } as React.CSSProperties,
+
+  headerCollapsed: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
+    padding: "2px 0",
+  } as React.CSSProperties,
+
+  logoImgCollapsed: {
+    width: "34px",
+    height: "34px",
+    objectFit: "contain",
+    filter: "drop-shadow(0 2px 6px rgba(37, 99, 235, 0.4))",
+  } as React.CSSProperties,
+
+  expandButton: {
+    width: "34px",
+    height: "22px",
+    borderRadius: "4px",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-medium)",
+    color: "var(--so-text-secondary)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    padding: 0,
+  } as React.CSSProperties,
+
+  navContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  } as React.CSSProperties,
+
+  navIcon: {
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  marketIcon: {
+    width: 18,
+    height: 18,
+    objectFit: "contain",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  balanceGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  } as React.CSSProperties,
+
+  sidebarBottom: {
+    marginTop: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    width: "100%",
+  } as React.CSSProperties,
+
+  disclaimer: {
+    fontSize: "10px",
+    lineHeight: 1.35,
+    color: "var(--so-text-muted)",
+    padding: "8px 4px 0 4px",
+    borderTop: "1px solid var(--so-border-subtle)",
+    textAlign: "center",
+    opacity: 0.7,
+  } as React.CSSProperties,
+
+  mainContent: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "24px 28px",
+    backgroundColor: "var(--so-bg)",
+    boxSizing: "border-box",
+    height: "100vh",
+  } as React.CSSProperties,
+};

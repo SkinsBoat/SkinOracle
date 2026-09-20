@@ -422,7 +422,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     placeOffer: (dealId: string, payload: any) =>
       safeInvoke("dealmaker:place-offer", dealId, payload),
     submitListingLink: (dealId: string, listingUrl: string) =>
-      safeInvoke("dealmaker:submit-listing-link", dealId, listingUrl),
+      safeInvoke("dealmaker:submit-listing-link", dealId, { listingUrl }),
+    submitMarketLink: (dealId: string, marketLink: string) =>
+      safeInvoke("dealmaker:submit-listing-link", dealId, { marketLink }),
+    submitDealLink: (dealId: string, payload: any) =>
+      safeInvoke("dealmaker:submit-listing-link", dealId, payload),
     getMyDeals: () => safeInvoke("dealmaker:get-my-deals"),
     getMyOffers: () => safeInvoke("dealmaker:get-my-offers"),
     getPresence: () => safeInvoke("dealmaker:get-presence"),
@@ -438,7 +442,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     placeBid: (auctionId: string, payload: any) =>
       safeInvoke("dealmaker:place-offer", auctionId, payload),
     submitListingLink: (auctionId: string, listingUrl: string) =>
-      safeInvoke("dealmaker:submit-listing-link", auctionId, listingUrl),
+      safeInvoke("dealmaker:submit-listing-link", auctionId, { listingUrl }),
+    submitMarketLink: (auctionId: string, marketLink: string) =>
+      safeInvoke("dealmaker:submit-listing-link", auctionId, { marketLink }),
+    submitDealLink: (auctionId: string, payload: any) =>
+      safeInvoke("dealmaker:submit-listing-link", auctionId, payload),
     getMyAuctions: () => safeInvoke("dealmaker:get-my-deals"),
     getMyBids: () => safeInvoke("dealmaker:get-my-offers"),
     getPresence: () => safeInvoke("dealmaker:get-presence"),

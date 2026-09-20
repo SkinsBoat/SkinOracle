@@ -77,8 +77,9 @@ export function isAnyFilterActive(filters: DealFloorFilters): boolean {
 /**
  * Filters deals based on trader-configured criteria:
  * 1. <= Buy Ceiling Only (profitable opportunities)
- * 2. Marketplace ('all' | 'csfloat' | 'dmarket')
- * 3. Min/Max Price Range
+ * 2. Marketplace (all supported DealMaker markets)
+ * 3. Min/Max price range applied to the trader's **Buy Ceiling** (not the deal's
+ *    live offer), so the range reflects the trader's own valuation band.
  * 4. Skin Name Search Query
  */
 export function filterDeals(
@@ -93,7 +94,7 @@ export function filterDeals(
   const hasMax = !isNaN(maxP) && maxP > 0;
 
   return deals.filter((deal) => {
-    const currentPrice = getDealEffectivePrice(deal);
+    const ceiling = ceilingsMap[deal.marketHashName];
 
     // 1. <= Buy Ceiling filter
     if (filters.onlyBelowCeiling) {
@@ -109,12 +110,18 @@ export function filterDeals(
       }
     }
 
-    // 3. Price Range filter
-    if (hasMin && currentPrice < minP) {
-      return false;
-    }
-    if (hasMax && currentPrice > maxP) {
-      return false;
+    // 3. Price Range filter — applied to the trader's Buy Ceiling. Deals without
+    // a calculated ceiling are excluded while a range is active.
+    if (hasMin || hasMax) {
+      if (typeof ceiling !== 'number' || ceiling <= 0) {
+        return false;
+      }
+      if (hasMin && ceiling < minP) {
+        return false;
+      }
+      if (hasMax && ceiling > maxP) {
+        return false;
+      }
     }
 
     // 4. Search Query filter

@@ -9,12 +9,14 @@ import {
   RotateCcw,
   Sliders,
   Users,
+  Settings2,
 } from 'lucide-react';
 import { useDealMakerStore } from '../../store/useDealMakerStore';
 import { DEALMAKER_CONSTANTS } from '../../../shared/types/dealmaker.types';
 import { DealItemCard } from './components/DealItemCard';
 import { SellerActiveDealCard } from './components/SellerActiveDealCard';
 import { DealFloorFilterBar } from './components/DealFloorFilterBar';
+import { DealMakerConfigTab } from './components/DealMakerConfigTab';
 import {
   DEFAULT_DEAL_FILTERS,
   DealFloorFilters,
@@ -23,6 +25,7 @@ import {
   isAnyFilterActive,
 } from './utils/dealFilterUtils';
 import { toCanonicalMarketId } from '../../../shared/canonicalMarkets';
+import { DEALMAKER_MARKET_IDS } from '../../../shared/dealmakerMarkets';
 
 export const DealMakerFloorScreen: React.FC = () => {
   const {
@@ -42,6 +45,10 @@ export const DealMakerFloorScreen: React.FC = () => {
     Record<string, number>
   >({});
 
+  const [acceptedSssMap, setAcceptedSssMap] = useState<Record<string, number>>(
+    {},
+  );
+
   const [filters, setFilters] =
     useState<DealFloorFilters>(DEFAULT_DEAL_FILTERS);
 
@@ -57,7 +64,7 @@ export const DealMakerFloorScreen: React.FC = () => {
   };
 
   const availableMarkets = useMemo(() => {
-    const set = new Set<string>(['all', 'csfloat', 'dmarket']);
+    const set = new Set<string>(['all', ...DEALMAKER_MARKET_IDS]);
     activeAuctions.forEach((a) => {
       if (a.marketplace) {
         const canonical = toCanonicalMarketId(a.marketplace);
@@ -85,12 +92,17 @@ export const DealMakerFloorScreen: React.FC = () => {
         .then((res) => {
           if (res?.map) {
             const ceilingNumbers: Record<string, number> = {};
+            const sssNumbers: Record<string, number> = {};
             Object.entries(res.map).forEach(([name, info]) => {
               if (info?.acceptedPrice) {
                 ceilingNumbers[name] = info.acceptedPrice;
               }
+              if (typeof info?.supplyStabilityScore === 'number') {
+                sssNumbers[name] = info.supplyStabilityScore;
+              }
             });
             setAcceptedCeilingsMap(ceilingNumbers);
+            setAcceptedSssMap(sssNumbers);
           }
         })
         .catch(() => {});
@@ -228,6 +240,15 @@ export const DealMakerFloorScreen: React.FC = () => {
           <span>My Broadcasts</span>
           <span style={styles.countBadge}>{myAuctions.length}</span>
         </button>
+
+        <button
+          onClick={() => setActiveFilter('config')}
+          style={getTabButtonStyle(activeFilter === 'config')}
+          title="Configure your marketplace store links"
+        >
+          <Settings2 size={14} />
+          <span>Configs</span>
+        </button>
       </div>
 
       {/* Grid Content Area */}
@@ -282,10 +303,12 @@ export const DealMakerFloorScreen: React.FC = () => {
                     key={auction.id}
                     auction={auction}
                     myCeiling={acceptedCeilingsMap[auction.marketHashName]}
+                    mySss={acceptedSssMap[auction.marketHashName]}
                   />
                 ))}
               </div>
             )}
+            
           </div>
         )}
 
@@ -294,15 +317,14 @@ export const DealMakerFloorScreen: React.FC = () => {
             {/* Won Auctions Ready To Buy */}
             {wonAuctions.length > 0 && (
               <div style={styles.subSection}>
-                <h3 style={styles.subSectionTitle}>
-                  🎉 Matched Deals (Ready to Buy on CSFloat / DMarket)
-                </h3>
+              
                 <div style={styles.grid}>
                   {wonAuctions.map((auction) => (
                     <DealItemCard
                       key={auction.id}
                       auction={auction}
                       myCeiling={acceptedCeilingsMap[auction.marketHashName]}
+                    mySss={acceptedSssMap[auction.marketHashName]}
                     />
                   ))}
                 </div>
@@ -323,6 +345,7 @@ export const DealMakerFloorScreen: React.FC = () => {
                       key={auction.id}
                       auction={auction}
                       myCeiling={acceptedCeilingsMap[auction.marketHashName]}
+                    mySss={acceptedSssMap[auction.marketHashName]}
                     />
                   ))}
                 </div>
@@ -357,6 +380,8 @@ export const DealMakerFloorScreen: React.FC = () => {
             )}
           </>
         )}
+
+        {activeFilter === 'config' && <DealMakerConfigTab />}
       </div>
     </div>
   );

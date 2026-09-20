@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDealMakerStore } from '../../../store/useDealMakerStore';
-import { DEALMAKER_CONSTANTS, AUCTION_CONSTANTS } from '../../../../shared/types/dealmaker.types';
+import {  AUCTION_CONSTANTS } from '../../../../shared/types/dealmaker.types';
 import { SkinImage } from '../../../components/SkinImage';
 import { extractWearFromName } from '../../../utils/storage';
 import {
@@ -19,10 +19,13 @@ import {
   setWearInName,
   isNonWearCs2Item,
   searchCatalogSuggestions,
-  WEAR_CODE_TO_NAME,
 } from '../../../utils/marketHashValidation';
 import { MarketLogo } from '../../../components/MarketLogo';
 import { getMarketDisplayName } from '../../../../shared/canonicalMarkets';
+import {
+  DEALMAKER_MARKETS,
+  normalizeDealMakerMarketId,
+} from '../../../../shared/dealmakerMarkets';
 
 export interface CreateDealModalProps {
   isOpen?: boolean;
@@ -65,7 +68,7 @@ export const CreateDealModal: React.FC<CreateDealModalProps> = ({
   const [inspectUrl, setInspectUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [startingPrice, setStartingPrice] = useState('');
-  const [marketplace, setMarketplace] = useState<'csfloat' | 'dmarket'>('csfloat');
+  const [marketplace, setMarketplace] = useState<string>('csfloat');
 
   // Catalog cache for autocompletion & verification
   const [catalogNames, setCatalogNames] = useState<string[]>(globalCatalogNames);
@@ -137,7 +140,8 @@ export const CreateDealModal: React.FC<CreateDealModalProps> = ({
       setFloatValue(initialCreateData.floatValue || '');
       setInspectUrl(initialCreateData.inspectUrl || '');
       setImageUrl(initialCreateData.imageUrl || '');
-      const initialMarket = initialCreateData.marketplace === 'dmarket' ? 'dmarket' : 'csfloat';
+      const initialMarket =
+        normalizeDealMakerMarketId(initialCreateData.marketplace) || 'csfloat';
       setMarketplace(initialMarket);
       setStartingPrice(
         initialCreateData.startingPrice !== undefined && initialCreateData.startingPrice > 0
@@ -477,22 +481,23 @@ export const CreateDealModal: React.FC<CreateDealModalProps> = ({
             <div style={styles.fieldGroup}>
               <label style={styles.label}>Listing Marketplace</label>
               <div style={styles.marketToggleGroup}>
-                <button
-                  type="button"
-                  onClick={() => setMarketplace('csfloat')}
-                  style={getMarketToggleStyle(marketplace === 'csfloat')}
-                >
-                  <MarketLogo marketId="csfloat" marketName="CSFloat" size={16} showBackground={false} />
-                  <span>{getMarketDisplayName('csfloat')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMarketplace('dmarket')}
-                  style={getMarketToggleStyle(marketplace === 'dmarket')}
-                >
-                  <MarketLogo marketId="dmarket" marketName="DMarket" size={16} showBackground={false} />
-                  <span>{getMarketDisplayName('dmarket')}</span>
-                </button>
+                {DEALMAKER_MARKETS.map((market) => (
+                  <button
+                    key={market.id}
+                    type="button"
+                    onClick={() => setMarketplace(market.id)}
+                    style={getMarketToggleStyle(marketplace === market.id)}
+                    title={`Broadcast on ${market.name}`}
+                  >
+                    <MarketLogo
+                      marketId={market.id}
+                      marketName={market.name}
+                      size={16}
+                      showBackground={false}
+                    />
+                    <span>{market.name}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -881,6 +886,7 @@ const styles: Record<string, React.CSSProperties> = {
   marketToggleGroup: {
     display: 'flex',
     gap: '8px',
+    flexWrap: 'wrap',
   },
   warningBox: {
     display: 'flex',

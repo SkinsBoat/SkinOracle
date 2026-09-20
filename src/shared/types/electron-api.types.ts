@@ -26,6 +26,7 @@ import {
   DealMakerOffer,
   CreateDealPayload,
   PlaceOfferPayload,
+  SubmitDealLinkPayload,
   AuctionItem,
   AuctionBid,
   CreateAuctionPayload,
@@ -488,6 +489,14 @@ export interface ElectronAPI {
       dealId: string,
       listingUrl: string,
     ) => Promise<DealMakerItem>;
+    submitMarketLink: (
+      dealId: string,
+      marketLink: string,
+    ) => Promise<DealMakerItem>;
+    submitDealLink: (
+      dealId: string,
+      payload: SubmitDealLinkPayload,
+    ) => Promise<DealMakerItem>;
     getMyDeals: () => Promise<DealMakerItem[]>;
     getMyOffers: () => Promise<{
       wonAuctions: DealMakerItem[];
@@ -511,6 +520,14 @@ export interface ElectronAPI {
       auctionId: string,
       listingUrl: string,
     ) => Promise<AuctionItem>;
+    submitMarketLink: (
+      auctionId: string,
+      marketLink: string,
+    ) => Promise<AuctionItem>;
+    submitDealLink: (
+      auctionId: string,
+      payload: SubmitDealLinkPayload,
+    ) => Promise<AuctionItem>;
     getMyAuctions: () => Promise<AuctionItem[]>;
     getMyBids: () => Promise<{
       wonAuctions: AuctionItem[];
@@ -526,6 +543,7 @@ export type {
   DealMakerOffer,
   CreateDealPayload,
   PlaceOfferPayload,
+  SubmitDealLinkPayload,
   AuctionItem,
   AuctionBid,
   CreateAuctionPayload,

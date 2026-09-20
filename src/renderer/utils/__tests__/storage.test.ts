@@ -6,6 +6,12 @@ import {
   setPersistedThreshold,
   getSavedStoreUrl,
   setSavedStoreUrl,
+  getStoreLinks,
+  addStoreLink,
+  updateStoreLink,
+  removeStoreLink,
+  setDefaultStoreLink,
+  getDefaultStoreLink,
   extractWearFromName,
 } from "../storage";
 
@@ -108,17 +114,109 @@ describe("storage utils", () => {
     });
 
     it("saves and retrieves CSFloat stall url", () => {
-      const url = "https://csfloat.com/stall/76561199736567863";
+      const url = "https://csfloat.com/stall/76561190000000000";
       setSavedStoreUrl("csfloat", url);
       expect(getSavedStoreUrl("csfloat")).toBe(url);
       expect(getSavedStoreUrl("CSFLOAT")).toBe(url);
     });
 
     it("saves and retrieves DMarket personal store url", () => {
-      const url = "https://dmarket.com/ingame-items/item-list/csgo-skins?sagaAddress=0xc232b9755d49d5d68804b306f0C16f5118f58A03";
+      const url = "https://dmarket.com/ingame-items/item-list/csgo-skins?sagaAddress=0x1111111111111111111111111111111111111111";
       setSavedStoreUrl("dmarket", url);
       expect(getSavedStoreUrl("dmarket")).toBe(url);
       expect(getSavedStoreUrl("DMARKET")).toBe(url);
+    });
+  });
+
+  describe("seller store link registry", () => {
+    it("returns an empty registry when nothing is configured", () => {
+      expect(getStoreLinks()).toEqual([]);
+      expect(getDefaultStoreLink("csfloat")).toBeNull();
+    });
+
+    it("adds the first link for a market as default", () => {
+      const link = addStoreLink({
+        marketplace: "csfloat",
+        label: "Main Stall",
+        url: "https://csfloat.com/stall/111",
+      });
+
+      expect(link.isDefault).toBe(true);
+      expect(getStoreLinks()).toHaveLength(1);
+      expect(getDefaultStoreLink("csfloat")?.url).toBe(
+        "https://csfloat.com/stall/111",
+      );
+    });
+
+    it("keeps additional links non-default until promoted", () => {
+      addStoreLink({
+        marketplace: "csfloat",
+        label: "Main",
+        url: "https://csfloat.com/stall/111",
+      });
+      const second = addStoreLink({
+        marketplace: "csfloat",
+        label: "Alt",
+        url: "https://csfloat.com/stall/222",
+      });
+
+      expect(second.isDefault).toBe(false);
+
+      setDefaultStoreLink(second.id);
+      expect(getDefaultStoreLink("csfloat")?.id).toBe(second.id);
+      expect(
+        getStoreLinks().filter((l) => l.isDefault),
+      ).toHaveLength(1);
+    });
+
+    it("updates an existing link", () => {
+      const link = addStoreLink({
+        marketplace: "dmarket",
+        url: "https://dmarket.com/store/old",
+      });
+      updateStoreLink(link.id, {
+        label: "Renamed",
+        url: "https://dmarket.com/store/new",
+      });
+
+      const updated = getStoreLinks().find((l) => l.id === link.id);
+      expect(updated?.label).toBe("Renamed");
+      expect(updated?.url).toBe("https://dmarket.com/store/new");
+    });
+
+    it("removes a link and promotes a replacement default", () => {
+      const first = addStoreLink({
+        marketplace: "csfloat",
+        url: "https://csfloat.com/stall/111",
+      });
+      const second = addStoreLink({
+        marketplace: "csfloat",
+        url: "https://csfloat.com/stall/222",
+      });
+
+      removeStoreLink(first.id);
+
+      const remaining = getStoreLinks();
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].id).toBe(second.id);
+      expect(remaining[0].isDefault).toBe(true);
+    });
+
+    it("syncs legacy setSavedStoreUrl into the registry default", () => {
+      setSavedStoreUrl("csfloat", "https://csfloat.com/stall/999");
+
+      const links = getStoreLinks();
+      expect(links).toHaveLength(1);
+      expect(links[0].isDefault).toBe(true);
+      expect(getSavedStoreUrl("csfloat")).toBe(
+        "https://csfloat.com/stall/999",
+      );
+
+      setSavedStoreUrl("csfloat", "https://csfloat.com/stall/1000");
+      expect(getStoreLinks()).toHaveLength(1);
+      expect(getSavedStoreUrl("csfloat")).toBe(
+        "https://csfloat.com/stall/1000",
+      );
     });
   });
 

@@ -210,16 +210,16 @@ describe('auctionFilterUtils', () => {
       expect(dmarketRes.map((a) => a.id)).toEqual(['auc-alias-2']);
     });
 
-    it('filters by price range (min and max)', () => {
-      // Min price filter
+    it('filters by Buy Ceiling range (min and max)', () => {
+      // Min ceiling filter (auc-4 has no ceiling and is excluded)
       const minFilters: AuctionFloorFilters = {
         ...DEFAULT_AUCTION_FILTERS,
         minPrice: '50',
       };
       const minResults = filterAuctions(mockAuctions, mockCeilings, minFilters);
-      expect(minResults.map((a) => a.id)).toEqual(['auc-2', 'auc-3', 'auc-4']);
+      expect(minResults.map((a) => a.id)).toEqual(['auc-2', 'auc-3']);
 
-      // Max price filter
+      // Max ceiling filter
       const maxFilters: AuctionFloorFilters = {
         ...DEFAULT_AUCTION_FILTERS,
         maxPrice: '80',
@@ -227,7 +227,7 @@ describe('auctionFilterUtils', () => {
       const maxResults = filterAuctions(mockAuctions, mockCeilings, maxFilters);
       expect(maxResults.map((a) => a.id)).toEqual(['auc-1', 'auc-3']);
 
-      // Range filter: $50 - $100
+      // Range filter: $50 - $100 of Buy Ceiling
       const rangeFilters: AuctionFloorFilters = {
         ...DEFAULT_AUCTION_FILTERS,
         minPrice: '50',
@@ -235,6 +235,30 @@ describe('auctionFilterUtils', () => {
       };
       const rangeResults = filterAuctions(mockAuctions, mockCeilings, rangeFilters);
       expect(rangeResults.map((a) => a.id)).toEqual(['auc-2', 'auc-3']);
+    });
+
+    it('excludes deals without a calculated Buy Ceiling when a range is active', () => {
+      // auc-4 has no ceiling entry and a high starting price; it must not leak in.
+      const filters: AuctionFloorFilters = {
+        ...DEFAULT_AUCTION_FILTERS,
+        minPrice: '100',
+        maxPrice: '200',
+      };
+      const results = filterAuctions(mockAuctions, mockCeilings, filters);
+      expect(results.map((a) => a.id)).not.toContain('auc-4');
+      expect(results).toHaveLength(0);
+    });
+
+    it('filters by the ceiling, not the deal offer price', () => {
+      // auc-2 offer is 90.0 but its ceiling is 90.0; a range of 85-95 matches
+      // on the ceiling while auc-4 (offer 120, no ceiling) is excluded.
+      const filters: AuctionFloorFilters = {
+        ...DEFAULT_AUCTION_FILTERS,
+        minPrice: '85',
+        maxPrice: '95',
+      };
+      const results = filterAuctions(mockAuctions, mockCeilings, filters);
+      expect(results.map((a) => a.id)).toEqual(['auc-2']);
     });
 
     it('filters by search query', () => {

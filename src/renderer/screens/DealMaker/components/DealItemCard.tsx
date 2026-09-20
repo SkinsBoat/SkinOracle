@@ -1,5 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, ExternalLink, ShieldCheck, TrendingUp, Zap, Store } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Clock,
+  ExternalLink,
+  ShieldCheck,
+  TrendingUp,
+  Zap,
+  Activity,
+  Ban,
+  Eye,
+  AlertTriangle,
+  Flame,
+  Search,
+} from 'lucide-react';
 import { DealMakerItem } from '../../../../shared/types/dealmaker.types';
 import { useDealMakerStore } from '../../../store/useDealMakerStore';
 import { SkinImage } from '../../../components/SkinImage';
@@ -7,10 +19,20 @@ import { CopyMarketHashButton } from '../../../components/CopyMarketHashButton';
 import { getMarketItemUrl } from '../../../utils/marketUrls';
 import { MarketLogo } from '../../../components/MarketLogo';
 import { getMarketDisplayName } from '../../../../shared/canonicalMarkets';
+import {
+  CSFloatLookupModal,
+  LookupModalItemData,
+} from '../../CSFloat/modals/CSFloatLookupModal';
+import {
+  parseSkinHashName,
+  getWearColors,
+} from '../utils/skinCardUtils';
 
 export interface DealItemCardProps {
   auction: DealMakerItem;
   myCeiling?: number;
+  /** Supply Stability Score for this item from the local Oracle cache. */
+  mySss?: number;
 }
 
 export type AuctionItemCardProps = DealItemCardProps;
@@ -18,15 +40,59 @@ export type AuctionItemCardProps = DealItemCardProps;
 export const DealItemCard: React.FC<DealItemCardProps> = ({
   auction,
   myCeiling,
+  mySss,
 }) => {
-  const { placeBid, isBidding } = useDealMakerStore();
+  const { placeBid, isBidding, myAuctions, activeBidAuctions } =
+    useDealMakerStore();
 
   const [timeLeft, setTimeLeft] = useState<string>('');
   const [isExpired, setIsExpired] = useState(false);
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(600);
   const [customBid, setCustomBid] = useState<string>('');
+  const [lookupItem, setLookupItem] = useState<LookupModalItemData | null>(null);
+
+  // A trader can never place an offer on their own broadcast.
+  const isOwnDeal = myAuctions.some((a) => a.id === auction.id);
+
+  // The trader already submitted an offer on this deal.
+  const hasExistingOffer = activeBidAuctions.some((a) => a.id === auction.id);
 
   const currentPrice = Number(auction.highestBid || auction.startingPrice || 0);
   const nextMinBid = currentPrice > 0 ? (currentPrice + 1.0).toFixed(2) : '1.00';
+
+  const hasCeiling = typeof myCeiling === 'number' && myCeiling > 0;
+  const hasSss = typeof mySss === 'number' && mySss > 0;
+
+  // Non-blocking advisories: we never prevent an offer, we warn the trader.
+  const pendingBid = parseFloat(customBid || nextMinBid) || 0;
+  const offerExceedsCeiling =
+    hasCeiling && pendingBid > myCeiling;
+  const minNextExceedsCeiling =
+    hasCeiling && !customBid && parseFloat(nextMinBid) > myCeiling;
+
+  const ceilingWarning = offerExceedsCeiling || minNextExceedsCeiling;
+  const hasOfferAlert = hasExistingOffer || ceilingWarning;
+
+  const offerAlertLabel =
+    hasExistingOffer && ceilingWarning
+      ? 'Offer Alerts'
+      : hasExistingOffer
+        ? 'Existing Offer'
+        : 'Over Ceiling';
+
+  const offerAlertTooltip = [
+    hasExistingOffer
+      ? 'You already have an active offer on this deal — submitting will raise it.'
+      : '',
+    offerExceedsCeiling
+      ? `Your offer of $${pendingBid.toFixed(2)} is above your Buy Ceiling ($${myCeiling.toFixed(2)}) — you may overpay.`
+      : '',
+    minNextExceedsCeiling
+      ? `The minimum next offer ($${nextMinBid}) already exceeds your Buy Ceiling ($${myCeiling.toFixed(2)}).`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   // Live countdown timer calculation
   useEffect(() => {
@@ -34,11 +100,13 @@ export const DealItemCard: React.FC<DealItemCardProps> = ({
       const diff = new Date(auction.timerEndsAt).getTime() - Date.now();
       if (diff <= 0) {
         setTimeLeft('00:00');
+        setSecondsRemaining(0);
         setIsExpired(true);
         return;
       }
 
       const totalSec = Math.floor(diff / 1000);
+      setSecondsRemaining(totalSec);
       const min = Math.floor(totalSec / 60);
       const sec = totalSec % 60;
       setTimeLeft(`${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`);
@@ -65,29 +133,40 @@ export const DealItemCard: React.FC<DealItemCardProps> = ({
     }
   };
 
+  const openExternalUrl = (url: string) => {
+    if (window.electronAPI?.auction?.openExternalLink) {
+      window.electronAPI.auction.openExternalLink(url);
+    } else if (window.electronAPI?.app?.openExternal) {
+      window.electronAPI.app.openExternal(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
+  const postedLink = auction.listingUrl || auction.marketLink;
+
   const handleOpenListing = () => {
-    if (auction.listingUrl && window.electronAPI?.auction) {
-      window.electronAPI.auction.openExternalLink(auction.listingUrl);
+    if (postedLink) {
+      openExternalUrl(postedLink);
     }
   };
 
   const handleOpenMarket = (e: React.MouseEvent) => {
     e.stopPropagation();
     const targetUrl =
-      auction.listingUrl ||
+      postedLink ||
       getMarketItemUrl(auction.marketplace, auction.marketHashName) ||
       `https://csfloat.com/search?market_hash_name=${encodeURIComponent(auction.marketHashName)}`;
-
-    if (window.electronAPI?.auction?.openExternalLink) {
-      window.electronAPI.auction.openExternalLink(targetUrl);
-    } else if (window.electronAPI?.app?.openExternal) {
-      window.electronAPI.app.openExternal(targetUrl);
-    } else {
-      window.open(targetUrl, '_blank');
-    }
+    openExternalUrl(targetUrl);
   };
 
-  const hasCeiling = typeof myCeiling === 'number' && myCeiling > 0;
+  const handleOpenMarketByName = (name: string) => {
+    const targetUrl =
+      getMarketItemUrl(auction.marketplace, name) ||
+      `https://csfloat.com/search?market_hash_name=${encodeURIComponent(name)}`;
+    openExternalUrl(targetUrl);
+  };
+
   const spreadCents = hasCeiling ? myCeiling - currentPrice : 0;
   const isProfitable = hasCeiling && currentPrice <= myCeiling;
   const hasBids = Number(auction.bidsCount || 0) > 0;
@@ -97,215 +176,357 @@ export const DealItemCard: React.FC<DealItemCardProps> = ({
     `https://api.steamapis.com/image/item/730/${encodeURIComponent(auction.marketHashName)}`;
 
   const marketDisplayName = getMarketDisplayName(auction.marketplace);
-  const listingButtonLabel = auction.listingUrl
-    ? auction.listingUrl.includes('/stall/')
-      ? 'View Seller Stall on CSFloat'
-      : auction.listingUrl.includes('sagaAddress')
-        ? "View Seller's Personal Store on DMarket"
-        : `Buy on ${marketDisplayName} Now`
+  const listingButtonLabel = postedLink
+    ? postedLink.includes('/stall/') || auction.marketLink
+      ? 'Buy From Seller Store'
+      : `Buy on ${marketDisplayName} Now`
     : '';
+
+  const parsed = useMemo(() => {
+    return parseSkinHashName(auction.marketHashName, auction.wear);
+  }, [auction.marketHashName, auction.wear]);
+
+  const wearColors = useMemo(() => {
+    return getWearColors(parsed.shortWear);
+  }, [parsed.shortWear]);
+
+  const isUrgentTimer = !isExpired && secondsRemaining > 0 && secondsRemaining <= 120;
 
   return (
     <div style={styles.card}>
-      {/* Top Bar: Timer & Status Badges */}
-      <div style={styles.topRow}>
-        <div style={getTimerBadgeStyle(isExpired)}>
-          <Clock size={13} />
-          <span>{isExpired ? (hasBids ? 'Deal Matched' : 'Expired (0 Offers)') : timeLeft}</span>
+      {/* 1. Card Header: Timer & Marketplace Meta */}
+      <div style={styles.headerRow}>
+        <div style={getTimerBadgeStyle(isExpired, hasBids, isUrgentTimer)}>
+          {isUrgentTimer ? <Flame size={12} style={{ color: '#f59e0b' }} /> : <Clock size={12} />}
+          <span>{isExpired ? (hasBids ? 'Matched' : 'Expired') : timeLeft}</span>
         </div>
 
-        <div style={styles.topRightActions}>
-          <button
-            type="button"
-            onClick={handleOpenMarket}
-            style={styles.actionBtn}
-            title={`Open on ${marketDisplayName} Market (Browser)`}
-          >
-            <ExternalLink size={13} />
-          </button>
-          <CopyMarketHashButton name={auction.marketHashName} />
-          <div style={styles.marketplaceBadge}>
+        <div style={styles.headerRightGroup}>
+          <div style={styles.marketBadge} title={`Marketplace: ${marketDisplayName}`}>
             <MarketLogo
               marketId={auction.marketplace}
               marketName={marketDisplayName}
-              size={14}
+              size={13}
               showBackground={false}
             />
             <span style={styles.marketText}>{marketDisplayName}</span>
           </div>
+
+          <div style={styles.actionIconGroup}>
+            <button
+              type="button"
+              onClick={() =>
+                setLookupItem({
+                  name: auction.marketHashName,
+                  acceptedPrice: myCeiling,
+                  marketPrice: currentPrice,
+                  iconUrl: auction.imageUrl,
+                  market: auction.marketplace,
+                })
+              }
+              style={styles.iconBtn}
+              title="Inspect Multi-Market Prices (Cross-Market Lookup)"
+            >
+              <Eye size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenMarket}
+              style={styles.iconBtn}
+              title={`Open on ${marketDisplayName} (Browser)`}
+            >
+              <ExternalLink size={13} />
+            </button>
+            <CopyMarketHashButton name={auction.marketHashName} />
+          </div>
         </div>
       </div>
 
-      {/* Main Info: Image & Details */}
-      <div style={styles.contentRow}>
-        <div style={styles.imageCol}>
+      {/* 2. Hero Skin Showcase (Prominent Visual Centerpiece) */}
+      <div style={styles.heroShowcase}>
+        {/* Floating Overlays Top: StatTrak, Souvenir, Knife Star, Wear */}
+        <div style={styles.showcaseTopBadges}>
+          {parsed.isStatTrak && (
+            <span style={styles.statTrakBadge} title="StatTrak™ Certified Weapon">
+              ST™
+            </span>
+          )}
+          {parsed.isSouvenir && (
+            <span style={styles.souvenirBadge} title="Souvenir Package Skin">
+              SV
+            </span>
+          )}
+          {parsed.isKnifeOrGloves && (
+            <span style={styles.knifeBadge} title="★ Rare Special Item">
+              ★
+            </span>
+          )}
+          {parsed.shortWear && (
+            <span
+              style={getWearBadgeStyle(wearColors)}
+              title={parsed.wear ? `Exterior Condition: ${parsed.wear}` : undefined}
+            >
+              {parsed.shortWear}
+            </span>
+          )}
+        </div>
+
+        {/* Floating Overlays Bottom: Float & CS2 Inspect */}
+        <div style={styles.showcaseBottomRow}>
+          {auction.floatValue ? (
+            <span style={styles.floatPill} title={`Float Value: ${auction.floatValue}`}>
+              Float: {auction.floatValue}
+            </span>
+          ) : (
+            <span />
+          )}
+
+          {auction.inspectUrl && (
+            <button
+              type="button"
+              onClick={handleOpenInspect}
+              style={styles.inspectBtn}
+              title="Inspect Item in CS2 Client"
+            >
+              <Search size={10} />
+              <span>Inspect CS2</span>
+            </button>
+          )}
+        </div>
+
+        {/* Centered Large Skin Image */}
+        <div style={styles.imageContainer}>
           <SkinImage
             src={itemImageUrl}
             alt={auction.marketHashName}
             fallbackItemName={auction.marketHashName}
-            height={72}
-            maxImageHeight={62}
+            height={115}
+            maxImageHeight={104}
           />
-        </div>
-
-        <div style={styles.itemInfo}>
-          <h3 style={styles.itemName} title={auction.marketHashName}>
-            {auction.marketHashName}
-          </h3>
-
-          <div style={styles.tagRow}>
-            {auction.wear && <span style={styles.wearTag}>{auction.wear}</span>}
-            {auction.floatValue && (
-              <span style={styles.floatTag}>Float: {auction.floatValue}</span>
-            )}
-            {auction.inspectUrl && (
-              <button
-                onClick={handleOpenInspect}
-                style={styles.inspectBtn}
-                title="Inspect in CS2"
-              >
-                Inspect
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Pricing Section: Top Offer vs Skin Oracle Buy Ceiling */}
-      <div style={styles.pricingSection}>
-        {/* Left: Current Highest Offer */}
+      {/* 3. Item Identity (Structured Typography) */}
+      <div style={styles.titleSection} title={auction.marketHashName}>
+        <div style={styles.weaponRow}>
+          <span style={styles.weaponName}>{parsed.weapon}</span>
+        </div>
+        {parsed.pattern ? (
+          <div style={styles.patternName}>{parsed.pattern}</div>
+        ) : (
+          <div style={styles.patternPlaceholder}>&nbsp;</div>
+        )}
+      </div>
+
+      {/* 4. Pricing & Valuation Intelligence (Dual-Column Comparison) */}
+      <div style={styles.pricingContainer}>
+        {/* Left Column: Top Live Offer */}
         <div style={styles.priceCol}>
-          <span style={styles.priceLabel}>Top Offer</span>
-          <div style={styles.bidAmount}>
+          <span style={styles.colLabel}>Top Offer</span>
+          <div style={styles.topOfferAmount}>
             ${currentPrice > 0 ? currentPrice.toFixed(2) : '0.00'}
           </div>
-          <span style={styles.bidCount}>
-            {auction.bidsCount} {auction.bidsCount === 1 ? 'offer' : 'offers'}
-            {auction.highestBidderTag && ` • by ${auction.highestBidderTag}`}
-          </span>
+          <div style={styles.offerMetaLine}>
+            <span style={styles.bidsCountText}>
+              {auction.bidsCount} {auction.bidsCount === 1 ? 'offer' : 'offers'}
+            </span>
+            {auction.highestBidderTag && (
+              <span style={styles.bidderTag} title={`Top Match: ${auction.highestBidderTag}`}>
+                • {auction.highestBidderTag}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Right: Trader's Personal Oracle Buy Ceiling Reference */}
+        {/* Right Column: Personal Oracle Buy Ceiling (Click to auto-fill!) */}
         <div
-          style={{
-            ...styles.oracleCol,
-            cursor: hasCeiling ? 'pointer' : 'default',
-          }}
+          style={getCeilingColStyle(hasCeiling)}
           onClick={() => {
             if (hasCeiling) {
               setCustomBid(myCeiling.toFixed(2));
             }
           }}
-          title={hasCeiling ? `Click to set offer to your buy ceiling ($${myCeiling.toFixed(2)})` : undefined}
+          title={
+            hasCeiling
+              ? `Click to set offer directly to your Buy Ceiling ($${myCeiling.toFixed(2)})`
+              : 'Buy Ceiling not calculated for this item in Oracle Central'
+          }
         >
-          <span style={styles.oracleLabel}>
-            <ShieldCheck size={12} style={{ color: '#38bdf8' }} />
-            Your Buy Ceiling
-          </span>
-          <div style={styles.oracleCeiling}>
+          <div style={styles.ceilingHeaderRow}>
+            <span style={styles.ceilingLabel}>
+              <ShieldCheck size={12} style={{ color: '#38bdf8' }} />
+              Buy Ceiling
+            </span>
+            {hasSss && (
+              <span
+                style={styles.sssPill}
+                title="Supply Stability Score (SSS): cross-market balance & listed depth"
+              >
+                <Activity size={10} />
+                <span>{mySss!.toFixed(1)}</span>
+              </span>
+            )}
+          </div>
+
+          <div style={styles.ceilingAmount}>
             {hasCeiling ? `$${myCeiling.toFixed(2)}` : 'Not Calculated'}
           </div>
-          {hasCeiling && (
-            <div style={getSpreadBadgeStyle(isProfitable)}>
-              <TrendingUp size={11} />
-              <span>
-                {isProfitable
-                  ? `+$${spreadCents.toFixed(2)} margin`
-                  : 'Over Ceiling'}
-              </span>
-            </div>
-          )}
+
+          <div style={styles.ceilingSubRow}>
+            {hasCeiling ? (
+              <div style={getSpreadBadgeStyle(isProfitable)}>
+                <TrendingUp size={11} />
+                <span>
+                  {isProfitable
+                    ? `+$${spreadCents.toFixed(2)} Margin`
+                    : 'Over Ceiling'}
+                </span>
+              </div>
+            ) : (
+              <span style={styles.ceilingUnsetHint}>Unset in Oracle</span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Action Footer */}
-      <div style={styles.actionFooter}>
-        {auction.listingUrl ? (
-          /* Winner Action: Buy on CSFloat directly or open stall/store */
+      {/* 5. Action / Submission Zone */}
+      <div style={styles.actionZone}>
+        {isOwnDeal ? (
+          <div style={styles.ownDealBanner}>
+            <Ban size={13} style={styles.ownDealIcon} />
+            <span>Your broadcast — manage in My Broadcasts</span>
+          </div>
+        ) : postedLink ? (
           <button onClick={handleOpenListing} style={styles.buyMarketBtn}>
-            <Zap size={15} />
+            <Zap size={14} />
             <span>{listingButtonLabel}</span>
-            <ExternalLink size={14} />
+            <ExternalLink size={13} />
           </button>
         ) : isExpired ? (
           hasBids ? (
-            <div style={styles.pendingLinkNotice}>
-              ⏳ Deal matched. Awaiting seller listing URL...
+            <div style={styles.pendingLinkBanner}>
+              ⏳ Deal matched • Awaiting seller listing link
             </div>
           ) : (
-            <div style={styles.noBidsNotice}>
-              Deal expired • No offers placed
+            <div style={styles.expiredBanner}>
+              Deal closed • No offers placed
             </div>
           )
         ) : (
-          /* Live Matchmaking Offer Toolbar */
-          <form onSubmit={handleCustomBidSubmit} style={styles.bidForm}>
-            {hasCeiling && myCeiling > currentPrice && (
-              <button
-                type="button"
-                onClick={() => setCustomBid(myCeiling.toFixed(2))}
-                style={styles.ceilingBidBtn}
-                title={`1-Click: Set offer to your maximum accepted buy ceiling ($${myCeiling.toFixed(2)})`}
-              >
-                <ShieldCheck size={13} style={{ color: '#38bdf8' }} />
-                <span>Max: ${myCeiling.toFixed(2)}</span>
-              </button>
+          <form onSubmit={handleCustomBidSubmit} style={styles.offerForm}>
+            {hasOfferAlert && (
+              <div style={styles.alertBar} title={offerAlertTooltip}>
+                <AlertTriangle size={11} style={{ color: '#fbbf24', flexShrink: 0 }} />
+                <span style={styles.alertBarText}>{offerAlertLabel}</span>
+              </div>
             )}
 
-            <div style={styles.inputWrapper}>
-              <span style={styles.currencyPrefix}>$</span>
-              <input
-                type="number"
-                step="0.5"
-                min={nextMinBid}
-                placeholder={nextMinBid}
-                value={customBid}
-                onChange={(e) => setCustomBid(e.target.value)}
-                style={styles.bidInput}
-              />
-            </div>
+            <div style={styles.offerControlsRow}>
+              {hasCeiling && myCeiling > currentPrice && (
+                <button
+                  type="button"
+                  onClick={() => setCustomBid(myCeiling.toFixed(2))}
+                  style={styles.maxCeilingBtn}
+                  title={`1-Click auto-fill with maximum Buy Ceiling ($${myCeiling.toFixed(2)})`}
+                >
+                  <ShieldCheck size={12} style={{ color: '#38bdf8' }} />
+                  <span>Max ${myCeiling.toFixed(2)}</span>
+                </button>
+              )}
 
-            <button
-              type="submit"
-              disabled={isBidding}
-              style={styles.submitBidBtn}
-              title="Submit Offer ($0.20 fee)"
-            >
-              Offer ($0.20)
-            </button>
+              <div style={styles.inputWrapper}>
+                <span style={styles.currencySymbol}>$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={nextMinBid}
+                  placeholder={nextMinBid}
+                  value={customBid}
+                  onChange={(e) => setCustomBid(e.target.value)}
+                  style={styles.offerInput}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isBidding}
+                style={styles.submitBtn}
+                title="Submit Matchmaking Offer ($0.20 fee)"
+              >
+                Offer ($0.20)
+              </button>
+            </div>
           </form>
         )}
       </div>
+
+      {lookupItem && (
+        <CSFloatLookupModal
+          item={lookupItem}
+          onClose={() => setLookupItem(null)}
+          onOpenMarket={handleOpenMarketByName}
+        />
+      )}
     </div>
   );
 };
 
 // ─────────────────────────────────────────────────────────────────
-// Extracted styles object per TONE_AND_UI_STYLE_GUIDE.md
+// Extracted institutional styles object per AGENTS.md & Style Guide
 // ─────────────────────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
   card: {
     backgroundColor: 'var(--so-surface-card, #131720)',
-    borderRadius: 'var(--so-radius-md, 12px)',
+    borderRadius: '12px',
     border: '1px solid var(--so-border-subtle, #1e2430)',
-    padding: '16px',
+    padding: '12px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px',
-    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+    gap: '10px',
+    height: '100%',
+    boxSizing: 'border-box',
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
   },
-  topRow: {
+  headerRow: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: '26px',
+    gap: '6px',
   },
-  topRightActions: {
+  headerRightGroup: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
   },
-  actionBtn: {
-    padding: '3px 6px',
+  marketBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '2px 7px',
+    borderRadius: '5px',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    maxWidth: '120px',
+    minWidth: 0,
+  },
+  marketText: {
+    fontSize: '10px',
+    fontWeight: 800,
+    letterSpacing: '0.2px',
+    color: 'var(--so-text-secondary, #94a3b8)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  actionIconGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  iconBtn: {
+    padding: '3px 5px',
     backgroundColor: 'var(--so-surface-panel, #181d27)',
     border: '1px solid var(--so-border-subtle, #1e2430)',
     borderRadius: '4px',
@@ -316,162 +537,275 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     transition: 'all 0.15s ease',
   },
-  marketplaceBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-    padding: '3px 8px',
-    borderRadius: '6px',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    border: '1px solid rgba(255, 255, 255, 0.12)',
-  },
-  marketText: {
-    fontSize: '10.5px',
-    fontWeight: 800,
-    letterSpacing: '0.4px',
-    color: 'var(--so-text-secondary, #94a3b8)',
-  },
-  contentRow: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center',
-  },
-  imageCol: {
-    width: '82px',
-    height: '72px',
-    flexShrink: 0,
+  heroShowcase: {
+    position: 'relative',
+    height: '124px',
+    width: '100%',
+    borderRadius: '8px',
+    background:
+      'radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.14) 0%, rgba(13, 17, 23, 0.8) 100%)',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'var(--so-surface-input, #0d1117)',
-    borderRadius: '8px',
-    border: '1px solid var(--so-border-subtle, #1e2430)',
     overflow: 'hidden',
+    boxSizing: 'border-box',
   },
-  itemInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-    flex: 1,
-    overflow: 'hidden',
-  },
-  itemName: {
-    margin: 0,
-    fontSize: '14.5px',
-    fontWeight: 800,
-    color: 'var(--so-text-primary, #f8fafc)',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    letterSpacing: '-0.2px',
-  },
-  tagRow: {
+  imageContainer: {
+    position: 'relative',
+    zIndex: 1,
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+    padding: '4px',
+    boxSizing: 'border-box',
   },
-  wearTag: {
-    fontSize: '11px',
+  showcaseTopBadges: {
+    position: 'absolute',
+    top: '6px',
+    left: '8px',
+    zIndex: 2,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  statTrakBadge: {
+    fontSize: '9.5px',
+    fontWeight: 900,
+    padding: '1px 5px',
+    borderRadius: '3px',
+    backgroundColor: 'rgba(249, 115, 22, 0.2)',
+    color: '#f97316',
+    border: '1px solid rgba(249, 115, 22, 0.45)',
+    letterSpacing: '0.2px',
+  },
+  souvenirBadge: {
+    fontSize: '9.5px',
+    fontWeight: 900,
+    padding: '1px 5px',
+    borderRadius: '3px',
+    backgroundColor: 'rgba(234, 179, 8, 0.2)',
+    color: '#eab308',
+    border: '1px solid rgba(234, 179, 8, 0.45)',
+    letterSpacing: '0.2px',
+  },
+  knifeBadge: {
+    fontSize: '10px',
+    fontWeight: 900,
+    padding: '1px 5px',
+    borderRadius: '3px',
+    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+    color: '#c084fc',
+    border: '1px solid rgba(168, 85, 247, 0.45)',
+  },
+  showcaseBottomRow: {
+    position: 'absolute',
+    bottom: '6px',
+    left: '8px',
+    right: '8px',
+    zIndex: 2,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    pointerEvents: 'none',
+  },
+  floatPill: {
+    fontSize: '9.5px',
+    fontWeight: 700,
+    fontFamily: 'monospace',
+    padding: '1px 6px',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(9, 13, 20, 0.85)',
+    color: '#94a3b8',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(4px)',
+  },
+  inspectBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '3px',
+    fontSize: '9.5px',
     fontWeight: 700,
     padding: '2px 6px',
     borderRadius: '4px',
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    color: '#38bdf8',
-    border: '1px solid rgba(56, 189, 248, 0.25)',
-  },
-  floatTag: {
-    fontSize: '11px',
-    fontWeight: 600,
-    padding: '2px 6px',
-    borderRadius: '4px',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    color: 'var(--so-text-muted, #64748b)',
-    fontFamily: 'monospace',
-  },
-  inspectBtn: {
-    fontSize: '10.5px',
-    fontWeight: 600,
-    padding: '2px 7px',
-    borderRadius: '4px',
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     color: 'var(--so-text-secondary, #94a3b8)',
-    border: '1px solid var(--so-border-subtle)',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
     cursor: 'pointer',
+    pointerEvents: 'auto',
+    backdropFilter: 'blur(4px)',
+    transition: 'all 0.15s ease',
   },
-  pricingSection: {
+  titleSection: {
     display: 'flex',
-    gap: '12px',
-    padding: '12px 14px',
+    flexDirection: 'column',
+    gap: '1px',
+    minHeight: '36px',
+    justifyContent: 'center',
+  },
+  weaponRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  weaponName: {
+    fontSize: '13.5px',
+    fontWeight: 800,
+    color: 'var(--so-text-primary, #f8fafc)',
+    letterSpacing: '-0.2px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  patternName: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: 'var(--so-text-secondary, #94a3b8)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  patternPlaceholder: {
+    fontSize: '12px',
+    lineHeight: '16px',
+  },
+  pricingContainer: {
+    display: 'flex',
+    gap: '8px',
+    padding: '9px 10px',
     borderRadius: '8px',
     backgroundColor: 'var(--so-surface-input, #0d1117)',
     border: '1px solid var(--so-border-subtle, #1e2430)',
+    boxSizing: 'border-box',
+    minHeight: '66px',
   },
   priceCol: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
+    justifyContent: 'center',
     gap: '2px',
   },
-  priceLabel: {
-    fontSize: '11px',
-    fontWeight: 700,
+  colLabel: {
+    fontSize: '9.5px',
+    fontWeight: 800,
     color: 'var(--so-text-muted, #64748b)',
     textTransform: 'uppercase',
+    letterSpacing: '0.4px',
   },
-  bidAmount: {
+  topOfferAmount: {
     fontSize: '17px',
-    fontWeight: 800,
+    fontWeight: 900,
     color: '#22c55e',
     letterSpacing: '-0.3px',
+    lineHeight: '20px',
   },
-  bidCount: {
-    fontSize: '11px',
-    color: 'var(--so-text-muted, #64748b)',
-  },
-  oracleCol: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-    paddingLeft: '12px',
-  },
-  oracleLabel: {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: '#38bdf8',
+  offerMetaLine: {
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
-    textTransform: 'uppercase',
+    fontSize: '10.5px',
+    color: 'var(--so-text-muted, #64748b)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
-  oracleCeiling: {
+  bidsCountText: {
+    fontWeight: 700,
+  },
+  bidderTag: {
+    color: 'var(--so-text-muted, #64748b)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  ceilingHeaderRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '4px',
+  },
+  ceilingLabel: {
+    fontSize: '9.5px',
+    fontWeight: 800,
+    color: '#38bdf8',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '3px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.4px',
+  },
+  sssPill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '2px',
+    fontSize: '9.5px',
+    fontWeight: 700,
+    color: '#a78bfa',
+    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+    padding: '0 4px',
+    borderRadius: '3px',
+  },
+  ceilingAmount: {
     fontSize: '15px',
     fontWeight: 800,
     color: 'var(--so-text-primary, #f8fafc)',
+    letterSpacing: '-0.2px',
+    lineHeight: '19px',
   },
-  actionFooter: {
+  ceilingSubRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  ceilingUnsetHint: {
+    fontSize: '10px',
+    color: 'var(--so-text-muted, #64748b)',
+  },
+  actionZone: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '6px',
+    marginTop: 'auto',
   },
-  bidForm: {
+  offerForm: {
     display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
+    gap: '6px',
   },
-  ceilingBidBtn: {
+  alertBar: {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
-    padding: '8px 10px',
+    padding: '3px 7px',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    border: '1px solid rgba(245, 158, 11, 0.3)',
+    cursor: 'help',
+  },
+  alertBarText: {
+    fontSize: '10px',
+    fontWeight: 800,
+    color: '#fbbf24',
+    textTransform: 'uppercase',
+    letterSpacing: '0.3px',
+  },
+  offerControlsRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  maxCeilingBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '7px 8px',
     borderRadius: '6px',
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    border: '1px solid rgba(56, 189, 248, 0.32)',
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    border: '1px solid rgba(56, 189, 248, 0.3)',
     color: '#38bdf8',
-    fontSize: '11.5px',
+    fontSize: '11px',
     fontWeight: 800,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
@@ -482,33 +816,36 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
+    minWidth: '70px',
   },
-  currencyPrefix: {
+  currencySymbol: {
     position: 'absolute',
-    left: '10px',
-    fontSize: '13px',
+    left: '8px',
+    fontSize: '12px',
+    fontWeight: 700,
     color: 'var(--so-text-muted, #64748b)',
     pointerEvents: 'none',
   },
-  bidInput: {
+  offerInput: {
     width: '100%',
-    padding: '8px 8px 8px 24px',
+    padding: '7px 6px 7px 20px',
     borderRadius: '6px',
     backgroundColor: 'var(--so-bg, #090d14)',
-    border: '1px solid var(--so-border-subtle)',
-    color: 'var(--so-text-primary)',
-    fontSize: '13px',
+    border: '1px solid var(--so-border-subtle, #1e2430)',
+    color: 'var(--so-text-primary, #f8fafc)',
+    fontSize: '12.5px',
     fontWeight: 700,
     outline: 'none',
+    boxSizing: 'border-box',
   },
-  submitBidBtn: {
-    padding: '8px 14px',
+  submitBtn: {
+    padding: '7px 12px',
     borderRadius: '6px',
     backgroundColor: 'var(--so-primary, #2563eb)',
     border: 'none',
     color: '#ffffff',
-    fontSize: '12.5px',
-    fontWeight: 700,
+    fontSize: '12px',
+    fontWeight: 800,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     transition: 'background-color 0.15s ease',
@@ -517,53 +854,138 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
-    padding: '10px 16px',
+    gap: '6px',
+    padding: '9px 14px',
     borderRadius: '6px',
     backgroundColor: '#16a34a',
     border: 'none',
     color: '#ffffff',
-    fontSize: '13px',
+    fontSize: '12.5px',
     fontWeight: 800,
     cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(22, 163, 74, 0.35)',
+    transition: 'background-color 0.15s ease',
   },
-  pendingLinkNotice: {
-    padding: '9px 12px',
+  pendingLinkBanner: {
+    padding: '8px 10px',
     borderRadius: '6px',
     backgroundColor: 'rgba(234, 179, 8, 0.1)',
     border: '1px solid rgba(234, 179, 8, 0.25)',
     color: '#fde047',
-    fontSize: '12px',
+    fontSize: '11.5px',
     textAlign: 'center',
+    fontWeight: 700,
+  },
+  ownDealBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 10px',
+    borderRadius: '6px',
+    backgroundColor: 'rgba(148, 163, 184, 0.08)',
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    color: 'var(--so-text-secondary, #94a3b8)',
+    fontSize: '11.5px',
     fontWeight: 600,
   },
-  noBidsNotice: {
-    padding: '9px 12px',
+  ownDealIcon: {
+    color: '#94a3b8',
+    flexShrink: 0,
+  },
+  expiredBanner: {
+    padding: '8px 10px',
     borderRadius: '6px',
-    backgroundColor: 'rgba(100, 116, 139, 0.1)',
-    border: '1px solid rgba(100, 116, 139, 0.25)',
+    backgroundColor: 'rgba(100, 116, 139, 0.08)',
+    border: '1px solid rgba(100, 116, 139, 0.2)',
     color: 'var(--so-text-muted, #94a3b8)',
-    fontSize: '12px',
+    fontSize: '11.5px',
     textAlign: 'center',
     fontWeight: 600,
   },
 };
 
-function getTimerBadgeStyle(isExpired: boolean): React.CSSProperties {
-  return {
+// ─────────────────────────────────────────────────────────────────
+// Pure helper functions for dynamic styling
+// ─────────────────────────────────────────────────────────────────
+function getTimerBadgeStyle(
+  isExpired: boolean,
+  hasBids: boolean,
+  isUrgent: boolean,
+): React.CSSProperties {
+  const base: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
-    padding: '3px 9px',
-    borderRadius: '6px',
-    backgroundColor: isExpired ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.14)',
-    border: isExpired ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(56, 189, 248, 0.35)',
-    color: isExpired ? '#ef4444' : '#38bdf8',
-    fontSize: '12px',
+    gap: '5px',
+    padding: '2px 8px',
+    borderRadius: '5px',
+    fontSize: '11px',
     fontWeight: 800,
     fontFamily: 'monospace',
     letterSpacing: '0.4px',
+  };
+
+  if (isExpired && hasBids) {
+    return {
+      ...base,
+      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+      border: '1px solid rgba(34, 197, 94, 0.4)',
+      color: '#22c55e',
+    };
+  }
+
+  if (isExpired) {
+    return {
+      ...base,
+      backgroundColor: 'rgba(100, 116, 139, 0.12)',
+      border: '1px solid rgba(100, 116, 139, 0.3)',
+      color: '#94a3b8',
+    };
+  }
+
+  if (isUrgent) {
+    return {
+      ...base,
+      backgroundColor: 'rgba(245, 158, 11, 0.18)',
+      border: '1px solid rgba(245, 158, 11, 0.45)',
+      color: '#fbbf24',
+    };
+  }
+
+  return {
+    ...base,
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    border: '1px solid rgba(56, 189, 248, 0.35)',
+    color: '#38bdf8',
+  };
+}
+
+function getWearBadgeStyle(colors: {
+  bg: string;
+  text: string;
+  border: string;
+}): React.CSSProperties {
+  return {
+    fontSize: '9.5px',
+    fontWeight: 900,
+    padding: '1px 5px',
+    borderRadius: '3px',
+    backgroundColor: colors.bg,
+    color: colors.text,
+    border: `1px solid ${colors.border}`,
+    letterSpacing: '0.3px',
+  };
+}
+
+function getCeilingColStyle(hasCeiling: boolean): React.CSSProperties {
+  return {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    gap: '2px',
+    borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+    paddingLeft: '10px',
+    cursor: hasCeiling ? 'pointer' : 'default',
+    transition: 'background-color 0.15s ease',
   };
 }
 
@@ -572,7 +994,7 @@ function getSpreadBadgeStyle(isProfitable: boolean): React.CSSProperties {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '3px',
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 700,
     color: isProfitable ? '#4ade80' : '#ef4444',
   };

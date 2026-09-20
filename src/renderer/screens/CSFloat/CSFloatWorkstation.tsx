@@ -1013,7 +1013,7 @@ export default function CSFloatWorkstation() {
 
       if (isSold) {
         toast.success(
-          `🎉 Item sold! Trade queued on CSFloat ($${(finalPriceCents / 100).toFixed(2)})`,
+          `Item sold! Trade queued on CSFloat ($${(finalPriceCents / 100).toFixed(2)})`,
           { id: toastId },
         );
       } else {
@@ -1105,7 +1105,7 @@ export default function CSFloatWorkstation() {
 
       if (isSold) {
         toast.success(
-          `🎉 Item sold! Trade queued on CSFloat ($${(finalPriceCents / 100).toFixed(2)})`,
+          `Item sold! Trade queued on CSFloat ($${(finalPriceCents / 100).toFixed(2)})`,
           { id: toastId },
         );
       } else {

@@ -51,12 +51,23 @@ export interface DealMakerItem {
   sellerFeeCents: number;
   status: DealMakerStatus;
   timerEndsAt: string;
+  /** Link to the specific item listing on the marketplace. */
   listingUrl?: string | null;
+  /** Seller's marketplace store / stall link (a.k.a. market link). */
+  marketLink?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export type AuctionItem = DealMakerItem;
+
+/** Payload for the seller link submission endpoint. */
+export interface SubmitDealLinkPayload {
+  listingUrl?: string;
+  marketLink?: string;
+}
+
+export type SubmitListingLinkPayload = SubmitDealLinkPayload;
 
 export interface DealMakerOffer {
   id: string;

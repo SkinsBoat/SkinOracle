@@ -16,6 +16,7 @@ import {
   toCanonicalMarketId,
   isMarketMatch,
 } from '../../../../shared/canonicalMarkets';
+import { DEALMAKER_MARKET_IDS } from '../../../../shared/dealmakerMarkets';
 
 export interface DealFloorFilterBarProps {
   filters: DealFloorFilters;
@@ -41,7 +42,7 @@ export const DealFloorFilterBar: React.FC<DealFloorFilterBarProps> = ({
   totalCount,
   filteredCount,
   belowCeilingCount,
-  availableMarkets = ['all', 'csfloat', 'dmarket'],
+  availableMarkets = ['all', ...DEALMAKER_MARKET_IDS],
 }) => {
   return (
     <div style={styles.container}>
@@ -131,11 +132,14 @@ export const DealFloorFilterBar: React.FC<DealFloorFilterBarProps> = ({
 
       {/* Secondary Row: Price Range, Count Summary & Reset Action */}
       <div style={styles.bottomRow}>
-        {/* Price Range Inputs */}
-        <div style={styles.priceRangeGroup}>
+        {/* Buy Ceiling Range Inputs */}
+        <div
+          style={styles.priceRangeGroup}
+          title="Filter deals by your calculated Oracle Buy Ceiling for the item (not the current offer price)"
+        >
           <div style={styles.groupLabel}>
             <DollarSign size={13} style={{ color: '#64748b' }} />
-            <span>Price:</span>
+            <span>Buy Ceiling:</span>
           </div>
           <div style={styles.priceInputWrapper}>
             <span style={styles.priceCurrency}>$</span>

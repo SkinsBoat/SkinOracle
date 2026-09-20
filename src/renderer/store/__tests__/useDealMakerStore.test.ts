@@ -140,4 +140,35 @@ describe('useDealMakerStore Modal & State Management', () => {
       'https://csfloat.com/stall/12345',
     );
   });
+
+  it('submits a marketplace store link through submitDealLink', async () => {
+    const mockSubmitDealLink = vi.fn().mockResolvedValue({ id: 'deal-m' });
+    (globalThis as any).window = {
+      electronAPI: {
+        dealmaker: {
+          submitDealLink: mockSubmitDealLink,
+          getActive: vi.fn().mockResolvedValue([]),
+          getMyDeals: vi.fn().mockResolvedValue([]),
+          getMyOffers: vi
+            .fn()
+            .mockResolvedValue({ wonAuctions: [], activeBidAuctions: [] }),
+          getPresence: vi.fn().mockResolvedValue({ activeTradersCount: 1 }),
+        },
+      },
+    };
+
+    useAuctionStore.setState({
+      myAuctions: [{ id: 'deal-m', bidsCount: 3 } as any],
+      activeAuctions: [],
+    });
+
+    const ok = await useAuctionStore
+      .getState()
+      .submitMarketLink('deal-m', 'https://csfloat.com/stall/123');
+
+    expect(ok).toBe(true);
+    expect(mockSubmitDealLink).toHaveBeenCalledWith('deal-m', {
+      marketLink: 'https://csfloat.com/stall/123',
+    });
+  });
 });

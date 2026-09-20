@@ -10,7 +10,7 @@ import {
   DEALMAKER_MY_OFFERS,
   DEALMAKER_PRESENCE,
 } from '../constants/apiUrls';
-import { CreateDealPayload, PlaceOfferPayload } from '../../shared/types/dealmaker.types';
+import { CreateDealPayload, PlaceOfferPayload, SubmitDealLinkPayload } from '../../shared/types/dealmaker.types';
 
 export function setupDealMakerIPC() {
   const handleCreate = async (_: any, payload: CreateDealPayload) => {
@@ -51,13 +51,34 @@ export function setupDealMakerIPC() {
     return res.data;
   };
 
-  const handleSubmitListingLink = async (_: any, dealId: string, listingUrl: string) => {
+  const handleSubmitListingLink = async (
+    _: any,
+    dealId: string,
+    payload: SubmitDealLinkPayload | string,
+  ) => {
     if (!dealId?.trim()) throw new Error('Deal ID is required');
-    const cleanUrl = listingUrl?.trim();
-    if (!cleanUrl || !cleanUrl.startsWith('https://')) {
+
+    // Accept the legacy string form (listing URL only) for backward compatibility.
+    const normalized: SubmitDealLinkPayload =
+      typeof payload === 'string' ? { listingUrl: payload } : payload || {};
+
+    const listingUrl = normalized.listingUrl?.trim() || '';
+    const marketLink = normalized.marketLink?.trim() || '';
+
+    if (!listingUrl && !marketLink) {
+      throw new Error('A listing link or store link is required');
+    }
+    if (listingUrl && !listingUrl.startsWith('https://')) {
       throw new Error('Listing URL must be a valid secure HTTPS link');
     }
-    const res = await saasAxios.post(DEALMAKER_LISTING_LINK(dealId.trim()), { listingUrl: cleanUrl });
+    if (marketLink && !marketLink.startsWith('https://')) {
+      throw new Error('Store link must be a valid secure HTTPS link');
+    }
+
+    const res = await saasAxios.post(DEALMAKER_LISTING_LINK(dealId.trim()), {
+      listingUrl: listingUrl || undefined,
+      marketLink: marketLink || undefined,
+    });
     return res.data;
   };
 

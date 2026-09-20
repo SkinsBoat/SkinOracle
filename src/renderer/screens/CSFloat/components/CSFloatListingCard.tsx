@@ -436,7 +436,7 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
         {item.is_sold ? (
           <div style={styles.soldBanner}>
             <CheckCircle2 size={12} style={styles.soldBannerIcon} />
-            <span>🎉 SOLD — Awaiting Steam Trade</span>
+            <span>SOLD — Awaiting Steam Trade</span>
           </div>
         ) : !isListed ? (
           <>

@@ -45,7 +45,14 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
   {
     id: "csmoney_market",
     name: "CS.MONEY (Market)",
-    aliases: ["csmoney_m", "csmoney_p2p", "csmoney_market"],
+    aliases: [
+      "csmoney_m",
+      "csmoney_p2p",
+      "csmoney_market",
+      "csmoney",
+      "cs.money",
+      "cs_money",
+    ],
   },
   {
     id: "csmoney_trade",

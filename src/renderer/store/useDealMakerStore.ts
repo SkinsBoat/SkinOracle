@@ -6,6 +6,8 @@ import {
 } from '../../shared/types/dealmaker.types';
 import toast from 'react-hot-toast';
 
+export type DealMakerFilter = 'all' | 'my-bids' | 'my-auctions' | 'config';
+
 export interface DealMakerStoreState {
   activeAuctions: DealMakerItem[]; // Live deals
   myAuctions: DealMakerItem[]; // My broadcasted deals
@@ -15,11 +17,11 @@ export interface DealMakerStoreState {
   isLoading: boolean;
   isCreating: boolean;
   isBidding: boolean;
-  activeFilter: 'all' | 'my-bids' | 'my-auctions';
+  activeFilter: DealMakerFilter;
   isCreateModalOpen: boolean;
   initialCreateData: Partial<CreateDealPayload> | null;
 
-  setActiveFilter: (filter: 'all' | 'my-bids' | 'my-auctions') => void;
+  setActiveFilter: (filter: DealMakerFilter) => void;
   setSelectedAuction: (deal: DealMakerItem | null) => void;
   openCreateModal: (initialData?: Partial<CreateDealPayload>) => void;
   closeCreateModal: () => void;
@@ -34,6 +36,12 @@ export interface DealMakerStoreState {
   createAuction: (payload: CreateDealPayload) => Promise<boolean>;
   placeBid: (dealId: string, bidAmount: number, bidderTag?: string) => Promise<boolean>;
   submitListingLink: (dealId: string, listingUrl: string) => Promise<boolean>;
+  submitMarketLink: (dealId: string, marketLink: string) => Promise<boolean>;
+  submitDealLinks: (
+    dealId: string,
+    payload: { listingUrl?: string; marketLink?: string },
+    loadingMessage: string,
+  ) => Promise<boolean>;
 }
 
 const getDealMakerAPI = () => {
@@ -192,13 +200,25 @@ export const useDealMakerStore = create<DealMakerStoreState>((set, get) => ({
   },
 
   submitListingLink: async (dealId: string, listingUrl: string) => {
+    return get().submitDealLinks(dealId, { listingUrl }, 'Attaching marketplace listing link...');
+  },
+
+  submitMarketLink: async (dealId: string, marketLink: string) => {
+    return get().submitDealLinks(dealId, { marketLink }, 'Sharing your marketplace store link...');
+  },
+
+  submitDealLinks: async (
+    dealId: string,
+    payload: { listingUrl?: string; marketLink?: string },
+    loadingMessage: string,
+  ) => {
     const api = getDealMakerAPI();
     if (!api) {
       toast.error('DealMaker service is not available');
       return false;
     }
 
-    // Disallow sharing listing link if 0 offers were placed on the deal
+    // Disallow sharing listing links if 0 offers were placed on the deal
     const targetDeal =
       get().myAuctions.find((a) => a.id === dealId) ||
       get().activeAuctions.find((a) => a.id === dealId);
@@ -207,16 +227,27 @@ export const useDealMakerStore = create<DealMakerStoreState>((set, get) => ({
       return false;
     }
 
-    const toastId = toast.loading('Attaching marketplace listing link...');
+    const toastId = toast.loading(loadingMessage);
 
     try {
-      await api.submitListingLink(dealId, listingUrl);
-      toast.success('Listing link posted! Matched buyer has been notified.', { id: toastId });
+      const apiAny = api as any;
+      if (typeof apiAny.submitDealLink === 'function') {
+        await apiAny.submitDealLink(dealId, payload);
+      } else if (typeof apiAny.submitListingLink === 'function') {
+        // Backward-compatibility with preloads that predate market links.
+        await apiAny.submitListingLink(
+          dealId,
+          payload.listingUrl || payload.marketLink || '',
+        );
+      } else {
+        throw new Error('Link submission is not available');
+      }
+      toast.success('Link posted! Matched buyer has been notified.', { id: toastId });
       await get().refreshAll();
       return true;
     } catch (err: any) {
-      console.error('[DealMakerStore] submitListingLink error:', err);
-      const msg = err?.response?.data?.message || err?.message || 'Failed to submit listing link';
+      console.error('[DealMakerStore] submitDealLinks error:', err);
+      const msg = err?.response?.data?.message || err?.message || 'Failed to submit link';
       toast.error(`Link update failed: ${msg}`, { id: toastId });
       return false;
     }
