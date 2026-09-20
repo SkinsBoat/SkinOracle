@@ -24,8 +24,10 @@ import {
   countDealsWithinCeiling,
   isAnyFilterActive,
 } from './utils/dealFilterUtils';
-import { toCanonicalMarketId } from '../../../shared/canonicalMarkets';
-import { DEALMAKER_MARKET_IDS } from '../../../shared/dealmakerMarkets';
+import {
+  DEALMAKER_MARKET_IDS,
+  normalizeDealMakerMarketId,
+} from '../../../shared/dealmakerMarkets';
 
 export const DealMakerFloorScreen: React.FC = () => {
   const {
@@ -67,7 +69,8 @@ export const DealMakerFloorScreen: React.FC = () => {
     const set = new Set<string>(['all', ...DEALMAKER_MARKET_IDS]);
     activeAuctions.forEach((a) => {
       if (a.marketplace) {
-        const canonical = toCanonicalMarketId(a.marketplace);
+        const canonical = normalizeDealMakerMarketId(a.marketplace);
+        // Only add if this marketplace is a known DealMaker platform
         if (canonical) set.add(canonical);
       }
     });

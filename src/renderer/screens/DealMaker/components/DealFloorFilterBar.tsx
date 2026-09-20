@@ -13,10 +13,12 @@ import { DealFloorFilters, AuctionFloorFilters } from '../utils/dealFilterUtils'
 import { MarketLogo } from '../../../components/MarketLogo';
 import {
   getMarketDisplayName,
-  toCanonicalMarketId,
   isMarketMatch,
 } from '../../../../shared/canonicalMarkets';
-import { DEALMAKER_MARKET_IDS } from '../../../../shared/dealmakerMarkets';
+import {
+  DEALMAKER_MARKET_IDS,
+  normalizeDealMakerMarketId,
+} from '../../../../shared/dealmakerMarkets';
 
 export interface DealFloorFilterBarProps {
   filters: DealFloorFilters;
@@ -78,7 +80,7 @@ export const DealFloorFilterBar: React.FC<DealFloorFilterBarProps> = ({
           </div>
           {availableMarkets.map((market) => {
             const isAll = market.toLowerCase() === 'all';
-            const canonicalId = isAll ? 'all' : toCanonicalMarketId(market);
+            const canonicalId = isAll ? 'all' : normalizeDealMakerMarketId(market) ?? 'all';
             const isSelected = isAll
               ? filters.marketFilter.toLowerCase() === 'all'
               : isMarketMatch(filters.marketFilter, market);

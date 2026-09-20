@@ -1,7 +1,16 @@
 import React from "react";
 import toast from "react-hot-toast";
 import { confirmModal } from "../../../store/useConfirmStore";
-import { Zap, ChevronUp, ChevronDown, TrendingUp, Cpu } from "lucide-react";
+import {
+  Zap,
+  ChevronUp,
+  ChevronDown,
+  TrendingUp,
+  Cpu,
+  RotateCw,
+  Loader2,
+  Clock,
+} from "lucide-react";
 import {
   BuildPreFilters,
   OracleStrategyProfile,
@@ -13,7 +22,7 @@ import { EngineStrategyPanel } from "./step2/EngineStrategyPanel";
 import { NexusLabControls } from "./step2/NexusLabControls";
 import { DevSimulatorPanel } from "./step2/DevSimulatorPanel";
 import { CostLedgerSummary } from "./step2/CostLedgerSummary";
-import { evaluateTrendHealth } from "../utils/oracleUtils";
+import { evaluateTrendHealth, formatTimeAgo } from "../utils/oracleUtils";
 
 interface Step2AcceptedPricesProps {
   isOpen: boolean;
@@ -87,6 +96,12 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
   const [seedDays, setSeedDays] = React.useState<number>(
     nexusProfile.trendWindow || 14,
   );
+
+  const [, setTicker] = React.useState(0);
+  React.useEffect(() => {
+    const timer = setInterval(() => setTicker((t) => t + 1), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   React.useEffect(() => {
     if (nexusProfile.trendWindow) {
@@ -239,8 +254,10 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
                 Engine:{" "}
                 {selectedEngine === "nexus"
                   ? "OracleNexus v2 PRO (Trend-Shield)"
-                  : "SkinOracle v20 STANDARD"}{" "}
-                • Configure buy ceilings & risk filters
+                  : "SkinOracle v20 STANDARD"}
+                {evaluatedSummary.lastBuiltAt
+                  ? ` • Calculated ${formatTimeAgo(evaluatedSummary.lastBuiltAt)} (${evaluatedSummary.totalEvaluated.toLocaleString()} items)`
+                  : " • Configure buy ceilings & risk filters"}
               </div>
             )}
           </div>
@@ -248,7 +265,7 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
 
         <div style={styles.headerRight}>
           <span
-            className={`badge ${selectedEngine === "nexus" ? "badge-primary" : "badge-cyan"}`}
+            className={`badge ${selectedEngine === "nexus" ? "badge-cyan" : "badge-ghost"}`}
             style={styles.engineBadge}
           >
             {selectedEngine === "nexus" ? (
@@ -260,24 +277,88 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
           </span>
           {selectedEngine === "nexus" && (
             <span
-              className={`badge ${trendHealth.badgeClass}`}
+              className={`badge ${
+                trendHealth.isStale || trendHealth.isInsufficient
+                  ? "badge-warning"
+                  : "badge-ghost"
+              }`}
               style={{
                 ...styles.trendHealthBadge,
                 ...getStaleBadgeStyle(trendHealth.isStale),
               }}
-              title={trendHealth.warningMessage || undefined}
+              title={trendHealth.warningMessage || `Trend Data: ${trendHealth.badgeText}`}
             >
-              {trendHealth.badgeText}
+              {trendHealth.isInsufficient
+                ? `▲ ${trendHealth.daysCount}/3d`
+                : trendHealth.isStale
+                ? `▲ Stale (${trendHealth.daysSinceLatest}d)`
+                : `● ${trendStats?.daysCount ?? 0}d Trend`}
             </span>
           )}
           <span
-            className={`badge ${evaluatedSummary.lastBuiltAt ? "badge-cyan" : "badge-ghost"}`}
+            className={`badge ${evaluatedSummary.lastBuiltAt ? "badge-success" : "badge-ghost"}`}
             style={styles.headerBadge}
           >
             {evaluatedSummary.lastBuiltAt
-              ? `✓ Calculated (${evaluatedSummary.totalEvaluated.toLocaleString()} Items)`
-              : "Not Calculated Yet"}
+              ? `✓ ${evaluatedSummary.totalEvaluated.toLocaleString()} Items`
+              : "Not Calculated"}
           </span>
+
+          <span
+            className="badge badge-ghost"
+            style={styles.timeAgoBadge}
+            title={
+              evaluatedSummary.lastBuiltAt
+                ? `Last calculated: ${evaluatedSummary.lastBuiltAt}`
+                : "Not calculated yet"
+            }
+          >
+            <Clock size={11} style={styles.timeAgoIcon} />
+            {formatTimeAgo(evaluatedSummary.lastBuiltAt)}
+          </span>
+
+          {/* Quick Action Button to calculate or recalculate buy ceilings based on current engine */}
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            style={styles.headerActionBtn}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleBuildAcceptedPrices();
+            }}
+            disabled={
+              !effectiveCanBuild ||
+              evaluatedSummary.isBatchEvaluating ||
+              cacheStatus.itemCount === 0
+            }
+            title={
+              cacheStatus.itemCount === 0
+                ? "Price cache required (Scan Step 1 first)"
+                : isNexusTrendBlocked
+                ? `Nexus Pro requires at least 3 days of trend history (${trendStats?.daysCount ?? 0}/3 days)`
+                : evaluatedSummary.lastBuiltAt
+                ? "Recalculate Buy Ceilings using current engine & filters"
+                : "Calculate Buy Ceilings"
+            }
+          >
+            {evaluatedSummary.isBatchEvaluating ? (
+              <>
+                <Loader2 size={13} className="spin" />
+                {evaluatedSummary.batchProgress
+                  ? `${evaluatedSummary.batchProgress.percent}%`
+                  : "Calculating…"}
+              </>
+            ) : evaluatedSummary.lastBuiltAt ? (
+              <>
+                <RotateCw size={13} /> Recalculate
+              </>
+            ) : (
+              <>
+                <Zap size={13} /> Calculate
+              </>
+            )}
+          </button>
+
           {isOpen ? (
             <ChevronUp size={18} style={styles.chevronIcon} />
           ) : (
@@ -401,6 +482,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
+    minWidth: 0,
+    flex: "1 1 auto",
   },
   headerTitle: {
     fontSize: "15px",
@@ -409,31 +492,62 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    whiteSpace: "nowrap",
   },
   headerSubtitle: {
     fontSize: "12px",
     color: "var(--so-text-muted)",
     marginTop: "2px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   headerRight: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "8px",
+    flexWrap: "nowrap",
+    flexShrink: 0,
   },
   engineBadge: {
     fontSize: "11px",
     display: "inline-flex",
     alignItems: "center",
     gap: "4px",
+    whiteSpace: "nowrap",
   },
   trendHealthBadge: {
     fontSize: "11px",
     display: "inline-flex",
     alignItems: "center",
     gap: "4px",
+    whiteSpace: "nowrap",
   },
   headerBadge: {
     fontSize: "11px",
+    whiteSpace: "nowrap",
+  },
+  timeAgoBadge: {
+    fontSize: "11px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    color: "var(--so-text-muted)",
+    border: "1px solid var(--so-border-subtle)",
+    whiteSpace: "nowrap",
+  },
+  timeAgoIcon: {
+    opacity: 0.75,
+  },
+  headerActionBtn: {
+    padding: "3px 10px",
+    fontSize: "11.5px",
+    fontWeight: 600,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    height: "26px",
+    whiteSpace: "nowrap",
   },
   chevronIcon: {
     color: "var(--so-text-muted)",

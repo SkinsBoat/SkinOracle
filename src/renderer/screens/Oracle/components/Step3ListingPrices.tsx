@@ -13,6 +13,7 @@ import {
   Sliders,
   Loader2,
   RotateCw,
+  Clock,
 } from "lucide-react";
 import { ListingPriceStrategy } from "../../../store/useOracleStore";
 import { formatTimeAgo } from "../utils/oracleUtils";
@@ -46,6 +47,12 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
   setListingStrategy,
   onBuildListingPrices,
 }) => {
+  const [, setTicker] = React.useState(0);
+  React.useEffect(() => {
+    const timer = setInterval(() => setTicker((t) => t + 1), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="card" style={styles.cardContainer}>
       {/* Accordion Header Bar */}
@@ -61,8 +68,14 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
             </div>
             {!isOpen && (
               <div style={styles.headerSubtitle}>
-                Configure selling strategy, outlier dump protection, & compute
-                optimal listing prices
+                Strategy: {listingStrategy.mode.toUpperCase()} (
+                {listingStrategy.offsetPercent >= 0
+                  ? `+${listingStrategy.offsetPercent}%`
+                  : `${listingStrategy.offsetPercent}%`}
+                )
+                {listingSummary.lastBuiltAt
+                  ? ` • Generated ${formatTimeAgo(listingSummary.lastBuiltAt)} (${listingSummary.totalEvaluated.toLocaleString()} items)`
+                  : " • Outlier dump protection & optimal selling prices"}
               </div>
             )}
           </div>
@@ -74,9 +87,58 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
             style={styles.headerBadge}
           >
             {listingSummary.lastBuiltAt
-              ? `✓ Generated (${listingSummary.totalEvaluated.toLocaleString()} Items - ${listingStrategy.mode.toUpperCase()})`
-              : "Not Generated Yet"}
+              ? `✓ ${listingSummary.totalEvaluated.toLocaleString()} Items`
+              : "Not Generated"}
           </span>
+
+          <span
+            className="badge badge-ghost"
+            style={styles.timeAgoBadge}
+            title={
+              listingSummary.lastBuiltAt
+                ? `Last generated: ${listingSummary.lastBuiltAt}`
+                : "Not generated yet"
+            }
+          >
+            <Clock size={11} style={styles.timeAgoIcon} />
+            {formatTimeAgo(listingSummary.lastBuiltAt)}
+          </span>
+
+          {/* Quick Action Button to generate or regenerate sell targets based on current configs */}
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            style={styles.headerActionBtn}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBuildListingPrices();
+            }}
+            disabled={
+              cacheStatus.itemCount === 0 || listingSummary.isBatchEvaluating
+            }
+            title={
+              cacheStatus.itemCount === 0
+                ? "Price cache required (Scan Step 1 first)"
+                : listingSummary.lastBuiltAt
+                ? `Regenerate Sell Targets using ${listingStrategy.mode.toUpperCase()} strategy`
+                : `Generate Sell Targets using ${listingStrategy.mode.toUpperCase()} strategy`
+            }
+          >
+            {listingSummary.isBatchEvaluating ? (
+              <>
+                <Loader2 size={13} className="spin" /> Generating…
+              </>
+            ) : listingSummary.lastBuiltAt ? (
+              <>
+                <RotateCw size={13} /> Regenerate
+              </>
+            ) : (
+              <>
+                <Tag size={13} /> Generate
+              </>
+            )}
+          </button>
+
           {isOpen ? (
             <ChevronUp size={18} style={styles.chevronIcon} />
           ) : (
@@ -429,6 +491,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
+    minWidth: 0,
+    flex: "1 1 auto",
   },
   headerTitle: {
     fontSize: "15px",
@@ -437,6 +501,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    whiteSpace: "nowrap",
   },
   headerTagIcon: {
     color: "var(--so-success-text)",
@@ -445,14 +510,42 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "12px",
     color: "var(--so-text-muted)",
     marginTop: "2px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   headerRight: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "8px",
+    flexWrap: "nowrap",
+    flexShrink: 0,
   },
   headerBadge: {
     fontSize: "11px",
+    whiteSpace: "nowrap",
+  },
+  timeAgoBadge: {
+    fontSize: "11px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    color: "var(--so-text-muted)",
+    border: "1px solid var(--so-border-subtle)",
+    whiteSpace: "nowrap",
+  },
+  timeAgoIcon: {
+    opacity: 0.75,
+  },
+  headerActionBtn: {
+    padding: "3px 10px",
+    fontSize: "11.5px",
+    fontWeight: 600,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    height: "26px",
+    whiteSpace: "nowrap",
   },
   chevronIcon: {
     color: "var(--so-text-muted)",

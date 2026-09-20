@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Radio,
   ChevronUp,
@@ -15,13 +15,14 @@ import {
   AlertTriangle,
   Zap,
   Database,
+  Clock,
 } from "lucide-react";
 import { skinSnipeLogo, cs2capLogo } from "../../../../../assets/images";
 import { MarketLogo } from "../../../components/MarketLogo";
 import { SkinsnipeMarketId } from "../../../../shared/types";
 import { CS2CAP_PROVIDERS } from "../../../../shared/cs2capProviders";
 import { isTradeMarket } from "../../../../shared/canonicalMarkets";
-import { QuantityIntegrityReport } from "../utils/oracleUtils";
+import { QuantityIntegrityReport, formatTimeAgo } from "../utils/oracleUtils";
 import {
   MarketSelectionChip,
   MarketSelectionToolbar,
@@ -173,6 +174,12 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
   const estimatedFetchSeconds = Math.max(0, (selectedMarkets.length - 1) * 32);
 
+  const [, setTicker] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTicker((t) => t + 1), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   const getMissingQtyForMarket = (marketId: string): number =>
     resolveMissingQty(quantityAudit, marketId);
 
@@ -193,7 +200,9 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
             </div>
             {!isOpen && (
               <div style={styles.headerSubtitle}>
-                {import.meta.env.DEV
+                {cacheStatus.lastFetchedAt
+                  ? `Last synced ${formatTimeAgo(cacheStatus.lastFetchedAt)} • ${pricingProvider === "cs2cap" ? "CS2Cap Stream Pipeline" : `${selectedMarkets.length} active markets`} • Real-time price cache`
+                  : import.meta.env.DEV
                   ? "Select target markets, scan real-time marketplace feeds"
                   : "Select target markets and scan real-time marketplace feeds"}
               </div>
@@ -210,6 +219,100 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
               ? `✓ ${cacheStatus.itemCount.toLocaleString()} Items Cached`
               : "Cache Empty"}
           </span>
+
+          <span
+            className="badge badge-ghost"
+            style={styles.timeAgoBadge}
+            title={
+              cacheStatus.lastFetchedAt
+                ? `Last synced: ${cacheStatus.lastFetchedAt}`
+                : "No price sync recorded"
+            }
+          >
+            <Clock size={11} style={styles.timeAgoIcon} />
+            {formatTimeAgo(cacheStatus.lastFetchedAt)}
+          </span>
+
+          {/* Quick Action Button based on provider and current configs */}
+          {pricingProvider === "cs2cap" ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={styles.headerActionBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isCs2capStreaming) {
+                  onCancelCs2capStream?.();
+                } else {
+                  onStreamCs2cap?.();
+                }
+              }}
+              disabled={
+                !hasCs2capKey ||
+                cacheStatus.isFetching ||
+                isBatchEvaluating
+              }
+              title={
+                !hasCs2capKey
+                  ? "CS2Cap API Key required"
+                  : isCs2capStreaming
+                  ? "Cancel active stream"
+                  : "Stream CS2Cap prices into local cache"
+              }
+            >
+              {isCs2capStreaming ? (
+                <>
+                  <Loader2 size={13} className="spin" /> Streaming…
+                </>
+              ) : (
+                <>
+                  <Zap size={13} />{" "}
+                  {cacheStatus.itemCount > 0 ? "Restream" : "Stream"}
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={styles.headerActionBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (cacheStatus.isFetching) {
+                  onCancelFetch();
+                } else {
+                  onFetchPrices();
+                }
+              }}
+              disabled={
+                cacheStatus.isFetching ||
+                isBatchEvaluating ||
+                (!hasApiKey && !isDemoCache) ||
+                selectedMarkets.length === 0
+              }
+              title={
+                !hasApiKey && !isDemoCache
+                  ? "Skinsnipe API Key required"
+                  : selectedMarkets.length === 0
+                  ? "Select at least 1 market"
+                  : cacheStatus.isFetching
+                  ? "Cancel active market scan"
+                  : "Scan prices from selected markets"
+              }
+            >
+              {cacheStatus.isFetching ? (
+                <>
+                  <Loader2 size={13} className="spin" /> Scanning…
+                </>
+              ) : (
+                <>
+                  <RotateCw size={13} />{" "}
+                  {cacheStatus.itemCount > 0 ? "Rescan" : "Scan"}
+                </>
+              )}
+            </button>
+          )}
+
           {isOpen ? (
             <ChevronUp size={18} style={styles.chevronIcon} />
           ) : (
@@ -913,6 +1016,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
+    minWidth: 0,
+    flex: "1 1 auto",
   },
   headerTitle: {
     fontSize: "15px",
@@ -921,6 +1026,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    whiteSpace: "nowrap",
   },
   radioIcon: {
     color: "var(--so-primary)",
@@ -929,14 +1035,42 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "12px",
     color: "var(--so-text-muted)",
     marginTop: "2px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   headerRight: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "8px",
+    flexWrap: "nowrap",
+    flexShrink: 0,
   },
   headerBadge: {
     fontSize: "11px",
+    whiteSpace: "nowrap",
+  },
+  timeAgoBadge: {
+    fontSize: "11px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    color: "var(--so-text-muted)",
+    border: "1px solid var(--so-border-subtle)",
+    whiteSpace: "nowrap",
+  },
+  timeAgoIcon: {
+    opacity: 0.75,
+  },
+  headerActionBtn: {
+    padding: "3px 10px",
+    fontSize: "11.5px",
+    fontWeight: 600,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    height: "26px",
+    whiteSpace: "nowrap",
   },
   chevronIcon: {
     color: "var(--so-text-muted)",

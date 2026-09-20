@@ -524,6 +524,12 @@ label {
   border: 1px solid var(--so-accent-cyan);
 }
 
+.badge-ghost {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--so-text-muted);
+  border: 1px solid var(--so-border-subtle);
+}
+
 /* Metric Stat Boxes */
 .stat-box {
   background-color: var(--so-surface-panel);
