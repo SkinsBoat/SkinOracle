@@ -10,6 +10,7 @@ import {
   RotateCw,
   Loader2,
   Clock,
+  Ban,
 } from "lucide-react";
 import {
   BuildPreFilters,
@@ -57,6 +58,10 @@ interface Step2AcceptedPricesProps {
   >;
   nexusProfile: NexusStrategyProfile;
   setNexusProfile: React.Dispatch<React.SetStateAction<NexusStrategyProfile>>;
+  blockedSkins: string[];
+  blockSkin: (name: string) => void;
+  unblockSkin: (name: string) => void;
+  clearBlockedSkins: () => void;
   onBuildAcceptedPrices: () => void;
   canBuild: boolean;
 }
@@ -77,6 +82,10 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
   setStrategyProfile,
   nexusProfile,
   setNexusProfile,
+  blockedSkins,
+  blockSkin,
+  unblockSkin,
+  clearBlockedSkins,
   onBuildAcceptedPrices,
   canBuild,
 }) => {
@@ -377,6 +386,17 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             Unhedged, illiquid, or high-risk items are automatically suppressed by your risk profile and engine safety shields to protect capital.
           </p>
 
+          {/* Blocked Skins Hint */}
+          {blockedSkins.length > 0 && (
+            <div style={styles.blockedSkinsHint}>
+              <Ban size={13} style={styles.blockedHintIcon} />
+              <span>
+                <strong>{blockedSkins.length}</strong> skin pattern{blockedSkins.length !== 1 ? "s" : ""} blocked
+                &nbsp;&mdash;&nbsp;Oracle will silently skip all their variants during evaluation.
+              </span>
+            </div>
+          )}
+
           {/* Section 1: Smart Pre-Evaluation Filters */}
           <PreFiltersPanel
             preFilters={preFilters}
@@ -559,6 +579,23 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cardDesc: {
     marginBottom: "16px",
+  },
+  blockedSkinsHint: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "7px 12px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-input)",
+    border: "1px solid var(--so-border-subtle)",
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+    marginBottom: "14px",
+  },
+  blockedHintIcon: {
+    color: "var(--so-text-muted)",
+    flexShrink: 0,
+    opacity: 0.6,
   },
 };
 

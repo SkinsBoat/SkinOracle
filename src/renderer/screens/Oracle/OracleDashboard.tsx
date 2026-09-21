@@ -10,6 +10,7 @@ import { isMarketMatch, isTradeMarket } from "../../../shared/canonicalMarkets";
 import { CS2CAP_PROVIDERS } from "../../../shared/cs2capProviders";
 import {
   passesSmartPreFilters,
+  isBlockedBySkinList,
   calculateSuggestedListingPrice,
   roundToCsFloatStep,
   auditCacheQuantityIntegrity,
@@ -96,6 +97,10 @@ export default function OracleDashboard() {
     setNexusProfile,
     listingStrategy,
     setListingStrategy,
+    blockedSkins,
+    blockSkin,
+    unblockSkin,
+    clearBlockedSkins,
   } = useOracleStore();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -353,13 +358,19 @@ export default function OracleDashboard() {
     toast.success("Reset CS2Cap providers to default");
   };
 
-  // Compute live count of items passing smart pre-filters
+  // Memoized Set of blocked base names — O(1) lookup per item, recomputed only
+  // when the blockedSkins array reference changes.
+  const blockedSet = useMemo(() => new Set(blockedSkins), [blockedSkins]);
+
+  // Compute live count of items passing smart pre-filters (and not blocked)
   const passingFilterCount = useMemo(() => {
     if (cachedItemNames.length === 0) return 0;
-    return cachedItemNames.filter((name) =>
-      passesSmartPreFilters(name, preFilters, fullCache?.[name]),
+    return cachedItemNames.filter(
+      (name) =>
+        passesSmartPreFilters(name, preFilters, fullCache?.[name]) &&
+        !isBlockedBySkinList(name, blockedSet),
     ).length;
-  }, [cachedItemNames, preFilters, fullCache]);
+  }, [cachedItemNames, preFilters, fullCache, blockedSet]);
 
   const toggleMarket = (marketId: SkinsnipeMarketId) => {
     if (selectedMarkets.includes(marketId) && selectedMarkets.length === 1) {
@@ -443,9 +454,11 @@ export default function OracleDashboard() {
         return;
       }
 
-      // Apply Smart Pre-Filters
-      const filteredItemNames = allItemNames.filter((name) =>
-        passesSmartPreFilters(name, preFilters, fullCache[name]),
+      // Apply Smart Pre-Filters + Blocked Skins
+      const filteredItemNames = allItemNames.filter(
+        (name) =>
+          passesSmartPreFilters(name, preFilters, fullCache[name]) &&
+          !isBlockedBySkinList(name, blockedSet),
       );
 
       if (filteredItemNames.length === 0) {
@@ -661,9 +674,11 @@ export default function OracleDashboard() {
       const fullCache: any = await window.electronAPI.skinsnipe.getCache();
       const allItemNames = Object.keys(fullCache || {});
 
-      // Apply Smart Pre-Filters
-      const filteredItemNames = allItemNames.filter((name) =>
-        passesSmartPreFilters(name, preFilters, fullCache[name]),
+      // Apply Smart Pre-Filters + Blocked Skins
+      const filteredItemNames = allItemNames.filter(
+        (name) =>
+          passesSmartPreFilters(name, preFilters, fullCache[name]) &&
+          !isBlockedBySkinList(name, blockedSet),
       );
 
       if (filteredItemNames.length === 0) {
@@ -1042,6 +1057,10 @@ export default function OracleDashboard() {
         setPreFilters={setPreFilters}
         toggleWear={toggleWear}
         resetPreFilters={storeResetPreFilters}
+        blockedSkins={blockedSkins}
+        blockSkin={blockSkin}
+        unblockSkin={unblockSkin}
+        clearBlockedSkins={clearBlockedSkins}
         selectedEngine={selectedEngine}
         setSelectedEngine={setSelectedEngine}
         strategyProfile={strategyProfile}

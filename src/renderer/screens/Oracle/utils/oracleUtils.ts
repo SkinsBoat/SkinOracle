@@ -16,6 +16,51 @@ export {
   getCsFloatIncrementInCents,
 };
 
+// ── Blocked Skins Utilities ───────────────────────────────────────────────────
+
+const WEAR_SUFFIX_RE =
+  /\s*\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)$/i;
+
+/**
+ * Strips StatTrak™ / Souvenir prefixes and wear condition suffixes from a
+ * full market_hash_name to yield the canonical "base" skin name used for
+ * pattern-based blocking.
+ *
+ * Examples:
+ *   "StatTrak™ AWP | Atheris (Minimal Wear)"  → "AWP | Atheris"
+ *   "Souvenir AWP | Atheris (Field-Tested)"   → "AWP | Atheris"
+ *   "AWP | Atheris (Battle-Scarred)"          → "AWP | Atheris"
+ *   "Sticker | AWP | Atheris"                 → "Sticker | AWP | Atheris"
+ *   "★ Karambit (Vanilla)"                    → "★ Karambit (Vanilla)"
+ */
+export function extractBaseName(marketHashName: string): string {
+  let name = marketHashName.trim();
+  // Strip leading "StatTrak™ " (with unicode trademark symbol)
+  if (name.startsWith("StatTrak\u2122 ")) {
+    name = name.slice("StatTrak\u2122 ".length);
+  }
+  // Strip leading "Souvenir "
+  if (name.startsWith("Souvenir ")) {
+    name = name.slice("Souvenir ".length);
+  }
+  // Strip trailing wear suffix
+  name = name.replace(WEAR_SUFFIX_RE, "");
+  return name.trim();
+}
+
+/**
+ * Returns true if the item should be blocked based on the blocked-skins Set.
+ * The Set contains base names (output of extractBaseName). This check is O(1)
+ * regardless of how large the blocked list is.
+ */
+export function isBlockedBySkinList(
+  marketHashName: string,
+  blockedSet: Set<string>,
+): boolean {
+  if (blockedSet.size === 0) return false;
+  return blockedSet.has(extractBaseName(marketHashName));
+}
+
 export function passesSmartPreFilters(
   itemName: string,
   filters: BuildPreFilters,

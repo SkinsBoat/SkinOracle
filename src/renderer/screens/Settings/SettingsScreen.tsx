@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Settings, KeyRound, Database, Cpu } from "lucide-react";
+import { Settings, KeyRound, Database, Cpu, Ban } from "lucide-react";
 import { ApiKeysSection } from "./components/ApiKeysSection";
 import { DatabaseStorageSection } from "./components/DatabaseStorageSection";
 import { SystemDiagnosticsSection } from "./components/SystemDiagnosticsSection";
+import { BlockedSkinsSection } from "./components/BlockedSkinsSection";
+import { useOracleStore } from "../../store/useOracleStore";
 
-export type SettingsTabId = "api-keys" | "database" | "diagnostics";
+export type SettingsTabId = "api-keys" | "database" | "blocked-skins" | "diagnostics";
 
 interface SettingsTab {
   id: SettingsTabId;
@@ -18,12 +20,16 @@ export default function SettingsScreen() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as SettingsTabId) || "api-keys";
   const [activeTab, setActiveTab] = useState<SettingsTabId>(
-    initialTab === "database" || initialTab === "diagnostics" ? initialTab : "api-keys",
+    ["api-keys", "database", "blocked-skins", "diagnostics"].includes(initialTab)
+      ? initialTab
+      : "api-keys",
   );
+
+  const { blockedSkins } = useOracleStore();
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab") as SettingsTabId;
-    if (tabFromUrl && (tabFromUrl === "api-keys" || tabFromUrl === "database" || tabFromUrl === "diagnostics")) {
+    if (tabFromUrl && (["api-keys", "database", "blocked-skins", "diagnostics"] as string[]).includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -44,6 +50,12 @@ export default function SettingsScreen() {
       label: "Database & Storage",
       icon: <Database size={15} />,
       badge: "SQLite 3",
+    },
+    {
+      id: "blocked-skins",
+      label: "Blocked Skins",
+      icon: <Ban size={15} />,
+      badge: blockedSkins.length > 0 ? `${blockedSkins.length}` : undefined,
     },
     {
       id: "diagnostics",
@@ -107,6 +119,7 @@ export default function SettingsScreen() {
         {activeTab === "api-keys" && <ApiKeysSection />}
         {activeTab === "database" && <DatabaseStorageSection />}
         {activeTab === "diagnostics" && <SystemDiagnosticsSection />}
+        {activeTab === "blocked-skins" && <BlockedSkinsSection />}
       </div>
     </div>
   );

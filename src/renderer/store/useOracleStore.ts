@@ -105,6 +105,7 @@ interface OracleStoreState {
   selectedMarkets: SkinsnipeMarketId[];
   selectedCs2capProviders: string[];
   preFilters: BuildPreFilters;
+  blockedSkins: string[];
   selectedEngine: "standard" | "nexus";
   strategyProfile: OracleStrategyProfile;
   nexusProfile: NexusStrategyProfile;
@@ -133,6 +134,10 @@ interface OracleStoreState {
   toggleWear: (wearKey: keyof BuildPreFilters["allowedWears"]) => void;
   resetPreFilters: () => void;
 
+  blockSkin: (name: string) => void;
+  unblockSkin: (name: string) => void;
+  clearBlockedSkins: () => void;
+
   setStrategyProfile: (
     profile:
       | OracleStrategyProfile
@@ -157,6 +162,7 @@ export const useOracleStore = create<OracleStoreState>()(
       selectedMarkets: DEFAULT_SELECTED_MARKETS,
       selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS,
       preFilters: DEFAULT_PRE_FILTERS,
+      blockedSkins: [],
       selectedEngine: "standard",
       strategyProfile: DEFAULT_STRATEGY_PROFILE,
       nexusProfile: DEFAULT_NEXUS_PROFILE,
@@ -232,6 +238,18 @@ export const useOracleStore = create<OracleStoreState>()(
         })),
       resetPreFilters: () => set({ preFilters: DEFAULT_PRE_FILTERS }),
 
+      blockSkin: (name) =>
+        set((state) => {
+          const trimmed = name.trim();
+          if (!trimmed || state.blockedSkins.includes(trimmed)) return state;
+          return { blockedSkins: [...state.blockedSkins, trimmed] };
+        }),
+      unblockSkin: (name) =>
+        set((state) => ({
+          blockedSkins: state.blockedSkins.filter((s) => s !== name),
+        })),
+      clearBlockedSkins: () => set({ blockedSkins: [] }),
+
       setStrategyProfile: (profile) =>
         set((state) => ({
           strategyProfile:
@@ -256,7 +274,7 @@ export const useOracleStore = create<OracleStoreState>()(
     }),
     {
       name: "oracle_dashboard_store",
-      version: 3,
+      version: 4,
       migrate: (persistedState: any, version: number) => {
         if (!persistedState || typeof persistedState !== "object") {
           return persistedState;
@@ -276,6 +294,10 @@ export const useOracleStore = create<OracleStoreState>()(
         }
         if (typeof persistedState.hideTradeMarkets !== "boolean") {
           persistedState.hideTradeMarkets = false;
+        }
+        // v4: initialize blocked skins list
+        if (!Array.isArray(persistedState.blockedSkins)) {
+          persistedState.blockedSkins = [];
         }
         return persistedState;
       },
