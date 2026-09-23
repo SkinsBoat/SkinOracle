@@ -293,9 +293,9 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                             className="tabular-nums"
                             style={styles.metricPrimaryValue}
                           >
-                            $
-                            {oracle.averageMarketPrice
-                              ? oracle.averageMarketPrice.toFixed(2)
+                            {typeof oracle.averageMarketPrice === "number" &&
+                            oracle.averageMarketPrice > 0
+                              ? `$${oracle.averageMarketPrice.toFixed(2)}`
                               : "—"}
                           </div>
                         </div>
@@ -314,9 +314,9 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                             className="tabular-nums"
                             style={styles.metricTextValue}
                           >
-                            $
-                            {oracle.lowestPrice
-                              ? oracle.lowestPrice.toFixed(2)
+                            {typeof oracle.lowestPrice === "number" &&
+                            oracle.lowestPrice > 0
+                              ? `$${oracle.lowestPrice.toFixed(2)}`
                               : "—"}
                           </div>
                         </div>
@@ -330,6 +330,9 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                             style={styles.metricSuccessValue}
                           >
                             {(() => {
+                              if (marketListings.length === 0) {
+                                return "—";
+                              }
                               const verifiedQty = marketListings.reduce(
                                 (sum, m) => sum + (m.quantity || 0),
                                 0,
@@ -369,7 +372,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                             className="tabular-nums"
                             style={styles.metricCyanValue}
                           >
-                            {marketListings.length || oracle.marketCount || 1}{" "}
+                            {marketListings.length || oracle.marketCount || 0}{" "}
                             Markets
                           </div>
                         </div>
@@ -383,13 +386,19 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                         const itemPrices = marketListings
                           .map((m) => m.price)
                           .filter((p) => p > 0);
-                        const suggestedListing = calculateSuggestedListingPrice(
-                          itemPrices.length > 0
-                            ? itemPrices
-                            : [oracle.lowestPrice || 0],
-                          oracle.averageMarketPrice || 0,
-                          listingStrategy,
-                        );
+                        const hasMarketPrices =
+                          itemPrices.length > 0 ||
+                          Boolean(oracle.lowestPrice && oracle.lowestPrice > 0) ||
+                          Boolean(oracle.averageMarketPrice && oracle.averageMarketPrice > 0);
+                        const suggestedListing = hasMarketPrices
+                          ? calculateSuggestedListingPrice(
+                              itemPrices.length > 0
+                                ? itemPrices
+                                : [oracle.lowestPrice || 0],
+                              oracle.averageMarketPrice || 0,
+                              listingStrategy,
+                            )
+                          : 0;
                         return (
                           <div style={styles.targetBox}>
                             {/* Left Column: Target Buy Ceiling */}
@@ -453,7 +462,9 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                 className="tabular-nums"
                                 style={styles.suggestedListingValue}
                               >
-                                ${suggestedListing.toFixed(2)}
+                                {suggestedListing > 0
+                                  ? `$${suggestedListing.toFixed(2)}`
+                                  : "—"}
                               </div>
                             </div>
                           </div>
@@ -461,7 +472,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                       })()}
 
                       {/* Individual Market Breakdown Table */}
-                      {marketListings.length > 0 && (
+                      {marketListings.length > 0 ? (
                         <div>
                           <div style={styles.marketBreakdownTitle}>
                             <Layers
@@ -568,6 +579,13 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               </tbody>
                             </table>
                           </div>
+                        </div>
+                      ) : (
+                        <div style={styles.noListingsNotice}>
+                          <AlertCircle size={15} style={styles.noListingsIcon} />
+                          <span>
+                            No live market listings found in cache. Scan or stream market data in Step 1 to populate marketplace listings.
+                          </span>
                         </div>
                       )}
                     </div>
@@ -1015,6 +1033,22 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-warning-text, #f59e0b)",
     fontSize: "11px",
     fontWeight: 600,
+  },
+  noListingsNotice: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "12px 16px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "rgba(245, 158, 11, 0.08)",
+    border: "1px solid rgba(245, 158, 11, 0.25)",
+    color: "var(--so-warning-text, #f59e0b)",
+    fontSize: "12.5px",
+    fontWeight: 500,
+  },
+  noListingsIcon: {
+    flexShrink: 0,
+    color: "var(--so-warning-text, #f59e0b)",
   },
 };
 

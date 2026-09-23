@@ -939,12 +939,16 @@ export default function OracleDashboard() {
         cachedItem?.l || [];
 
       if (builtItem) {
-        const sortedPrices = rawListings.map((l) => l.p).sort((a, b) => a - b);
-        const lowestPrice = sortedPrices[0] || builtItem.acceptedPrice;
+        const validPrices = rawListings
+          .map((l) => (typeof l.p === "number" ? l.p : parseFloat(l.p as any)))
+          .filter((p) => !isNaN(p) && p > 0)
+          .sort((a, b) => a - b);
+        const lowestPrice =
+          validPrices.length > 0 ? validPrices[0] : undefined;
         const avgPrice =
-          sortedPrices.length > 0
-            ? sortedPrices.reduce((a, b) => a + b, 0) / sortedPrices.length
-            : builtItem.acceptedPrice;
+          validPrices.length > 0
+            ? validPrices.reduce((a, b) => a + b, 0) / validPrices.length
+            : undefined;
 
         setResults([
           {
@@ -956,7 +960,8 @@ export default function OracleDashboard() {
               supplyStabilityScore: builtItem.supplyStabilityScore || 1.0,
               maxAcceptPercent: 0.84,
               finalAcceptedPrice: builtItem.acceptedPrice,
-              benchmarkValue: avgPrice,
+              benchmarkValue:
+                avgPrice ?? builtItem.v1Benchmark ?? builtItem.acceptedPrice,
               marketCount: rawListings.length,
               isHyperStable: builtItem.isHyperStable || false,
               nexusDelta: builtItem.nexusDelta,
