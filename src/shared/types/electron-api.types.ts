@@ -536,6 +536,14 @@ export interface ElectronAPI {
     getPresence: () => Promise<{ activeTradersCount: number }>;
     openExternalLink: (url: string) => Promise<{ success: boolean }>;
   };
+  notifications: {
+    show: (payload: {
+      title: string;
+      body: string;
+      subtitle?: string;
+      silent?: boolean;
+    }) => Promise<{ success: boolean; reason?: string; error?: string }>;
+  };
 }
 
 export type {

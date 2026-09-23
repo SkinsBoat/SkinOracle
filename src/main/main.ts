@@ -22,6 +22,7 @@ import "./ipc/dmarket.ipc";
 import "./ipc/updater.ipc";
 import { setupBalanceIPC } from "./ipc/balance.ipc";
 import { setupDealMakerIPC } from "./ipc/dealmaker.ipc";
+import { setupNotificationIPC } from "./ipc/notification.ipc";
 import "../storage/secure-store";
 import { autoUpdateService } from "./services/autoUpdater";
 
@@ -30,6 +31,7 @@ app.disableHardwareAcceleration();
 
 setupBalanceIPC();
 setupDealMakerIPC();
+setupNotificationIPC();
 
 function createWindow() {
   const isDev = !!process.env.VITE_DEV_SERVER_URL;

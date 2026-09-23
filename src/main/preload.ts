@@ -453,4 +453,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     openExternalLink: (url: string) =>
       safeInvoke("dealmaker:open-external-link", url),
   },
+
+  // ── Native System Notifications ──
+  notifications: {
+    show: (payload: {
+      title: string;
+      body: string;
+      subtitle?: string;
+      silent?: boolean;
+    }) => safeInvoke("notification:show", payload),
+  },
 });

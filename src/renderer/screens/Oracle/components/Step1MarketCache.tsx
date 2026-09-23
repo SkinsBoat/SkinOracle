@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Radio,
   ChevronUp,
@@ -16,6 +16,8 @@ import {
   Zap,
   Database,
   Clock,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { skinSnipeLogo, cs2capLogo } from "../../../../../assets/images";
 import { MarketLogo } from "../../../components/MarketLogo";
@@ -31,6 +33,8 @@ import {
   resolveMissingQty,
 } from "./step1/Step1Common";
 import { useOracleStore } from "../../../store/useOracleStore";
+import { useNotificationStore } from "../../../store/useNotificationStore";
+import { notificationManager } from "../../../services/notificationManager";
 
 export const SKINSNIPE_AVAILABLE_MARKETS: {
   id: SkinsnipeMarketId;
@@ -141,6 +145,38 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   const hideTradeMarkets = propHideTradeMarkets ?? storeHideTradeMarkets;
   const setHideTradeMarkets = propOnToggleHideTrade ?? storeSetHideTradeMarkets;
 
+  // Notification alert preference for this section
+  const { notifyOnCacheComplete, setNotifyOnCacheComplete } = useNotificationStore();
+
+  // Track completion milestones for notifications & audio alerts
+  const wasFetchingRef = useRef(cacheStatus.isFetching);
+  const wasStreamingRef = useRef(!!isCs2capStreaming);
+
+  useEffect(() => {
+    if (wasFetchingRef.current && !cacheStatus.isFetching && cacheStatus.itemCount > 0) {
+      if (notifyOnCacheComplete) {
+        notificationManager.notifyMilestone({
+          title: "Price Cache Updated",
+          body: `Price scan finished: ${cacheStatus.itemCount.toLocaleString()} items cached.`,
+        });
+      }
+    }
+    wasFetchingRef.current = cacheStatus.isFetching;
+  }, [cacheStatus.isFetching, cacheStatus.itemCount, notifyOnCacheComplete]);
+
+  useEffect(() => {
+    if (wasStreamingRef.current && !isCs2capStreaming) {
+      const itemsCount = cs2capProgress?.receivedItems || cacheStatus.itemCount;
+      if (itemsCount > 0 && notifyOnCacheComplete) {
+        notificationManager.notifyMilestone({
+          title: "CS2CAP Stream Completed",
+          body: `Live pricing stream finished: ${itemsCount.toLocaleString()} items updated.`,
+        });
+      }
+    }
+    wasStreamingRef.current = !!isCs2capStreaming;
+  }, [isCs2capStreaming, cs2capProgress?.receivedItems, cacheStatus.itemCount, notifyOnCacheComplete]);
+
   const cs2capTradeCount = CS2CAP_PROVIDERS.filter((p) =>
     isTradeMarket(p.id),
   ).length;
@@ -232,6 +268,33 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
             <Clock size={11} style={styles.timeAgoIcon} />
             {formatTimeAgo(cacheStatus.lastFetchedAt)}
           </span>
+
+          {/* Section-Specific Alert On/Off Switch */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setNotifyOnCacheComplete(!notifyOnCacheComplete);
+            }}
+            style={getAlertSwitchBtnStyle(notifyOnCacheComplete)}
+            title={
+              notifyOnCacheComplete
+                ? "Notification chime active: will alert when scan completes (click to mute)"
+                : "Notification chime muted: click to alert when scan completes"
+            }
+          >
+            {notifyOnCacheComplete ? (
+              <>
+                <Bell size={12} style={{ color: "#60a5fa" }} />
+                <span>Alert on Sync</span>
+              </>
+            ) : (
+              <>
+                <BellOff size={12} style={{ color: "var(--so-text-muted)" }} />
+                <span>Muted</span>
+              </>
+            )}
+          </button>
 
           {!isOpen && (
             <>
@@ -906,6 +969,24 @@ function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
     cursor: "pointer",
     userSelect: "none",
     transition: "background-color 0.15s ease",
+  };
+}
+
+function getAlertSwitchBtnStyle(isActive: boolean): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    padding: "3px 8px",
+    borderRadius: "4px",
+    fontSize: "11px",
+    fontWeight: 700,
+    backgroundColor: isActive ? "rgba(37, 99, 235, 0.2)" : "rgba(255, 255, 255, 0.05)",
+    border: `1px solid ${isActive ? "rgba(96, 165, 250, 0.45)" : "rgba(255, 255, 255, 0.12)"}`,
+    color: isActive ? "#93c5fd" : "var(--so-text-muted)",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    whiteSpace: "nowrap",
   };
 }
 

@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Settings, KeyRound, Database, Cpu, Ban } from "lucide-react";
+import { Settings, KeyRound, Database, Cpu, Ban, Bell } from "lucide-react";
 import { ApiKeysSection } from "./components/ApiKeysSection";
+import { NotificationsSection } from "./components/NotificationsSection";
 import { DatabaseStorageSection } from "./components/DatabaseStorageSection";
 import { SystemDiagnosticsSection } from "./components/SystemDiagnosticsSection";
 import { BlockedSkinsSection } from "./components/BlockedSkinsSection";
 import { useOracleStore } from "../../store/useOracleStore";
 
-export type SettingsTabId = "api-keys" | "database" | "blocked-skins" | "diagnostics";
+export type SettingsTabId =
+  | "api-keys"
+  | "notifications"
+  | "database"
+  | "blocked-skins"
+  | "diagnostics";
 
 interface SettingsTab {
   id: SettingsTabId;
@@ -16,20 +22,26 @@ interface SettingsTab {
   badge?: string;
 }
 
+const VALID_TABS: SettingsTabId[] = [
+  "api-keys",
+  "notifications",
+  "database",
+  "blocked-skins",
+  "diagnostics",
+];
+
 export default function SettingsScreen() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as SettingsTabId) || "api-keys";
   const [activeTab, setActiveTab] = useState<SettingsTabId>(
-    ["api-keys", "database", "blocked-skins", "diagnostics"].includes(initialTab)
-      ? initialTab
-      : "api-keys",
+    VALID_TABS.includes(initialTab) ? initialTab : "api-keys",
   );
 
   const { blockedSkins } = useOracleStore();
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab") as SettingsTabId;
-    if (tabFromUrl && (["api-keys", "database", "blocked-skins", "diagnostics"] as string[]).includes(tabFromUrl)) {
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -44,6 +56,11 @@ export default function SettingsScreen() {
       id: "api-keys",
       label: "API Keys & Integrations",
       icon: <KeyRound size={15} />,
+    },
+    {
+      id: "notifications",
+      label: "Notifications & Audio",
+      icon: <Bell size={15} />,
     },
     {
       id: "database",
@@ -117,6 +134,7 @@ export default function SettingsScreen() {
       {/* Active Section Content */}
       <div style={styles.contentWrap}>
         {activeTab === "api-keys" && <ApiKeysSection />}
+        {activeTab === "notifications" && <NotificationsSection />}
         {activeTab === "database" && <DatabaseStorageSection />}
         {activeTab === "diagnostics" && <SystemDiagnosticsSection />}
         {activeTab === "blocked-skins" && <BlockedSkinsSection />}
