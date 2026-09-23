@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   DmarketOfferItem,
   DmarketInventoryItem,
@@ -28,6 +28,8 @@ export interface ListingsTabProps {
   ) => void;
   onOpenMarket: (title: string) => void;
   driftThresholdPercent?: number;
+  onRegisterLoadOracle?: (fn: () => Promise<void>) => void;
+  onListingPricesLoaded?: (meta: { itemCount: number; storedAt: string | null }) => void;
 }
 
 export const ListingsTab: React.FC<ListingsTabProps> = ({
@@ -37,6 +39,8 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
   onOpenLookupModal,
   onOpenMarket,
   driftThresholdPercent = 2,
+  onRegisterLoadOracle,
+  onListingPricesLoaded,
 }) => {
   // 1. Data management hook
   const {
@@ -80,6 +84,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
     handleBatchListInventoryAtOracle,
     isItemLocked,
     getItemCooldown,
+    listingPricesMeta,
   } = useListingsData({
     hasKey,
     checkApiKey,
@@ -116,6 +121,16 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
     inventory,
     listingAnalysis,
   });
+
+  useEffect(() => {
+    onRegisterLoadOracle?.(() => loadListingPrices(listingSubTab));
+  }, [loadListingPrices, listingSubTab, onRegisterLoadOracle]);
+
+  useEffect(() => {
+    if (listingPricesMeta) {
+      onListingPricesLoaded?.(listingPricesMeta);
+    }
+  }, [listingPricesMeta, onListingPricesLoaded]);
 
   // 3. Modals state
   const [editingOffer, setEditingOffer] = useState<DmarketOfferItem | null>(

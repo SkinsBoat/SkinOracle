@@ -35,6 +35,8 @@ export interface TargetTabProps {
   onOpenMarket: (title: string) => void;
   driftThresholdPercent?: number;
   setDriftThresholdPercent?: React.Dispatch<React.SetStateAction<number>>;
+  onRegisterLoadOracle?: (fn: () => Promise<void>) => void;
+  onAcceptedPricesLoaded?: (meta: { itemCount: number; storedAt: string | null }) => void;
 }
 
 export const isAdvancedTarget = (target?: DmarketTargetItem | null): boolean => {

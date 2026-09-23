@@ -294,21 +294,6 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
             )}{" "}
             Sync Inventory
           </button>
-          <button
-            onClick={loadListingPrices}
-            disabled={loadingListingPrices || inventory.length === 0}
-            className={`btn ${listingPricesLoaded ? "btn-secondary" : "btn-outline"} btn-sm`}
-            style={styles.actionButton}
-          >
-            {loadingListingPrices ? (
-              <Loader2 size={13} className="spin" />
-            ) : (
-              <LinkIcon size={13} />
-            )}
-            {listingPricesLoaded
-              ? "Reload Listing Prices"
-              : "Load Listing Prices"}
-          </button>
         </div>
       </div>
 

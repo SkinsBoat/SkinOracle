@@ -19,6 +19,8 @@ import { CSFloatLookupModal } from "./modals/CSFloatLookupModal";
 import { BuyOrdersTab } from "./tabs/BuyOrdersTab";
 import { ListingsTab } from "./tabs/ListingsTab";
 import { SoCloseTab } from "./tabs/SoCloseTab";
+import { WorkstationOracleAction } from "../../components/WorkstationOracleAction";
+import { formatTimeAgo } from "../../utils/timeAgo";
 
 import {
   getMarketDisplayName,
@@ -1364,6 +1366,34 @@ export default function CSFloatWorkstation() {
     if (initialFetchDoneRef.current) return;
     initialFetchDoneRef.current = true;
 
+    // Fast initial check for in-memory Oracle prices (zero network fetch)
+    const checkInitialOracleMeta = async () => {
+      try {
+        const acceptedRes: any =
+          await (window.electronAPI.oracle as any).getAcceptedPrices();
+        if (acceptedRes && acceptedRes.itemCount > 0) {
+          setAcceptedPricesMeta({
+            itemCount: acceptedRes.itemCount,
+            storedAt: acceptedRes.storedAt,
+          });
+        }
+      } catch (err) {
+        console.warn("[CSFloat Workstation] Initial accepted prices check:", err);
+      }
+      try {
+        const listingRes = await window.electronAPI.oracle.getListingPrices();
+        if (listingRes && listingRes.itemCount > 0) {
+          setListingPricesMeta({
+            itemCount: listingRes.itemCount,
+            storedAt: listingRes.storedAt,
+          });
+        }
+      } catch (err) {
+        console.warn("[CSFloat Workstation] Initial listing prices check:", err);
+      }
+    };
+    checkInitialOracleMeta();
+
     window.electronAPI.settings.getKeysStatus().then((status) => {
       setHasKey(status.hasCsfloatKey);
       if (status.hasCsfloatKey) {
@@ -1441,6 +1471,12 @@ export default function CSFloatWorkstation() {
   const isPricesStatusLoaded =
     activeTab === "listings" ? listingPricesLoaded : pricesLoaded;
 
+  const currentOracleMeta =
+    activeTab === "listings" ? listingPricesMeta : acceptedPricesMeta;
+  const currentOracleTimeAgo = currentOracleMeta?.storedAt
+    ? formatTimeAgo(currentOracleMeta.storedAt)
+    : "";
+
   return (
     <div style={styles.container}>
       {/* SINGLE ITEM LOOKUP MODAL */}
@@ -1472,7 +1508,7 @@ export default function CSFloatWorkstation() {
 
         {/* Main Header Bar */}
         <div style={styles.headerBar}>
-          {/* Brand & Status */}
+          {/* Brand */}
           <div style={styles.brandSection}>
             <div style={styles.brandTitleWrapper}>
               <img
@@ -1482,18 +1518,6 @@ export default function CSFloatWorkstation() {
               />
               <span style={styles.brandTitle}>
                 CSFloat Workstation
-              </span>
-            </div>
-            <div style={styles.statusIndicatorWrapper}>
-              <span style={getStatusDotStyle(isPricesStatusLoaded)} />
-              <span style={getStatusTextStyle(isPricesStatusLoaded)}>
-                {activeTab === "listings"
-                  ? listingPricesLoaded
-                    ? `ORACLE LISTING PRICES LOADED (${listingPricesMeta!.itemCount.toLocaleString()} ITEMS)`
-                    : "NO LISTING PRICES IN MEMORY — GENERATE IN ORACLE STEP 3"
-                  : pricesLoaded
-                    ? `ORACLE ACCEPTED PRICES LOADED (${acceptedPricesMeta!.itemCount.toLocaleString()} ITEMS)`
-                    : "NO ACCEPTED PRICES IN MEMORY — CALCULATE IN ORACLE STEP 2"}
               </span>
             </div>
           </div>
@@ -1555,33 +1579,49 @@ export default function CSFloatWorkstation() {
           </div>
         </div>
 
-        {/* Workstation Sub-Tabs Navigation */}
+        {/* Workstation Sub-Tabs Navigation & Unified Oracle Action */}
         <div style={styles.tabsNav}>
-          <button
-            onClick={() => setActiveTab("buy_orders")}
-            className={`btn ${activeTab === "buy_orders" ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={styles.tabButton}
-          >
-            <Package size={13} /> Buy Orders
-          </button>
-          <button
-            onClick={() => setActiveTab("soclose")}
-            className={`btn ${activeTab === "soclose" ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={styles.tabButton}
-          >
-            <Zap
-              size={13}
-              style={getZapIconStyle(activeTab === "soclose")}
-            />{" "}
-            So Close Opportunities
-          </button>
-          <button
-            onClick={() => setActiveTab("listings")}
-            className={`btn ${activeTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={styles.tabButton}
-          >
-            <Tag size={13} /> Listings & Inventory
-          </button>
+          <div style={styles.tabsLeftGroup}>
+            <button
+              onClick={() => setActiveTab("buy_orders")}
+              className={`btn ${activeTab === "buy_orders" ? "btn-primary" : "btn-outline"} btn-sm`}
+              style={styles.tabButton}
+            >
+              <Package size={13} /> Buy Orders
+            </button>
+            <button
+              onClick={() => setActiveTab("soclose")}
+              className={`btn ${activeTab === "soclose" ? "btn-primary" : "btn-outline"} btn-sm`}
+              style={styles.tabButton}
+            >
+              <Zap
+                size={13}
+                style={getZapIconStyle(activeTab === "soclose")}
+              />{" "}
+              So Close Opportunities
+            </button>
+            <button
+              onClick={() => setActiveTab("listings")}
+              className={`btn ${activeTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
+              style={styles.tabButton}
+            >
+              <Tag size={13} /> Listings & Inventory
+            </button>
+          </div>
+
+          <div style={styles.tabsRightGroup}>
+            <WorkstationOracleAction
+              meta={currentOracleMeta}
+              loading={
+                activeTab === "listings" ? loadingListingPrices : loadingPrices
+              }
+              onLoad={
+                activeTab === "listings"
+                  ? loadListingPrices
+                  : loadAcceptedPrices
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -1682,19 +1722,33 @@ export default function CSFloatWorkstation() {
 
 // ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
 
-const getStatusDotStyle = (isLoaded: boolean): React.CSSProperties => ({
+const getStatusDotStyle = (
+  isLoaded: boolean,
+  isStale = false,
+): React.CSSProperties => ({
   width: 6,
   height: 6,
   borderRadius: "50%",
-  backgroundColor: isLoaded ? "var(--so-success)" : "var(--so-warning)",
+  backgroundColor: !isLoaded
+    ? "var(--so-warning)"
+    : isStale
+      ? "#f59e0b"
+      : "var(--so-success)",
   display: "inline-block",
 });
 
-const getStatusTextStyle = (isLoaded: boolean): React.CSSProperties => ({
+const getStatusTextStyle = (
+  isLoaded: boolean,
+  isStale = false,
+): React.CSSProperties => ({
   fontSize: "10.5px",
   fontWeight: 700,
   letterSpacing: "0.4px",
-  color: isLoaded ? "var(--so-success-text)" : "var(--so-warning-text)",
+  color: !isLoaded
+    ? "var(--so-warning-text)"
+    : isStale
+      ? "#fbbf24"
+      : "var(--so-success-text)",
 });
 
 const getZapIconStyle = (isActive: boolean): React.CSSProperties => ({
@@ -1754,6 +1808,8 @@ const styles = {
     border: "1px solid var(--so-border-medium)",
     borderRadius: "var(--so-radius-md)",
     gap: "12px",
+    minHeight: "74px",
+    boxSizing: "border-box",
   } as React.CSSProperties,
 
   brandSection: {
@@ -1829,9 +1885,22 @@ const styles = {
 
   tabsNav: {
     display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     borderBottom: "1px solid var(--so-border-medium)",
     gap: "6px",
     paddingBottom: "2px",
+  } as React.CSSProperties,
+
+  tabsLeftGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  } as React.CSSProperties,
+
+  tabsRightGroup: {
+    display: "flex",
+    alignItems: "center",
   } as React.CSSProperties,
 
   tabButton: {

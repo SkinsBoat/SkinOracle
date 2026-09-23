@@ -28,6 +28,7 @@ export const DmarketHeader: React.FC<DmarketHeaderProps> = ({
   hasKey,
   onRefreshBalance,
 }) => {
+
   return (
     <>
       {/* ── WORKSTATION HEADER ────────────────────────────────────────── */}
@@ -51,7 +52,7 @@ export const DmarketHeader: React.FC<DmarketHeaderProps> = ({
             style={{ width: "36px", height: "36px", objectFit: "contain" }}
           />
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
               <h1
                 style={{
                   fontSize: "19px",

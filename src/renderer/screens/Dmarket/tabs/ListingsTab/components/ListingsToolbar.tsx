@@ -53,7 +53,7 @@ export interface ListingsToolbarProps {
   listingSearch: string;
   setListingSearch: (search: string) => void;
   // Action Handlers
-  onLoadListingPrices: () => void;
+  onLoadListingPrices?: () => void;
   onFetchOffers: () => void;
   onFetchInventory: () => void;
   onSteamResync: () => void;
@@ -267,33 +267,8 @@ export const ListingsToolbar: React.FC<ListingsToolbarProps> = ({
           </button>
         </div>
 
-        {/* Right: Primary Sync & Oracle Actions */}
+        {/* Right: Primary Sync Actions */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <button
-            onClick={onLoadListingPrices}
-            disabled={loadingListingPrices}
-            className={`btn ${listingPricesLoaded ? "btn-secondary" : "btn-outline"} btn-sm`}
-            style={{
-              height: "32px",
-              fontSize: "12px",
-              padding: "0 12px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: 700,
-            }}
-            title="Load computed listing prices from Oracle Dashboard Step 3"
-          >
-            {loadingListingPrices ? (
-              <Loader2 size={13} className="spin" />
-            ) : (
-              <Zap size={13} style={{ color: "var(--so-accent-cyan)" }} />
-            )}
-            <span>
-              {listingPricesLoaded ? "Reload Oracle" : "Load Oracle Prices"}
-            </span>
-          </button>
-
           {listingSubTab === "active" && (
             <button
               onClick={onFetchOffers}

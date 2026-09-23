@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   History,
+  CheckSquare,
 } from "lucide-react";
 import { FilterAction } from "../types";
 
@@ -24,13 +25,14 @@ export interface TargetToolbarProps {
   setDriftThresholdPercent: (val: number) => void;
   filterAction: FilterAction;
   setFilterAction: (action: FilterAction) => void;
-  isAllActionRequiredSelected: boolean;
-  onToggleSelectActionRequired: () => void;
+  selectableFilteredCount: number;
+  isAllFilteredSelected: boolean;
+  onToggleSelectFiltered: () => void;
   onSyncTargets: () => void;
   loadingTargets: boolean;
-  onLoadAcceptedPrices: () => void;
-  loadingPrices: boolean;
-  hasAcceptedPricesMeta: boolean;
+  onLoadAcceptedPrices?: () => void;
+  loadingPrices?: boolean;
+  hasAcceptedPricesMeta?: boolean;
 }
 
 const FILTER_PILLS: Array<{ id: FilterAction; label: string }> = [
@@ -42,12 +44,33 @@ const FILTER_PILLS: Array<{ id: FilterAction; label: string }> = [
   { id: "hold", label: "Hold" },
 ];
 
+const getFilterSelectLabel = (filter: FilterAction, count: number): string => {
+  switch (filter) {
+    case "action_required":
+      return `Action ${count}`;
+    case "overbid":
+      return `Overbid ${count}`;
+    case "underbid":
+      return `Underbid ${count}`;
+    case "safe":
+      return `Safe ${count}`;
+    case "hold":
+      return `Hold ${count}`;
+    case "all":
+    default:
+      return `Select ${count}`;
+  }
+};
+
 export const TargetToolbar: React.FC<TargetToolbarProps> = ({
   targetSubTab,
   setTargetSubTab,
   targetsCount,
   matchedCount,
   actionRequiredCount,
+  selectableFilteredCount,
+  isAllFilteredSelected,
+  onToggleSelectFiltered,
   holdCount,
   showExtraOptions,
   setShowExtraOptions,
@@ -55,8 +78,6 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
   setDriftThresholdPercent,
   filterAction,
   setFilterAction,
-  isAllActionRequiredSelected,
-  onToggleSelectActionRequired,
   onSyncTargets,
   loadingTargets,
   onLoadAcceptedPrices,
@@ -184,32 +205,20 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
             ))}
           </div>
 
-          {actionRequiredCount > 0 && (
+          {selectableFilteredCount > 0 && (
             <button
               type="button"
-              onClick={onToggleSelectActionRequired}
-              className="btn btn-sm"
-              style={getActionRequiredButtonStyle(isAllActionRequiredSelected)}
+              onClick={onToggleSelectFiltered}
+              className={`btn ${isAllFilteredSelected ? "btn-primary" : "btn-outline"} btn-sm`}
+              style={styles.actionRequiredButton}
               title={
-                isAllActionRequiredSelected
-                  ? "Click to unselect all action items"
-                  : "Click to select all active targets requiring action"
+                isAllFilteredSelected
+                  ? `Click to unselect ${getFilterSelectLabel(filterAction, selectableFilteredCount).toLowerCase()} targets`
+                  : `Click to select all ${selectableFilteredCount} targets in current filter`
               }
             >
-              <AlertTriangle
-                size={12}
-                style={{
-                  color: isAllActionRequiredSelected ? "#fbbf24" : "#f59e0b",
-                }}
-              />
-              <span>
-                {isAllActionRequiredSelected
-                  ? "Unselect Action Items"
-                  : "Select Action Items"}
-              </span>
-              <span style={styles.actionRequiredBadge}>
-                {actionRequiredCount}
-              </span>
+              <CheckSquare size={13} />
+              <span>{getFilterSelectLabel(filterAction, selectableFilteredCount)}</span>
             </button>
           )}
 
@@ -226,18 +235,6 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
               <RefreshCw size={12} />
             )}
             <span>Sync Targets</span>
-          </button>
-
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={onLoadAcceptedPrices}
-            disabled={loadingPrices}
-            style={styles.loadOracleButton}
-          >
-            <RotateCw size={12} className={loadingPrices ? "spin" : ""} />
-            <span>
-              {hasAcceptedPricesMeta ? "Re-load Oracle" : "Load Oracle"}
-            </span>
           </button>
         </div>
       )}
@@ -450,24 +447,16 @@ const styles = {
     gap: "4px",
   } as React.CSSProperties,
 
-  actionRequiredBadge: {
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
-    color: "#f59e0b",
-    padding: "1px 6px",
-    borderRadius: "10px",
-    fontSize: "10.5px",
-    fontWeight: 700,
-  } as React.CSSProperties,
-
-  syncButton: {
-    display: "flex",
+  actionRequiredButton: {
+    display: "inline-flex",
     alignItems: "center",
     gap: "5px",
     fontSize: "11.5px",
-    padding: "5px 12px",
+    fontWeight: 700,
+    padding: "5px 10px",
   } as React.CSSProperties,
 
-  loadOracleButton: {
+  syncButton: {
     display: "flex",
     alignItems: "center",
     gap: "5px",

@@ -28,6 +28,7 @@ import { ListingsTab } from "./tabs/ListingsTab/ListingsTab";
 import { ItemLookupModal } from "./modals/ItemLookupModal";
 import { EditTargetModal } from "./modals/EditTargetModal";
 import { handleDmarketReferenceLink } from "../../utils/marketUrls";
+import { WorkstationOracleAction } from "../../components/WorkstationOracleAction";
 
 // Re-export utility functions for unit tests & backward compatibility
 export {
@@ -57,6 +58,21 @@ export default function DmarketWorkstation() {
     imageUrl?: string;
   } | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
+
+  // Oracle Pricing Metadata & Loading State
+  const [acceptedPricesMeta, setAcceptedPricesMeta] = useState<{
+    itemCount: number;
+    storedAt: string | null;
+  } | null>(null);
+  const [listingPricesMeta, setListingPricesMeta] = useState<{
+    itemCount: number;
+    storedAt: string | null;
+  } | null>(null);
+  const [loadingPrices, setLoadingPrices] = useState(false);
+  const [loadingListingPrices, setLoadingListingPrices] = useState(false);
+
+  const targetLoadOracleRef = useRef<(() => Promise<void>) | null>(null);
+  const listingsLoadOracleRef = useRef<(() => Promise<void>) | null>(null);
 
   // Main Tab Navigation ('target' | 'soclose' | 'listings')
   const [mainTab, setMainTab] = useState<"target" | "soclose" | "listings">(
@@ -204,12 +220,92 @@ export default function DmarketWorkstation() {
     if (initialFetchDoneRef.current) return;
     initialFetchDoneRef.current = true;
 
+    // Fast initial check for in-memory Oracle prices (zero network fetch)
+    const checkInitialOracleMeta = async () => {
+      try {
+        const acceptedRes: any =
+          await (window.electronAPI.oracle as any).getAcceptedPrices();
+        if (acceptedRes && acceptedRes.itemCount > 0) {
+          setAcceptedPricesMeta({
+            itemCount: acceptedRes.itemCount,
+            storedAt: acceptedRes.storedAt,
+          });
+        }
+      } catch (err) {
+        console.warn("[DMarket Workstation] Initial accepted prices check:", err);
+      }
+      try {
+        const listingRes = await window.electronAPI.oracle.getListingPrices();
+        if (listingRes && listingRes.itemCount > 0) {
+          setListingPricesMeta({
+            itemCount: listingRes.itemCount,
+            storedAt: listingRes.storedAt,
+          });
+        }
+      } catch (err) {
+        console.warn("[DMarket Workstation] Initial listing prices check:", err);
+      }
+    };
+    checkInitialOracleMeta();
+
     checkApiKey().then((ok) => {
       if (ok) {
         fetchTargets();
       }
     });
   }, []);
+
+  const handleLoadOracle = async () => {
+    if (mainTab === "listings") {
+      setLoadingListingPrices(true);
+      try {
+        if (listingsLoadOracleRef.current) {
+          await listingsLoadOracleRef.current();
+        }
+        const listingRes = await window.electronAPI.oracle.getListingPrices();
+        if (listingRes && listingRes.itemCount > 0) {
+          setListingPricesMeta({
+            itemCount: listingRes.itemCount,
+            storedAt: listingRes.storedAt,
+          });
+        }
+      } finally {
+        setLoadingListingPrices(false);
+      }
+    } else {
+      setLoadingPrices(true);
+      try {
+        if (targetLoadOracleRef.current) {
+          await targetLoadOracleRef.current();
+        } else {
+          const toastId = toast.loading("Matching Oracle accepted prices...");
+          const result: any =
+            await (window.electronAPI.oracle as any).getAcceptedPrices();
+          if (!result || result.itemCount === 0) {
+            toast.error(
+              "No accepted prices found in memory. Please calculate accepted prices in Oracle Dashboard first.",
+              { id: toastId },
+            );
+          } else {
+            toast.success(
+              `Matched ${result.itemCount} accepted prices from memory`,
+              { id: toastId },
+            );
+          }
+        }
+        const acceptedRes: any =
+          await (window.electronAPI.oracle as any).getAcceptedPrices();
+        if (acceptedRes && acceptedRes.itemCount > 0) {
+          setAcceptedPricesMeta({
+            itemCount: acceptedRes.itemCount,
+            storedAt: acceptedRes.storedAt,
+          });
+        }
+      } finally {
+        setLoadingPrices(false);
+      }
+    }
+  };
 
   useEffect(() => {
     if (targets.length > 0) {
@@ -299,14 +395,7 @@ export default function DmarketWorkstation() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "14px",
-        paddingBottom: "70px",
-      }}
-    >
+    <div style={styles.container}>
       {/* ── WORKSTATION HEADER ────────────────────────────────────────── */}
       <DmarketHeader
         profileData={profileData}
@@ -317,61 +406,46 @@ export default function DmarketWorkstation() {
         onRefreshBalance={fetchUserData}
       />
 
-      {/* ── MAIN WORKSTATION TABS (Mirroring CSFloat Navigation) ──────── */}
-      <div
-        style={{
-          display: "flex",
-          borderBottom: "1px solid var(--so-border-medium)",
-          gap: "6px",
-          paddingBottom: "2px",
-        }}
-      >
-        <button
-          onClick={() => setMainTab("target")}
-          className={`btn ${mainTab === "target" ? "btn-primary" : "btn-outline"} btn-sm`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "12px",
-            padding: "5px 14px",
-          }}
-        >
-          <Target size={13} /> Targets
-        </button>
-        <button
-          onClick={() => setMainTab("soclose")}
-          className={`btn ${mainTab === "soclose" ? "btn-primary" : "btn-outline"} btn-sm`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "12px",
-            padding: "5px 14px",
-          }}
-        >
-          <Zap
-            size={13}
-            style={{
-              color:
-                mainTab === "soclose" ? "#ffffff" : "var(--so-accent-cyan)",
-            }}
-          />{" "}
-          So Close Opportunities
-        </button>
-        <button
-          onClick={() => setMainTab("listings")}
-          className={`btn ${mainTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "12px",
-            padding: "5px 14px",
-          }}
-        >
-          <Tag size={13} /> Listings & Inventory
-        </button>
+      {/* ── MAIN WORKSTATION TABS & UNIFIED ORACLE ACTION ─────────────── */}
+      <div style={styles.tabsNav}>
+        <div style={styles.tabsLeftGroup}>
+          <button
+            onClick={() => setMainTab("target")}
+            className={`btn ${mainTab === "target" ? "btn-primary" : "btn-outline"} btn-sm`}
+            style={styles.tabButton}
+          >
+            <Target size={13} /> Targets
+          </button>
+          <button
+            onClick={() => setMainTab("soclose")}
+            className={`btn ${mainTab === "soclose" ? "btn-primary" : "btn-outline"} btn-sm`}
+            style={styles.tabButton}
+          >
+            <Zap
+              size={13}
+              style={{
+                color:
+                  mainTab === "soclose" ? "#ffffff" : "var(--so-accent-cyan)",
+              }}
+            />{" "}
+            So Close Opportunities
+          </button>
+          <button
+            onClick={() => setMainTab("listings")}
+            className={`btn ${mainTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
+            style={styles.tabButton}
+          >
+            <Tag size={13} /> Listings & Inventory
+          </button>
+        </div>
+
+        <div style={styles.tabsRightGroup}>
+          <WorkstationOracleAction
+            meta={mainTab === "listings" ? listingPricesMeta : acceptedPricesMeta}
+            loading={mainTab === "listings" ? loadingListingPrices : loadingPrices}
+            onLoad={handleLoadOracle}
+          />
+        </div>
       </div>
 
       {/* ── TAB VIEWS ─────────────────────────────────────────────────── */}
@@ -392,6 +466,12 @@ export default function DmarketWorkstation() {
           onOpenMarket={handleOpenDmarketMarket}
           driftThresholdPercent={driftThresholdPercent}
           setDriftThresholdPercent={setDriftThresholdPercent}
+          onRegisterLoadOracle={(fn) => {
+            targetLoadOracleRef.current = fn;
+          }}
+          onAcceptedPricesLoaded={(meta) => {
+            setAcceptedPricesMeta(meta);
+          }}
         />
       )}
 
@@ -415,6 +495,12 @@ export default function DmarketWorkstation() {
           onOpenLookupModal={handleOpenLookupModal}
           onOpenMarket={handleOpenDmarketMarket}
           driftThresholdPercent={driftThresholdPercent}
+          onRegisterLoadOracle={(fn) => {
+            listingsLoadOracleRef.current = fn;
+          }}
+          onListingPricesLoaded={(meta) => {
+            setListingPricesMeta(meta);
+          }}
         />
       )}
 
@@ -437,3 +523,38 @@ export default function DmarketWorkstation() {
     </div>
   );
 }
+
+// ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    paddingBottom: "70px",
+  },
+  tabsNav: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottom: "1px solid var(--so-border-medium)",
+    gap: "6px",
+    paddingBottom: "2px",
+  },
+  tabsLeftGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  tabsRightGroup: {
+    display: "flex",
+    alignItems: "center",
+  },
+  tabButton: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "12px",
+    padding: "5px 14px",
+  },
+};

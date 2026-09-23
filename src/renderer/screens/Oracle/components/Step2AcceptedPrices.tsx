@@ -186,7 +186,8 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
     if (!window.electronAPI?.trendStore?.clear) return;
     const confirmed = await confirmModal({
       title: "Wipe SQLite Snapshot History?",
-      message: "Are you sure you want to wipe all SQLite price snapshot history to test $0.00 cold-start safety? Historical snapshots will be cleared.",
+      message:
+        "Are you sure you want to wipe all SQLite price snapshot history to test $0.00 cold-start safety? Historical snapshots will be cleared.",
       confirmText: "Wipe History",
       cancelText: "Cancel",
       variant: "danger",
@@ -243,32 +244,24 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
   };
 
   return (
-    <div className="card" style={styles.cardContainer}>
+    <div className="card" style={getAccordionCardStyle(isOpen)}>
       {/* Accordion Header Bar */}
-      <div
-        onClick={onToggle}
-        style={getAccordionHeaderStyle(isOpen)}
-      >
+      <div onClick={onToggle} style={getAccordionHeaderStyle(isOpen)}>
         <div style={styles.headerLeft}>
           <div>
             <div style={styles.headerTitle}>
-              <Zap
-                size={18}
-                style={getEngineIconStyle(selectedEngine)}
-              />
+              <Zap size={18} style={getEngineIconStyle(selectedEngine)} />
               Calculate Accepted Prices (Buy Ceilings)
             </div>
-            {!isOpen && (
-              <div style={styles.headerSubtitle}>
-                Engine:{" "}
-                {selectedEngine === "nexus"
-                  ? "OracleNexus v2 PRO (Trend-Shield)"
-                  : "SkinOracle v20 STANDARD"}
-                {evaluatedSummary.lastBuiltAt
-                  ? ` • Calculated ${formatTimeAgo(evaluatedSummary.lastBuiltAt)} (${evaluatedSummary.totalEvaluated.toLocaleString()} items)`
-                  : " • Configure buy ceilings & risk filters"}
-              </div>
-            )}
+            <div style={styles.headerSubtitle}>
+              Engine:{" "}
+              {selectedEngine === "nexus"
+                ? "OracleNexus v2 PRO (Trend-Shield)"
+                : "SkinOracle v20 STANDARD"}
+              {evaluatedSummary.lastBuiltAt
+                ? ` • Calculated ${formatTimeAgo(evaluatedSummary.lastBuiltAt)} (${evaluatedSummary.totalEvaluated.toLocaleString()} items)`
+                : " • Configure buy ceilings & risk filters"}
+            </div>
           </div>
         </div>
 
@@ -295,13 +288,16 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
                 ...styles.trendHealthBadge,
                 ...getStaleBadgeStyle(trendHealth.isStale),
               }}
-              title={trendHealth.warningMessage || `Trend Data: ${trendHealth.badgeText}`}
+              title={
+                trendHealth.warningMessage ||
+                `Trend Data: ${trendHealth.badgeText}`
+              }
             >
               {trendHealth.isInsufficient
                 ? `▲ ${trendHealth.daysCount}/3d`
                 : trendHealth.isStale
-                ? `▲ Stale (${trendHealth.daysSinceLatest}d)`
-                : `● ${trendStats?.daysCount ?? 0}d Trend`}
+                  ? `▲ Stale (${trendHealth.daysSinceLatest}d)`
+                  : `● ${trendStats?.daysCount ?? 0}d Trend`}
             </span>
           )}
           <span
@@ -326,8 +322,7 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
             {formatTimeAgo(evaluatedSummary.lastBuiltAt)}
           </span>
 
-          {/* Quick Action Button — only shown when collapsed */}
-          {!isOpen && (
+          <div style={getHeaderActionContainerStyle(isOpen)}>
             <button
               type="button"
               className="btn btn-primary btn-sm"
@@ -345,10 +340,10 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
                 cacheStatus.itemCount === 0
                   ? "Price cache required (Scan Step 1 first)"
                   : isNexusTrendBlocked
-                  ? `Nexus Pro requires at least 3 days of trend history (${trendStats?.daysCount ?? 0}/3 days)`
-                  : evaluatedSummary.lastBuiltAt
-                  ? "Recalculate Buy Ceilings using current engine & filters"
-                  : "Calculate Buy Ceilings"
+                    ? `Nexus Pro requires at least 3 days of trend history (${trendStats?.daysCount ?? 0}/3 days)`
+                    : evaluatedSummary.lastBuiltAt
+                      ? "Recalculate Buy Ceilings using current engine & filters"
+                      : "Calculate Buy Ceilings"
               }
             >
               {evaluatedSummary.isBatchEvaluating ? (
@@ -368,100 +363,111 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
                 </>
               )}
             </button>
-          )}
+          </div>
 
-          {isOpen ? (
-            <ChevronUp size={18} style={styles.chevronIcon} />
-          ) : (
-            <ChevronDown size={18} style={styles.chevronIcon} />
-          )}
+          <ChevronDown size={18} style={getChevronStyle(isOpen)} />
         </div>
       </div>
 
-      {isOpen && (
-        <div style={styles.body}>
-          <p className="card-desc" style={styles.cardDesc}>
-            Takes pre-filtered pricing data from active price providers and evaluates
-            target accepted prices across CSFloat and Skins.com workstations.
-            Unhedged, illiquid, or high-risk items are automatically suppressed by your risk profile and engine safety shields to protect capital.
-          </p>
+      <div style={getAccordionCollapseStyle(isOpen)}>
+        <div style={getAccordionInnerStyle(isOpen)}>
+          <div style={styles.body}>
+            <p className="card-desc" style={styles.cardDesc}>
+              Takes pre-filtered pricing data from active price providers and
+              evaluates target accepted prices across CSFloat and Skins.com
+              workstations. Unhedged, illiquid, or high-risk items are
+              automatically suppressed by your risk profile and engine safety
+              shields to protect capital.
+            </p>
 
-          {/* Blocked Skins Hint */}
-          {blockedSkins.length > 0 && (
-            <div style={styles.blockedSkinsHint}>
-              <Ban size={13} style={styles.blockedHintIcon} />
-              <span>
-                <strong>{blockedSkins.length}</strong> skin pattern{blockedSkins.length !== 1 ? "s" : ""} blocked
-                &nbsp;&mdash;&nbsp;Oracle will silently skip all their variants during evaluation.
-              </span>
-            </div>
-          )}
+            {/* Blocked Skins Hint */}
+            {blockedSkins.length > 0 && (
+              <div style={styles.blockedSkinsHint}>
+                <Ban size={13} style={styles.blockedHintIcon} />
+                <span>
+                  <strong>{blockedSkins.length}</strong> skin pattern
+                  {blockedSkins.length !== 1 ? "s" : ""} blocked
+                  &nbsp;&mdash;&nbsp;Oracle will silently skip all their
+                  variants during evaluation.
+                </span>
+              </div>
+            )}
 
-          {/* Section 1: Smart Pre-Evaluation Filters */}
-          <PreFiltersPanel
-            preFilters={preFilters}
-            setPreFilters={setPreFilters}
-            toggleWear={toggleWear}
-            resetPreFilters={resetPreFilters}
-            passingFilterCount={passingFilterCount}
-            totalCacheCount={cacheStatus.itemCount}
-          />
-
-          {/* Engine Selection & Section 2 Valuation Strategy Profile */}
-          <EngineStrategyPanel
-            selectedEngine={selectedEngine}
-            setSelectedEngine={setSelectedEngine}
-            unitCostCents={unitCostCents}
-            nexusUnitCostCents={nexusUnitCostCents}
-            strategyProfile={strategyProfile}
-            setStrategyProfile={setStrategyProfile}
-          />
-
-          {/* Section 3: Nexus Trend & Capital Shield Protection (Nexus Mode Only) */}
-          {selectedEngine === "nexus" && (
-            <NexusLabControls
-              nexusProfile={nexusProfile}
-              setNexusProfile={setNexusProfile}
+            {/* Section 1: Smart Pre-Evaluation Filters */}
+            <PreFiltersPanel
+              preFilters={preFilters}
+              setPreFilters={setPreFilters}
+              toggleWear={toggleWear}
+              resetPreFilters={resetPreFilters}
+              passingFilterCount={passingFilterCount}
+              totalCacheCount={cacheStatus.itemCount}
             />
-          )}
 
-          {/* Section 4: Local SQLite Analytics & Dev Simulator */}
-          <DevSimulatorPanel
-            trendStats={trendStats}
-            isLoadingStats={isLoadingStats}
-            fetchConfigAndStats={fetchConfigAndStats}
-            simulatedDate={simulatedDate}
-            seedDays={seedDays}
-            setSeedDays={setSeedDays}
-            isSeedingHistory={isSeedingHistory}
-            handleSeedMockHistory={handleSeedMockHistory}
-            handleSetSimulatedDate={handleSetSimulatedDate}
-            isClearingHistory={isClearingHistory}
-            handleClearTrendHistory={handleClearTrendHistory}
-            trendHealth={trendHealth}
-          />
+            {/* Engine Selection & Section 2 Valuation Strategy Profile */}
+            <EngineStrategyPanel
+              selectedEngine={selectedEngine}
+              setSelectedEngine={setSelectedEngine}
+              unitCostCents={unitCostCents}
+              nexusUnitCostCents={nexusUnitCostCents}
+              strategyProfile={strategyProfile}
+              setStrategyProfile={setStrategyProfile}
+            />
 
-          {/* Section 5: Cost Breakdown & Build Trigger */}
-          <CostLedgerSummary
-            passingFilterCount={passingFilterCount}
-            activeUnitCost={activeUnitCost}
-            selectedEngine={selectedEngine}
-            cacheStatus={cacheStatus}
-            evaluatedSummary={evaluatedSummary}
-            strategyProfilePreset={strategyProfile.preset}
-            canBuild={effectiveCanBuild}
-            onBuildAcceptedPrices={handleBuildAcceptedPrices}
-            isNexusTrendBlocked={isNexusTrendBlocked}
-            trendDaysCount={trendStats?.daysCount ?? 0}
-            trendHealth={trendHealth}
-          />
+            {/* Section 3: Nexus Trend & Capital Shield Protection (Nexus Mode Only) */}
+            {selectedEngine === "nexus" && (
+              <NexusLabControls
+                nexusProfile={nexusProfile}
+                setNexusProfile={setNexusProfile}
+              />
+            )}
+
+            {/* Section 4: Local SQLite Analytics & Dev Simulator */}
+            <DevSimulatorPanel
+              trendStats={trendStats}
+              isLoadingStats={isLoadingStats}
+              fetchConfigAndStats={fetchConfigAndStats}
+              simulatedDate={simulatedDate}
+              seedDays={seedDays}
+              setSeedDays={setSeedDays}
+              isSeedingHistory={isSeedingHistory}
+              handleSeedMockHistory={handleSeedMockHistory}
+              handleSetSimulatedDate={handleSetSimulatedDate}
+              isClearingHistory={isClearingHistory}
+              handleClearTrendHistory={handleClearTrendHistory}
+              trendHealth={trendHealth}
+            />
+
+            {/* Section 5: Cost Breakdown & Build Trigger */}
+            <CostLedgerSummary
+              passingFilterCount={passingFilterCount}
+              activeUnitCost={activeUnitCost}
+              selectedEngine={selectedEngine}
+              cacheStatus={cacheStatus}
+              evaluatedSummary={evaluatedSummary}
+              strategyProfilePreset={strategyProfile.preset}
+              canBuild={effectiveCanBuild}
+              onBuildAcceptedPrices={handleBuildAcceptedPrices}
+              isNexusTrendBlocked={isNexusTrendBlocked}
+              trendDaysCount={trendStats?.daysCount ?? 0}
+              trendHealth={trendHealth}
+            />
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 // ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+function getAccordionCardStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    ...styles.cardContainer,
+    borderColor: isOpen ? "var(--so-border-strong)" : "var(--so-border-medium)",
+    boxShadow: isOpen ? "0 4px 20px rgba(0, 0, 0, 0.2)" : "none",
+    transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+  };
+}
 
 function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
   return {
@@ -472,16 +478,63 @@ function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
     backgroundColor: isOpen
       ? "var(--so-surface-panel)"
       : "var(--so-surface-card)",
-    borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
+    borderBottom: "1px solid",
+    borderBottomColor: isOpen ? "var(--so-border-subtle)" : "transparent",
     cursor: "pointer",
     userSelect: "none",
-    transition: "background-color 0.15s ease",
+    transition: "background-color 0.25s ease, border-color 0.25s ease",
   };
 }
 
-function getEngineIconStyle(selectedEngine: "standard" | "nexus"): React.CSSProperties {
+function getAccordionCollapseStyle(isOpen: boolean): React.CSSProperties {
   return {
-    color: selectedEngine === "nexus" ? "var(--so-primary)" : "var(--so-cyan-text)",
+    display: "grid",
+    gridTemplateRows: isOpen ? "1fr" : "0fr",
+    transition: "grid-template-rows 0.55s cubic-bezier(0.25, 1, 0.35, 1)",
+    overflow: "hidden",
+  };
+}
+
+function getAccordionInnerStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    minHeight: 0,
+    overflow: "hidden",
+    opacity: isOpen ? 1 : 0,
+    transform: isOpen ? "translateY(0)" : "translateY(-8px)",
+    transition:
+      "opacity 0.42s cubic-bezier(0.25, 1, 0.35, 1), transform 0.55s cubic-bezier(0.25, 1, 0.35, 1), visibility 0.55s ease",
+    visibility: isOpen ? "visible" : "hidden",
+  };
+}
+
+function getChevronStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    ...styles.chevronIcon,
+    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+    transition: "transform 0.4s cubic-bezier(0.25, 1, 0.35, 1)",
+  };
+}
+
+function getHeaderActionContainerStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    opacity: isOpen ? 0 : 1,
+    maxWidth: isOpen ? 0 : 160,
+    overflow: "hidden",
+    pointerEvents: isOpen ? "none" : "auto",
+    transition:
+      "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+    whiteSpace: "nowrap",
+  };
+}
+
+function getEngineIconStyle(
+  selectedEngine: "standard" | "nexus",
+): React.CSSProperties {
+  return {
+    color:
+      selectedEngine === "nexus" ? "var(--so-primary)" : "var(--so-cyan-text)",
   };
 }
 
@@ -598,4 +651,3 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.6,
   },
 };
-

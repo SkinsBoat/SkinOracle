@@ -34,6 +34,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   onOpenMarket,
   driftThresholdPercent: propDriftThresholdPercent,
   setDriftThresholdPercent: propSetDriftThresholdPercent,
+  onRegisterLoadOracle,
+  onAcceptedPricesLoaded,
 }) => {
   const [targetSubTab, setTargetSubTab] = useState<"active" | "history">(
     "active",
@@ -150,10 +152,12 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         return;
       }
 
-      setAcceptedPricesMeta({
+      const meta = {
         itemCount: result.itemCount,
         storedAt: result.storedAt,
-      });
+      };
+      setAcceptedPricesMeta(meta);
+      onAcceptedPricesLoaded?.(meta);
 
       const newAnalysis: Record<string, TargetAnalysis> = {};
       targets.forEach((target) => {
@@ -186,6 +190,10 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       setLoadingPrices(false);
     }
   };
+
+  useEffect(() => {
+    onRegisterLoadOracle?.(loadAcceptedPrices);
+  }, [loadAcceptedPrices, onRegisterLoadOracle]);
 
   const getDrift = (target: DmarketTargetItem) =>
     calculateTargetDrift(
@@ -748,6 +756,37 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     actionRequiredCount > 0 &&
     actionRequiredTargets.every((t) => !!selectedTargets[t.targetId]);
 
+  const selectableFilteredTargets = useMemo(() => {
+    return filteredTargets.filter((t) => !isAdvancedTarget(t));
+  }, [filteredTargets]);
+
+  const selectableFilteredCount = selectableFilteredTargets.length;
+
+  const isAllFilteredSelected =
+    selectableFilteredCount > 0 &&
+    selectableFilteredTargets.every((t) => !!selectedTargets[t.targetId]);
+
+  const handleToggleSelectFiltered = () => {
+    const next = { ...selectedTargets };
+    if (isAllFilteredSelected) {
+      selectableFilteredTargets.forEach((t) => {
+        delete next[t.targetId];
+      });
+    } else {
+      selectableFilteredTargets.forEach((t) => {
+        next[t.targetId] = true;
+      });
+    }
+    setSelectedTargets(next);
+  };
+
+  const handleSetFilterAction = (newFilter: FilterAction) => {
+    if (newFilter !== filterAction) {
+      setSelectedTargets({});
+      setFilterAction(newFilter);
+    }
+  };
+
   const handleToggleSelectActionRequired = () => {
     const next = { ...selectedTargets };
     if (isAllActionRequiredSelected) {
@@ -800,15 +839,16 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         targetsCount={targets.length}
         matchedCount={matchedCount}
         actionRequiredCount={actionRequiredCount}
+        selectableFilteredCount={selectableFilteredCount}
+        isAllFilteredSelected={isAllFilteredSelected}
+        onToggleSelectFiltered={handleToggleSelectFiltered}
         holdCount={holdCount}
         showExtraOptions={showExtraOptions}
         setShowExtraOptions={setShowExtraOptions}
         driftThresholdPercent={driftThresholdPercent}
         setDriftThresholdPercent={setDriftThresholdPercent}
         filterAction={filterAction}
-        setFilterAction={setFilterAction}
-        isAllActionRequiredSelected={isAllActionRequiredSelected}
-        onToggleSelectActionRequired={handleToggleSelectActionRequired}
+        setFilterAction={handleSetFilterAction}
         onSyncTargets={fetchTargets}
         loadingTargets={loading}
         onLoadAcceptedPrices={loadAcceptedPrices}

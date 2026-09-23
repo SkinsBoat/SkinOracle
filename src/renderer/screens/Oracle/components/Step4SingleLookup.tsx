@@ -64,24 +64,19 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
   };
 
   return (
-    <div className="card" style={styles.cardContainer}>
+    <div className="card" style={getAccordionCardStyle(isOpen)}>
       {/* Accordion Header Bar */}
-      <div
-        onClick={onToggle}
-        style={getAccordionHeaderStyle(isOpen)}
-      >
+      <div onClick={onToggle} style={getAccordionHeaderStyle(isOpen)}>
         <div style={styles.headerLeft}>
           <div>
             <div style={styles.headerTitle}>
-              <Search size={18} style={styles.searchIcon} />{" "}
-              Single Item Deep-Dive & Market Inspection
+              <Search size={18} style={styles.searchIcon} /> Single Item
+              Deep-Dive & Market Inspection
             </div>
-            {!isOpen && (
-              <div style={styles.headerSubtitle}>
-                Search individual skin hash names & view live marketplace price
-                breakdown
-              </div>
-            )}
+            <div style={styles.headerSubtitle}>
+              Search individual skin hash names & view live marketplace price
+              breakdown
+            </div>
           </div>
         </div>
 
@@ -89,518 +84,534 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
           <span className="badge badge-ghost" style={styles.quickLookupBadge}>
             Quick Skin Lookup
           </span>
-          {isOpen ? (
-            <ChevronUp size={18} style={styles.chevronIcon} />
-          ) : (
-            <ChevronDown size={18} style={styles.chevronIcon} />
-          )}
+          <ChevronDown size={18} style={getChevronStyle(isOpen)} />
         </div>
       </div>
 
-      {isOpen && (
-        <div style={styles.body}>
-          <p className="card-desc" style={styles.cardDesc}>
-            Enter an item market hash name below to look up its accepted price
-            from the calculated accepted price engine.
-          </p>
+      <div style={getAccordionCollapseStyle(isOpen)}>
+        <div style={getAccordionInnerStyle(isOpen)}>
+          <div style={styles.body}>
+            <p className="card-desc" style={styles.cardDesc}>
+              Enter an item market hash name below to look up its accepted price
+              from the calculated accepted price engine.
+            </p>
 
-          <form
-            onSubmit={onLookupSingleItem}
-            style={styles.searchForm}
-          >
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="e.g. AK-47 | Redline (Field-Tested)"
-              style={styles.searchInput}
-            />
+            <form onSubmit={onLookupSingleItem} style={styles.searchForm}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="e.g. AK-47 | Redline (Field-Tested)"
+                style={styles.searchInput}
+              />
 
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handlePaste}
-              title="Paste skin name from clipboard"
-              style={styles.pasteBtn}
-            >
-              <Clipboard size={15} /> Paste
-            </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handlePaste}
+                title="Paste skin name from clipboard"
+                style={styles.pasteBtn}
+              >
+                <Clipboard size={15} /> Paste
+              </button>
 
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={evaluating || !searchQuery.trim()}
-              style={styles.submitBtn}
-            >
-              {evaluating ? (
-                <>
-                  <Loader2 size={16} className="spin" /> Looking Up...
-                </>
-              ) : (
-                <>
-                  <Zap size={16} /> Lookup Price
-                </>
-              )}
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={evaluating || !searchQuery.trim()}
+                style={styles.submitBtn}
+              >
+                {evaluating ? (
+                  <>
+                    <Loader2 size={16} className="spin" /> Looking Up...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={16} /> Lookup Price
+                  </>
+                )}
+              </button>
+            </form>
 
-          {/* Spot Check Result Card */}
-          {results.length > 0 && (
-            <div className="card" style={styles.resultsCard}>
-              <div className="card-title">
-                <BarChart3 size={18} style={styles.advisorIcon} />{" "}
-                Price Advisor & Market Breakdown
-              </div>
+            {/* Spot Check Result Card */}
+            {results.length > 0 && (
+              <div className="card" style={styles.resultsCard}>
+                <div className="card-title">
+                  <BarChart3 size={18} style={styles.advisorIcon} /> Price
+                  Advisor & Market Breakdown
+                </div>
 
-              <div style={styles.resultsList}>
-                {results.map((r) => {
-                  if (!r.oracle) {
+                <div style={styles.resultsList}>
+                  {results.map((r) => {
+                    if (!r.oracle) {
+                      return (
+                        <div key={r.name} style={styles.notFoundCard}>
+                          <div style={styles.notFoundTitle}>
+                            <AlertCircle size={16} /> "{r.name}" not found in
+                            price cache.
+                          </div>
+                          <div style={styles.notFoundDesc}>
+                            Ensure you enter the full item hash name including
+                            the wear condition in parentheses (e.g. AK-47 |
+                            Redline (Field-Tested)).
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const match = r.name.match(/^(.+?)\s*\(([^)]+)\)$/);
+                    const cleanTitle = match ? match[1] : r.name;
+                    const wear = match ? match[2] : "";
+                    const imageUrl = `https://api.steamapis.com/image/item/730/${encodeURIComponent(r.name)}`;
+
+                    const oracle = r.oracle;
+                    const listings: {
+                      m: string;
+                      p: number;
+                      q?: number;
+                      market?: string;
+                      price?: number;
+                      quantity?: number;
+                    }[] = r.listings || oracle.marketBreakdown || [];
+
+                    // Deduplicate and format listings for market breakdown table
+                    const marketListings = listings
+                      .map((l) => ({
+                        marketId: l.m || l.market || "",
+                        price: l.p ?? l.price ?? 0,
+                        quantity:
+                          typeof l.q === "number" && l.q > 0
+                            ? l.q
+                            : typeof l.quantity === "number" && l.quantity > 0
+                              ? l.quantity
+                              : undefined,
+                      }))
+                      .filter((l) => l.price > 0)
+                      .sort((a, b) => a.price - b.price);
+
+                    const buyTarget = oracle.finalAcceptedPrice || 0;
+
                     return (
-                      <div key={r.name} style={styles.notFoundCard}>
-                        <div style={styles.notFoundTitle}>
-                          <AlertCircle size={16} /> "{r.name}" not found in
-                          price cache.
-                        </div>
-                        <div style={styles.notFoundDesc}>
-                          Ensure you enter the full item hash name including the
-                          wear condition in parentheses (e.g. AK-47 | Redline
-                          (Field-Tested)).
-                        </div>
-                      </div>
-                    );
-                  }
+                      <div key={r.name} style={styles.itemCard}>
+                        {/* Item Header */}
+                        <div style={styles.itemHeader}>
+                          <div style={styles.itemHeaderLeft}>
+                            <img
+                              src={imageUrl}
+                              alt={r.name}
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display =
+                                  "none";
+                              }}
+                              style={styles.itemImage}
+                            />
 
-                  const match = r.name.match(/^(.+?)\s*\(([^)]+)\)$/);
-                  const cleanTitle = match ? match[1] : r.name;
-                  const wear = match ? match[2] : "";
-                  const imageUrl = `https://api.steamapis.com/image/item/730/${encodeURIComponent(r.name)}`;
-
-                  const oracle = r.oracle;
-                  const listings: {
-                    m: string;
-                    p: number;
-                    q?: number;
-                    market?: string;
-                    price?: number;
-                    quantity?: number;
-                  }[] = r.listings || oracle.marketBreakdown || [];
-
-                  // Deduplicate and format listings for market breakdown table
-                  const marketListings = listings
-                    .map((l) => ({
-                      marketId: l.m || l.market || "",
-                      price: l.p ?? l.price ?? 0,
-                      quantity:
-                        typeof l.q === "number" && l.q > 0
-                          ? l.q
-                          : typeof l.quantity === "number" && l.quantity > 0
-                            ? l.quantity
-                            : undefined,
-                    }))
-                    .filter((l) => l.price > 0)
-                    .sort((a, b) => a.price - b.price);
-
-                  const buyTarget = oracle.finalAcceptedPrice || 0;
-
-                  return (
-                    <div key={r.name} style={styles.itemCard}>
-                      {/* Item Header */}
-                      <div style={styles.itemHeader}>
-                        <div style={styles.itemHeaderLeft}>
-                          <img
-                            src={imageUrl}
-                            alt={r.name}
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = "none";
-                            }}
-                            style={styles.itemImage}
-                          />
-
-                          <div>
-                            <div style={styles.itemTitleRow}>
-                              <span>{cleanTitle}</span>
-                              <TrendSparkline
-                                name={r.name}
-                                width={90}
-                                height={26}
-                              />
-                            </div>
-                            <div style={styles.itemMetaRow}>
-                              {wear && (
-                                <span style={styles.wearText}>
-                                  ({wear})
-                                </span>
-                              )}
-                              {r.source === "built_cache" && (
-                                <span className="badge badge-success">
-                                  CALCULATED CACHE
-                                </span>
-                              )}
-                              {r.source === "oracle_api" && (
-                                <span className="badge badge-cyan">
-                                  ORACLE API
-                                </span>
-                              )}
-                              {oracle.nexusDelta !== undefined &&
-                                oracle.nexusDelta !== null && (
-                                  <span
-                                    className="badge"
-                                    style={getNexusDeltaBadgeStyle(oracle.nexusDelta)}
-                                  >
-                                    <TrendingUp size={11} />
-                                    NEXUS{" "}
-                                    {oracle.nexusDelta > 0
-                                      ? `+$${oracle.nexusDelta.toFixed(2)}`
-                                      : oracle.nexusDelta < 0
-                                        ? `-$${Math.abs(oracle.nexusDelta).toFixed(2)}`
-                                        : "$0.00"}
+                            <div>
+                              <div style={styles.itemTitleRow}>
+                                <span>{cleanTitle}</span>
+                                <TrendSparkline
+                                  name={r.name}
+                                  width={90}
+                                  height={26}
+                                />
+                              </div>
+                              <div style={styles.itemMetaRow}>
+                                {wear && (
+                                  <span style={styles.wearText}>({wear})</span>
+                                )}
+                                {r.source === "built_cache" && (
+                                  <span className="badge badge-success">
+                                    CALCULATED CACHE
                                   </span>
                                 )}
-                              {oracle.trendConfidence && (
-                                <span
-                                  className="badge badge-ghost"
-                                  style={styles.gradeBadge}
-                                >
-                                  GRADE {oracle.trendConfidence}
-                                </span>
-                              )}
-                              {oracle.supplyStabilityScore !== undefined && (
-                                <span
-                                  className="badge"
-                                  style={getSssBadgeStyle(oracle.supplyStabilityScore)}
-                                  title="Supply Stability Score (SSS) measures cross-market availability, anti-monopoly supply distribution across markets (HHI), and listed stock depth relative to price bracket."
-                                >
-                                  SSS: {oracle.supplyStabilityScore.toFixed(1)}
-                                </span>
-                              )}
-                              {oracle.isHyperStable && (
-                                <span className="badge badge-cyan">
-                                  HYPER STABLE
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 4-Stat Metric Grid */}
-                      <div style={styles.metricGrid}>
-                        <div style={styles.metricCard}>
-                          <div style={styles.metricLabel}>
-                            Market Average
-                          </div>
-                          <div
-                            className="tabular-nums"
-                            style={styles.metricPrimaryValue}
-                          >
-                            {typeof oracle.averageMarketPrice === "number" &&
-                            oracle.averageMarketPrice > 0
-                              ? `$${oracle.averageMarketPrice.toFixed(2)}`
-                              : "—"}
-                          </div>
-                        </div>
-
-                        <div style={styles.metricCard}>
-                          <div style={styles.metricLowestLabel}>
-                            <span>Lowest Listing</span>
-                            {marketListings.length > 0 && (
-                              <MarketLogo
-                                marketId={marketListings[0].marketId}
-                                size={14}
-                              />
-                            )}
-                          </div>
-                          <div
-                            className="tabular-nums"
-                            style={styles.metricTextValue}
-                          >
-                            {typeof oracle.lowestPrice === "number" &&
-                            oracle.lowestPrice > 0
-                              ? `$${oracle.lowestPrice.toFixed(2)}`
-                              : "—"}
-                          </div>
-                        </div>
-
-                        <div style={styles.metricCard}>
-                          <div style={styles.metricLabel}>
-                            Total Market Supply
-                          </div>
-                          <div
-                            className="tabular-nums"
-                            style={styles.metricSuccessValue}
-                          >
-                            {(() => {
-                              if (marketListings.length === 0) {
-                                return "—";
-                              }
-                              const verifiedQty = marketListings.reduce(
-                                (sum, m) => sum + (m.quantity || 0),
-                                0,
-                              );
-                              const hasUnverified = marketListings.some(
-                                (m) => m.quantity === undefined,
-                              );
-                              if (verifiedQty === 0 && hasUnverified) {
-                                return (
-                                  <span style={styles.unverifiedText}>
-                                    Unverified
+                                {r.source === "oracle_api" && (
+                                  <span className="badge badge-cyan">
+                                    ORACLE API
                                   </span>
-                                );
-                              }
-                              return (
-                                <>
-                                  {verifiedQty.toLocaleString()} Qty
-                                  {hasUnverified && (
-                                    <span
-                                      style={styles.unverifiedAsterisk}
-                                      title="Some market sources omitted listing quantity"
-                                    >
-                                      *
-                                    </span>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </div>
-
-                        <div style={styles.metricCard}>
-                          <div style={styles.metricLabel}>
-                            Markets Tracked
-                          </div>
-                          <div
-                            className="tabular-nums"
-                            style={styles.metricCyanValue}
-                          >
-                            {marketListings.length || oracle.marketCount || 0}{" "}
-                            Markets
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 14-Day Historical Trend Intelligence Graph */}
-                      <TrendDetailedChart name={r.name} height={115} />
-
-                      {/* Centralized Buy & Listing Target Box */}
-                      {(() => {
-                        const itemPrices = marketListings
-                          .map((m) => m.price)
-                          .filter((p) => p > 0);
-                        const hasMarketPrices =
-                          itemPrices.length > 0 ||
-                          Boolean(oracle.lowestPrice && oracle.lowestPrice > 0) ||
-                          Boolean(oracle.averageMarketPrice && oracle.averageMarketPrice > 0);
-                        const suggestedListing = hasMarketPrices
-                          ? calculateSuggestedListingPrice(
-                              itemPrices.length > 0
-                                ? itemPrices
-                                : [oracle.lowestPrice || 0],
-                              oracle.averageMarketPrice || 0,
-                              listingStrategy,
-                            )
-                          : 0;
-                        return (
-                          <div style={styles.targetBox}>
-                            {/* Left Column: Target Buy Ceiling */}
-                            <div>
-                              <div style={styles.targetLabel}>
-                                Workstation Buy Ceiling
-                              </div>
-                              <div
-                                className="tabular-nums"
-                                style={styles.buyCeilingValue}
-                              >
-                                ${buyTarget.toFixed(2)}
-                              </div>
-                              <div style={styles.buyCeilingDesc}>
+                                )}
                                 {oracle.nexusDelta !== undefined &&
-                                oracle.nexusDelta !== null ? (
-                                  <span style={styles.nexusInlineMeta}>
-                                    <span>
-                                      Base: $
-                                      {oracle.v1Benchmark
-                                        ? oracle.v1Benchmark.toFixed(2)
-                                        : "—"}
-                                    </span>
+                                  oracle.nexusDelta !== null && (
                                     <span
-                                      style={getNexusDeltaTextStyle(oracle.nexusDelta)}
+                                      className="badge"
+                                      style={getNexusDeltaBadgeStyle(
+                                        oracle.nexusDelta,
+                                      )}
                                     >
+                                      <TrendingUp size={11} />
+                                      NEXUS{" "}
                                       {oracle.nexusDelta > 0
                                         ? `+$${oracle.nexusDelta.toFixed(2)}`
                                         : oracle.nexusDelta < 0
                                           ? `-$${Math.abs(oracle.nexusDelta).toFixed(2)}`
-                                          : "$0.00"}{" "}
-                                      Nexus
+                                          : "$0.00"}
                                     </span>
-                                    {oracle.trendAdjustment !== undefined && (
-                                      <span style={styles.trendAdjText}>
-                                        (
-                                        {(oracle.trendAdjustment * 100).toFixed(
-                                          1,
-                                        )}
-                                        %)
-                                      </span>
-                                    )}
+                                  )}
+                                {oracle.trendConfidence && (
+                                  <span
+                                    className="badge badge-ghost"
+                                    style={styles.gradeBadge}
+                                  >
+                                    GRADE {oracle.trendConfidence}
                                   </span>
-                                ) : (
-                                  "Maximum price to accept for buy orders"
+                                )}
+                                {oracle.supplyStabilityScore !== undefined && (
+                                  <span
+                                    className="badge"
+                                    style={getSssBadgeStyle(
+                                      oracle.supplyStabilityScore,
+                                    )}
+                                    title="Supply Stability Score (SSS) measures cross-market availability, anti-monopoly supply distribution across markets (HHI), and listed stock depth relative to price bracket."
+                                  >
+                                    SSS:{" "}
+                                    {oracle.supplyStabilityScore.toFixed(1)}
+                                  </span>
+                                )}
+                                {oracle.isHyperStable && (
+                                  <span className="badge badge-cyan">
+                                    HYPER STABLE
+                                  </span>
                                 )}
                               </div>
                             </div>
+                          </div>
+                        </div>
 
-                            {/* Right Column: Local Suggested Listing Price */}
-                            <div style={styles.suggestedListingCol}>
-                              <div style={styles.suggestedListingLabel}>
-                                <Tag
-                                  size={13}
-                                  style={styles.tagPrimaryIcon}
-                                />{" "}
-                                Suggested Selling Price (
-                                {listingStrategy.mode.toUpperCase()})
-                              </div>
-                              <div
-                                className="tabular-nums"
-                                style={styles.suggestedListingValue}
-                              >
-                                {suggestedListing > 0
-                                  ? `$${suggestedListing.toFixed(2)}`
-                                  : "—"}
-                              </div>
+                        {/* 4-Stat Metric Grid */}
+                        <div style={styles.metricGrid}>
+                          <div style={styles.metricCard}>
+                            <div style={styles.metricLabel}>Market Average</div>
+                            <div
+                              className="tabular-nums"
+                              style={styles.metricPrimaryValue}
+                            >
+                              {typeof oracle.averageMarketPrice === "number" &&
+                              oracle.averageMarketPrice > 0
+                                ? `$${oracle.averageMarketPrice.toFixed(2)}`
+                                : "—"}
                             </div>
                           </div>
-                        );
-                      })()}
 
-                      {/* Individual Market Breakdown Table */}
-                      {marketListings.length > 0 ? (
-                        <div>
-                          <div style={styles.marketBreakdownTitle}>
-                            <Layers
-                              size={14}
-                              style={styles.cyanIcon}
-                            />{" "}
-                            Live Market Price Breakdown ({marketListings.length}{" "}
-                            Markets)
+                          <div style={styles.metricCard}>
+                            <div style={styles.metricLowestLabel}>
+                              <span>Lowest Listing</span>
+                              {marketListings.length > 0 && (
+                                <MarketLogo
+                                  marketId={marketListings[0].marketId}
+                                  size={14}
+                                />
+                              )}
+                            </div>
+                            <div
+                              className="tabular-nums"
+                              style={styles.metricTextValue}
+                            >
+                              {typeof oracle.lowestPrice === "number" &&
+                              oracle.lowestPrice > 0
+                                ? `$${oracle.lowestPrice.toFixed(2)}`
+                                : "—"}
+                            </div>
                           </div>
 
-                          <div style={styles.tableWrapper}>
-                            <table style={styles.table}>
-                              <thead>
-                                <tr style={styles.tableHeaderRow}>
-                                  <th style={styles.thLeft}>
-                                    Marketplace
-                                  </th>
-                                  <th style={styles.thRight}>
-                                    Lowest Active Price
-                                  </th>
-                                  <th style={styles.thRight}>
-                                    Active Quantity
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {marketListings.map((m, idx) => {
-                                  const marketName = getMarketDisplayName(
-                                    m.marketId,
-                                  );
-                                  const marketUrl = getMarketItemUrl(
-                                    m.marketId,
-                                    r.name,
-                                  );
+                          <div style={styles.metricCard}>
+                            <div style={styles.metricLabel}>
+                              Total Market Supply
+                            </div>
+                            <div
+                              className="tabular-nums"
+                              style={styles.metricSuccessValue}
+                            >
+                              {(() => {
+                                if (marketListings.length === 0) {
+                                  return "—";
+                                }
+                                const verifiedQty = marketListings.reduce(
+                                  (sum, m) => sum + (m.quantity || 0),
+                                  0,
+                                );
+                                const hasUnverified = marketListings.some(
+                                  (m) => m.quantity === undefined,
+                                );
+                                if (verifiedQty === 0 && hasUnverified) {
                                   return (
-                                    <tr
-                                      key={m.marketId + idx}
-                                      style={getTableRowStyle(idx, marketListings.length)}
-                                    >
-                                      <td style={styles.tdMarket}>
-                                        <MarketLogo
-                                          marketId={m.marketId}
-                                          marketName={marketName}
-                                          size={18}
-                                        />
-                                        <span>{marketName}</span>
-                                        {marketUrl && (
-                                          <a
-                                            href={marketUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            title={`Open ${r.name} on ${marketName}`}
-                                            style={styles.marketLink}
-                                            onMouseEnter={(e) =>
-                                              (e.currentTarget.style.color =
-                                                "var(--so-accent-primary, #3b82f6)")
-                                            }
-                                            onMouseLeave={(e) =>
-                                              (e.currentTarget.style.color =
-                                                "var(--so-text-muted, #94a3b8)")
-                                            }
-                                          >
-                                            <ExternalLink size={13} />
-                                          </a>
-                                        )}
-                                        {isTradeMarket(m.marketId) && (
-                                          <span
-                                            className="badge"
-                                            style={styles.tradeBadge}
-                                            title="Trade bot / swap platform: prices may reflect marked-up virtual credit"
-                                          >
-                                            <AlertTriangle
-                                              size={10}
-                                              style={styles.tradeAlertIcon}
-                                            />
-                                            TRADE
-                                          </span>
-                                        )}
-                                      </td>
-                                      <td
-                                        className="tabular-nums"
-                                        style={styles.tdPrice}
-                                      >
-                                        ${m.price.toFixed(2)}
-                                      </td>
-                                      <td
-                                        className="tabular-nums"
-                                        style={styles.tdQuantity}
-                                      >
-                                        {m.quantity !== undefined ? (
-                                          m.quantity.toLocaleString()
-                                        ) : (
-                                          <span
-                                            style={styles.unverifiedQtyText}
-                                            title="Market source did not provide quantity for this listing"
-                                          >
-                                            Unverified
-                                          </span>
-                                        )}
-                                      </td>
-                                    </tr>
+                                    <span style={styles.unverifiedText}>
+                                      Unverified
+                                    </span>
                                   );
-                                })}
-                              </tbody>
-                            </table>
+                                }
+                                return (
+                                  <>
+                                    {verifiedQty.toLocaleString()} Qty
+                                    {hasUnverified && (
+                                      <span
+                                        style={styles.unverifiedAsterisk}
+                                        title="Some market sources omitted listing quantity"
+                                      >
+                                        *
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+
+                          <div style={styles.metricCard}>
+                            <div style={styles.metricLabel}>
+                              Markets Tracked
+                            </div>
+                            <div
+                              className="tabular-nums"
+                              style={styles.metricCyanValue}
+                            >
+                              {marketListings.length || oracle.marketCount || 0}{" "}
+                              Markets
+                            </div>
                           </div>
                         </div>
-                      ) : (
-                        <div style={styles.noListingsNotice}>
-                          <AlertCircle size={15} style={styles.noListingsIcon} />
-                          <span>
-                            No live market listings found in cache. Scan or stream market data in Step 1 to populate marketplace listings.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+
+                        {/* 14-Day Historical Trend Intelligence Graph */}
+                        <TrendDetailedChart name={r.name} height={115} />
+
+                        {/* Centralized Buy & Listing Target Box */}
+                        {(() => {
+                          const itemPrices = marketListings
+                            .map((m) => m.price)
+                            .filter((p) => p > 0);
+                          const hasMarketPrices =
+                            itemPrices.length > 0 ||
+                            Boolean(
+                              oracle.lowestPrice && oracle.lowestPrice > 0,
+                            ) ||
+                            Boolean(
+                              oracle.averageMarketPrice &&
+                              oracle.averageMarketPrice > 0,
+                            );
+                          const suggestedListing = hasMarketPrices
+                            ? calculateSuggestedListingPrice(
+                                itemPrices.length > 0
+                                  ? itemPrices
+                                  : [oracle.lowestPrice || 0],
+                                oracle.averageMarketPrice || 0,
+                                listingStrategy,
+                              )
+                            : 0;
+                          return (
+                            <div style={styles.targetBox}>
+                              {/* Left Column: Target Buy Ceiling */}
+                              <div>
+                                <div style={styles.targetLabel}>
+                                  Workstation Buy Ceiling
+                                </div>
+                                <div
+                                  className="tabular-nums"
+                                  style={styles.buyCeilingValue}
+                                >
+                                  ${buyTarget.toFixed(2)}
+                                </div>
+                                <div style={styles.buyCeilingDesc}>
+                                  {oracle.nexusDelta !== undefined &&
+                                  oracle.nexusDelta !== null ? (
+                                    <span style={styles.nexusInlineMeta}>
+                                      <span>
+                                        Base: $
+                                        {oracle.v1Benchmark
+                                          ? oracle.v1Benchmark.toFixed(2)
+                                          : "—"}
+                                      </span>
+                                      <span
+                                        style={getNexusDeltaTextStyle(
+                                          oracle.nexusDelta,
+                                        )}
+                                      >
+                                        {oracle.nexusDelta > 0
+                                          ? `+$${oracle.nexusDelta.toFixed(2)}`
+                                          : oracle.nexusDelta < 0
+                                            ? `-$${Math.abs(oracle.nexusDelta).toFixed(2)}`
+                                            : "$0.00"}{" "}
+                                        Nexus
+                                      </span>
+                                      {oracle.trendAdjustment !== undefined && (
+                                        <span style={styles.trendAdjText}>
+                                          (
+                                          {(
+                                            oracle.trendAdjustment * 100
+                                          ).toFixed(1)}
+                                          %)
+                                        </span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    "Maximum price to accept for buy orders"
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Right Column: Local Suggested Listing Price */}
+                              <div style={styles.suggestedListingCol}>
+                                <div style={styles.suggestedListingLabel}>
+                                  <Tag
+                                    size={13}
+                                    style={styles.tagPrimaryIcon}
+                                  />{" "}
+                                  Suggested Selling Price (
+                                  {listingStrategy.mode.toUpperCase()})
+                                </div>
+                                <div
+                                  className="tabular-nums"
+                                  style={styles.suggestedListingValue}
+                                >
+                                  {suggestedListing > 0
+                                    ? `$${suggestedListing.toFixed(2)}`
+                                    : "—"}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Individual Market Breakdown Table */}
+                        {marketListings.length > 0 ? (
+                          <div>
+                            <div style={styles.marketBreakdownTitle}>
+                              <Layers size={14} style={styles.cyanIcon} /> Live
+                              Market Price Breakdown ({marketListings.length}{" "}
+                              Markets)
+                            </div>
+
+                            <div style={styles.tableWrapper}>
+                              <table style={styles.table}>
+                                <thead>
+                                  <tr style={styles.tableHeaderRow}>
+                                    <th style={styles.thLeft}>Marketplace</th>
+                                    <th style={styles.thRight}>
+                                      Lowest Active Price
+                                    </th>
+                                    <th style={styles.thRight}>
+                                      Active Quantity
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {marketListings.map((m, idx) => {
+                                    const marketName = getMarketDisplayName(
+                                      m.marketId,
+                                    );
+                                    const marketUrl = getMarketItemUrl(
+                                      m.marketId,
+                                      r.name,
+                                    );
+                                    return (
+                                      <tr
+                                        key={m.marketId + idx}
+                                        style={getTableRowStyle(
+                                          idx,
+                                          marketListings.length,
+                                        )}
+                                      >
+                                        <td style={styles.tdMarket}>
+                                          <MarketLogo
+                                            marketId={m.marketId}
+                                            marketName={marketName}
+                                            size={18}
+                                          />
+                                          <span>{marketName}</span>
+                                          {marketUrl && (
+                                            <a
+                                              href={marketUrl}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              title={`Open ${r.name} on ${marketName}`}
+                                              style={styles.marketLink}
+                                              onMouseEnter={(e) =>
+                                                (e.currentTarget.style.color =
+                                                  "var(--so-accent-primary, #3b82f6)")
+                                              }
+                                              onMouseLeave={(e) =>
+                                                (e.currentTarget.style.color =
+                                                  "var(--so-text-muted, #94a3b8)")
+                                              }
+                                            >
+                                              <ExternalLink size={13} />
+                                            </a>
+                                          )}
+                                          {isTradeMarket(m.marketId) && (
+                                            <span
+                                              className="badge"
+                                              style={styles.tradeBadge}
+                                              title="Trade bot / swap platform: prices may reflect marked-up virtual credit"
+                                            >
+                                              <AlertTriangle
+                                                size={10}
+                                                style={styles.tradeAlertIcon}
+                                              />
+                                              TRADE
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td
+                                          className="tabular-nums"
+                                          style={styles.tdPrice}
+                                        >
+                                          ${m.price.toFixed(2)}
+                                        </td>
+                                        <td
+                                          className="tabular-nums"
+                                          style={styles.tdQuantity}
+                                        >
+                                          {m.quantity !== undefined ? (
+                                            m.quantity.toLocaleString()
+                                          ) : (
+                                            <span
+                                              style={styles.unverifiedQtyText}
+                                              title="Market source did not provide quantity for this listing"
+                                            >
+                                              Unverified
+                                            </span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={styles.noListingsNotice}>
+                            <AlertCircle
+                              size={15}
+                              style={styles.noListingsIcon}
+                            />
+                            <span>
+                              No live market listings found in cache. Scan or
+                              stream market data in Step 1 to populate
+                              marketplace listings.
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 // ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
+
+function getAccordionCardStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    ...styles.cardContainer,
+    borderColor: isOpen ? "var(--so-border-strong)" : "var(--so-border-medium)",
+    boxShadow: isOpen ? "0 4px 20px rgba(0, 0, 0, 0.2)" : "none",
+    transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+  };
+}
 
 function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
   return {
@@ -611,10 +622,40 @@ function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
     backgroundColor: isOpen
       ? "var(--so-surface-panel)"
       : "var(--so-surface-card)",
-    borderBottom: isOpen ? "1px solid var(--so-border-subtle)" : "none",
+    borderBottom: "1px solid",
+    borderBottomColor: isOpen ? "var(--so-border-subtle)" : "transparent",
     cursor: "pointer",
     userSelect: "none",
-    transition: "background-color 0.15s ease",
+    transition: "background-color 0.25s ease, border-color 0.25s ease",
+  };
+}
+
+function getAccordionCollapseStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    display: "grid",
+    gridTemplateRows: isOpen ? "1fr" : "0fr",
+    transition: "grid-template-rows 0.48s cubic-bezier(0.25, 1, 0.35, 1)",
+    overflow: "hidden",
+  };
+}
+
+function getAccordionInnerStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    minHeight: 0,
+    overflow: "hidden",
+    opacity: isOpen ? 1 : 0,
+    transform: isOpen ? "translateY(0)" : "translateY(-8px)",
+    transition:
+      "opacity 0.38s cubic-bezier(0.25, 1, 0.35, 1), transform 0.48s cubic-bezier(0.25, 1, 0.35, 1), visibility 0.48s ease",
+    visibility: isOpen ? "visible" : "hidden",
+  };
+}
+
+function getChevronStyle(isOpen: boolean): React.CSSProperties {
+  return {
+    ...styles.chevronIcon,
+    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+    transition: "transform 0.38s cubic-bezier(0.25, 1, 0.35, 1)",
   };
 }
 
@@ -1051,4 +1092,3 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-warning-text, #f59e0b)",
   },
 };
-

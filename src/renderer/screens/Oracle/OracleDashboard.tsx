@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import {
   useOracleStore,
   DEFAULT_SELECTED_MARKETS,
@@ -66,6 +66,21 @@ export default function OracleDashboard() {
 
   const toggleStep = (stepKey: string) => {
     setOpenSteps((prev) => ({ ...prev, [stepKey]: !prev[stepKey] }));
+  };
+
+  const allStepsOpen = useMemo(
+    () => Object.values(openSteps).every(Boolean),
+    [openSteps],
+  );
+
+  const toggleAllSteps = () => {
+    const nextState = !allStepsOpen;
+    setOpenSteps({
+      step1: nextState,
+      step2: nextState,
+      step3: nextState,
+      step4: nextState,
+    });
   };
 
   // Persistent Oracle Dashboard State powered by Zustand
@@ -943,8 +958,7 @@ export default function OracleDashboard() {
           .map((l) => (typeof l.p === "number" ? l.p : parseFloat(l.p as any)))
           .filter((p) => !isNaN(p) && p > 0)
           .sort((a, b) => a - b);
-        const lowestPrice =
-          validPrices.length > 0 ? validPrices[0] : undefined;
+        const lowestPrice = validPrices.length > 0 ? validPrices[0] : undefined;
         const avgPrice =
           validPrices.length > 0
             ? validPrices.reduce((a, b) => a + b, 0) / validPrices.length
@@ -975,7 +989,9 @@ export default function OracleDashboard() {
           },
         ]);
 
-        toast.success(`Found in Calculated Accepted Prices list!`, { id: toastId });
+        toast.success(`Found in Calculated Accepted Prices list!`, {
+          id: toastId,
+        });
       } else {
         setResults([
           { name: hashName, source: "not_found", oracle: null, listings: [] },
@@ -1001,15 +1017,34 @@ export default function OracleDashboard() {
       <div style={styles.headerBanner}>
         <div>
           <h1 style={styles.headerTitle}>
-            <Sparkles size={24} style={styles.headerSparkles} /> Oracle Pricing Central
-            <span style={styles.betaBadge}>
-              BETA
-            </span>
+            <Sparkles size={24} style={styles.headerSparkles} /> Oracle Pricing
+            Central
+            <span style={styles.betaBadge}>BETA</span>
           </h1>
           <p style={styles.headerSubtitle}>
             Centralized pricing engine & persistent market price cache manager
             for all connected trading workstations.
           </p>
+        </div>
+
+        <div style={styles.headerRight}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={toggleAllSteps}
+            style={styles.expandAllBtn}
+            title={allStepsOpen ? "Collapse all 4 steps" : "Expand all 4 steps"}
+          >
+            {allStepsOpen ? (
+              <>
+                <ChevronUp size={14} /> Collapse All
+              </>
+            ) : (
+              <>
+                <ChevronDown size={14} /> Expand All
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -1142,5 +1177,20 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-text-secondary)",
     marginTop: "4px",
   },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  expandAllBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    fontWeight: 600,
+    fontSize: "12px",
+    padding: "6px 14px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  },
 };
-

@@ -93,9 +93,6 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
   >("all");
 
   const selectedCount = Object.values(selectedItems).filter(Boolean).length;
-  const matchedCount = orders.filter(
-    (o) => getOrderDriftDetails(o) !== null,
-  ).length;
 
   const exceedsBalanceOrders = useMemo(() => {
     if (typeof userBalance !== "number" || userBalance < 0) return [];
@@ -193,6 +190,31 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
     unmatchedOrders.length > 0 &&
     unmatchedOrders.every((o) => !!selectedItems[o.id]);
 
+  const isAllFilteredSelected =
+    displayedOrders.length > 0 &&
+    displayedOrders.every((o) => !!selectedItems[o.id]);
+
+  const handleToggleSelectFiltered = () => {
+    const next = { ...selectedItems };
+    if (isAllFilteredSelected) {
+      displayedOrders.forEach((o) => {
+        delete next[o.id];
+      });
+    } else {
+      displayedOrders.forEach((o) => {
+        next[o.id] = true;
+      });
+    }
+    setSelectedItems(next);
+  };
+
+  const handleSetStatusFilter = (newFilter: typeof statusFilter) => {
+    if (newFilter !== statusFilter) {
+      setSelectedItems({});
+      setStatusFilter(newFilter);
+    }
+  };
+
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
     (statusFilter === "all" ? orders : displayedOrders).forEach((o) => {
@@ -257,32 +279,9 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
     <div style={styles.container}>
       {/* Control Bar */}
       <div style={styles.controlBar}>
-        {/* Left Stats & Extra Actions */}
+        {/* Left Controls & Status Filters */}
         <div style={styles.leftStatsWrapper}>
-          <div style={styles.statsPill}>
-            <div style={styles.statsRow}>
-              <span style={styles.statLabelMuted}>
-                Orders:{" "}
-                <strong style={styles.statPrimary}>
-                  {orders.length}
-                </strong>
-              </span>
-              <span style={styles.statLabelMuted}>
-                Matched:{" "}
-                <strong style={styles.statCyan}>
-                  {matchedCount}
-                </strong>
-              </span>
-              {actionRequiredCount > 0 && (
-                <span style={styles.actionReqRow}>
-                  Action Req:{" "}
-                  <strong style={styles.actionReqCount}>
-                    {actionRequiredCount}
-                  </strong>
-                </span>
-              )}
-            </div>
-
+          <div style={styles.optionsGroup}>
             <button
               type="button"
               onClick={() => setShowExtraActions((prev) => !prev)}
@@ -332,21 +331,6 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 </span>
               </div>
 
-              {exceedsBalanceCount > 0 && (
-                <button
-                  type="button"
-                  onClick={handleToggleSelectExceeds}
-                  className="btn btn-sm"
-                  style={styles.selectExceedingBtn}
-                  title="Select all buy orders exceeding available wallet balance"
-                >
-                  <Wallet size={11} />
-                  {isAllExceedsSelected
-                    ? `Unselect Exceeding (${exceedsBalanceCount})`
-                    : `Select Exceeding (${exceedsBalanceCount})`}
-                </button>
-              )}
-
               {orders.length > 0 && (
                 <button
                   onClick={handleDeleteAllOrders}
@@ -365,7 +349,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
           <div style={styles.statusChipsWrapper}>
             <button
               type="button"
-              onClick={() => setStatusFilter("all")}
+              onClick={() => handleSetStatusFilter("all")}
               style={getStatusChipStyle(statusFilter === "all", "all")}
             >
               All ({orders.length})
@@ -375,7 +359,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() =>
-                  setStatusFilter(statusFilter === "action" ? "all" : "action")
+                  handleSetStatusFilter(statusFilter === "action" ? "all" : "action")
                 }
                 style={getStatusChipStyle(statusFilter === "action", "action")}
               >
@@ -387,7 +371,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() =>
-                  setStatusFilter(
+                  handleSetStatusFilter(
                     statusFilter === "exceeds" ? "all" : "exceeds",
                   )
                 }
@@ -402,7 +386,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() =>
-                  setStatusFilter(statusFilter === "drift" ? "all" : "drift")
+                  handleSetStatusFilter(statusFilter === "drift" ? "all" : "drift")
                 }
                 style={getStatusChipStyle(statusFilter === "drift", "drift")}
               >
@@ -414,7 +398,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() =>
-                  setStatusFilter(
+                  handleSetStatusFilter(
                     statusFilter === "unmatched" ? "all" : "unmatched",
                   )
                 }
@@ -428,7 +412,7 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <button
                 type="button"
                 onClick={() =>
-                  setStatusFilter(
+                  handleSetStatusFilter(
                     statusFilter === "advanced" ? "all" : "advanced",
                   )
                 }
@@ -443,30 +427,20 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
 
         {/* Right Actions */}
         <div style={styles.rightActionsGroup}>
-          {actionRequiredCount > 0 && (
+          {displayedOrders.length > 0 && (
             <button
               type="button"
-              onClick={handleToggleSelectActionRequired}
-              className="btn btn-sm"
-              style={getActionRequiredButtonStyle(isAllActionRequiredSelected)}
+              onClick={handleToggleSelectFiltered}
+              className={`btn btn-sm ${isAllFilteredSelected ? "btn-primary" : "btn-outline"}`}
+              style={styles.actionRequiredButton}
               title={
-                isAllActionRequiredSelected
-                  ? "Click to unselect all action items"
-                  : "Click to select all buy orders requiring action"
+                isAllFilteredSelected
+                  ? `Click to unselect ${getCsfloatFilterSelectLabel(statusFilter, displayedOrders.length).toLowerCase()} orders`
+                  : `Click to select all ${displayedOrders.length} orders in current filter`
               }
             >
-              <AlertTriangle
-                size={12}
-                style={getActionRequiredAlertIconStyle(isAllActionRequiredSelected)}
-              />
-              <span>
-                {isAllActionRequiredSelected
-                  ? "Unselect Action Items"
-                  : "Select Action Items"}
-              </span>
-              <span style={styles.actionRequiredBadge}>
-                {actionRequiredCount}
-              </span>
+              <CheckSquare size={13} />
+              <span>{getCsfloatFilterSelectLabel(statusFilter, displayedOrders.length)}</span>
             </button>
           )}
           <button
@@ -480,18 +454,6 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
               <RotateCw size={14} />
             )}{" "}
             Sync Buy Orders
-          </button>
-          <button
-            onClick={loadAcceptedPrices}
-            disabled={loadingPrices}
-            className={`btn ${pricesLoaded ? "btn-secondary" : "btn-outline"} btn-sm`}
-          >
-            {loadingPrices ? (
-              <Loader2 size={14} className="spin" />
-            ) : (
-              <LinkIcon size={14} />
-            )}
-            {pricesLoaded ? "Reload Accepted Prices" : "Load Accepted Prices"}
           </button>
         </div>
       </div>
@@ -731,18 +693,36 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
 
 // ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
 
+const getCsfloatFilterSelectLabel = (filter: string, count: number): string => {
+  switch (filter) {
+    case "action":
+      return `Action ${count}`;
+    case "exceeds":
+      return `Exceeds ${count}`;
+    case "drift":
+      return `Drift ${count}`;
+    case "unmatched":
+      return `Unmatched ${count}`;
+    case "advanced":
+      return `Advanced ${count}`;
+    case "all":
+    default:
+      return `Select ${count}`;
+  }
+};
+
 const getOptionsToggleButtonStyle = (showExtraActions: boolean): React.CSSProperties => ({
-  backgroundColor: showExtraActions ? "var(--so-surface-input)" : "transparent",
-  color: showExtraActions ? "var(--so-primary)" : "var(--so-text-muted)",
-  border: "1px solid var(--so-border-subtle)",
-  padding: "3px 7px",
+  backgroundColor: showExtraActions ? "var(--so-surface-input)" : "var(--so-surface-panel)",
+  color: showExtraActions ? "var(--so-primary)" : "var(--so-text-secondary)",
+  border: "1px solid var(--so-border-medium)",
+  padding: "4px 8px",
   display: "flex",
   alignItems: "center",
   gap: "4px",
   cursor: "pointer",
   fontSize: "11px",
   fontWeight: 700,
-  borderRadius: "4px",
+  borderRadius: "var(--so-radius-sm)",
   transition: "all 0.2s ease",
 });
 
@@ -999,45 +979,19 @@ const styles = {
     flexWrap: "wrap",
   } as React.CSSProperties,
 
-  statsPill: {
-    display: "flex",
+  actionRequiredButton: {
+    display: "inline-flex",
     alignItems: "center",
-    gap: "10px",
-    backgroundColor: "var(--so-surface-panel)",
-    border: "1px solid var(--so-border-medium)",
-    padding: "4px 10px",
-    borderRadius: "var(--so-radius-sm)",
-  } as React.CSSProperties,
-
-  statsRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
+    gap: "5px",
     fontSize: "11.5px",
     fontWeight: 700,
+    padding: "4px 10px",
   } as React.CSSProperties,
 
-  statLabelMuted: {
-    color: "var(--so-text-muted)",
-  } as React.CSSProperties,
-
-  statPrimary: {
-    color: "var(--so-text-primary)",
-  } as React.CSSProperties,
-
-  statCyan: {
-    color: "var(--so-accent-cyan)",
-  } as React.CSSProperties,
-
-  actionReqRow: {
-    color: "var(--so-text-muted)",
+  optionsGroup: {
     display: "flex",
     alignItems: "center",
-    gap: "4px",
-  } as React.CSSProperties,
-
-  actionReqCount: {
-    color: "#f59e0b",
+    gap: "6px",
   } as React.CSSProperties,
 
   optionsToggleText: {
@@ -1075,19 +1029,6 @@ const styles = {
   percentText: {
     fontSize: "10px",
     color: "var(--so-text-muted)",
-  } as React.CSSProperties,
-
-  selectExceedingBtn: {
-    fontSize: "10.5px",
-    fontWeight: 700,
-    padding: "3px 8px",
-    display: "flex",
-    alignItems: "center",
-    gap: "4px",
-    whiteSpace: "nowrap",
-    backgroundColor: "rgba(239, 68, 68, 0.14)",
-    color: "#f87171",
-    border: "1px solid rgba(239, 68, 68, 0.35)",
   } as React.CSSProperties,
 
   deleteAllBtn: {
