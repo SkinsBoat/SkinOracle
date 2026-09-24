@@ -4,6 +4,8 @@
 
 [![License](https://img.shields.io/badge/License-Source--Available-orange.svg)](./LICENSE)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-blue.svg)](./SECURITY.md)
+[![CodeQL Security Scan](https://github.com/SkinsBoat/SkinOracle/actions/workflows/codeql.yml/badge.svg)](https://github.com/SkinsBoat/SkinOracle/actions/workflows/codeql.yml)
+[![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-Available-0078D7.svg)](https://apps.microsoft.com/detail/9N9V96813XD5)
 [![AI Guidelines](https://img.shields.io/badge/AI%20Directives-AGENTS.md-green.svg)](./AGENTS.md)
 [![Discord](https://img.shields.io/badge/Discord-Community-5865F2.svg)](https://discord.gg/b62feTH5kS)
 
