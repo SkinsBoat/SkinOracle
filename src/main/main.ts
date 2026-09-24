@@ -115,16 +115,17 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
-  // Initialize auto-updater service (save API calls: only auto-check if version is strictly blocked)
+  // Initialize auto-updater service & automatically check for updates on startup
   win.webContents.on("did-finish-load", () => {
     autoUpdateService.init();
-    if (currentGateResult && !currentGateResult.allowed) {
-      setTimeout(() => {
-        autoUpdateService.checkForUpdates().catch((err) => {
-          console.warn("[AutoUpdate] Blocked version check failed:", err);
-        });
-      }, 500);
-    }
+    // Allow renderer to mount and subscribe to updater events before checking
+    const checkDelayMs =
+      currentGateResult && !currentGateResult.allowed ? 500 : 1500;
+    setTimeout(() => {
+      autoUpdateService.checkForUpdates().catch((err) => {
+        console.warn("[AutoUpdate] Startup update check failed:", err);
+      });
+    }, checkDelayMs);
   });
 }
 

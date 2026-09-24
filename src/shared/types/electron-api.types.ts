@@ -252,6 +252,7 @@ export interface ElectronAPI {
     checkForUpdates: () => Promise<{ success: boolean; message?: string }>;
     downloadUpdate: () => Promise<{ success: boolean; message?: string }>;
     quitAndInstall: () => Promise<void>;
+    getStatus?: () => Promise<UpdateStatusState>;
     onUpdateStatus: (
       callback: (state: UpdateStatusState) => void,
     ) => () => void;

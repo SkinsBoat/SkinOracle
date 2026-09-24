@@ -309,6 +309,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     checkForUpdates: () => safeInvoke("updater:check"),
     downloadUpdate: () => safeInvoke("updater:download"),
     quitAndInstall: () => safeInvoke("updater:quit-and-install"),
+    getStatus: () => safeInvoke("updater:get-status"),
     onUpdateStatus: (callback: (state: any) => void) => {
       const subscription = (_: any, data: any) => callback(data);
       ipcRenderer.on("auto-updater:status", subscription);

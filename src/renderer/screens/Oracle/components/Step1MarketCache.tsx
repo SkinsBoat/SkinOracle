@@ -754,7 +754,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                   </div>
 
                   <div style={styles.estimatedCycleText}>
-                    <Layers size={14} /> Right-click any market chip to solo it.
+                    <Layers size={14} />
                     Estimated fetch cycle: ~
                     {Math.floor(estimatedFetchSeconds / 60)}m{" "}
                     {estimatedFetchSeconds % 60}s

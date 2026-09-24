@@ -29,6 +29,16 @@ export default function UpdateNotification({
   useEffect(() => {
     if (!window.electronAPI?.updater) return;
 
+    // Fetch initial status in case startup check already triggered
+    if (window.electronAPI.updater.getStatus) {
+      window.electronAPI.updater
+        .getStatus()
+        .then((initialState) => {
+          if (initialState) setUpdateState(initialState);
+        })
+        .catch(() => {});
+    }
+
     // Listen for real-time update status changes from main process
     const unsubscribe = window.electronAPI.updater.onUpdateStatus((state) => {
       setUpdateState(state);

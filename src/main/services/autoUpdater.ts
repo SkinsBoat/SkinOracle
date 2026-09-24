@@ -3,7 +3,7 @@ import {
   UpdateInfo as ElectronUpdateInfo,
   ProgressInfo,
 } from "electron-updater";
-import { BrowserWindow } from "electron";
+import { BrowserWindow, app } from "electron";
 import {
   UpdateStatusState,
   UpdateProgressInfo,
@@ -133,6 +133,11 @@ class AutoUpdateService {
     success: boolean;
     message?: string;
   }> {
+    if (!app.isPackaged && !process.env.FORCE_AUTO_UPDATE_TEST) {
+      console.log("[AutoUpdateService] Skipping update check in unpacked development environment");
+      return { success: false, message: "Updater is active in packaged builds." };
+    }
+
     try {
       this.init();
       const result = await autoUpdater.checkForUpdates();
@@ -156,6 +161,10 @@ class AutoUpdateService {
     success: boolean;
     message?: string;
   }> {
+    if (!app.isPackaged && !process.env.FORCE_AUTO_UPDATE_TEST) {
+      return { success: false, message: "Updater is active in packaged builds." };
+    }
+
     try {
       this.init();
       await autoUpdater.downloadUpdate();
