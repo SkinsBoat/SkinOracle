@@ -71,6 +71,8 @@ jobs:
           name: SkinOracle-${{ matrix.os }}
           path: |
             release/*.exe
+            release/*.appx
+            release/*.msix
             release/*.AppImage
             release/*.deb
             release/*.yml
@@ -82,6 +84,8 @@ jobs:
         with:
           files: |
             release/*.exe
+            release/*.appx
+            release/*.msix
             release/*.AppImage
             release/*.deb
             release/*.yml

@@ -13,6 +13,7 @@
     "dev": "vite",
     "build": "vite build && electron-builder",
     "build:win": "vite build && electron-builder --win",
+    "build:appx": "vite build && electron-builder --win appx",
     "build:linux": "vite build && electron-builder --linux",
     "build:all": "vite build && electron-builder --win --linux",
     "preview": "vite preview",
@@ -81,9 +82,17 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        "nsis",
+        "appx"
       ],
       "icon": "assets/icon.png"
+    },
+    "appx": {
+      "applicationId": "SkinOracle",
+      "identityName": "SkinsBoat.SkinOracle",
+      "publisher": "CN=6716DEEE-BC67-4415-A184-72E9DDD3FCE4",
+      "publisherDisplayName": "SkinsBoat",
+      "displayName": "Skin Oracle"
     },
     "nsis": {
       "oneClick": false,

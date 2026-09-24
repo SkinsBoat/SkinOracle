@@ -22,6 +22,11 @@ class AutoUpdateService {
 
   public init() {
     if (this.initialized) return;
+    if (process.windowsStore) {
+      console.log("[AutoUpdateService] Running inside Microsoft Store package; self-updater disabled.");
+      this.initialized = true;
+      return;
+    }
     this.initialized = true;
 
     // Do not auto-download immediately; allow renderer/user interaction or background trigger
@@ -133,6 +138,10 @@ class AutoUpdateService {
     success: boolean;
     message?: string;
   }> {
+    if (process.windowsStore) {
+      return { success: false, message: "Updates are managed automatically by the Microsoft Store." };
+    }
+
     if (!app.isPackaged && !process.env.FORCE_AUTO_UPDATE_TEST) {
       console.log("[AutoUpdateService] Skipping update check in unpacked development environment");
       return { success: false, message: "Updater is active in packaged builds." };
@@ -161,6 +170,10 @@ class AutoUpdateService {
     success: boolean;
     message?: string;
   }> {
+    if (process.windowsStore) {
+      return { success: false, message: "Updates are managed automatically by the Microsoft Store." };
+    }
+
     if (!app.isPackaged && !process.env.FORCE_AUTO_UPDATE_TEST) {
       return { success: false, message: "Updater is active in packaged builds." };
     }
