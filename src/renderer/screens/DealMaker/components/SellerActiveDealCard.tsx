@@ -23,6 +23,7 @@ import {
 } from '../../../../shared/dealmakerMarkets';
 import { CopyMarketHashButton } from '../../../components/CopyMarketHashButton';
 import { getMarketItemUrl } from '../../../utils/marketUrls';
+import { getCsfloatSearchUrl } from '../../../utils/csfloatUrls';
 import { MarketLogo } from '../../../components/MarketLogo';
 import {
   getMarketDisplayName,
@@ -162,7 +163,7 @@ export const SellerActiveDealCard: React.FC<SellerActiveDealCardProps> = ({
     const targetUrl =
       postedLink ||
       getMarketItemUrl(auction.marketplace, auction.marketHashName) ||
-      `https://csfloat.com/search?market_hash_name=${encodeURIComponent(auction.marketHashName)}`;
+      getCsfloatSearchUrl(auction.marketHashName);
     openExternalUrl(targetUrl);
   };
 

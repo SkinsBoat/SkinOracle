@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import axios from "axios";
-import * as https from "https";
 import { secureGet, STORAGE_KEYS } from "../../storage/secure-store";
 import { setPriceCache, priceCache } from "./oracle.ipc";
 import { SKINSNIPE_LOWEST_PRICES } from "../constants/apiUrls";
@@ -197,7 +196,6 @@ async function fetchMarket(apiKey: string, market: string): Promise<any[]> {
       Authorization: `Key ${apiKey}`,
       "User-Agent": getAppUserAgent(),
     },
-    httpsAgent: new https.Agent({ rejectUnauthorized: false }),
   });
 
   const data = res.data;

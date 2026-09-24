@@ -4,6 +4,7 @@ import {
   isMarketMatch,
   getMarketDisplayName,
 } from "../../../../shared/canonicalMarkets";
+import { isSteamApisImage } from "../../../../shared/utils/urlSecurity";
 import TrendDetailedChart from "../../../components/TrendDetailedChart";
 
 export interface LookupModalItemData {
@@ -140,7 +141,7 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
               alt={item.name}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                if (!target.src.includes("steamapis.com")) {
+                if (!isSteamApisImage(target.src)) {
                   target.src = `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
                 }
               }}

@@ -17,6 +17,7 @@ import { useDealMakerStore } from '../../../store/useDealMakerStore';
 import { SkinImage } from '../../../components/SkinImage';
 import { CopyMarketHashButton } from '../../../components/CopyMarketHashButton';
 import { getMarketItemUrl } from '../../../utils/marketUrls';
+import { getCsfloatSearchUrl } from '../../../utils/csfloatUrls';
 import { MarketLogo } from '../../../components/MarketLogo';
 import { getMarketDisplayName } from '../../../../shared/canonicalMarkets';
 import {
@@ -156,14 +157,14 @@ export const DealItemCard: React.FC<DealItemCardProps> = ({
     const targetUrl =
       postedLink ||
       getMarketItemUrl(auction.marketplace, auction.marketHashName) ||
-      `https://csfloat.com/search?market_hash_name=${encodeURIComponent(auction.marketHashName)}`;
+      getCsfloatSearchUrl(auction.marketHashName);
     openExternalUrl(targetUrl);
   };
 
   const handleOpenMarketByName = (name: string) => {
     const targetUrl =
       getMarketItemUrl(auction.marketplace, name) ||
-      `https://csfloat.com/search?market_hash_name=${encodeURIComponent(name)}`;
+      getCsfloatSearchUrl(name);
     openExternalUrl(targetUrl);
   };
 

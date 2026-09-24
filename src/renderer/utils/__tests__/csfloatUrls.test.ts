@@ -43,6 +43,44 @@ describe("formatCsfloatItemName", () => {
       "Souvenir AWP | Desert Hydra (Factory New)",
     );
   });
+
+  it("correctly formats vanilla knives by stripping (Vanilla) and StatTrak prefix for CSFloat", () => {
+    // StatTrak with (Vanilla)
+    expect(formatCsfloatItemName("★ StatTrak™ Gut Knife (Vanilla)")).toBe(
+      "★ Gut Knife",
+    );
+
+    // Non-StatTrak with (Vanilla)
+    expect(formatCsfloatItemName("★ Gut Knife (Vanilla)")).toBe(
+      "★ Gut Knife",
+    );
+
+    // Vanilla knife without star
+    expect(formatCsfloatItemName("Gut Knife (Vanilla)")).toBe(
+      "★ Gut Knife",
+    );
+
+    // StatTrak vanilla without (Vanilla) tag
+    expect(formatCsfloatItemName("★ StatTrak™ Gut Knife")).toBe(
+      "★ Gut Knife",
+    );
+
+    // StatTrak without star
+    expect(formatCsfloatItemName("StatTrak™ Gut Knife (Vanilla)")).toBe(
+      "★ Gut Knife",
+    );
+
+    // Other vanilla knife models
+    expect(formatCsfloatItemName("★ StatTrak™ Karambit (Vanilla)")).toBe(
+      "★ Karambit",
+    );
+    expect(formatCsfloatItemName("★ Butterfly Knife (Vanilla)")).toBe(
+      "★ Butterfly Knife",
+    );
+    expect(formatCsfloatItemName("★ StatTrak™ M9 Bayonet")).toBe(
+      "★ M9 Bayonet",
+    );
+  });
 });
 
 describe("getCsfloatSearchUrl", () => {
@@ -52,6 +90,15 @@ describe("getCsfloatSearchUrl", () => {
 
     expect(url).toBe(
       "https://csfloat.com/search?market_hash_name=%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Urban%20Masked%20(Minimal%20Wear)&sort_by=lowest_price",
+    );
+  });
+
+  it("generates the working URL for vanilla knives (e.g. ★ StatTrak™ Gut Knife (Vanilla))", () => {
+    const input = "★ StatTrak™ Gut Knife (Vanilla)";
+    const url = getCsfloatSearchUrl(input);
+
+    expect(url).toBe(
+      "https://csfloat.com/search?market_hash_name=%E2%98%85%20Gut%20Knife&sort_by=lowest_price",
     );
   });
 });

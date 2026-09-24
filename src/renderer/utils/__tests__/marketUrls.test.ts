@@ -23,6 +23,9 @@ describe("Market Link Generators", () => {
     expect(handleCsfloatReferenceLink("AK-47 | Redline (Field-Tested)")).toBe(
       "https://csfloat.com/search?market_hash_name=AK-47%20%7C%20Redline%20(Field-Tested)&sort_by=lowest_price",
     );
+    expect(handleCsfloatReferenceLink("★ StatTrak™ Gut Knife (Vanilla)")).toBe(
+      "https://csfloat.com/search?market_hash_name=%E2%98%85%20Gut%20Knife&sort_by=lowest_price",
+    );
   });
 
   it("handleDmarketReferenceLink handles StatTrak, Souvenir, and normal query parameters", () => {

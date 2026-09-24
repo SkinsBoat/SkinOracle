@@ -9,11 +9,17 @@ import {
   snapCsFloatBuyOrderPriceCents,
   getCsFloatIncrementInCents,
 } from "../../../../shared/csfloatUtils";
+import {
+  formatCsfloatItemName,
+  getCsfloatSearchUrl,
+} from "../../../utils/csfloatUrls";
 
 export {
   roundToCsFloatStep,
   snapCsFloatBuyOrderPriceCents,
   getCsFloatIncrementInCents,
+  formatCsfloatItemName,
+  getCsfloatSearchUrl,
 };
 
 // ── Blocked Skins Utilities ───────────────────────────────────────────────────
@@ -31,13 +37,17 @@ const WEAR_SUFFIX_RE =
  *   "Souvenir AWP | Atheris (Field-Tested)"   → "AWP | Atheris"
  *   "AWP | Atheris (Battle-Scarred)"          → "AWP | Atheris"
  *   "Sticker | AWP | Atheris"                 → "Sticker | AWP | Atheris"
+ *   "★ StatTrak™ Gut Knife (Vanilla)"         → "★ Gut Knife (Vanilla)"
  *   "★ Karambit (Vanilla)"                    → "★ Karambit (Vanilla)"
  */
 export function extractBaseName(marketHashName: string): string {
   let name = marketHashName.trim();
-  // Strip leading "StatTrak™ " (with unicode trademark symbol)
-  if (name.startsWith("StatTrak\u2122 ")) {
-    name = name.slice("StatTrak\u2122 ".length);
+  // Strip leading "★ StatTrak™ " -> "★ " for knives
+  if (/^★\s*StatTrak(?:\u2122)?\s+/i.test(name)) {
+    name = "★ " + name.replace(/^★\s*StatTrak(?:\u2122)?\s+/i, "");
+  } else if (/^StatTrak(?:\u2122)?\s+/i.test(name)) {
+    // Strip leading "StatTrak™ " (with unicode trademark symbol or ASCII)
+    name = name.replace(/^StatTrak(?:\u2122)?\s+/i, "");
   }
   // Strip leading "Souvenir "
   if (name.startsWith("Souvenir ")) {

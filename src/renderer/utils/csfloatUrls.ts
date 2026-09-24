@@ -13,9 +13,14 @@ const WEAR_PHRASES = [
   "Battle Scarred",
 ];
 
+const KNIFE_KEYWORD_RE =
+  /\b(Knife|Bayonet|Karambit|Daggers)\b/i;
+
 /**
  * Formats a CS2 market hash name into the canonical format expected by CSFloat and Steam:
  * - Proper prefix ordering: Knives with StatTrak start with '★ StatTrak™ ', not 'StatTrak™ ★ '
+ * - Vanilla Knives: CSFloat indexes vanilla knives strictly as '★ <Knife Name>' (e.g. '★ Gut Knife')
+ *   without '(Vanilla)' and without 'StatTrak™' in the market_hash_name query parameter.
  * - No duplicate spaces (%20%20)
  * - Properly spaced pipe delimiters (' | ')
  * - Wear properly parenthesized (e.g. '(Minimal Wear)')
@@ -37,8 +42,23 @@ export function formatCsfloatItemName(name: string | undefined | null): string {
     .replace(/Souvenir/gi, "")
     .trim();
 
+  // Strip explicit (Vanilla) / Vanilla tags that may come from external APIs or caches
+  base = base
+    .replace(/\s*\(\s*Vanilla\s*\)/gi, "")
+    .replace(/\bVanilla\b/gi, "")
+    .trim();
+
   // Normalize pipe spacing
   base = base.replace(/\s*\|\s*/g, " | ");
+
+  // Check if item is a knife without a weapon finish (Vanilla Knife)
+  const isKnife = hasStar || KNIFE_KEYWORD_RE.test(base);
+  const hasFinish = base.includes("|");
+
+  if (isKnife && !hasFinish) {
+    // Vanilla knife on CSFloat is always indexed simply as "★ <Knife Name>"
+    return `★ ${base}`.replace(/\s+/g, " ").trim();
+  }
 
   // Add parentheses around wear phrases if not present
   const hasParentheses = /\(.*\)/.test(base);
