@@ -343,7 +343,7 @@ export default function AboutScreen() {
                 <span style={styles.versionBadge}>v{appVersion}</span>
               </div>
               <p style={styles.heroDescription}>
-                Official High-Frequency CS2 Valuation, Market Depth Analysis & Multi-Market Trading Workstation by SkinsBoat
+                Official High-Frequency CS2 Valuation, Market Depth Analysis & Multi-Market Trading Workstation
               </p>
             </div>
           </div>
@@ -653,7 +653,7 @@ export default function AboutScreen() {
           and registered trademarks are the property of their respective owners.
         </div>
         <div style={styles.footerLinksRow}>
-          <span>© 2026 Skin Oracle by SkinsBoat</span>
+          <span>© 2026 SkinsBoat. All rights reserved.</span>
           <span>•</span>
           <a
             onClick={() => handleOpenExternal(GITHUB_REPO_URL)}
