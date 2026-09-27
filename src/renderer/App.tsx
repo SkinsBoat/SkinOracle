@@ -44,6 +44,7 @@ import "./App.css";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [isSplashVisible, setIsSplashVisible] = useState<boolean>(true);
   const [systemConfig, setSystemConfig] = useState<any>(null);
   const [versionGateState, setVersionGateState] =
     useState<VersionGateState | null>(null);
@@ -52,6 +53,13 @@ export default function App() {
   const [encryptionWarningDismissed, setEncryptionWarningDismissed] =
     useState<boolean>(() => safeGetItem("so_enc_warn_dismissed") === "true");
   const { isSidebarExpanded, toggleSidebar } = useLayoutStore();
+
+  // Hold the branded splash just long enough for the logo asset to paint,
+  // so the brand mark is always visible before the workstation mounts.
+  useEffect(() => {
+    const timer = setTimeout(() => setIsSplashVisible(false), 900);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let unsubMaintenance: (() => void) | undefined;
@@ -157,7 +165,7 @@ export default function App() {
     );
   }
 
-  if (isLoggedIn === null) {
+  if (isSplashVisible || isLoggedIn === null) {
     return (
       <div className="splash">
         <div className="splash-logo" style={styles.splashLogo}>
