@@ -901,7 +901,7 @@ export default function SoCloseWorkstationScreen() {
               style={styles.scanBtn}
             >
               <Target size={14} />
-              {isScanning ? "Scanning..." : "Run SoClose Market Scan"}
+              {isScanning ? "Scanning..." : "Scan"}
             </button>
           </div>
         </div>
@@ -1203,7 +1203,7 @@ export default function SoCloseWorkstationScreen() {
               style={styles.emptyStateBtn}
             >
               <Target size={15} />
-              {isScanning ? "Scanning..." : "Run SoClose Market Scan"}
+              {isScanning ? "Scanning..." : "Scan"}
             </button>
           </div>
         )}

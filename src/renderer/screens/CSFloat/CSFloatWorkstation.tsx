@@ -1598,7 +1598,7 @@ export default function CSFloatWorkstation() {
                 size={13}
                 style={getZapIconStyle(activeTab === "soclose")}
               />{" "}
-              So Close Opportunities
+              So Close
             </button>
             <button
               onClick={() => setActiveTab("listings")}

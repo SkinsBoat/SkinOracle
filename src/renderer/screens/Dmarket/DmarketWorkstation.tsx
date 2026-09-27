@@ -428,7 +428,7 @@ export default function DmarketWorkstation() {
                   mainTab === "soclose" ? "#ffffff" : "var(--so-accent-cyan)",
               }}
             />{" "}
-            So Close Opportunities
+            So Close
           </button>
           <button
             onClick={() => setMainTab("listings")}
