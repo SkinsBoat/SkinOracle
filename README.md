@@ -9,44 +9,15 @@
 [![AI Guidelines](https://img.shields.io/badge/AI%20Directives-AGENTS.md-green.svg)](./AGENTS.md)
 [![Discord](https://img.shields.io/badge/Discord-Community-5865F2.svg)](https://discord.gg/b62feTH5kS)
 
-
-
 ---
 
-## Technical Highlights
+## Security Highlights
 
 - **Local Credential Encryption:** API keys and access tokens are encrypted locally using OS-level hardware credentials (`safeStorage` via Keychain on macOS, DPAPI on Windows, Secret Service on Linux).
 - **Direct API Execution:** All market interactions and buy orders fire directly from the user's local IP address without intermediate traffic proxying.
-- **Compressed Valuation Payloads:** Transparent GZIP stream compression on batch price evaluations, minimizing upload bandwidth by up to 92% for seamless performance on constrained network connections.
-- **Bounded Local History & Privacy:** Local SQLite snapshot retention with dynamic windowing (7–30 days) and automated offer deduplication before valuation transmission.
 - **Modular Data Ingestion:** Pluggable adapter architecture for integrating with diverse market data providers and price aggregators.
 - **In-Memory Request Signing:** Cryptographic request signing (e.g., Ed25519) computed entirely in-memory within the Node.js main process.
 - **Hardened Electron Runtime:** Strictly isolated renderer (`nodeIntegration: false`, `contextIsolation: true`, `webSecurity: true`) with typed IPC context bridges.
-
----
-
-## Building from Source (Audit & Verification)
-
-This repository is published for source transparency and independent security auditing. To verify and compile standalone application packages locally:
-
-### Prerequisites
-- Node.js (>= 20.x)
-- npm
-
-### Build Commands
-```bash
-# 1. Clone the repository
-git clone https://github.com/SkinsBoat/SkinOracle.git
-cd SkinOracle
-
-# 2. Install dependencies
-npm install
-
-# 3. Compile production binaries
-npm run build           # Build for current host OS
-npm run build:win       # Package Windows installer (.exe)
-npm run build:linux     # Package Linux (.AppImage, .deb)
-```
 
 ---
 

@@ -423,8 +423,10 @@ export const ApiKeysSection: React.FC = () => {
             </div>
           </div>
 
-          {/* Skins.com API Key Card */}
-          <div style={styles.card}>
+          {/* ── Skins.com API Key Card ──
+              TODO: Skins.com trading tab not yet implemented. Card is placeholder only;
+              the save/revoke handlers exist but the trading execution flow has not been wired up yet. */}
+          {/* <div style={styles.card}>
             <div style={styles.cardTopRow}>
               <div style={styles.cardTitleBox}>
                 <img
@@ -471,8 +473,7 @@ export const ApiKeysSection: React.FC = () => {
                   {saving === "revoke_skinscom" ? "Removing..." : "Remove"}
                 </button>
               )}
-            </div>
-          </div>
+            </div> */}
         </div>
       </div>
     </div>
