@@ -265,6 +265,21 @@ export const TrendMarketScreen: React.FC = () => {
   const handlePublishOrUpdate = async (title: string, days: number) => {
     if (!window.electronAPI?.trendMarket?.uploadPack) return;
 
+    // Client-side pre-check: never upload a payload the server will reject.
+    // An update must add a day newer than the active listing (server enforces this
+    // too; this only avoids a doomed round-trip and explains why).
+    const activeListing = myListing?.listing;
+    if (
+      activeListing &&
+      localTrendStats?.latestDate &&
+      localTrendStats.latestDate <= activeListing.latestDate
+    ) {
+      toast.error(
+        `No newer completed day to publish yet — your listing already includes data through ${activeListing.latestDate}. Scan a new day first.`,
+      );
+      return;
+    }
+
     try {
       setIsPublishing(true);
       const res = await window.electronAPI.trendMarket.uploadPack({
