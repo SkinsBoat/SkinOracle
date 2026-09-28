@@ -110,3 +110,16 @@ export const AUCTIONS_MY_AUCTIONS = DEALMAKER_MY_DEALS;
 export const AUCTIONS_MY_BIDS = DEALMAKER_MY_OFFERS;
 export const AUCTIONS_PRESENCE = DEALMAKER_PRESENCE;
 
+// ── Trend Marketplace Endpoints ───────────────────────────────────
+export const TREND_MARKET_API = `${SAAS_API}/trend-market`;
+export const TREND_MARKET_UPLOAD_URL = `${TREND_MARKET_API}/upload-url`;
+export const TREND_MARKET_CONFIRM_UPLOAD = `${TREND_MARKET_API}/confirm-upload`;
+export const TREND_MARKET_LISTINGS = `${TREND_MARKET_API}/listings`;
+export const TREND_MARKET_PREVIEW = (id: string) =>
+  `${TREND_MARKET_API}/preview/${encodeURIComponent(id)}`;
+export const TREND_MARKET_PURCHASE = (id: string) =>
+  `${TREND_MARKET_API}/purchase/${encodeURIComponent(id)}`;
+export const TREND_MARKET_MY_LISTING = `${TREND_MARKET_API}/my-listing`;
+export const TREND_MARKET_DELETE_LISTING = `${TREND_MARKET_API}/delete-listing`;
+
+

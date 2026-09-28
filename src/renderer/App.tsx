@@ -13,6 +13,7 @@ import {
   Target,
   Info,
   Handshake,
+  Globe,
 } from "lucide-react";
 import {
   oracleLogo,
@@ -31,6 +32,7 @@ import SoCloseWorkstationScreen from "./screens/SoClose/SoCloseWorkstationScreen
 import { DealMakerFloorScreen } from "./screens/DealMaker/DealMakerFloorScreen";
 import SkinscomWorkstation from "./screens/Skinscom/SkinscomWorkstation";
 import BalanceDashboard from "./screens/Balance/BalanceDashboard";
+import { TrendMarketScreen } from "./screens/TrendMarket/TrendMarketScreen";
 import AboutScreen from "./screens/About/AboutScreen";
 import UpdateNotification from "./components/UpdateNotification";
 import ConfirmModal from "./components/ConfirmModal";
@@ -418,6 +420,31 @@ export default function App() {
                   {isSidebarExpanded && <span>DMarket</span>}
                 </NavLink>
 
+                <NavLink
+                  to="/trend-market"
+                  title={
+                    !isSidebarExpanded
+                      ? "Community Trend Marketplace"
+                      : undefined
+                  }
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Globe
+                        size={18}
+                        style={getNavIconStyle(isActive, "accent")}
+                      />
+                      {isSidebarExpanded && <span>Trend Market</span>}
+                    </>
+                  )}
+                </NavLink>
+
                 {/* Skins.com Workstation NavLink - Temporarily Commented Out
                 <NavLink
                   to="/skinscom"
@@ -544,6 +571,7 @@ export default function App() {
               <Route path="/dealmaker" element={<DealMakerFloorScreen />} />
               <Route path="/auctions" element={<DealMakerFloorScreen />} />
               {/* <Route path="/skinscom" element={<SkinscomWorkstation />} /> */}
+              <Route path="/trend-market" element={<TrendMarketScreen />} />
               <Route path="/balance" element={<BalanceDashboard />} />
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="/about" element={<AboutScreen />} />

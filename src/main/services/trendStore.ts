@@ -1,5 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as zlib from "zlib";
+import axios from "axios";
 import { app } from "electron";
 import initSqlJs, { Database, SqlJsStatic } from "sql.js";
 
@@ -533,6 +535,223 @@ export class TrendStore {
       stmt.free();
       throw err;
     }
+  }
+
+  /**
+   * Package local SQLite trend snapshots into compressed JSON payload with top 50 sample skins.
+   */
+  public async exportTrendPackPayload(days: number = 30): Promise<{
+    payloadJson: string;
+    payloadBuffer: Buffer;
+    daysCount: number;
+    totalSnapshots: number;
+    itemCoverage: number;
+    latestDate: string;
+    oldestDate: string;
+    sampleItemsJson: Record<string, { labels: string[]; prices: number[] }>;
+  }> {
+    await this.init();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const cappedDays = Math.min(Math.max(1, days), 90);
+    const effectiveDateStr = this.getEffectiveDate();
+    const cutoff = new Date(effectiveDateStr + "T00:00:00.000Z");
+    cutoff.setDate(cutoff.getDate() - cappedDays);
+    const cutoffDate = cutoff.toISOString().slice(0, 10);
+
+    const stmt = this.db.prepare(`
+      SELECT item_name, snapshot_date, median_price, listing_count
+      FROM price_snapshots
+      WHERE snapshot_date >= ?
+      ORDER BY snapshot_date ASC, item_name ASC;
+    `);
+    stmt.bind([cutoffDate]);
+
+    const snapshots: Array<{
+      n: string;
+      d: string;
+      p: number;
+      c: number;
+    }> = [];
+
+    const itemCounts = new Map<string, number>();
+    const itemHistories = new Map<
+      string,
+      { labels: string[]; prices: number[] }
+    >();
+    const uniqueDates = new Set<string>();
+    const uniqueItems = new Set<string>();
+
+    while (stmt.step()) {
+      const row = stmt.getAsObject() as {
+        item_name: string;
+        snapshot_date: string;
+        median_price: number;
+        listing_count: number;
+      };
+
+      const n = String(row.item_name || "");
+      const d = String(row.snapshot_date || "");
+      const p = Number(row.median_price || 0);
+      const c = Number(row.listing_count || 1);
+
+      if (!n || !d || p <= 0) continue;
+
+      snapshots.push({ n, d, p, c });
+      uniqueDates.add(d);
+      uniqueItems.add(n);
+      itemCounts.set(n, (itemCounts.get(n) || 0) + 1);
+
+      if (!itemHistories.has(n)) {
+        itemHistories.set(n, { labels: [], prices: [] });
+      }
+      const hist = itemHistories.get(n)!;
+      hist.labels.push(d);
+      hist.prices.push(p);
+    }
+    stmt.free();
+
+    if (snapshots.length === 0) {
+      throw new Error(
+        "Cannot export trend pack: no snapshot history found in local SQLite database. Please run Step 1 price scan first.",
+      );
+    }
+
+    // Extract top 50 sample skins by historical point density
+    const sortedItems = Array.from(itemCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 50);
+
+    const sampleItemsJson: Record<
+      string,
+      { labels: string[]; prices: number[] }
+    > = {};
+    for (const [name] of sortedItems) {
+      sampleItemsJson[name] = itemHistories.get(name)!;
+    }
+
+    const sortedDates = Array.from(uniqueDates).sort();
+    const latestDate = sortedDates[sortedDates.length - 1] || "";
+    const oldestDate = sortedDates[0] || "";
+    const daysCount = uniqueDates.size;
+    const totalSnapshots = snapshots.length;
+    const itemCoverage = uniqueItems.size;
+
+    const rawObj = {
+      v: 1,
+      exportedAt: new Date().toISOString(),
+      daysCount,
+      totalSnapshots,
+      itemCoverage,
+      latestDate,
+      oldestDate,
+      snapshots,
+    };
+
+    const rawJson = JSON.stringify(rawObj);
+    const payloadBuffer = zlib.gzipSync(Buffer.from(rawJson, "utf-8"));
+    const payloadJson = payloadBuffer.toString("base64");
+
+    console.log(
+      `[TrendStore] Exported trend pack payload: ${daysCount} days, ${itemCoverage} items, ${totalSnapshots} snapshots (${(payloadBuffer.length / 1024).toFixed(1)} KB gzipped).`,
+    );
+
+    return {
+      payloadJson,
+      payloadBuffer,
+      daysCount,
+      totalSnapshots,
+      itemCoverage,
+      latestDate,
+      oldestDate,
+      sampleItemsJson,
+    };
+  }
+
+  /**
+   * Downloads presigned R2 stream directly into memory and executes atomic INSERT OR IGNORE into SQLite.
+   * Existing local price history is preserved and never overwritten.
+   */
+  public async importAndMergeTrendPackFromUrl(downloadUrl: string): Promise<{
+    insertedRows: number;
+    daysAdded: number;
+    totalSnapshotsAfter: number;
+  }> {
+    await this.init();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const statsBefore = await this.getStats();
+
+    // 1. Stream download directly into in-memory buffer
+    const response = await axios.get(downloadUrl, {
+      responseType: "arraybuffer",
+      timeout: 45000,
+    });
+    const rawBuf = Buffer.from(response.data);
+
+    // 2. Gunzip decompressed JSON
+    let jsonString: string;
+    try {
+      jsonString = zlib.gunzipSync(rawBuf).toString("utf-8");
+    } catch {
+      // If server/client provided uncompressed JSON
+      jsonString = rawBuf.toString("utf-8");
+    }
+
+    const payload = JSON.parse(jsonString);
+    if (!payload || !Array.isArray(payload.snapshots)) {
+      throw new Error(
+        "Invalid trend pack payload format: missing snapshots array",
+      );
+    }
+
+    // 3. Atomic INSERT OR IGNORE (preserves buyer's own historical observations)
+    this.db.run("BEGIN TRANSACTION;");
+    const stmt = this.db.prepare(`
+      INSERT OR IGNORE INTO price_snapshots (item_name, snapshot_date, median_price, listing_count)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    try {
+      for (const item of payload.snapshots) {
+        const name = item.n ?? item.item_name;
+        const date = item.d ?? item.snapshot_date;
+        const price = Number(item.p ?? item.median_price ?? 0);
+        const count = Number(item.c ?? item.listing_count ?? 1);
+
+        if (name && date && price > 0) {
+          stmt.run([name, date, price, count]);
+        }
+      }
+
+      this.db.run("COMMIT;");
+      stmt.free();
+      this.persist();
+    } catch (err) {
+      this.db.run("ROLLBACK;");
+      stmt.free();
+      throw err;
+    }
+
+    const statsAfter = await this.getStats();
+    const insertedRows = Math.max(
+      0,
+      statsAfter.totalSnapshots - statsBefore.totalSnapshots,
+    );
+    const daysAdded = Math.max(
+      0,
+      statsAfter.daysCount - statsBefore.daysCount,
+    );
+
+    console.log(
+      `[TrendStore] Successfully merged community trend pack: ${insertedRows} new rows added, ${daysAdded} new days added (Total now: ${statsAfter.daysCount} days, ${statsAfter.totalSnapshots} snapshots).`,
+    );
+
+    return {
+      insertedRows,
+      daysAdded,
+      totalSnapshotsAfter: statsAfter.totalSnapshots,
+    };
   }
 
   public close(): void {

@@ -464,4 +464,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
       silent?: boolean;
     }) => safeInvoke("notification:show", payload),
   },
+
+  // ── Community Trend Marketplace ──
+  trendMarket: {
+    getListings: (params?: {
+      page?: number;
+      limit?: number;
+      sort?: string;
+      search?: string;
+    }) => safeInvoke("trend-market:get-listings", params),
+    previewSkin: (packId: string, skinName?: string) =>
+      safeInvoke("trend-market:preview-skin", packId, skinName),
+    purchasePack: (packId: string) =>
+      safeInvoke("trend-market:purchase-pack", packId),
+    uploadPack: (options: {
+      title: string;
+      days?: number;
+    }) => safeInvoke("trend-market:upload-pack", options),
+    getMyListing: () => safeInvoke("trend-market:get-my-listing"),
+    deleteListing: () => safeInvoke("trend-market:delete-listing"),
+    getExportPreview: (days?: number) =>
+      safeInvoke("trend-market:get-export-preview", days),
+  },
 });

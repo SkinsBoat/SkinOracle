@@ -545,6 +545,124 @@ export interface ElectronAPI {
       silent?: boolean;
     }) => Promise<{ success: boolean; reason?: string; error?: string }>;
   };
+  trendMarket: {
+    getListings: (params?: {
+      page?: number;
+      limit?: number;
+      sort?: string;
+      search?: string;
+    }) => Promise<{
+      listings: TrendMarketListing[];
+      total: number;
+      page: number;
+      totalPages: number;
+    }>;
+    previewSkin: (
+      packId: string,
+      skinName?: string,
+    ) => Promise<TrendMarketPreviewResponse>;
+    purchasePack: (
+      packId: string,
+    ) => Promise<TrendMarketPurchaseResponse | TrendMarketHeldResponse>;
+    uploadPack: (options: {
+      title: string;
+      days?: number;
+    }) => Promise<TrendMarketUploadResponse | TrendMarketHeldResponse>;
+    getMyListing: () => Promise<TrendMarketMyListingResponse>;
+    deleteListing: () => Promise<
+      { success: true; message: string } | TrendMarketHeldResponse
+    >;
+    getExportPreview: (days?: number) => Promise<{
+      daysCount: number;
+      totalSnapshots: number;
+      itemCoverage: number;
+      latestDate: string;
+      oldestDate: string;
+      sampleItemsJson: Record<string, { labels: string[]; prices: number[] }>;
+    }>;
+  };
+}
+
+export interface TrendMarketListing {
+  id: string;
+  title: string;
+  priceCredits: number;
+  daysCount: number;
+  totalSnapshots: number;
+  itemCoverage: number;
+  latestDate: string;
+  oldestDate: string;
+  version: number;
+  salesCount: number;
+  qualityScore: number;
+  sampleSkinNames: string[];
+  updatedAt: string;
+}
+
+export interface TrendMarketPreviewResponse {
+  packId: string;
+  skinName?: string;
+  availableSkins: string[];
+  selectedSkin?: string;
+  chartData: { labels: string[]; prices: number[] } | null;
+}
+
+export interface TrendMarketPurchaseResponse {
+  success: true;
+  downloadUrl: string;
+  packId: string;
+  title: string;
+  daysCount?: number;
+  itemCoverage?: number;
+  salesCount?: number;
+  /** True when the buyer owns this pack (device-to-device self sync). */
+  selfSync?: boolean;
+  /** Amount actually charged this call; 0 for a free or idempotent replay. */
+  chargedCents?: number;
+  mergeResult: {
+    insertedRows: number;
+    daysAdded: number;
+    totalSnapshotsAfter: number;
+  };
+}
+
+/** Soft "marketplace paused" result (storage outage, maintenance, restart hold). */
+export interface TrendMarketHeldResponse {
+  success: false;
+  code: string;
+  message: string;
+}
+
+export interface TrendMarketUploadResponse {
+  success: true;
+  pack: any;
+  isFreeUpdate: boolean;
+  feeChargedCents: number;
+  exportedStats: {
+    daysCount: number;
+    totalSnapshots: number;
+    itemCoverage: number;
+  };
+}
+
+export interface TrendMarketMyListingResponse {
+  listing: {
+    id: string;
+    title: string;
+    daysCount: number;
+    totalSnapshots: number;
+    itemCoverage: number;
+    latestDate: string;
+    oldestDate: string;
+    version: number;
+    salesCount: number;
+    qualityScore: number;
+    updatedAt: string;
+    sampleSkinCount: number;
+  } | null;
+  totalSales: number;
+  totalEarnedCredits: number;
+  formattedEarned: string;
 }
 
 export type {

@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   Database,
   RotateCw,
@@ -7,6 +8,7 @@ import {
   Sparkles,
   Loader2,
   Zap,
+  Globe,
 } from "lucide-react";
 import {
   evaluateTrendHealth,
@@ -144,12 +146,18 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
       {trendHealth.isInsufficient && trendStats && (
         <div style={styles.insufficientAlert}>
           <AlertTriangle size={14} />
-          <span>
-            Baseline building: Minimum 3 days of trend required for Nexus engine
-            (Recommended: 7 days). Items without 3 days of trend lock to $0.00
-            for capital safety. Build price cache in Step 1 daily to accumulate
-            history.
-          </span>
+          <div style={styles.insufficientContent}>
+            <span>
+              Baseline building: Minimum 3 days of trend required for Nexus engine
+              (Recommended: 7 days). Items without 3 days of trend lock to $0.00
+              for capital safety. Build price cache in Step 1 daily to accumulate
+              history, or ingest verified community datasets.
+            </span>
+            <Link to="/trend-market" style={styles.marketLink}>
+              <Globe size={12} />
+              Open Community Trend Marketplace ($5.00) &rarr;
+            </Link>
+          </div>
         </div>
       )}
 
@@ -441,12 +449,27 @@ const styles: Record<string, React.CSSProperties> = {
   },
   insufficientAlert: {
     display: "flex",
-    alignItems: "center",
-    gap: "6px",
+    alignItems: "flex-start",
+    gap: "8px",
     color: "var(--so-warning-text)",
     fontSize: "11.5px",
     fontWeight: 600,
     marginTop: "2px",
+  },
+  insufficientContent: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+  marketLink: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    color: "var(--so-cyan-text, #38bdf8)",
+    fontSize: "11px",
+    textDecoration: "none",
+    fontWeight: 600,
+    width: "fit-content",
   },
   criticalStaleAlert: {
     display: "flex",
