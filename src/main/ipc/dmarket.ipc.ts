@@ -28,6 +28,7 @@ import {
   getTargetHoldInfo,
   parseTargetTimestamp,
 } from "../../shared/targetHoldUtils";
+import { buildDmarketSpendableBalance } from "../../shared/dmarketUtils";
 import { getAppUserAgent } from "../constants/userAgent";
 
 // ─────────────────────────────────────────────────────────────────
@@ -596,25 +597,6 @@ export function resolveDmarketInstantPrice(item: any): number | null {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Balance helpers
-// ─────────────────────────────────────────────────────────────────
-
-// DMarket reports proceeds still under Steam Trade Protection separately from
-// the flat USD balance. Those funds remain spendable on the market during the
-// protection window, so they add to the tradeable USD balance.
-export function getTradeProtectedSpendableCents(data: any): number {
-  if (!data || typeof data !== "object") return 0;
-
-  const raw = data.usdTradeProtected;
-  if (raw !== undefined && raw !== null && raw !== "") {
-    const cents = parseInt(String(raw), 10);
-    if (Number.isFinite(cents) && cents > 0) return cents;
-  }
-
-  return 0;
-}
-
-// ─────────────────────────────────────────────────────────────────
 // IPC Handlers
 // ─────────────────────────────────────────────────────────────────
 
@@ -630,22 +612,10 @@ if (ipcMain?.handle) {
   // 2. User Balance
   ipcMain.handle("dmarket:get-balance", async () => {
     const data = await dmarketRequest("GET", "/account/v1/balance");
-    // DMarket USD balance is returned in cents (e.g., "15420" = $154.20)
-    const usdCents = data?.usd ? parseInt(data.usd, 10) : 0;
-
-    // Funds held under Steam Trade Protection (usdTradeProtected) remain
-    // spendable on the market during the protection window, so they add to the
-    // tradeable USD balance.
-    const tradeProtectedSpendableCents =
-      getTradeProtectedSpendableCents(data);
-    const spendableUsdCents = usdCents + tradeProtectedSpendableCents;
-    const usdFormatted = (spendableUsdCents / 100).toFixed(2);
+    // Combines the flat USD balance with spendable trade-protected proceeds.
     return {
       ...data,
-      usdCents: spendableUsdCents,
-      usdFormatted: `$${usdFormatted}`,
-      rawUsdCents: usdCents,
-      tradeProtectedSpendableCents,
+      ...buildDmarketSpendableBalance(data),
     };
   });
 
