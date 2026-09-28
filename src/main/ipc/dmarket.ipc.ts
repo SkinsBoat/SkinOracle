@@ -596,6 +596,25 @@ export function resolveDmarketInstantPrice(item: any): number | null {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Balance helpers
+// ─────────────────────────────────────────────────────────────────
+
+// DMarket reports proceeds still under Steam Trade Protection separately from
+// the flat USD balance. Those funds remain spendable on the market during the
+// protection window, so they add to the tradeable USD balance.
+export function getTradeProtectedSpendableCents(data: any): number {
+  if (!data || typeof data !== "object") return 0;
+
+  const raw = data.usdTradeProtected;
+  if (raw !== undefined && raw !== null && raw !== "") {
+    const cents = parseInt(String(raw), 10);
+    if (Number.isFinite(cents) && cents > 0) return cents;
+  }
+
+  return 0;
+}
+
+// ─────────────────────────────────────────────────────────────────
 // IPC Handlers
 // ─────────────────────────────────────────────────────────────────
 
@@ -610,15 +629,23 @@ if (ipcMain?.handle) {
 
   // 2. User Balance
   ipcMain.handle("dmarket:get-balance", async () => {
-    console.log("[DMarket IPC] Fetching account balance...");
     const data = await dmarketRequest("GET", "/account/v1/balance");
     // DMarket USD balance is returned in cents (e.g., "15420" = $154.20)
     const usdCents = data?.usd ? parseInt(data.usd, 10) : 0;
-    const usdFormatted = (usdCents / 100).toFixed(2);
+
+    // Funds held under Steam Trade Protection (usdTradeProtected) remain
+    // spendable on the market during the protection window, so they add to the
+    // tradeable USD balance.
+    const tradeProtectedSpendableCents =
+      getTradeProtectedSpendableCents(data);
+    const spendableUsdCents = usdCents + tradeProtectedSpendableCents;
+    const usdFormatted = (spendableUsdCents / 100).toFixed(2);
     return {
       ...data,
-      usdCents,
+      usdCents: spendableUsdCents,
       usdFormatted: `$${usdFormatted}`,
+      rawUsdCents: usdCents,
+      tradeProtectedSpendableCents,
     };
   });
 
@@ -744,12 +771,6 @@ if (ipcMain?.handle) {
             ? data.items
             : [];
 
-        console.log("==================== [DMarket IPC RAW TARGETS RESPONSE] ====================");
-        console.log(`Total raw items in batch: ${rawList.length}`);
-        console.log("Sample of raw items from DMarket API (first 5):");
-        console.log(JSON.stringify(rawList.slice(0, 5), null, 2));
-        console.log("============================================================================");
-
         return {
           items: rawList.map(normalizeTargetItem),
           total: data?.total || String(rawList.length),
@@ -778,14 +799,6 @@ if (ipcMain?.handle) {
           : Array.isArray(pageData?.items)
             ? pageData.items
             : [];
-
-        if (page === 1) {
-          console.log("==================== [DMarket IPC RAW TARGETS RESPONSE] ====================");
-          console.log(`Page 1 raw targets count: ${items.length}`);
-          console.log("Sample of raw targets from DMarket API (first 5):");
-          console.log(JSON.stringify(items.slice(0, 5), null, 2));
-          console.log("============================================================================");
-        }
 
         if (items.length > 0) {
           allItems = allItems.concat(items.map(normalizeTargetItem));
@@ -1163,10 +1176,6 @@ if (ipcMain?.handle) {
         : Array.isArray(data?.trades)
           ? data.trades
           : [];
-      console.log(
-        `[DMarket IPC] Loaded ${rawTrades.length} closed targets. Sample item:`,
-        rawTrades[0] ? JSON.stringify(rawTrades[0]) : "None",
-      );
 
       const trades = rawTrades.map((t: any) => {
         // 1. Resolve Title
@@ -1380,16 +1389,6 @@ if (ipcMain?.handle) {
         console.log(
           `[DMarket IPC get-offers] ✅ Single page fetched ${rawItems.length} active sell offers.`,
         );
-        console.log(
-          `[DMarket IPC get-offers] 🔍 FULL RAW OFFERS PAYLOAD:\n`,
-          JSON.stringify(rawItems, null, 2),
-        );
-        rawItems.forEach((raw, i) => {
-          console.log(
-            `[DMarket IPC Offer #${i + 1}] Title: "${raw.title || raw.Title || raw.name || ""}" | Keys: [${Object.keys(raw).join(", ")}]`,
-            raw,
-          );
-        });
         return {
           items: rawItems.map(normalizeOffer),
           total: data?.total || String(rawItems.length),
@@ -1430,16 +1429,6 @@ if (ipcMain?.handle) {
       console.log(
         `[DMarket IPC get-offers] ✅ Total ${allItems.length} active sell offers fetched across ${page} page(s).`,
       );
-      console.log(
-        `[DMarket IPC get-offers] 🔍 FULL RAW OFFERS PAYLOAD (${allItems.length} items):\n`,
-        JSON.stringify(allItems, null, 2),
-      );
-      allItems.forEach((raw, i) => {
-        console.log(
-          `[DMarket IPC Offer #${i + 1}] Title: "${raw.title || raw.Title || raw.name || ""}" | Keys: [${Object.keys(raw).join(", ")}]`,
-          raw,
-        );
-      });
       return {
         items: allItems.map(normalizeOffer),
         total: String(allItems.length),
@@ -1546,8 +1535,7 @@ if (ipcMain?.handle) {
               ? data.Items
               : [];
         console.log(
-          `[DMarket IPC] Loaded ${rawItems.length} inventory items (single page). Sample item:`,
-          rawItems[0] ? JSON.stringify(rawItems[0]) : "None",
+          `[DMarket IPC] Loaded ${rawItems.length} inventory items (single page).`,
         );
         return {
           items: rawItems.map(normalizeInvItem),
@@ -1593,8 +1581,7 @@ if (ipcMain?.handle) {
       }
 
       console.log(
-        `[DMarket IPC] ✅ Fetched total ${allItems.length} inventory items across ${page} page(s). Sample item:`,
-        allItems[0] ? JSON.stringify(allItems[0]) : "None",
+        `[DMarket IPC] ✅ Fetched total ${allItems.length} inventory items across ${page} page(s).`,
       );
       return {
         items: allItems.map(normalizeInvItem),
@@ -1858,8 +1845,7 @@ if (ipcMain?.handle) {
       }>,
     ) => {
       console.log(
-        `[DMarket IPC] Batch updating ${requests?.length || 0} offers. Raw requests:`,
-        JSON.stringify(requests, null, 2),
+        `[DMarket IPC] Batch updating ${requests?.length || 0} offers.`,
       );
       if (!Array.isArray(requests) || requests.length === 0) {
         throw new Error("No offers provided for price update");
@@ -2000,10 +1986,6 @@ if (ipcMain?.handle) {
         for (let i = 0; i < formattedRequests.length; i += chunkSize) {
           const chunk = formattedRequests.slice(i, i + chunkSize);
           const body = { requests: chunk.map((c) => c.formatted) };
-          console.log(
-            `[DMarket IPC] Sending POST /marketplace-api/v2/offers:batchUpdate:`,
-            JSON.stringify(body, null, 2),
-          );
 
           try {
             const res = await dmarketRequest(

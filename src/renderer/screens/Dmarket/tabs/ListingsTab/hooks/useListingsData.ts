@@ -172,12 +172,6 @@ export function useListingsData({
         const res = await window.electronAPI.dmarket.getOffers({
           fetchAll: true,
         });
-        (window as any).lastDmarketOffers = res;
-        console.log("[DMarket Workstation] 🏷️ getOffers Response:", res);
-        console.log(
-          "[DMarket Workstation] 🏷️ Sample Offer items JSON:",
-          JSON.stringify(res?.items?.slice(0, 3), null, 2),
-        );
         const items = Array.isArray(res?.items) ? res.items : [];
         setOffers(items);
         if (toastId) {
@@ -229,12 +223,6 @@ export function useListingsData({
         const res = await window.electronAPI.dmarket.getInventory({
           fetchAll: true,
         });
-        (window as any).lastDmarketInventory = res;
-        console.log("[DMarket Workstation] 📦 getInventory Response:", res);
-        console.log(
-          "[DMarket Workstation] 📦 Sample Inventory items JSON:",
-          JSON.stringify(res?.items?.slice(0, 3), null, 2),
-        );
         const items: DmarketInventoryItem[] = Array.isArray(res?.items)
           ? res.items
           : [];
@@ -450,9 +438,6 @@ export function useListingsData({
       );
       try {
         const targetOfferId = offer.offerId || offer.id;
-        console.log(
-          `[ListingsTab] Quick updating offer "${offer.title}" (offerId: ${targetOfferId}) to $${targetPriceUsd}...`,
-        );
         const res = await window.electronAPI.dmarket.updateOffers([
           {
             id: targetOfferId,
@@ -460,7 +445,6 @@ export function useListingsData({
             isP2P: isDmarketP2POffer(offer),
           },
         ]);
-        console.log("[ListingsTab] Quick update response:", res);
         if (res.failed && res.failed.length > 0) {
           const failItem = res.failed[0];
           const isTimeLocked =
@@ -703,9 +687,7 @@ export function useListingsData({
         priceUsd: u.priceUsd,
         isP2P: isDmarketP2POffer(u),
       }));
-      console.log("[ListingsTab] Batch update requests:", requests);
       const res = await window.electronAPI.dmarket.updateOffers(requests);
-      console.log("[ListingsTab] Batch update response:", res);
       const successCount = res.offers?.length || 0;
       const failCount = res.failed?.length || 0;
 

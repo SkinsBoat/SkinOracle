@@ -337,4 +337,46 @@ describe("DMarket OpenAPI Alignment Unit Tests", () => {
       expect(body.Targets).toEqual([{ TargetID: "t-1" }, { TargetID: "t-2" }]);
     });
   });
+
+  describe("dmarket:get-balance trade-protected spendable", () => {
+    it("adds usdTradeProtected to the tradeable USD balance", async () => {
+      const axios = (await import("axios")).default as any;
+      axios.mockResolvedValueOnce({
+        data: {
+          dmc: "0",
+          usd: "1000",
+          dmcAvailableToWithdraw: "0",
+          usdAvailableToWithdraw: "1000",
+          usdTradeProtected: "4240",
+        },
+      });
+
+      const handler = handlers["dmarket:get-balance"];
+      const res = await handler(null);
+
+      expect(res.usdCents).toBe(5240);
+      expect(res.usdFormatted).toBe("$52.40");
+      expect(res.rawUsdCents).toBe(1000);
+      expect(res.tradeProtectedSpendableCents).toBe(4240);
+    });
+
+    it("falls back to the flat USD balance when usdTradeProtected is absent", async () => {
+      const axios = (await import("axios")).default as any;
+      axios.mockResolvedValueOnce({
+        data: {
+          dmc: "0",
+          usd: "2500",
+          dmcAvailableToWithdraw: "0",
+          usdAvailableToWithdraw: "2500",
+        },
+      });
+
+      const handler = handlers["dmarket:get-balance"];
+      const res = await handler(null);
+
+      expect(res.usdCents).toBe(2500);
+      expect(res.usdFormatted).toBe("$25.00");
+      expect(res.tradeProtectedSpendableCents).toBe(0);
+    });
+  });
 });

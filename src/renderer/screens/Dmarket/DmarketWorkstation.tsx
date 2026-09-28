@@ -182,26 +182,6 @@ export default function DmarketWorkstation() {
         ? res.items
         : [];
 
-      console.log("==================== [DMarket Workstation Targets Received] ====================");
-      console.log(`Loaded ${list.length} targets. Full array:`, list);
-      console.log(
-        "Copyable JSON of targets (first 5):\n" +
-          JSON.stringify(
-            list.slice(0, 5).map((t: any) => ({
-              targetId: t.targetId,
-              title: t.title,
-              priceCents: t.priceCents,
-              extra: t.extra,
-              attributes: t.attributes,
-              isAdvanced: t.isAdvanced,
-              _raw: t._raw,
-            })),
-            null,
-            2,
-          ),
-      );
-      console.log("================================================================================");
-
       setTargets(list);
       toast.success(`Loaded ${list.length} active DMarket targets`, {
         id: toastId,

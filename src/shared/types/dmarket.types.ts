@@ -238,6 +238,8 @@ export interface DmarketBalance {
   dmcAvailableToWithdraw: string;
   usdCents: number;
   usdFormatted: string;
+  rawUsdCents?: number;
+  tradeProtectedSpendableCents?: number;
 }
 
 export interface DmarketUserProfile {
