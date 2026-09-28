@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Eye,
+  EyeOff,
   PlusCircle,
   Info,
 } from "lucide-react";
@@ -70,16 +71,27 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   >(null);
   const [batchSoCloseProcessing, setBatchSoCloseProcessing] = useState(false);
   const [soCloseSearchQuery, setSoCloseSearchQuery] = useState("");
+  // Hide cards that already have an active target placed (default: show all)
+  const [hideExistingTargets, setHideExistingTargets] = useState(false);
+
+  const existingTargetCount = useMemo(() => {
+    return soCloseResults.filter((r) => r.hasExistingTarget).length;
+  }, [soCloseResults]);
 
   const selectedSoCloseCount = useMemo(() => {
     return Object.values(selectedSoCloseItems).filter(Boolean).length;
   }, [selectedSoCloseItems]);
 
   const filteredSoCloseResults = useMemo(() => {
-    if (!soCloseSearchQuery.trim()) return soCloseResults;
+    let results = hideExistingTargets
+      ? soCloseResults.filter((r) => !r.hasExistingTarget)
+      : soCloseResults;
     const q = soCloseSearchQuery.toLowerCase().trim();
-    return soCloseResults.filter((r) => r.name.toLowerCase().includes(q));
-  }, [soCloseResults, soCloseSearchQuery]);
+    if (q) {
+      results = results.filter((r) => r.name.toLowerCase().includes(q));
+    }
+    return results;
+  }, [soCloseResults, soCloseSearchQuery, hideExistingTargets]);
 
   const handleSetBalanceAsMax = () => {
     if (
@@ -723,6 +735,30 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             </div>
           )}
 
+          {soCloseResults.length > 0 && (
+            <button
+              onClick={() => setHideExistingTargets((prev) => !prev)}
+              className={`btn ${hideExistingTargets ? "btn-primary" : "btn-outline"} btn-sm`}
+              style={{
+                fontSize: "12px",
+                padding: "5px 14px",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+              title={
+                hideExistingTargets
+                  ? "Show items that already have a target active"
+                  : "Hide items that already have a target active for easier selection"
+              }
+            >
+              {hideExistingTargets ? <Eye size={13} /> : <EyeOff size={13} />}
+              {hideExistingTargets ? "Show Ordered" : "Hide Ordered"}
+              {existingTargetCount > 0 ? ` (${existingTargetCount})` : ""}
+            </button>
+          )}
+
           <button
             onClick={runSoCloseScan}
             disabled={isSoCloseRunning}
@@ -783,6 +819,31 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
               <div style={{ fontSize: "12px" }}>
                 No results match &quot;{soCloseSearchQuery}&quot;. Clear search
                 filter to view all {soCloseResults.length} scanned items.
+              </div>
+            </div>
+          ) : hideExistingTargets && soCloseResults.length > 0 ? (
+            <div>
+              <EyeOff
+                size={32}
+                style={{
+                  marginBottom: "10px",
+                  opacity: 0.5,
+                  color: "var(--so-accent-cyan)",
+                }}
+              />
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: "15px",
+                  color: "var(--so-text-primary)",
+                  marginBottom: "4px",
+                }}
+              >
+                All Results Already Ordered
+              </div>
+              <div style={{ fontSize: "12px" }}>
+                All {soCloseResults.length} scanned items already have targets
+                active. Click &quot;Show Ordered&quot; to display them.
               </div>
             </div>
           ) : (

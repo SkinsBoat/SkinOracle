@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Zap,
   Wallet,
@@ -8,6 +8,8 @@ import {
   X,
   PlusCircle,
   AlertTriangle,
+  Eye,
+  EyeOff,
   Info,
 } from "lucide-react";
 import {
@@ -100,6 +102,15 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   const projectedTotalValue = activeOrdersTotal + selectedSoCloseTotal;
   const isLimitExceeded =
     maxLimitValue > 0 && projectedTotalValue > maxLimitValue;
+
+  // Hide cards that already have an active order placed (default: show all)
+  const [hideExistingOrders, setHideExistingOrders] = useState(false);
+  const existingOrderCount = soCloseResults.filter(
+    (item) => item.hasExistingOrder,
+  ).length;
+  const visibleSoCloseResults = hideExistingOrders
+    ? soCloseResults.filter((item) => !item.hasExistingOrder)
+    : soCloseResults;
 
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
@@ -276,6 +287,22 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
 
         {/* Right Scan Button */}
         <div style={styles.rightActionsGroup}>
+          {soCloseResults.length > 0 && (
+            <button
+              onClick={() => setHideExistingOrders((prev) => !prev)}
+              className={`btn ${hideExistingOrders ? "btn-primary" : "btn-outline"} btn-sm`}
+              style={styles.toggleExistingButton}
+              title={
+                hideExistingOrders
+                  ? "Show items that already have an order placed"
+                  : "Hide items that already have an order placed for easier selection"
+              }
+            >
+              {hideExistingOrders ? <Eye size={13} /> : <EyeOff size={13} />}
+              {hideExistingOrders ? "Show Ordered" : "Hide Ordered"}
+              {existingOrderCount > 0 ? ` (${existingOrderCount})` : ""}
+            </button>
+          )}
           <button
             onClick={runSoCloseScan}
             disabled={isSoCloseRunning}
@@ -384,7 +411,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
 
       {/* So Close Grid View */}
       <div style={styles.gridScrollView}>
-        {soCloseResults.length === 0 ? (
+        {visibleSoCloseResults.length === 0 ? (
           <div
             className="card"
             style={styles.emptyCard}
@@ -402,11 +429,14 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 <div
                   style={styles.emptyTitle}
                 >
-                  No Opportunities Found
+                  {soCloseResults.length > 0
+                    ? "All Results Already Ordered"
+                    : "No Opportunities Found"}
                 </div>
                 <div style={styles.emptySubtitle}>
-                  Click "Run So Close Scan" above to evaluate CSFloat market
-                  prices against your Oracle Accepted Prices.
+                  {soCloseResults.length > 0
+                    ? `All ${soCloseResults.length} scanned items already have buy orders placed. Click "Show Ordered" to display them.`
+                    : `Click "Run So Close Scan" above to evaluate CSFloat market prices against your Oracle Accepted Prices.`}
                 </div>
               </div>
             )}
@@ -415,7 +445,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           <div
             style={getCardsGridStyle(selectedSoCloseCount > 0)}
           >
-            {soCloseResults.map((item) => {
+            {visibleSoCloseResults.map((item) => {
               const isSelected = !!selectedSoCloseItems[item.name];
               const isProcessing = soCloseProcessingName === item.name;
               const match = item.name.match(/^(.+?)\s*\(([^)]+)\)$/);
@@ -654,6 +684,14 @@ const styles = {
 
   scanButton: {
     fontWeight: 800,
+  } as React.CSSProperties,
+
+  toggleExistingButton: {
+    fontWeight: 700,
+    fontSize: "12px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
   } as React.CSSProperties,
 
   floatingToolbarLeft: {
