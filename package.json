@@ -92,7 +92,8 @@
       "identityName": "SkinsBoat.SkinOracle",
       "publisher": "CN=6716DEEE-BC67-4415-A184-72E9DDD3FCE4",
       "publisherDisplayName": "SkinsBoat",
-      "displayName": "Skin Oracle"
+      "displayName": "Skin Oracle",
+      "backgroundColor": "#FFFFFF"
     },
     "nsis": {
       "oneClick": false,
