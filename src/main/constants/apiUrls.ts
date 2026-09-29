@@ -45,6 +45,8 @@ export const SKINSCOM_BUY_ORDER_BY_ID = (orderId: string) =>
 export const SKINSNIPE_LOWEST_PRICES = `${SKINSNIPE_API}/lowest-prices`;
 
 // ── CS2Cap Endpoints ─────────────────────────────────────────────
+// Reference: src/main/services/CS2CAP_API.md (upstream docs: git@github.com:CS2Cap/docs.git)
+// POST (stream) — always send an explicit `providers` list; omitting it streams ALL providers.
 export const CS2CAP_PRICES_STREAM = `${CS2CAP_API}/prices`;
 
 // ── DMarket Endpoints ─────────────────────────────────────────────

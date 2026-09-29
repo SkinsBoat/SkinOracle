@@ -4,6 +4,7 @@ import {
   getMarketDisplayName,
   isMarketMatch,
   isTradeMarket,
+  isBlockedMarket,
   CANONICAL_MARKETS,
 } from "../canonicalMarkets";
 import { CS2CAP_PROVIDERS } from "../cs2capProviders";
@@ -117,5 +118,26 @@ describe("Canonical Market Registry & Normalization Engine", () => {
     expect(getMarketDisplayName("future_market_xyz")).toBe("Future Market Xyz");
     expect(toCanonicalMarketId("")).toBe("");
     expect(getMarketDisplayName("")).toBe("Unknown Market");
+  });
+
+  it("should block gambling platforms across all known spellings", () => {
+    expect(isBlockedMarket("csgoempire")).toBe(true);
+    expect(isBlockedMarket("CSGOEmpire")).toBe(true);
+    expect(isBlockedMarket("csgo-empire")).toBe(true);
+    expect(isBlockedMarket("csgo_empire")).toBe(true);
+    expect(isBlockedMarket("empire")).toBe(true);
+    expect(isBlockedMarket("csgo500")).toBe(true);
+    expect(isBlockedMarket("CSGO500")).toBe(true);
+
+    expect(isBlockedMarket("csfloat")).toBe(false);
+    expect(isBlockedMarket("dmarket")).toBe(false);
+    expect(isBlockedMarket("")).toBe(false);
+    expect(isBlockedMarket(null)).toBe(false);
+    expect(isBlockedMarket(undefined)).toBe(false);
+  });
+
+  it("should never ship blocked gambling platforms in the provider registries", () => {
+    expect(CANONICAL_MARKETS.some((m) => isBlockedMarket(m.id))).toBe(false);
+    expect(CS2CAP_PROVIDERS.some((p) => isBlockedMarket(p.id))).toBe(false);
   });
 });

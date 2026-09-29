@@ -88,8 +88,13 @@ export function handleLisSkinsReferenceLink(
 ): string {
   if (!name) return "https://lis-skins.com/market/csgo/";
 
+  // Knives/gloves carry the "★" (U+2605) prefix, which LIS-SKINS encodes as
+  // %E2%98%85 in its slugs (e.g. .../%E2%98%85-talon-knife-safari-mesh-battle-scarred).
+  const starSegment = name.includes("★") ? "%E2%98%85-" : "";
+
   // Format into slug: lowercase, replacing spaces/special chars with hyphens
   const slug = name
+    .replace(/★/g, "")
     .toLowerCase()
     .replace(/™/g, "")
     .replace(/[^\w\s-]/g, "")
@@ -97,7 +102,7 @@ export function handleLisSkinsReferenceLink(
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-  return `https://lis-skins.com/market/csgo/${slug}/`;
+  return `https://lis-skins.com/market/csgo/${starSegment}${slug}/`;
 }
 
 export function handleBitSkinsReferenceLink(

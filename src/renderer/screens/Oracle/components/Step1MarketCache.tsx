@@ -32,6 +32,7 @@ import {
   resolveMarketCount,
   resolveMissingQty,
 } from "./step1/Step1Common";
+import { AutoRefreshControl } from "./step1/AutoRefreshControl";
 import { useOracleStore } from "../../../store/useOracleStore";
 import { useNotificationStore } from "../../../store/useNotificationStore";
 import { notificationManager } from "../../../services/notificationManager";
@@ -428,6 +429,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 </span>
               </button>
             </div>
+
+            <AutoRefreshControl />
 
             {pricingProvider === "cs2cap" ? (
               /* ─────────────────────────────────────────────────────────────

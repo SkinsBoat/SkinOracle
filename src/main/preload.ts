@@ -4,6 +4,10 @@ import {
   NexusStrategyProfile,
   OracleEvaluationResponse,
 } from "../shared/types/oracle.types";
+import {
+  AutoRefreshConfig,
+  AutoRefreshStatus,
+} from "../shared/types/autoRefresh.types";
 
 /**
  * Clean helper function to invoke IPC channels and strip Electron's wrapper noise.
@@ -114,6 +118,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
       };
     },
     getStatus: () => safeInvoke("cs2cap:get-status"),
+  },
+
+  // ── Auto-Refresh Scheduler (main-process timer; survives screen changes) ──
+  autoRefresh: {
+    setConfig: (config: Partial<AutoRefreshConfig>) =>
+      safeInvoke<AutoRefreshStatus>("autoRefresh:set-config", config),
+    getStatus: () => safeInvoke<AutoRefreshStatus>("autoRefresh:get-status"),
+    runNow: () => safeInvoke<AutoRefreshStatus>("autoRefresh:run-now"),
+    stop: () => safeInvoke<AutoRefreshStatus>("autoRefresh:stop"),
+    onStatusUpdated: (callback: (status: AutoRefreshStatus) => void) => {
+      const subscription = (_: any, data: AutoRefreshStatus) => callback(data);
+      ipcRenderer.on("autoRefresh:status-updated", subscription);
+      return () => {
+        ipcRenderer.removeListener("autoRefresh:status-updated", subscription);
+      };
+    },
   },
 
   // ── Oracle (send price data to SaaS backend, store accepted & listing prices) ──
@@ -379,14 +399,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getDepositStatus: (depositId: string) =>
       safeInvoke("dmarket:get-deposit-status", depositId),
     syncUserInventory: () => safeInvoke("dmarket:sync-user-inventory"),
-    getLastSales: (params: any) =>
-      safeInvoke("dmarket:get-last-sales", params),
+    getLastSales: (params: any) => safeInvoke("dmarket:get-last-sales", params),
     getAggregatedPrices: (request: any) =>
       safeInvoke("dmarket:get-aggregated-prices", request),
     getMarketplaceOffers: (params?: any) =>
       safeInvoke("dmarket:get-marketplace-offers", params),
-    buyOffers: (request: any) =>
-      safeInvoke("dmarket:buy-offers", request),
+    buyOffers: (request: any) => safeInvoke("dmarket:buy-offers", request),
     withdrawAssets: (request: any) =>
       safeInvoke("dmarket:withdraw-assets", request),
     getCustomizedFees: (
@@ -395,8 +413,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
       limit?: number,
       offset?: number,
     ) =>
-      safeInvoke("dmarket:get-customized-fees", gameId, offerType, limit, offset),
-    getDepositBlockedTitles: (gameId?: string, limit?: number, cursor?: string) =>
+      safeInvoke(
+        "dmarket:get-customized-fees",
+        gameId,
+        offerType,
+        limit,
+        offset,
+      ),
+    getDepositBlockedTitles: (
+      gameId?: string,
+      limit?: number,
+      cursor?: string,
+    ) =>
       safeInvoke("dmarket:get-deposit-blocked-titles", gameId, limit, cursor),
   },
 
@@ -439,7 +467,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   auction: {
     create: (payload: any) => safeInvoke("dealmaker:create", payload),
     getActive: () => safeInvoke("dealmaker:get-active"),
-    getById: (auctionId: string) => safeInvoke("dealmaker:get-by-id", auctionId),
+    getById: (auctionId: string) =>
+      safeInvoke("dealmaker:get-by-id", auctionId),
     placeBid: (auctionId: string, payload: any) =>
       safeInvoke("dealmaker:place-offer", auctionId, payload),
     submitListingLink: (auctionId: string, listingUrl: string) =>
@@ -477,10 +506,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke("trend-market:preview-skin", packId, skinName),
     purchasePack: (packId: string) =>
       safeInvoke("trend-market:purchase-pack", packId),
-    uploadPack: (options: {
-      title: string;
-      days?: number;
-    }) => safeInvoke("trend-market:upload-pack", options),
+    uploadPack: (options: { title: string; days?: number }) =>
+      safeInvoke("trend-market:upload-pack", options),
     getMyListing: () => safeInvoke("trend-market:get-my-listing"),
     deleteListing: () => safeInvoke("trend-market:delete-listing"),
     getExportPreview: (days?: number) =>

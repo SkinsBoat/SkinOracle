@@ -63,6 +63,21 @@ describe("Market Link Generators", () => {
     );
   });
 
+  it("handleLisSkinsReferenceLink encodes the ★ knife/glove prefix as %E2%98%85", () => {
+    expect(
+      handleLisSkinsReferenceLink("★ Talon Knife | Safari Mesh (Battle-Scarred)"),
+    ).toBe(
+      "https://lis-skins.com/market/csgo/%E2%98%85-talon-knife-safari-mesh-battle-scarred/",
+    );
+    expect(
+      handleLisSkinsReferenceLink(
+        "★ StatTrak™ Karambit | Doppler (Factory New)",
+      ),
+    ).toBe(
+      "https://lis-skins.com/market/csgo/%E2%98%85-stattrak-karambit-doppler-factory-new/",
+    );
+  });
+
   it("handleSkinflowReferenceLink formats Skinflow search query with stattrak/souvenir flags", () => {
     expect(
       handleSkinflowReferenceLink("Glock-18 | Shinobu (Factory New)"),

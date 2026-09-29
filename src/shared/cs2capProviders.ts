@@ -5,7 +5,7 @@ export interface Cs2CapProviderInfo {
 
 /**
  * Authoritative provider catalog supported by CS2Cap for live prices (lowest asks).
- * Total: 41 providers matching CS2Cap's exact backend enum identifiers.
+ * Total: 39 providers matching CS2Cap's exact backend enum identifiers.
  */
 export const CS2CAP_PROVIDERS: Cs2CapProviderInfo[] = [
   { id: "avanmarket", name: "Avan.Market" },

@@ -178,6 +178,33 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
   },
 ];
 
+/**
+ * Permanently blocked market identifiers.
+ *
+ * These are gambling / betting platforms, NOT skin marketplaces. They must never
+ * be selectable, streamed, cached, or displayed anywhere in the app. Keeping them
+ * in a single deny-list guarantees they are stripped even if an upstream provider
+ * (e.g. the CS2Cap NDJSON feed) still emits rows for them.
+ */
+export const BLOCKED_MARKET_IDS: ReadonlySet<string> = new Set([
+  "csgoempire",
+  "csgo-empire",
+  "csgo_empire",
+  "empire",
+  "csgo500",
+  "csgo-500",
+  "csgo_500",
+]);
+
+/**
+ * Returns true if a market identifier belongs to a blocked gambling platform.
+ * Matches on the raw sanitized identifier (canonical or upstream alias).
+ */
+export function isBlockedMarket(marketId: string | null | undefined): boolean {
+  if (!marketId || typeof marketId !== "string") return false;
+  return BLOCKED_MARKET_IDS.has(marketId.trim().toLowerCase());
+}
+
 /** Fast lookup map from any lowercase alias -> CanonicalMarketInfo */
 const ALIAS_MAP: Map<string, CanonicalMarketInfo> = new Map();
 const CANONICAL_MAP: Map<string, CanonicalMarketInfo> = new Map();

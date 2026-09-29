@@ -1,9 +1,11 @@
+// CS2Cap integration — see src/main/services/CS2CAP_API.md before changing it.
 import {
   CS2CAP_PROVIDERS,
   Cs2CapProviderInfo,
   DEFAULT_CS2CAP_PROVIDERS,
 } from "../../shared/cs2capProviders";
-import { toCanonicalMarketId } from "../../shared/canonicalMarkets";
+import { toCanonicalMarketId, isBlockedMarket } from "../../shared/canonicalMarkets";
+import { CS2CAP_PRICES_STREAM } from "../constants/apiUrls";
 
 // Standard internal PriceCache representation
 export interface PriceListing {
@@ -16,6 +18,39 @@ export type PriceCache = Record<string, { n: string; l: PriceListing[] }>;
 
 export { CS2CAP_PROVIDERS, DEFAULT_CS2CAP_PROVIDERS };
 export type { Cs2CapProviderInfo };
+
+/**
+ * Builds the CS2Cap prices stream URL, always sending the explicit list of
+ * requested (and validated) provider identifiers.
+ *
+ * The `providers` query param is authoritative: per the CS2Cap API, omitting it
+ * streams the entire provider enum, which can include markets we do not want
+ * (e.g. blocked gambling platforms). Therefore we always send an explicit list:
+ * the requested one, or the vetted default catalog when none was supplied.
+ * If a list was supplied but none of its entries are valid we refuse to build a
+ * URL rather than silently fall back to the full server catalog.
+ */
+export function buildCs2CapStreamUrl(options?: {
+  providers?: string[];
+}): string {
+  const validProviderIds = new Set(CS2CAP_PROVIDERS.map((p) => p.id));
+  const supplied = options?.providers;
+  const sanitizedProviders = Array.isArray(supplied)
+    ? supplied.filter((p) => validProviderIds.has(p))
+    : DEFAULT_CS2CAP_PROVIDERS;
+
+  if (Array.isArray(supplied) && sanitizedProviders.length === 0) {
+    throw new Error(
+      "No valid CS2Cap providers selected. Select at least one market to stream.",
+    );
+  }
+
+  const searchParams = new URLSearchParams();
+  for (const p of sanitizedProviders) {
+    searchParams.append("providers", p);
+  }
+  return `${CS2CAP_PRICES_STREAM}?${searchParams.toString()}`;
+}
 
 /**
  * Parses a single NDJSON line from CS2Cap and mutates the cache dictionary.
@@ -42,6 +77,12 @@ export function parseCs2CapLine(line: string, cache: PriceCache): boolean {
     }
 
     if (lowestAskCents <= 0) {
+      return false;
+    }
+
+    // Hard-block gambling platforms (e.g. CSGOEmpire) even if the upstream
+    // CS2Cap feed still emits rows for them.
+    if (isBlockedMarket(String(provider))) {
       return false;
     }
 

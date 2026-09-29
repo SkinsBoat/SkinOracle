@@ -17,10 +17,7 @@ import {
   NexusStrategyProfile,
   OracleEvaluationResponse,
 } from "./oracle.types";
-import {
-  CsFloatInventoryItem,
-  ListingPriceInfo,
-} from "./csfloat.types";
+import { CsFloatInventoryItem, ListingPriceInfo } from "./csfloat.types";
 import {
   DealMakerItem,
   DealMakerOffer,
@@ -60,6 +57,7 @@ import {
   VersionGateState,
   BalanceTransactionItem,
 } from "./system.types";
+import { AutoRefreshConfig, AutoRefreshStatus } from "./autoRefresh.types";
 
 export interface ElectronAPI {
   auth: {
@@ -134,6 +132,17 @@ export interface ElectronAPI {
       callback: (progress: Cs2CapStreamProgress) => void,
     ) => () => void;
     getStatus: () => Promise<{ isFetching: boolean }>;
+  };
+  autoRefresh: {
+    setConfig: (
+      config: Partial<AutoRefreshConfig>,
+    ) => Promise<AutoRefreshStatus>;
+    getStatus: () => Promise<AutoRefreshStatus>;
+    runNow: () => Promise<AutoRefreshStatus>;
+    stop: () => Promise<AutoRefreshStatus>;
+    onStatusUpdated: (
+      callback: (status: AutoRefreshStatus) => void,
+    ) => () => void;
   };
   oracle: {
     startBatch: (totalItems: number) => Promise<OracleBatchStartResult>;
@@ -378,7 +387,9 @@ export interface ElectronAPI {
       cursor?: string,
     ) => Promise<{ trades: any[]; total: string; cursor: string }>;
     depositAssets: (
-      assetIds: Array<string | { inGameAssetId?: string; assetId?: string; id?: string }>,
+      assetIds: Array<
+        string | { inGameAssetId?: string; assetId?: string; id?: string }
+      >,
     ) => Promise<{ DepositID: string }>;
     getDepositStatus: (depositId: string) => Promise<{
       DepositID: string;
@@ -388,14 +399,18 @@ export interface ElectronAPI {
       SteamDepositInfo?: { TradeOfferID: string; Message?: string };
     }>;
     syncUserInventory: () => Promise<any>;
-    getLastSales: (params: DmarketLastSalesParams) => Promise<DmarketLastSalesResponse>;
+    getLastSales: (
+      params: DmarketLastSalesParams,
+    ) => Promise<DmarketLastSalesResponse>;
     getAggregatedPrices: (
       request: DmarketAggregatedPricesRequest,
     ) => Promise<DmarketAggregatedPricesResponse>;
     getMarketplaceOffers: (
       params?: DmarketMarketplaceOffersParams,
     ) => Promise<DmarketMarketplaceOffersResponse>;
-    buyOffers: (request: DmarketBuyOffersRequest) => Promise<DmarketBuyOffersResponse>;
+    buyOffers: (
+      request: DmarketBuyOffersRequest,
+    ) => Promise<DmarketBuyOffersResponse>;
     withdrawAssets: (
       request: DmarketWithdrawAssetsRequest,
     ) => Promise<DmarketWithdrawAssetsResponse>;

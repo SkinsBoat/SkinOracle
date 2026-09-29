@@ -7,7 +7,10 @@ import { setPriceCache, priceCache } from "./oracle.ipc";
 import { SKINSNIPE_LOWEST_PRICES } from "../constants/apiUrls";
 import { saasAxios } from "../services/saasAxios";
 import { trendStore } from "../services/trendStore";
-import { toCanonicalMarketId } from "../../shared/canonicalMarkets";
+import {
+  toCanonicalMarketId,
+  isBlockedMarket,
+} from "../../shared/canonicalMarkets";
 import { getAppUserAgent } from "../constants/userAgent";
 
 // ─────────────────────────────────────────────────────────────────
@@ -62,11 +65,68 @@ export function broadcastCacheStatus() {
   }
 }
 
+/**
+ * Removes listings belonging to permanently blocked gambling platforms from a
+ * cache and drops any item left without valid listings. Applied at every cache
+ * ingestion point so blocked markets can never re-enter via live feeds, uploaded
+ * JSON, or the demo cache.
+ */
+function stripBlockedListings(cache: PriceCache): PriceCache {
+  const cleaned: PriceCache = {};
+  for (const [key, item] of Object.entries(cache || {})) {
+    if (!item?.l || !Array.isArray(item.l)) continue;
+    const listings = item.l.filter((l) => l && !isBlockedMarket(l.m));
+    if (listings.length > 0) {
+      cleaned[key] = { n: item.n || key, l: listings };
+    }
+  }
+  return cleaned;
+}
+
 export function setLocalPriceCache(cache: PriceCache, fetchedAt?: Date) {
-  localPriceCache = cache;
+  const sanitized = stripBlockedListings(cache);
+  localPriceCache = sanitized;
   lastFetchedAt = fetchedAt || new Date();
-  setPriceCache(cache);
+  setPriceCache(sanitized);
   broadcastCacheStatus();
+}
+
+// ── Progress broadcasting (works for renderer-invoked and scheduler cycles) ──
+type SkinsnipeProgressPayload = {
+  currentMarket: string;
+  currentMarketIndex: number;
+  totalMarkets: number;
+  completedMarkets: number;
+  errorCount: number;
+  lastError: string | null;
+  criticalError: string | null;
+  status: "fetching" | "waiting" | "completed" | "aborted" | "error";
+  sleepRemaining?: number;
+  marketCounts: Record<string, number>;
+};
+
+function broadcastSkinsnipeProgress(payload: SkinsnipeProgressPayload) {
+  try {
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send("skinsnipe:fetch-progress", payload);
+      }
+    });
+  } catch (err) {
+    console.warn("[Skinsnipe] Failed to broadcast fetch progress:", err);
+  }
+}
+
+export function getSkinsnipeIsFetching(): boolean {
+  return isFetching;
+}
+
+export function cancelSkinsnipeFetch(): boolean {
+  if (isFetching) {
+    cancelRequested = true;
+    return true;
+  }
+  return false;
 }
 
 export function getActivePriceCache(): PriceCache {
@@ -206,7 +266,7 @@ async function fetchMarket(apiKey: string, market: string): Promise<any[]> {
 }
 
 async function mergeAndBuild(
-  event: IpcMainInvokeEvent,
+  emit: (payload: SkinsnipeProgressPayload) => void,
   apiKey: string,
   targetMarkets?: string[],
 ) {
@@ -229,21 +289,19 @@ async function mergeAndBuild(
     lastError: string | null = null,
     sleepRemaining?: number,
   ) => {
-    if (event?.sender && !event.sender.isDestroyed()) {
-      const mergedCache = { ...localPriceCache, ...tempCache };
-      event.sender.send("skinsnipe:fetch-progress", {
-        currentMarket,
-        currentMarketIndex,
-        totalMarkets: activeMarkets.length,
-        completedMarkets,
-        errorCount: failedMarkets.length,
-        lastError,
-        criticalError,
-        status,
-        sleepRemaining,
-        marketCounts: getMarketCounts(mergedCache),
-      });
-    }
+    const mergedCache = { ...localPriceCache, ...tempCache };
+    emit({
+      currentMarket,
+      currentMarketIndex,
+      totalMarkets: activeMarkets.length,
+      completedMarkets,
+      errorCount: failedMarkets.length,
+      lastError,
+      criticalError,
+      status,
+      sleepRemaining,
+      marketCounts: getMarketCounts(mergedCache),
+    });
   };
 
   for (let i = 0; i < activeMarkets.length; i++) {
@@ -336,51 +394,65 @@ async function mergeAndBuild(
   };
 }
 
+// ── Runnable cycle: shared by the renderer IPC call and the auto-refresh scheduler ──
+export async function runSkinsnipeFetchCycle(
+  targetMarkets?: string[],
+  emit?: (payload: SkinsnipeProgressPayload) => void,
+) {
+  const apiKey = secureGet(STORAGE_KEYS.SKINSNIPE);
+  if (!apiKey)
+    throw new Error("Skinsnipe API key not set. Go to Settings to add it.");
+  if (isFetching) throw new Error("Fetch already in progress");
+
+  isFetching = true;
+  const progressEmitter = emit || broadcastSkinsnipeProgress;
+
+  try {
+    const result = await mergeAndBuild(progressEmitter, apiKey, targetMarkets);
+
+    // Merge fresh market data into localPriceCache (blocked platforms stripped)
+    if (Object.keys(result.cache).length > 0) {
+      localPriceCache = stripBlockedListings({
+        ...localPriceCache,
+        ...result.cache,
+      });
+      lastFetchedAt = new Date();
+      setPriceCache(localPriceCache);
+      trendStore
+        .saveDailySnapshots(localPriceCache)
+        .catch((err) => console.warn("[TrendStore] Auto-snapshot error:", err));
+    } else if (!result.criticalError && !result.aborted) {
+      lastFetchedAt = new Date();
+    }
+
+    broadcastCacheStatus();
+
+    return {
+      success: !result.criticalError && !result.aborted,
+      itemCount: Object.keys(localPriceCache).length,
+      fetchedAt: lastFetchedAt?.toISOString() || new Date().toISOString(),
+      totalMarkets: targetMarkets?.length || DEFAULT_MARKETS.length,
+      errorCount: result.failedMarkets.length,
+      failedMarkets: result.failedMarkets,
+      aborted: result.aborted,
+      criticalError: result.criticalError,
+      marketCounts: getMarketCounts(localPriceCache),
+    };
+  } finally {
+    isFetching = false;
+  }
+}
+
 // ── IPC: Fetch all market prices using trader's Skinsnipe key ──────
 ipcMain.handle(
   "skinsnipe:fetch-prices",
-  async (event, targetMarkets?: string[]) => {
-    const apiKey = secureGet(STORAGE_KEYS.SKINSNIPE);
-    if (!apiKey)
-      throw new Error("Skinsnipe API key not set. Go to Settings to add it.");
-    if (isFetching) throw new Error("Fetch already in progress");
-
-    isFetching = true;
-    const hasPriorCache = Object.keys(localPriceCache).length > 0;
-
-    try {
-      const result = await mergeAndBuild(event, apiKey, targetMarkets);
-
-      // Merge fresh market data into localPriceCache
-      if (Object.keys(result.cache).length > 0) {
-        localPriceCache = { ...localPriceCache, ...result.cache };
-        lastFetchedAt = new Date();
-        setPriceCache(localPriceCache);
-        trendStore
-          .saveDailySnapshots(localPriceCache)
-          .catch((err) =>
-            console.warn("[TrendStore] Auto-snapshot error:", err),
-          );
-      } else if (!result.criticalError && !result.aborted) {
-        lastFetchedAt = new Date();
+  async (event: IpcMainInvokeEvent, targetMarkets?: string[]) => {
+    const emit = (payload: SkinsnipeProgressPayload) => {
+      if (event?.sender && !event.sender.isDestroyed()) {
+        event.sender.send("skinsnipe:fetch-progress", payload);
       }
-
-      broadcastCacheStatus();
-
-      return {
-        success: !result.criticalError && !result.aborted,
-        itemCount: Object.keys(localPriceCache).length,
-        fetchedAt: lastFetchedAt?.toISOString() || new Date().toISOString(),
-        totalMarkets: targetMarkets?.length || DEFAULT_MARKETS.length,
-        errorCount: result.failedMarkets.length,
-        failedMarkets: result.failedMarkets,
-        aborted: result.aborted,
-        criticalError: result.criticalError,
-        marketCounts: getMarketCounts(localPriceCache),
-      };
-    } finally {
-      isFetching = false;
-    }
+    };
+    return runSkinsnipeFetchCycle(targetMarkets, emit);
   },
 );
 
@@ -457,10 +529,11 @@ ipcMain.handle("skinsnipe:load-cache-json", async (_, jsonContent: string) => {
         }
       }
 
-      localPriceCache =
+      localPriceCache = stripBlockedListings(
         Object.keys(cleanCache).length > 0
           ? cleanCache
-          : (cacheData as PriceCache);
+          : (cacheData as PriceCache),
+      );
       lastFetchedAt = new Date();
       setPriceCache(localPriceCache);
       trendStore

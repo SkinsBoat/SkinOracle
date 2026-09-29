@@ -6,4 +6,5 @@ export * from "./oracle.types";
 export * from "./csfloat.types";
 export * from "./dmarket.types";
 export * from "./system.types";
+export * from "./autoRefresh.types";
 export * from "./electron-api.types";

@@ -130,5 +130,6 @@ For complete specifications, review **[TONE_AND_UI_STYLE_GUIDE.md](./TONE_AND_UI
 - [TONE_AND_UI_STYLE_GUIDE.md](./TONE_AND_UI_STYLE_GUIDE.md) — UI/UX language tone, React TSX styling architecture, and platform terminology.
 - [SECURITY.md](./SECURITY.md) — Security policy, controls overview, and responsible disclosure.
 - [.agent/workflows/electron_security_guide.md](./.agent/workflows/electron_security_guide.md) — Deep technical guide and code patterns.
+- Integration-specific API references are co-located with their code as `*.API.md` (e.g. next to the relevant module). Read them only when working on that integration.
 > *Note: Internal VPS deployment guides and server operations runbooks (e.g. `PRODUCTION_RELEASE_GUIDE.md`) are strictly gitignored to keep this public repository free of private infrastructure details.*
 

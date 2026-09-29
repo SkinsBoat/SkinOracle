@@ -2,9 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   parseCs2CapLine,
   getMarketCounts,
+  buildCs2CapStreamUrl,
   PriceCache,
   CS2CAP_PROVIDERS,
+  DEFAULT_CS2CAP_PROVIDERS,
 } from "../../services/cs2capParser";
+import { CS2CAP_PRICES_STREAM } from "../../constants/apiUrls";
 
 describe("CS2Cap NDJSON Line Parser", () => {
   it("should parse a valid CS2Cap line with cents converted to dollars", () => {
@@ -168,6 +171,33 @@ describe("CS2Cap NDJSON Line Parser", () => {
     expect(Object.keys(cache)).toHaveLength(0);
   });
 
+  it("should reject and never cache blocked gambling platform providers", () => {
+    const cache: PriceCache = {};
+    const empireLine = JSON.stringify({
+      provider: "csgoempire",
+      market_hash_name: "AK-47 | Redline (Field-Tested)",
+      lowest_ask: 2150,
+      quantity: 4,
+    });
+    const empireAliasLine = JSON.stringify({
+      provider: "empire",
+      market_hash_name: "AWP | Asiimov (Field-Tested)",
+      lowest_ask: 9000,
+      quantity: 2,
+    });
+    const csgo500Line = JSON.stringify({
+      provider: "csgo500",
+      market_hash_name: "M4A4 | Howl (Minimal Wear)",
+      lowest_ask: 500000,
+      quantity: 1,
+    });
+
+    expect(parseCs2CapLine(empireLine, cache)).toBe(false);
+    expect(parseCs2CapLine(empireAliasLine, cache)).toBe(false);
+    expect(parseCs2CapLine(csgo500Line, cache)).toBe(false);
+    expect(Object.keys(cache)).toHaveLength(0);
+  });
+
   it("should correctly calculate provider market counts", () => {
     const cache: PriceCache = {
       "Item A": {
@@ -208,5 +238,51 @@ describe("CS2Cap NDJSON Line Parser", () => {
     expect(providerIds).toContain("tradeit");
     expect(providerIds).toContain("csmoney_m");
     expect(providerIds).toContain("csmoney_t");
+  });
+
+  describe("buildCs2CapStreamUrl (authoritative provider allow-list)", () => {
+    it("should send the full explicit provider list when every provider is selected", () => {
+      const all = CS2CAP_PROVIDERS.map((p) => p.id);
+      const url = buildCs2CapStreamUrl({ providers: all });
+      expect(url.startsWith(`${CS2CAP_PRICES_STREAM}?`)).toBe(true);
+      expect(new URL(url).searchParams.getAll("providers")).toEqual(all);
+    });
+
+    it("should send only the requested providers for a subset", () => {
+      const url = buildCs2CapStreamUrl({
+        providers: ["csfloat", "dmarket"],
+      });
+      expect(new URL(url).searchParams.getAll("providers")).toEqual([
+        "csfloat",
+        "dmarket",
+      ]);
+    });
+
+    it("should drop unknown and blocked provider identifiers", () => {
+      const url = buildCs2CapStreamUrl({
+        providers: ["csfloat", "csgoempire", "empire", "not_a_market"],
+      });
+      expect(new URL(url).searchParams.getAll("providers")).toEqual(["csfloat"]);
+    });
+
+    it("should refuse to build a URL that would fall back to the full catalog", () => {
+      expect(() => buildCs2CapStreamUrl({ providers: [] })).toThrow(
+        /No valid CS2Cap providers/,
+      );
+      expect(() =>
+        buildCs2CapStreamUrl({ providers: ["csgoempire"] }),
+      ).toThrow(/No valid CS2Cap providers/);
+    });
+
+    it("should default to the vetted allow-list when no provider list is supplied", () => {
+      const url = buildCs2CapStreamUrl();
+      expect(new URL(url).searchParams.getAll("providers")).toEqual(
+        DEFAULT_CS2CAP_PROVIDERS,
+      );
+      const url2 = buildCs2CapStreamUrl(undefined);
+      expect(new URL(url2).searchParams.getAll("providers")).toEqual(
+        DEFAULT_CS2CAP_PROVIDERS,
+      );
+    });
   });
 });
