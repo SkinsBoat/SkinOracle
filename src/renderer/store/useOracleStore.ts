@@ -86,13 +86,11 @@ export const DEFAULT_SELECTED_MARKETS: SkinsnipeMarketId[] = [
   "avanmarket",
   "csmoney_p2p",
   "csgofloat",
-  "cstrade",
   "dmarket",
   "exeskins",
   "tradeitgg_store",
   "shadowpay",
   "skinland",
-  "skinsmonkey",
   "skinswap",
   "waxpeer",
   "skinflow",
@@ -100,10 +98,49 @@ export const DEFAULT_SELECTED_MARKETS: SkinsnipeMarketId[] = [
   "lisskins",
 ];
 
+/**
+ * Market Scope presets.
+ *
+ * A trader needs two different market sets:
+ *  - `baseline` (wide, 8–15 stable cash markets) → used when scanning to
+ *    calculate accepted prices (buy ceilings).
+ *  - `snipe` (narrow, execution venues) → used for live refresh when hunting
+ *    SoClose deals.
+ *
+ * The two provider pipelines (Skinsnipe, CS2Cap) expose partially different
+ * market ids, so each pipeline keeps its own independent pair of presets.
+ */
+export type MarketScope = "baseline" | "snipe";
+
+export interface MarketScopePresets<T> {
+  baseline: T[];
+  snipe: T[];
+}
+
+export const DEFAULT_SKINSNIPE_SNIPE_MARKETS: SkinsnipeMarketId[] = [
+  "csgofloat",
+  "dmarket",
+];
+
+export const DEFAULT_CS2CAP_SNIPE_MARKETS: string[] = ["csfloat", "dmarket"];
+
+export const DEFAULT_SKINSNIPE_SCOPES: MarketScopePresets<SkinsnipeMarketId> = {
+  baseline: DEFAULT_SELECTED_MARKETS,
+  snipe: DEFAULT_SKINSNIPE_SNIPE_MARKETS,
+};
+
+export const DEFAULT_CS2CAP_SCOPES: MarketScopePresets<string> = {
+  baseline: DEFAULT_CS2CAP_PROVIDERS,
+  snipe: DEFAULT_CS2CAP_SNIPE_MARKETS,
+};
+
 interface OracleStoreState {
   pricingProvider: "skinsnipe" | "cs2cap";
   selectedMarkets: SkinsnipeMarketId[];
   selectedCs2capProviders: string[];
+  activeScope: MarketScope;
+  skinsnipeScopes: MarketScopePresets<SkinsnipeMarketId>;
+  cs2capScopes: MarketScopePresets<string>;
   preFilters: BuildPreFilters;
   blockedSkins: string[];
   selectedEngine: "standard" | "nexus";
@@ -114,6 +151,7 @@ interface OracleStoreState {
   setHideTradeMarkets: (hide: boolean | ((prev: boolean) => boolean)) => void;
 
   setPricingProvider: (provider: "skinsnipe" | "cs2cap") => void;
+  setActiveScope: (scope: MarketScope) => void;
   setSelectedMarkets: (markets: SkinsnipeMarketId[]) => void;
   toggleMarket: (marketId: SkinsnipeMarketId) => void;
   soloMarket: (marketId: SkinsnipeMarketId) => void;
@@ -161,6 +199,9 @@ export const useOracleStore = create<OracleStoreState>()(
       pricingProvider: "cs2cap",
       selectedMarkets: DEFAULT_SELECTED_MARKETS,
       selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS,
+      activeScope: "baseline" as MarketScope,
+      skinsnipeScopes: DEFAULT_SKINSNIPE_SCOPES,
+      cs2capScopes: DEFAULT_CS2CAP_SCOPES,
       preFilters: DEFAULT_PRE_FILTERS,
       blockedSkins: [],
       selectedEngine: "standard",
@@ -175,49 +216,142 @@ export const useOracleStore = create<OracleStoreState>()(
           hideTradeMarkets:
             typeof hide === "function" ? hide(state.hideTradeMarkets) : hide,
         })),
-      setSelectedMarkets: (markets) => set({ selectedMarkets: markets }),
+
+      setActiveScope: (scope) =>
+        set((state) => ({
+          activeScope: scope,
+          selectedMarkets:
+            state.skinsnipeScopes?.[scope] ?? state.selectedMarkets,
+          selectedCs2capProviders:
+            state.cs2capScopes?.[scope] ?? state.selectedCs2capProviders,
+        })),
+
+      setSelectedMarkets: (markets) =>
+        set((state) => ({
+          selectedMarkets: markets,
+          skinsnipeScopes: {
+            ...state.skinsnipeScopes,
+            [state.activeScope]: markets,
+          },
+        })),
       toggleMarket: (marketId) =>
         set((state) => {
-          if (state.selectedMarkets.includes(marketId)) {
-            if (state.selectedMarkets.length === 1) return state;
+          const current =
+            state.skinsnipeScopes?.[state.activeScope] ?? state.selectedMarkets;
+          if (current.includes(marketId)) {
+            if (current.length === 1) return state;
+            const next = current.filter((m) => m !== marketId);
             return {
-              selectedMarkets: state.selectedMarkets.filter(
-                (m) => m !== marketId,
-              ),
+              selectedMarkets: next,
+              skinsnipeScopes: {
+                ...state.skinsnipeScopes,
+                [state.activeScope]: next,
+              },
             };
           }
-          return { selectedMarkets: [...state.selectedMarkets, marketId] };
+          const next = [...current, marketId];
+          return {
+            selectedMarkets: next,
+            skinsnipeScopes: {
+              ...state.skinsnipeScopes,
+              [state.activeScope]: next,
+            },
+          };
         }),
-      soloMarket: (marketId) => set({ selectedMarkets: [marketId] }),
-      selectAllMarkets: (allIds) => set({ selectedMarkets: allIds }),
+      soloMarket: (marketId) =>
+        set((state) => ({
+          selectedMarkets: [marketId],
+          skinsnipeScopes: {
+            ...state.skinsnipeScopes,
+            [state.activeScope]: [marketId],
+          },
+        })),
+      selectAllMarkets: (allIds) =>
+        set((state) => ({
+          selectedMarkets: allIds,
+          skinsnipeScopes: {
+            ...state.skinsnipeScopes,
+            [state.activeScope]: allIds,
+          },
+        })),
       resetDefaultMarkets: () =>
-        set({ selectedMarkets: DEFAULT_SELECTED_MARKETS }),
+        set((state) => {
+          const defaults =
+            state.activeScope === "snipe"
+              ? DEFAULT_SKINSNIPE_SNIPE_MARKETS
+              : DEFAULT_SELECTED_MARKETS;
+          return {
+            selectedMarkets: defaults,
+            skinsnipeScopes: {
+              ...state.skinsnipeScopes,
+              [state.activeScope]: defaults,
+            },
+          };
+        }),
 
       setSelectedCs2capProviders: (providers) =>
-        set({ selectedCs2capProviders: providers }),
+        set((state) => ({
+          selectedCs2capProviders: providers,
+          cs2capScopes: {
+            ...state.cs2capScopes,
+            [state.activeScope]: providers,
+          },
+        })),
       toggleCs2capProvider: (providerId) =>
         set((state) => {
-          if (state.selectedCs2capProviders.includes(providerId)) {
-            if (state.selectedCs2capProviders.length === 1) return state;
+          const current =
+            state.cs2capScopes?.[state.activeScope] ??
+            state.selectedCs2capProviders;
+          if (current.includes(providerId)) {
+            if (current.length === 1) return state;
+            const next = current.filter((p) => p !== providerId);
             return {
-              selectedCs2capProviders: state.selectedCs2capProviders.filter(
-                (p) => p !== providerId,
-              ),
+              selectedCs2capProviders: next,
+              cs2capScopes: {
+                ...state.cs2capScopes,
+                [state.activeScope]: next,
+              },
             };
           }
+          const next = [...current, providerId];
           return {
-            selectedCs2capProviders: [
-              ...state.selectedCs2capProviders,
-              providerId,
-            ],
+            selectedCs2capProviders: next,
+            cs2capScopes: {
+              ...state.cs2capScopes,
+              [state.activeScope]: next,
+            },
           };
         }),
       soloCs2capProvider: (providerId) =>
-        set({ selectedCs2capProviders: [providerId] }),
+        set((state) => ({
+          selectedCs2capProviders: [providerId],
+          cs2capScopes: {
+            ...state.cs2capScopes,
+            [state.activeScope]: [providerId],
+          },
+        })),
       selectAllCs2capProviders: () =>
-        set({ selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS }),
+        set((state) => ({
+          selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS,
+          cs2capScopes: {
+            ...state.cs2capScopes,
+            [state.activeScope]: DEFAULT_CS2CAP_PROVIDERS,
+          },
+        })),
       resetDefaultCs2capProviders: () =>
-        set({ selectedCs2capProviders: DEFAULT_CS2CAP_PROVIDERS }),
+        set((state) => {
+          const defaults =
+            state.activeScope === "snipe"
+              ? DEFAULT_CS2CAP_SNIPE_MARKETS
+              : DEFAULT_CS2CAP_PROVIDERS;
+          return {
+            selectedCs2capProviders: defaults,
+            cs2capScopes: {
+              ...state.cs2capScopes,
+              [state.activeScope]: defaults,
+            },
+          };
+        }),
 
       setSelectedEngine: (engine) => set({ selectedEngine: engine }),
 
@@ -274,7 +408,7 @@ export const useOracleStore = create<OracleStoreState>()(
     }),
     {
       name: "oracle_dashboard_store",
-      version: 4,
+      version: 5,
       migrate: (persistedState: any, version: number) => {
         if (!persistedState || typeof persistedState !== "object") {
           return persistedState;
@@ -298,6 +432,46 @@ export const useOracleStore = create<OracleStoreState>()(
         // v4: initialize blocked skins list
         if (!Array.isArray(persistedState.blockedSkins)) {
           persistedState.blockedSkins = [];
+        }
+
+        // v5: Market Scope presets. Preserve the trader's existing market
+        // selection as their wide Baseline, and seed a narrow Snipe scope so
+        // the fast wide/narrow switch works out of the box.
+        if (
+          !persistedState.skinsnipeScopes ||
+          !Array.isArray(persistedState.skinsnipeScopes.baseline) ||
+          !Array.isArray(persistedState.skinsnipeScopes.snipe)
+        ) {
+          const baseline =
+            Array.isArray(persistedState.selectedMarkets) &&
+            persistedState.selectedMarkets.length > 0
+              ? persistedState.selectedMarkets
+              : DEFAULT_SELECTED_MARKETS;
+          persistedState.skinsnipeScopes = {
+            baseline,
+            snipe: [...DEFAULT_SKINSNIPE_SNIPE_MARKETS],
+          };
+        }
+        if (
+          !persistedState.cs2capScopes ||
+          !Array.isArray(persistedState.cs2capScopes.baseline) ||
+          !Array.isArray(persistedState.cs2capScopes.snipe)
+        ) {
+          const baseline =
+            Array.isArray(persistedState.selectedCs2capProviders) &&
+            persistedState.selectedCs2capProviders.length > 0
+              ? persistedState.selectedCs2capProviders
+              : DEFAULT_CS2CAP_PROVIDERS;
+          persistedState.cs2capScopes = {
+            baseline,
+            snipe: [...DEFAULT_CS2CAP_SNIPE_MARKETS],
+          };
+        }
+        if (
+          persistedState.activeScope !== "baseline" &&
+          persistedState.activeScope !== "snipe"
+        ) {
+          persistedState.activeScope = "baseline";
         }
         return persistedState;
       },

@@ -14,6 +14,7 @@ import {
   Info,
   Handshake,
   Globe,
+  BookOpen,
 } from "lucide-react";
 import {
   oracleLogo,
@@ -33,6 +34,7 @@ import { DealMakerFloorScreen } from "./screens/DealMaker/DealMakerFloorScreen";
 import SkinscomWorkstation from "./screens/Skinscom/SkinscomWorkstation";
 import BalanceDashboard from "./screens/Balance/BalanceDashboard";
 import { TrendMarketScreen } from "./screens/TrendMarket/TrendMarketScreen";
+import KnowledgeBaseScreen from "./screens/Knowledge/KnowledgeBaseScreen";
 import AboutScreen from "./screens/About/AboutScreen";
 import UpdateNotification from "./components/UpdateNotification";
 import ConfirmModal from "./components/ConfirmModal";
@@ -513,6 +515,27 @@ export default function App() {
                 </NavLink>
 
                 <NavLink
+                  to="/playbook"
+                  title={!isSidebarExpanded ? "Trading Playbook" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <BookOpen
+                        size={18}
+                        style={getNavIconStyle(isActive, "accent")}
+                      />
+                      {isSidebarExpanded && <span>Playbook</span>}
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
                   to="/about"
                   title={!isSidebarExpanded ? "About Skin Oracle" : undefined}
                   className={({ isActive }) =>
@@ -572,6 +595,7 @@ export default function App() {
               <Route path="/auctions" element={<DealMakerFloorScreen />} />
               {/* <Route path="/skinscom" element={<SkinscomWorkstation />} /> */}
               <Route path="/trend-market" element={<TrendMarketScreen />} />
+              <Route path="/playbook" element={<KnowledgeBaseScreen />} />
               <Route path="/balance" element={<BalanceDashboard />} />
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="/about" element={<AboutScreen />} />

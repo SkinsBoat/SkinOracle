@@ -5,6 +5,8 @@ import {
   Filter,
   CheckSquare,
   Square,
+  Target,
+  Crosshair,
 } from "lucide-react";
 import { MarketLogo } from "../../../../components/MarketLogo";
 import {
@@ -196,6 +198,67 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
           {marketCount.toLocaleString()}
         </span>
       )}
+    </div>
+  );
+};
+
+export interface MarketScopeToggleProps {
+  activeScope: "baseline" | "snipe";
+  onSelectScope: (scope: "baseline" | "snipe") => void;
+  baselineCount: number;
+  snipeCount: number;
+  accentColor: string;
+}
+
+/**
+ * Fast wide/narrow market-scope switch.
+ *
+ * Baseline (Wide) is the broad set used when scanning to calculate accepted
+ * prices. Snipe (Narrow) is the small execution set used for live refresh.
+ * Switching applies the saved set instantly; chip edits auto-save into the
+ * active scope.
+ */
+export const MarketScopeToggle: React.FC<MarketScopeToggleProps> = ({
+  activeScope,
+  onSelectScope,
+  baselineCount,
+  snipeCount,
+  accentColor,
+}) => {
+  const isBaseline = activeScope === "baseline";
+  const isSnipe = activeScope === "snipe";
+
+  return (
+    <div style={styles.scopeContainer}>
+      <div style={styles.scopeLeftGroup}>
+        <span style={styles.scopeLabel}>
+          <Target size={14} style={{ color: accentColor }} /> Market Scope
+        </span>
+        <span style={styles.scopeHint}>
+          {isSnipe
+            ? "Live refresh uses only these execution venues"
+            : "Wide baseline used to calculate accepted prices"}
+        </span>
+      </div>
+
+      <div style={styles.scopeSegmented}>
+        <button
+          type="button"
+          onClick={() => onSelectScope("baseline")}
+          style={getScopeButtonStyle(isBaseline, accentColor)}
+          title="Apply the wide Baseline market set (used to calculate accepted prices)"
+        >
+          <Target size={13} /> Baseline (Wide) · {baselineCount}
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelectScope("snipe")}
+          style={getScopeButtonStyle(isSnipe, accentColor)}
+          title="Apply the narrow Snipe market set (used for live refresh / deal sniping)"
+        >
+          <Crosshair size={13} /> Snipe (Narrow) · {snipeCount}
+        </button>
+      </div>
     </div>
   );
 };
@@ -483,6 +546,27 @@ function getToolbarBadgeStyle(
   };
 }
 
+function getScopeButtonStyle(
+  isActive: boolean,
+  accentColor: string,
+): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 12px",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+    borderRadius: "6px",
+    transition: "all 0.15s ease",
+    whiteSpace: "nowrap",
+    backgroundColor: isActive ? "rgba(37, 99, 235, 0.18)" : "transparent",
+    border: isActive ? `1px solid ${accentColor}` : "1px solid transparent",
+    color: isActive ? "var(--so-text-primary)" : "var(--so-text-muted)",
+  };
+}
+
 const styles: Record<string, React.CSSProperties> = {
   checkIconWhite: {
     color: "#fff",
@@ -577,6 +661,50 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cacheStatusTimeAgo: {
     color: "var(--so-text-muted)",
+  },
+  scopeContainer: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "10px",
+    flexWrap: "wrap",
+    padding: "8px 10px",
+    marginBottom: "12px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-input)",
+    border: "1px solid var(--so-border-subtle)",
+  },
+  scopeLeftGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    flexWrap: "wrap",
+    minWidth: 0,
+  },
+  scopeLabel: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "12.5px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+    whiteSpace: "nowrap",
+    lineHeight: 1.2,
+  },
+  scopeHint: {
+    fontSize: "11.5px",
+    color: "var(--so-text-muted)",
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+  },
+  scopeSegmented: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "3px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-medium)",
   },
 };
 

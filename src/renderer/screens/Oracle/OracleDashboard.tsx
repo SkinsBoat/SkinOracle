@@ -92,6 +92,7 @@ export default function OracleDashboard() {
     soloMarket: storeSoloMarket,
     selectAllMarkets: storeSelectAllMarkets,
     resetDefaultMarkets,
+    activeScope,
     selectedCs2capProviders,
     setSelectedCs2capProviders,
     toggleCs2capProvider: storeToggleCs2capProvider,
@@ -428,8 +429,11 @@ export default function OracleDashboard() {
 
   const deselectAllMarkets = () => {
     resetDefaultMarkets();
+    const count =
+      useOracleStore.getState().skinsnipeScopes?.[activeScope]?.length ??
+      DEFAULT_SELECTED_MARKETS.length;
     toast.success(
-      `Reset selected markets to default preset (${DEFAULT_SELECTED_MARKETS.length} markets)`,
+      `Reset ${activeScope === "snipe" ? "Snipe" : "Baseline"} scope to its default preset (${count} markets)`,
     );
   };
 
