@@ -16,7 +16,7 @@
 
 **Windows (Recommended) — Microsoft Store:**
 [Download from Microsoft Store](https://apps.microsoft.com/detail/9N9V96813XD5)
-Fast, automatic background updates, and certified by Microsoft — no SmartScreen unknown-publisher warnings.
+Fast, automatic background updates, and certified by Microsoft.
 
 **Windows (Standalone) — GitHub Release:**
 [Latest GitHub Release (.exe)](https://github.com/SkinsBoat/SkinOracle/releases/latest)
