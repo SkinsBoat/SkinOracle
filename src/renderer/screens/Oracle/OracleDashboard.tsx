@@ -507,9 +507,22 @@ export default function OracleDashboard() {
       if (isNexus && window.electronAPI?.trendStore) {
         try {
           const stats = await window.electronAPI.trendStore.getStats();
-          if (!stats || stats.daysCount < 3) {
+          const spanDays =
+            stats?.oldestDate && stats?.latestDate
+              ? Math.round(
+                  (Date.parse(`${stats.latestDate}T00:00:00Z`) -
+                    Date.parse(`${stats.oldestDate}T00:00:00Z`)) /
+                    (1000 * 60 * 60 * 24),
+                ) + 1
+              : 0;
+          const missingDays = stats
+            ? Math.max(0, spanDays - stats.daysCount)
+            : 0;
+          if (!stats || stats.daysCount < 3 || missingDays > 3) {
             toast.error(
-              `Cannot build with Nexus Pro: Minimum 3 days of trend history required (Recommended: 7 days). Currently have ${stats?.daysCount ?? 0} day(s).`,
+              missingDays > 3
+                ? `Cannot build with Nexus Pro: trend history has ${missingDays} missing days (max 3 allowed). Purchase a clean trend pack or scan daily to restore continuity.`
+                : `Cannot build with Nexus Pro: Minimum 3 days of trend history required (Recommended: 7 days). Currently have ${stats?.daysCount ?? 0} day(s).`,
             );
             setEvaluatedSummary((prev) => ({
               ...prev,

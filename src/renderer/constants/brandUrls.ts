@@ -9,3 +9,7 @@ export const SKINSBOAT_WEBSITE_URL = "https://skinsboat.com";
 export const GITHUB_REPO_URL = "https://github.com/SkinsBoat/SkinOracle";
 export const APP_RELEASES_URL =
   "https://github.com/SkinsBoat/SkinOracle/releases/latest";
+export const MICROSOFT_STORE_WEB_URL =
+  "https://apps.microsoft.com/detail/9n9v96813xd5?ocid=webpdpshare";
+export const MICROSOFT_STORE_PROTOCOL_URL =
+  "ms-windows-store://pdp/?productid=9N9V96813XD5";

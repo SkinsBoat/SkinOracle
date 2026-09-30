@@ -5,9 +5,26 @@
 [![License](https://img.shields.io/badge/License-Source--Available-orange.svg)](./LICENSE)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-blue.svg)](./SECURITY.md)
 [![CodeQL Security Scan](https://github.com/SkinsBoat/SkinOracle/actions/workflows/codeql.yml/badge.svg)](https://github.com/SkinsBoat/SkinOracle/actions/workflows/codeql.yml)
-[![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-Available-0078D7.svg)](https://apps.microsoft.com/detail/9N9V96813XD5)
+[![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-Available-0078D7.svg?logo=microsoft)](https://apps.microsoft.com/detail/9N9V96813XD5)
+[![Downloads](https://img.shields.io/badge/Downloads-Latest%20Release-2ea44f.svg?logo=github)](https://github.com/SkinsBoat/SkinOracle/releases/latest)
 [![AI Guidelines](https://img.shields.io/badge/AI%20Directives-AGENTS.md-green.svg)](./AGENTS.md)
 [![Discord](https://img.shields.io/badge/Discord-Community-5865F2.svg)](https://discord.gg/b62feTH5kS)
+
+---
+
+## Official Downloads & Installation
+
+**Windows (Recommended) — Microsoft Store:**
+[Download from Microsoft Store](https://apps.microsoft.com/detail/9N9V96813XD5)
+Fast, automatic background updates, and certified by Microsoft — no SmartScreen unknown-publisher warnings.
+
+**Windows (Standalone) — GitHub Release:**
+[Latest GitHub Release (.exe)](https://github.com/SkinsBoat/SkinOracle/releases/latest)
+Standalone installer for offline or custom-directory installs. Windows may display a SmartScreen prompt — click **More info → Run anyway** to proceed.
+
+**Linux — Universal Package:**
+[Latest GitHub Release](https://github.com/SkinsBoat/SkinOracle/releases/latest)
+Universal `.AppImage` for any distribution, plus a native `.deb` for Ubuntu and Debian.
 
 ---
 

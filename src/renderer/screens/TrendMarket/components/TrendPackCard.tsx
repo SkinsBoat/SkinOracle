@@ -121,18 +121,18 @@ export const TrendPackCard = React.memo(function TrendPackCard({
                 ? "Marketplace temporarily paused while the valuation engine restarts"
                 : isOwn
                   ? "Sync your own pack to this device (platform fee only, no sale)"
-                  : "Purchase and merge directly into local SQLite database"
+                  : "Purchase and replace local trend history (SQLite)"
             }
           >
             {isPurchasing ? (
               <>
                 <Loader2 size={13} className="spin" />
-                Merging…
+                Replacing…
               </>
             ) : (
               <>
                 <Download size={13} />
-                {isOwn ? "Sync to Device" : "Buy Pack ($5.00)"}
+                {isOwn ? "Replace Local Data" : "Buy Pack ($5.00)"}
               </>
             )}
           </button>

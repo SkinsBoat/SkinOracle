@@ -228,15 +228,20 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
 
   const activeUnitCost =
     selectedEngine === "nexus" ? nexusUnitCostCents : unitCostCents;
+  const trendDaysCount = trendStats?.daysCount ?? 0;
   const isNexusTrendBlocked =
     selectedEngine === "nexus" &&
-    (trendStats === null || trendStats.daysCount < 3);
+    (trendStats === null ||
+      trendDaysCount < 3 ||
+      trendHealth.hasContinuityGap);
   const effectiveCanBuild = canBuild && !isNexusTrendBlocked;
 
   const handleBuildAcceptedPrices = () => {
     if (isNexusTrendBlocked) {
       toast.error(
-        `Cannot build with Nexus Pro: Minimum 3 days of trend history required (Recommended: 7 days). Currently have ${trendStats?.daysCount ?? 0} day(s).`,
+        trendHealth.hasContinuityGap
+          ? `Cannot build with Nexus Pro: trend history has ${trendHealth.missingDaysInRange} missing days (max 3 allowed). Purchase a clean trend pack or scan daily to restore continuity.`
+          : `Cannot build with Nexus Pro: Minimum 3 days of trend history required (Recommended: 7 days). Currently have ${trendDaysCount} day(s).`,
       );
       return;
     }
@@ -294,10 +299,12 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
               }
             >
               {trendHealth.isInsufficient
-                ? `▲ ${trendHealth.daysCount}/3d`
+                ? `▲ ${trendDaysCount}/3d`
                 : trendHealth.isStale
                   ? `▲ Stale (${trendHealth.daysSinceLatest}d)`
-                  : `● ${trendStats?.daysCount ?? 0}d Trend`}
+                  : trendHealth.hasContinuityGap
+                    ? `▲ Gap (${trendHealth.missingDaysInRange}d)`
+                    : `● ${trendDaysCount}d Trend`}
             </span>
           )}
           <span
@@ -340,7 +347,7 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
                 cacheStatus.itemCount === 0
                   ? "Price cache required (Scan Step 1 first)"
                   : isNexusTrendBlocked
-                    ? `Nexus Pro requires at least 3 days of trend history (${trendStats?.daysCount ?? 0}/3 days)`
+                    ? `Nexus Pro requires at least 3 days of trend history with no more than 3 missing days (${trendDaysCount}d, ${trendHealth.missingDaysInRange} missing)`
                     : evaluatedSummary.lastBuiltAt
                       ? "Recalculate Buy Ceilings using current engine & filters"
                       : "Calculate Buy Ceilings"
@@ -448,7 +455,7 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
               canBuild={effectiveCanBuild}
               onBuildAcceptedPrices={handleBuildAcceptedPrices}
               isNexusTrendBlocked={isNexusTrendBlocked}
-              trendDaysCount={trendStats?.daysCount ?? 0}
+              trendDaysCount={trendDaysCount}
               trendHealth={trendHealth}
             />
           </div>

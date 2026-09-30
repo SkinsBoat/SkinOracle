@@ -100,7 +100,7 @@ export function setupTrendMarketIPC() {
     },
   );
 
-  // 3. Purchase pack & stream-merge directly into SQLite
+  // 3. Purchase pack & full-replace local SQLite trend history
   ipcMain.handle('trend-market:purchase-pack', (_, packId: string) =>
     guarded(async () => {
       // Step A: Authoritative purchase & debit via saas-api
@@ -111,13 +111,15 @@ export function setupTrendMarketIPC() {
         throw new Error('Purchase succeeded but no download URL was returned from SaaS backend.');
       }
 
-      // Step B: Direct in-memory stream download from Cloudflare R2 & atomic INSERT OR IGNORE into SQLite
-      const mergeResult = await trendStore.importAndMergeTrendPackFromUrl(downloadUrl);
+      // Step B: Direct in-memory stream download from Cloudflare R2 and full
+      // replace of the local price_snapshots table with the purchased pack.
+      const replaceResult =
+        await trendStore.replaceWithTrendPackFromUrl(downloadUrl);
 
       return {
         ...res.data,
         success: true as const,
-        mergeResult,
+        replaceResult,
       };
     }),
   );

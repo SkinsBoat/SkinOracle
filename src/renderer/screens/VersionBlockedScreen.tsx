@@ -9,6 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { UpdateStatusState, VersionGateState } from "../../shared/types";
+import { MICROSOFT_STORE_PROTOCOL_URL } from "../constants/brandUrls";
 
 interface VersionBlockedScreenProps {
   gateState: VersionGateState;
@@ -77,6 +78,16 @@ export default function VersionBlockedScreen({
   const handleOpenReleases = async () => {
     if (window.electronAPI?.system?.openReleases) {
       await window.electronAPI.system.openReleases();
+    }
+  };
+
+  const isWindows =
+    typeof navigator !== "undefined" &&
+    navigator.userAgent.toLowerCase().includes("windows");
+
+  const handleOpenStore = async () => {
+    if (window.electronAPI?.app?.openExternal) {
+      await window.electronAPI.app.openExternal(MICROSOFT_STORE_PROTOCOL_URL);
     }
   };
 
@@ -475,7 +486,7 @@ export default function VersionBlockedScreen({
                   </div>
                 )}
 
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <button
                     onClick={handleCheckForUpdates}
                     style={{
@@ -484,6 +495,7 @@ export default function VersionBlockedScreen({
                       justifyContent: "center",
                       gap: "6px",
                       flex: 1,
+                      minWidth: "120px",
                       padding: "10px 16px",
                       backgroundColor: "rgba(255, 255, 255, 0.08)",
                       color: "#ffffff",
@@ -498,6 +510,31 @@ export default function VersionBlockedScreen({
                     Check Again
                   </button>
 
+                  {isWindows && (
+                    <button
+                      onClick={handleOpenStore}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        flex: 1.4,
+                        minWidth: "160px",
+                        padding: "10px 16px",
+                        backgroundColor: "#0067B8",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "8px",
+                        fontSize: "13px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Download size={14} />
+                      Update in Microsoft Store
+                    </button>
+                  )}
+
                   <button
                     onClick={handleOpenReleases}
                     style={{
@@ -506,10 +543,11 @@ export default function VersionBlockedScreen({
                       justifyContent: "center",
                       gap: "6px",
                       flex: 1.4,
+                      minWidth: "160px",
                       padding: "10px 16px",
-                      backgroundColor: "#2563eb",
+                      backgroundColor: isWindows ? "rgba(255, 255, 255, 0.08)" : "#2563eb",
                       color: "#ffffff",
-                      border: "none",
+                      border: isWindows ? "1px solid #334155" : "none",
                       borderRadius: "8px",
                       fontSize: "13px",
                       fontWeight: 700,

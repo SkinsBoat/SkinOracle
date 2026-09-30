@@ -29,6 +29,7 @@ import {
   SKINSBOAT_WEBSITE_URL,
   GITHUB_REPO_URL,
   APP_RELEASES_URL,
+  MICROSOFT_STORE_WEB_URL,
 } from "../../constants/brandUrls";
 import { UpdateStatusState } from "../../../shared/types";
 
@@ -64,6 +65,24 @@ function DiscordIcon({ size = 20, className = "" }: { size?: number; className?:
   );
 }
 
+// Clean Microsoft Store SVG Icon
+function MicrosoftIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+    >
+      <rect x="2" y="2" width="9.5" height="9.5" />
+      <rect x="12.5" y="2" width="9.5" height="9.5" />
+      <rect x="2" y="12.5" width="9.5" height="9.5" />
+      <rect x="12.5" y="12.5" width="9.5" height="9.5" />
+    </svg>
+  );
+}
+
 interface FaqItem {
   id: string;
   icon: React.ReactNode;
@@ -72,7 +91,6 @@ interface FaqItem {
   question: string;
   answerContent: React.ReactNode;
 }
-
 export default function AboutScreen() {
   const [appVersion, setAppVersion] = useState<string>("0.1.21");
   const [emailCopied, setEmailCopied] = useState<boolean>(false);
@@ -341,6 +359,14 @@ export default function AboutScreen() {
                 <h1 style={styles.heroTitle}>Skin Oracle</h1>
                 <span style={styles.betaBadge}>Beta</span>
                 <span style={styles.versionBadge}>v{appVersion}</span>
+                <span
+                  onClick={() => handleOpenExternal(MICROSOFT_STORE_WEB_URL)}
+                  title="View Skin Oracle on the Microsoft Store"
+                  style={styles.storeVerifiedPill}
+                >
+                  <ShieldCheck size={11} />
+                  Microsoft Store Verified
+                </span>
               </div>
               <p style={styles.heroDescription}>
                 Official High-Frequency CS2 Valuation, Market Depth Analysis & Multi-Market Trading Workstation
@@ -410,6 +436,20 @@ export default function AboutScreen() {
             >
               <GithubIcon size={14} />
               Releases & Changelog
+            </button>
+
+            <button
+              onClick={() => handleOpenExternal(MICROSOFT_STORE_WEB_URL)}
+              style={styles.storeBtn}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#005DA6";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#0067B8";
+              }}
+            >
+              <MicrosoftIcon size={13} />
+              View on Microsoft Store
             </button>
           </div>
 
@@ -790,6 +830,21 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(37, 99, 235, 0.3)",
     fontFamily: "var(--so-font-mono)",
   },
+  storeVerifiedPill: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    fontSize: "11px",
+    fontWeight: 800,
+    letterSpacing: "0.3px",
+    padding: "2px 9px",
+    borderRadius: "4px",
+    backgroundColor: "rgba(0, 103, 184, 0.15)",
+    color: "#38bdf8",
+    border: "1px solid rgba(0, 103, 184, 0.4)",
+    textTransform: "uppercase",
+    cursor: "pointer",
+  },
   heroDescription: {
     fontSize: "13.5px",
     color: "var(--so-text-secondary)",
@@ -881,6 +936,20 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid var(--so-border-strong)",
     fontSize: "13px",
     fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  },
+  storeBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 14px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "#0067B8",
+    color: "#ffffff",
+    border: "none",
+    fontSize: "13px",
+    fontWeight: 700,
     cursor: "pointer",
     transition: "all 0.15s ease",
   },

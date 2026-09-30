@@ -89,3 +89,62 @@ export function sanitizeSkinName(value: unknown): string | undefined {
 export function isTrendPackId(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);
 }
+
+// ── Nexus Pro trend-history requirements ────────────────────────────────────
+/** Minimum recorded days required before Nexus Pro will run. */
+export const NEXUS_MIN_TREND_DAYS = 3;
+/** Maximum missing days tolerated in the retained trend span before Nexus blocks. */
+export const NEXUS_MAX_MISSING_DAYS = 3;
+
+export interface TrendPackSuitability {
+  ok: boolean;
+  spanDays: number;
+  missingDays: number;
+  reason?: string;
+}
+
+/**
+ * Determines whether a marketplace pack alone can unlock Nexus Pro when it
+ * fully replaces local history. Because purchase now replaces (not merges), a
+ * pack with too few days or a large internal gap would leave the user blocked,
+ * so we refuse it up front instead of charging for a useless pack.
+ */
+export function evaluateTrendPackSuitability(pack: {
+  daysCount: number;
+  oldestDate?: string | null;
+  latestDate?: string | null;
+}): TrendPackSuitability {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const daysCount = Number(pack?.daysCount) || 0;
+  const hasDates =
+    typeof pack?.oldestDate === "string" &&
+    typeof pack?.latestDate === "string" &&
+    !Number.isNaN(Date.parse(`${pack.oldestDate}T00:00:00Z`)) &&
+    !Number.isNaN(Date.parse(`${pack.latestDate}T00:00:00Z`));
+  const spanDays = hasDates
+    ? Math.round(
+        (Date.parse(`${pack.latestDate}T00:00:00Z`) -
+          Date.parse(`${pack.oldestDate}T00:00:00Z`)) /
+          msPerDay,
+      ) + 1
+    : daysCount;
+  const missingDays = Math.max(0, spanDays - daysCount);
+
+  if (daysCount < NEXUS_MIN_TREND_DAYS) {
+    return {
+      ok: false,
+      spanDays,
+      missingDays,
+      reason: `This pack contains only ${daysCount} day(s) of history. Nexus Pro requires at least ${NEXUS_MIN_TREND_DAYS}.`,
+    };
+  }
+  if (missingDays > NEXUS_MAX_MISSING_DAYS) {
+    return {
+      ok: false,
+      spanDays,
+      missingDays,
+      reason: `This pack has ${missingDays} missing days in its window (max ${NEXUS_MAX_MISSING_DAYS} allowed). It would leave Nexus Pro blocked.`,
+    };
+  }
+  return { ok: true, spanDays, missingDays };
+}

@@ -23,6 +23,9 @@ The SkinOracle Desktop App is engineered with a **zero-trust, local-first creden
    - `nodeIntegration: false`, `contextIsolation: true`, `webSecurity: true`.
    - IPC communication is strictly typed and routed through `preload.ts` using `safeInvoke`. Direct `ipcRenderer` access is disabled.
    - External links open exclusively in the user's default OS browser via `shell.openExternal`.
+5. **Verified Distribution & Store Ingestion**:
+   - Desktop packages distributed via the Microsoft Store are sandboxed, verified against malware, and cryptographically signed by Microsoft's trusted root certification authority.
+   - This eliminates SmartScreen unknown-publisher warnings and guarantees tamper-proof binaries.
 
 ---
 
@@ -51,7 +54,8 @@ The SkinOracle Desktop App is engineered with a **zero-trust, local-first creden
 | DevTools disabled in production | `src/main/main.ts` | ✅ Active |
 | Production JS Obfuscation | `vite.config.ts` | ✅ Active |
 | Version gating + offline enforcement | `src/main/services/versionGate.ts` | ✅ Active |
-| Code signing | `package.json` | ⚠️ Pending (EV cert / Apple Dev ID) |
+| Windows Store Code Signing | Microsoft Partner Center | ✅ Active (Digitally signed by Microsoft Root CA; Product ID 9N9V96813XD5) |
+
 
 ---
 

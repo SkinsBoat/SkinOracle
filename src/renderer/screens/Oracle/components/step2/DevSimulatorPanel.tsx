@@ -224,8 +224,8 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
               <strong>{trendHealth.missingDaysInRange} missing days</strong>{" "}
               between {trendStats.oldestDate} and {trendStats.latestDate} (
               {trendStats.daysCount} of {trendHealth.spanDays} days captured).
-              Sparse data points may produce sensitive or distorted linear
-              regression slopes.
+              More than 3 missing days blocks Nexus Pro until continuity is
+              restored.
             </span>
           </div>
         </div>

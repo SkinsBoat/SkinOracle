@@ -669,27 +669,18 @@ export class TrendStore {
   }
 
   /**
-   * Downloads presigned R2 stream directly into memory and executes atomic INSERT OR IGNORE into SQLite.
-   * Existing local price history is preserved and never overwritten.
+   * Downloads a presigned R2 trend pack into memory, gunzips and parses it, and
+   * returns only the valid, positive-priced snapshot rows.
    */
-  public async importAndMergeTrendPackFromUrl(downloadUrl: string): Promise<{
-    insertedRows: number;
-    daysAdded: number;
-    totalSnapshotsAfter: number;
-  }> {
-    await this.init();
-    if (!this.db) throw new Error("Database not initialized");
-
-    const statsBefore = await this.getStats();
-
-    // 1. Stream download directly into in-memory buffer
+  private async downloadTrendPackRows(downloadUrl: string): Promise<
+    { n: string; d: string; p: number; c: number }[]
+  > {
     const response = await axios.get(downloadUrl, {
       responseType: "arraybuffer",
       timeout: 45000,
     });
     const rawBuf = Buffer.from(response.data);
 
-    // 2. Gunzip decompressed JSON
     let jsonString: string;
     try {
       jsonString = zlib.gunzipSync(rawBuf).toString("utf-8");
@@ -705,52 +696,85 @@ export class TrendStore {
       );
     }
 
-    // 3. Atomic INSERT OR IGNORE (preserves buyer's own historical observations)
-    this.db.run("BEGIN TRANSACTION;");
-    const stmt = this.db.prepare(`
-      INSERT OR IGNORE INTO price_snapshots (item_name, snapshot_date, median_price, listing_count)
-      VALUES (?, ?, ?, ?)
-    `);
-
-    try {
-      for (const item of payload.snapshots) {
-        const name = item.n ?? item.item_name;
-        const date = item.d ?? item.snapshot_date;
-        const price = Number(item.p ?? item.median_price ?? 0);
-        const count = Number(item.c ?? item.listing_count ?? 1);
-
-        if (name && date && price > 0) {
-          stmt.run([name, date, price, count]);
-        }
+    const rows: { n: string; d: string; p: number; c: number }[] = [];
+    for (const item of payload.snapshots) {
+      const name = item.n ?? item.item_name;
+      const date = item.d ?? item.snapshot_date;
+      const price = Number(item.p ?? item.median_price ?? 0);
+      const count = Number(item.c ?? item.listing_count ?? 1);
+      if (name && date && price > 0) {
+        rows.push({ n: String(name), d: String(date), p: price, c: count });
       }
+    }
+    return rows;
+  }
 
-      this.db.run("COMMIT;");
+  /**
+   * Full-replace the local trend history with a purchased community pack.
+   *
+   * Unlike a merge, this wipes `price_snapshots` first so the resulting Nexus
+   * window is exactly the pack — a clean, gap-free baseline. The pack is parsed
+   * fully in memory before anything is deleted, so a malformed/empty pack can
+   * never leave the user with an empty database.
+   */
+  public async replaceWithTrendPackFromUrl(downloadUrl: string): Promise<{
+    insertedRows: number;
+    daysCount: number;
+    itemCoverage: number;
+    totalSnapshots: number;
+    spanDays: number;
+    missingDays: number;
+  }> {
+    await this.init();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const rows = await this.downloadTrendPackRows(downloadUrl);
+    if (rows.length === 0) {
+      throw new Error(
+        "Trend pack contained no valid price rows. Local history was left unchanged.",
+      );
+    }
+
+    this.db.run("BEGIN TRANSACTION;");
+    try {
+      this.db.run("DELETE FROM price_snapshots;");
+      const stmt = this.db.prepare(`
+        INSERT OR REPLACE INTO price_snapshots (item_name, snapshot_date, median_price, listing_count)
+        VALUES (?, ?, ?, ?)
+      `);
+      for (const row of rows) {
+        stmt.run([row.n, row.d, row.p, row.c]);
+      }
       stmt.free();
+      this.db.run("COMMIT;");
       this.persist();
     } catch (err) {
       this.db.run("ROLLBACK;");
-      stmt.free();
       throw err;
     }
 
-    const statsAfter = await this.getStats();
-    const insertedRows = Math.max(
-      0,
-      statsAfter.totalSnapshots - statsBefore.totalSnapshots,
-    );
-    const daysAdded = Math.max(
-      0,
-      statsAfter.daysCount - statsBefore.daysCount,
-    );
+    const stats = await this.getStats();
+    const spanDays =
+      stats.oldestDate && stats.latestDate
+        ? Math.round(
+            (Date.parse(`${stats.latestDate}T00:00:00Z`) -
+              Date.parse(`${stats.oldestDate}T00:00:00Z`)) /
+              (1000 * 60 * 60 * 24),
+          ) + 1
+        : 0;
+    const missingDays = Math.max(0, spanDays - stats.daysCount);
 
     console.log(
-      `[TrendStore] Successfully merged community trend pack: ${insertedRows} new rows added, ${daysAdded} new days added (Total now: ${statsAfter.daysCount} days, ${statsAfter.totalSnapshots} snapshots).`,
+      `[TrendStore] Replaced local trend history with community pack: ${rows.length} rows, ${stats.daysCount} days, ${missingDays} missing days.`,
     );
 
     return {
-      insertedRows,
-      daysAdded,
-      totalSnapshotsAfter: statsAfter.totalSnapshots,
+      insertedRows: rows.length,
+      daysCount: stats.daysCount,
+      itemCoverage: stats.itemCoverage,
+      totalSnapshots: stats.totalSnapshots,
+      spanDays,
+      missingDays,
     };
   }
 

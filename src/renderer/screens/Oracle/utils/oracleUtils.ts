@@ -371,7 +371,8 @@ export interface TrendHealthStatus {
 /**
  * Evaluates the health and continuity of historical trend data for Nexus Pro.
  * Flags staleness (> 3 days old, which triggers backend Nexus fallback to base Oracle),
- * decaying recency (2-3 days old, missing 48h moves), and continuity gaps (> 2 missing days in range).
+ * decaying recency (2-3 days old, missing 48h moves), and continuity gaps
+ * (more than 3 missing days in the retained date span, which hard-blocks Nexus).
  */
 export function evaluateTrendHealth(
   stats: {
@@ -437,12 +438,14 @@ export function evaluateTrendHealth(
   const isInsufficient = stats.daysCount < 3;
   const isStale = !isInsufficient && daysSinceLatest > 3;
   const isDecaying = !isInsufficient && !isStale && daysSinceLatest >= 2;
+  // A gap of more than 3 missing days in the retained span is unsafe to
+  // regress over, so it hard-blocks Nexus (mirrors the Step 2 build gate).
   const hasContinuityGap =
-    !isInsufficient && !isStale && missingDaysInRange >= 2;
+    !isInsufficient && !isStale && missingDaysInRange > 3;
 
   let status: TrendHealthStatus["status"] = "healthy";
   let badgeText = `● Verified (${stats.daysCount}d)`;
-  let badgeClass = stats.daysCount >= 7 ? "badge-primary" : "badge-primary";
+  let badgeClass = "badge-primary";
   let warningMessage: string | null = null;
 
   if (isInsufficient) {
@@ -462,9 +465,9 @@ export function evaluateTrendHealth(
     warningMessage = `Caution: Latest snapshot is ${daysSinceLatest} days old (${stats.latestDate}). Price movements from the last 48 hours are missing, which may delay price trend detection. We recommend refreshing price cache in Step 1.`;
   } else if (hasContinuityGap) {
     status = "gap";
-    badgeText = `▲ Trend Gap (${missingDaysInRange}d missing)`;
+    badgeText = `▲ Trend Gap (${missingDaysInRange}d missing — Nexus Blocked)`;
     badgeClass = "badge-warning";
-    warningMessage = `Notice: ${missingDaysInRange} days are missing between ${stats.oldestDate} and ${stats.latestDate} (${stats.daysCount} of ${spanDays} days recorded). Linear regression slope may be sensitive to gaps.`;
+    warningMessage = `Blocked: ${missingDaysInRange} days are missing between ${stats.oldestDate} and ${stats.latestDate} (${stats.daysCount} of ${spanDays} days recorded). More than 3 missing days makes the linear regression unreliable. Purchase a clean trend pack or scan daily to restore continuity.`;
   } else if (stats.daysCount < 7) {
     badgeText = `● Verified (${stats.daysCount}d — Recommended 7d)`;
   }

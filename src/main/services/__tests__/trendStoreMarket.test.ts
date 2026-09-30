@@ -6,7 +6,7 @@ import * as zlib from "zlib";
 import axios from "axios";
 import { TrendStore } from "../trendStore";
 
-describe("TrendStore Community Marketplace (Export & Atomic Merge)", () => {
+describe("TrendStore Community Marketplace (Export & Full Replace)", () => {
   let tempDbPath: string;
   let store: TrendStore;
 
@@ -87,7 +87,7 @@ describe("TrendStore Community Marketplace (Export & Atomic Merge)", () => {
     expect(decompressed.snapshots[0].p).toBeDefined();
   });
 
-  it("importAndMergeTrendPackFromUrl() executes INSERT OR IGNORE without overwriting existing local snapshots", async () => {
+  it("replaceWithTrendPackFromUrl() wipes existing local snapshots and installs the pack as the new baseline", async () => {
     await store.init();
 
     // 1. User has their own scanned observation for AK-47 on 2026-09-15 @ $20.00
@@ -102,27 +102,26 @@ describe("TrendStore Community Marketplace (Export & Atomic Merge)", () => {
     const statsBefore = await store.getStats();
     expect(statsBefore.totalSnapshots).toBe(1);
 
-    // 2. Marketplace trend pack has a conflicting observation for the same skin on the same date @ $12.00,
-    // plus a new observation on 2026-09-16 @ $13.50, and a new skin
+    // 2. Marketplace pack: conflicting observation on the same date plus new day/skin
     const externalPayload = {
       v: 1,
       snapshots: [
         {
           n: "AK-47 | Redline (Field-Tested)",
           d: "2026-09-15",
-          p: 12.0, // Conflicting price
+          p: 12.0,
           c: 10,
         },
         {
           n: "AK-47 | Redline (Field-Tested)",
           d: "2026-09-16",
-          p: 13.5, // New date
+          p: 13.5,
           c: 12,
         },
         {
           n: "M4A4 | Howl (Factory New)",
           d: "2026-09-16",
-          p: 4500.0, // New skin
+          p: 4500.0,
           c: 2,
         },
       ],
@@ -132,32 +131,60 @@ describe("TrendStore Community Marketplace (Export & Atomic Merge)", () => {
       Buffer.from(JSON.stringify(externalPayload), "utf-8"),
     );
 
-    // Mock axios.get to return gzipped external buffer
     vi.spyOn(axios, "get").mockResolvedValueOnce({
       data: gzippedExternal,
     });
 
-    const mergeResult = await store.importAndMergeTrendPackFromUrl(
+    const result = await store.replaceWithTrendPackFromUrl(
       "https://cloudflare-r2.mock/pack.json.gz",
     );
 
-    // 2 new rows inserted (the conflicting row was IGNORED)
-    expect(mergeResult.insertedRows).toBe(2);
-    expect(mergeResult.daysAdded).toBe(1); // 2026-09-16 added
-    expect(mergeResult.totalSnapshotsAfter).toBe(3);
+    expect(result.insertedRows).toBe(3);
+    expect(result.daysCount).toBe(2);
+    expect(result.itemCoverage).toBe(2);
+    expect(result.missingDays).toBe(0);
 
-    // Verify that buyer's own scan for 2026-09-15 was NOT overwritten
+    // The buyer's prior $20.00 observation is gone; the pack's $12.00 stands.
     const trend = await store.getTrendHistoryBatch([
       "AK-47 | Redline (Field-Tested)",
     ]);
     const akHistory = trend["AK-47 | Redline (Field-Tested)"];
-    expect(akHistory.labels).toContain("2026-09-15");
-    const idx20260915 = akHistory.labels.indexOf("2026-09-15");
-    // Must remain the original $20.00, not the imported $12.00
-    expect(akHistory.overallAverages[idx20260915]).toBe(20.0);
+    expect(akHistory.labels).toEqual(["2026-09-15", "2026-09-16"]);
+    expect(akHistory.overallAverages[0]).toBe(12.0);
   });
 
-  it("Cold-start simulation: zero-day SQLite database correctly ingests imported payload and updates getStats().daysCount", async () => {
+  it("refuses a pack with no valid rows and leaves local history untouched", async () => {
+    await store.init();
+
+    await store.saveDailySnapshots(
+      {
+        "AK-47 | Redline (Field-Tested)": {
+          l: [{ m: "csfloat", p: 20.0 }],
+        },
+      },
+      "2026-09-15",
+    );
+
+    const gzipped = zlib.gzipSync(
+      Buffer.from(
+        JSON.stringify({
+          v: 1,
+          snapshots: [{ n: "AK-47 | Redline (Field-Tested)", d: "2026-09-14", p: 0 }],
+        }),
+        "utf-8",
+      ),
+    );
+    vi.spyOn(axios, "get").mockResolvedValueOnce({ data: gzipped });
+
+    await expect(
+      store.replaceWithTrendPackFromUrl("https://cloudflare-r2.mock/bad.json.gz"),
+    ).rejects.toThrow();
+
+    const stats = await store.getStats();
+    expect(stats.totalSnapshots).toBe(1);
+  });
+
+  it("Cold-start simulation: full replace installs a 14-day pack into an empty database", async () => {
     await store.init();
 
     // Verify initial cold-start zero-day status
@@ -187,12 +214,13 @@ describe("TrendStore Community Marketplace (Export & Atomic Merge)", () => {
       data: gzipped,
     });
 
-    const mergeResult = await store.importAndMergeTrendPackFromUrl(
+    const result = await store.replaceWithTrendPackFromUrl(
       "https://cloudflare-r2.mock/community-14d.json.gz",
     );
 
-    expect(mergeResult.insertedRows).toBe(70); // 14 * 5
-    expect(mergeResult.daysAdded).toBe(14);
+    expect(result.insertedRows).toBe(70); // 14 * 5
+    expect(result.daysCount).toBe(14);
+    expect(result.missingDays).toBe(0);
 
     const postStats = await store.getStats();
     expect(postStats.daysCount).toBe(14);

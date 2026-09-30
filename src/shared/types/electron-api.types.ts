@@ -634,10 +634,13 @@ export interface TrendMarketPurchaseResponse {
   selfSync?: boolean;
   /** Amount actually charged this call; 0 for a free or idempotent replay. */
   chargedCents?: number;
-  mergeResult: {
+  replaceResult: {
     insertedRows: number;
-    daysAdded: number;
-    totalSnapshotsAfter: number;
+    daysCount: number;
+    itemCoverage: number;
+    totalSnapshots: number;
+    spanDays: number;
+    missingDays: number;
   };
 }
 

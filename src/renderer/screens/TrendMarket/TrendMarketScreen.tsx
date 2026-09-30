@@ -27,6 +27,7 @@ import {
   REQUEST_HOLD_MESSAGE,
   STORAGE_UNAVAILABLE_MESSAGE,
 } from "../../../shared/utils/apiErrors";
+import { evaluateTrendPackSuitability } from "../../../shared/utils/trendMarketParams";
 import { TrendPackCard } from "./components/TrendPackCard";
 import { InteractiveSkinTesterModal } from "./components/InteractiveSkinTesterModal";
 import { SellerDashboardTab } from "./components/SellerDashboardTab";
@@ -206,18 +207,29 @@ export const TrendMarketScreen: React.FC = () => {
 
       const isOwnPack = myListing?.listing?.id === pack.id;
 
+      // A purchase fully replaces local trend history, so the pack must, on its
+      // own, satisfy the Nexus Pro minimums. Refuse before charging otherwise.
+      const suitability = evaluateTrendPackSuitability(pack);
+      if (!suitability.ok) {
+        toast.error(
+          `Cannot use this pack: ${suitability.reason}`,
+          { duration: 8000, icon: "⚠️" },
+        );
+        return;
+      }
+
       const confirmed = await confirmModal({
         title: isOwnPack
-          ? "Sync Your Own Trend Pack?"
-          : "Purchase Verified Trend Pack?",
+          ? "Replace Local Trend History With Your Pack?"
+          : "Purchase & Replace Local Trend History?",
         message: isOwnPack
-          ? `Sync "${pack.title}" (${pack.daysCount}d window, ${pack.itemCoverage.toLocaleString()} skins) to this device for $1.00 USD?\n\nThis is your own listing — no sale occurs, your sales counter and earnings are unchanged. Existing local snapshots are preserved and merge atomically via INSERT OR IGNORE.`
-          : `Purchase "${pack.title}" (${pack.daysCount}d window, ${pack.itemCoverage.toLocaleString()} skins) for $5.00 USD?\n\nExisting local snapshots are preserved; imported points will merge atomically via INSERT OR IGNORE.`,
+          ? `Sync "${pack.title}" (${pack.daysCount}d window, ${pack.itemCoverage.toLocaleString()} skins) to this device for $1.00 USD?\n\nThis is your own listing — no sale occurs, your sales counter and earnings are unchanged.\n\nAll existing local trend snapshots will be REPLACED by this pack.`
+          : `Purchase "${pack.title}" (${pack.daysCount}d window, ${pack.itemCoverage.toLocaleString()} skins) for $5.00 USD?\n\nAll existing local trend snapshots will be REPLACED by this pack to give Nexus Pro a clean ${suitability.spanDays}-day window.`,
         confirmText: isOwnPack
-          ? "Sync to Device ($1.00)"
-          : "Confirm & Ingest ($5.00)",
+          ? "Replace with Pack ($1.00)"
+          : "Confirm & Replace ($5.00)",
         cancelText: "Cancel",
-        variant: "primary",
+        variant: "danger",
       });
 
       if (!confirmed) return;
@@ -233,11 +245,11 @@ export const TrendMarketScreen: React.FC = () => {
 
         if (res.selfSync) {
           toast.success(
-            `Your pack "${pack.title}" synced to this device! Added ${res.mergeResult.insertedRows} snapshot rows (${res.mergeResult.daysAdded} new days).`,
+            `Your pack "${pack.title}" replaced local history — now ${res.replaceResult.daysCount} day(s).`,
           );
         } else {
           toast.success(
-            `Pack "${pack.title}" ingested! Added ${res.mergeResult.insertedRows} snapshot rows (${res.mergeResult.daysAdded} new days).`,
+            `Pack "${pack.title}" installed! Local history replaced with ${res.replaceResult.daysCount} day(s), ${res.replaceResult.itemCoverage.toLocaleString()} skins.`,
           );
         }
 
@@ -246,7 +258,9 @@ export const TrendMarketScreen: React.FC = () => {
         await fetchListings();
       } catch (err: any) {
         if (!handleMarketplaceError(err)) {
-          toast.error(err.message || "Failed to purchase and merge trend pack");
+          toast.error(
+            err.message || "Failed to purchase and install trend pack",
+          );
         }
       } finally {
         setPurchasingId(null);
@@ -466,7 +480,7 @@ export const TrendMarketScreen: React.FC = () => {
               Cold-Start Detected: Unlock Nexus Pro Instantly
             </div>
             <div style={styles.coldStartBody}>
-              Nexus Pro Capital Shield requires at least 3 days of trend history to compute safe buy ceilings. Purchasing any community pack below atomically merges multi-week data into your local SQLite store without overwriting your own scans.
+              Nexus Pro Capital Shield requires at least 3 days of trend history with no more than 3 missing days. Purchasing a community pack below replaces your local trend snapshots with the pack's clean window, immediately restoring Nexus Pro.
             </div>
           </div>
         </div>

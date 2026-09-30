@@ -370,7 +370,7 @@ export const InteractiveSkinTesterModal: React.FC<
         {/* Modal Footer */}
         <div style={styles.footer}>
           <div style={styles.footerNote}>
-            Atomic SQLite Merge: Existing scans will not be overwritten.
+            Replaces local trend history with this pack (own scans are cleared).
           </div>
           <div style={styles.footerActions}>
             <button
@@ -388,20 +388,20 @@ export const InteractiveSkinTesterModal: React.FC<
               title={
                 isOwn
                   ? "Sync your own pack to this device (platform fee only, no sale)"
-                  : "Purchase and merge directly into local SQLite database"
+                  : "Purchase and replace local trend history (SQLite)"
               }
             >
               {isPurchasing ? (
                 <>
                   <Loader2 size={13} className="spin" />
-                  Merging Data…
+                  Replacing Data…
                 </>
               ) : (
                 <>
                   <Download size={13} />
                   {isOwn
-                    ? "Sync to Device ($1.00)"
-                    : "Buy & Ingest Pack ($5.00)"}
+                    ? "Replace Local Data ($1.00)"
+                    : "Buy & Replace Pack ($5.00)"}
                 </>
               )}
             </button>

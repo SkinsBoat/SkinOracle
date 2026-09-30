@@ -240,7 +240,7 @@ describe("evaluateTrendHealth", () => {
     expect(res.badgeText).toContain("Trends Outdated (2d lag)");
   });
 
-  it("detects CONTINUITY GAP when > 2 days are missing in the date range span", async () => {
+  it("detects CONTINUITY GAP when more than 3 days are missing in the date range span", async () => {
     const { evaluateTrendHealth } =
       await import("../../screens/Oracle/utils/oracleUtils");
 
@@ -288,6 +288,49 @@ describe("evaluateTrendHealth", () => {
     expect(res.badgeText).toBe("● Verified (7d)");
     expect(res.badgeClass).toBe("badge-primary");
     expect(res.warningMessage).toBeNull();
+  });
+
+  it("does NOT block Nexus when exactly 3 days are missing (within tolerance)", async () => {
+    const { evaluateTrendHealth } =
+      await import("../../screens/Oracle/utils/oracleUtils");
+
+    // 2026-09-07..14 span is 8 days, 5 recorded => 3 missing.
+    const res = evaluateTrendHealth(
+      {
+        daysCount: 5,
+        totalSnapshots: 500,
+        itemCoverage: 100,
+        latestDate: "2026-09-14",
+        oldestDate: "2026-09-07",
+      },
+      "2026-09-14",
+    );
+
+    expect(res.missingDaysInRange).toBe(3);
+    expect(res.hasContinuityGap).toBe(false);
+    expect(res.status).toBe("healthy");
+  });
+
+  it("blocks Nexus when more than 3 days are missing (e.g. 10,12,11,[4 missing],12,10)", async () => {
+    const { evaluateTrendHealth } =
+      await import("../../screens/Oracle/utils/oracleUtils");
+
+    // Days present: 01,02,03,08,09 => span 01..09 = 9 days, 5 recorded => 4 missing.
+    const res = evaluateTrendHealth(
+      {
+        daysCount: 5,
+        totalSnapshots: 500,
+        itemCoverage: 100,
+        latestDate: "2026-01-09",
+        oldestDate: "2026-01-01",
+      },
+      "2026-01-09",
+    );
+
+    expect(res.missingDaysInRange).toBe(4);
+    expect(res.hasContinuityGap).toBe(true);
+    expect(res.status).toBe("gap");
+    expect(res.badgeText).toContain("Nexus Blocked");
   });
 });
 
