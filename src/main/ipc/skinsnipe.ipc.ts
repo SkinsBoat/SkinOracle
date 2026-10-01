@@ -7,6 +7,7 @@ import { setPriceCache, priceCache } from "./oracle.ipc";
 import { SKINSNIPE_LOWEST_PRICES } from "../constants/apiUrls";
 import { saasAxios } from "../services/saasAxios";
 import { trendStore } from "../services/trendStore";
+import { MarketScanScope } from "../../shared/types/autoRefresh.types";
 import {
   toCanonicalMarketId,
   isBlockedMarket,
@@ -398,6 +399,7 @@ async function mergeAndBuild(
 export async function runSkinsnipeFetchCycle(
   targetMarkets?: string[],
   emit?: (payload: SkinsnipeProgressPayload) => void,
+  scope: MarketScanScope = "baseline",
 ) {
   const apiKey = secureGet(STORAGE_KEYS.SKINSNIPE);
   if (!apiKey)
@@ -418,9 +420,13 @@ export async function runSkinsnipeFetchCycle(
       });
       lastFetchedAt = new Date();
       setPriceCache(localPriceCache);
-      trendStore
-        .saveDailySnapshots(localPriceCache)
-        .catch((err) => console.warn("[TrendStore] Auto-snapshot error:", err));
+      // Snipe-scope scans are ephemeral execution refreshes over a narrow set
+      // of venues; persist trend snapshots only for wide baseline scans.
+      if (scope !== "snipe") {
+        trendStore
+          .saveDailySnapshots(localPriceCache)
+          .catch((err) => console.warn("[TrendStore] Auto-snapshot error:", err));
+      }
     } else if (!result.criticalError && !result.aborted) {
       lastFetchedAt = new Date();
     }
@@ -446,13 +452,17 @@ export async function runSkinsnipeFetchCycle(
 // ── IPC: Fetch all market prices using trader's Skinsnipe key ──────
 ipcMain.handle(
   "skinsnipe:fetch-prices",
-  async (event: IpcMainInvokeEvent, targetMarkets?: string[]) => {
+  async (
+    event: IpcMainInvokeEvent,
+    targetMarkets?: string[],
+    scope: MarketScanScope = "baseline",
+  ) => {
     const emit = (payload: SkinsnipeProgressPayload) => {
       if (event?.sender && !event.sender.isDestroyed()) {
         event.sender.send("skinsnipe:fetch-progress", payload);
       }
     };
-    return runSkinsnipeFetchCycle(targetMarkets, emit);
+    return runSkinsnipeFetchCycle(targetMarkets, emit, scope);
   },
 );
 

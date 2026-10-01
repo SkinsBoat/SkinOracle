@@ -120,7 +120,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
     setActiveScope(scope);
     toast.success(
       scope === "snipe"
-        ? "Snipe scope applied — live refresh limited to your execution venues"
+        ? "Snipe scope applied — live refresh limited to your execution venues (trend snapshots paused)"
         : "Baseline scope applied — wide market set for accepted-price calculation",
       { id: "market-scope" },
     );

@@ -26,6 +26,7 @@ export const AutoRefreshControl: React.FC = () => {
   const selectedCs2capProviders = useOracleStore(
     (s) => s.selectedCs2capProviders,
   );
+  const activeScope = useOracleStore((s) => s.activeScope);
 
   const api = window.electronAPI?.autoRefresh;
 
@@ -102,6 +103,7 @@ export const AutoRefreshControl: React.FC = () => {
           enabled,
           intervalMinutes: minutes ?? effectiveMinutes,
           provider: pricingProvider,
+          scope: activeScope,
           markets: selectedMarkets,
           providers: selectedCs2capProviders,
         });
@@ -114,6 +116,7 @@ export const AutoRefreshControl: React.FC = () => {
       api,
       effectiveMinutes,
       pricingProvider,
+      activeScope,
       selectedMarkets,
       selectedCs2capProviders,
     ],
@@ -127,6 +130,7 @@ export const AutoRefreshControl: React.FC = () => {
     api,
     pushConfig,
     pricingProvider,
+    activeScope,
     selectedMarkets,
     selectedCs2capProviders,
   ]);

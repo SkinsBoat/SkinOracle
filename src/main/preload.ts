@@ -7,6 +7,7 @@ import {
 import {
   AutoRefreshConfig,
   AutoRefreshStatus,
+  MarketScanScope,
 } from "../shared/types/autoRefresh.types";
 
 /**
@@ -76,8 +77,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // ── Skinsnipe (fetch prices using trader's own key, from trader's device) ──
   skinsnipe: {
-    fetchPrices: (targetMarkets?: string[]) =>
-      safeInvoke("skinsnipe:fetch-prices", targetMarkets),
+    fetchPrices: (targetMarkets?: string[], scope?: MarketScanScope) =>
+      safeInvoke("skinsnipe:fetch-prices", targetMarkets, scope),
     cancelFetch: () => safeInvoke("skinsnipe:cancel-fetch"),
     onFetchProgress: (callback: (progress: any) => void) => {
       const subscription = (_: any, data: any) => callback(data);
@@ -107,8 +108,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // ── CS2Cap (stream prices snapshot using trader's own key, from trader's device) ──
   cs2cap: {
-    fetchPrices: (options?: { providers?: string[] }) =>
-      safeInvoke("cs2cap:fetch-prices", options),
+    fetchPrices: (options?: {
+      providers?: string[];
+      scope?: MarketScanScope;
+    }) => safeInvoke("cs2cap:fetch-prices", options),
     cancelFetch: () => safeInvoke("cs2cap:cancel-fetch"),
     onStreamProgress: (callback: (progress: any) => void) => {
       const subscription = (_: any, data: any) => callback(data);

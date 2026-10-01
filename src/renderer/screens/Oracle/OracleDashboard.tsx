@@ -298,6 +298,7 @@ export default function OracleDashboard() {
     try {
       const res = await window.electronAPI.cs2cap.fetchPrices({
         providers: selectedCs2capProviders,
+        scope: activeScope,
       });
       if (res.success) {
         setIsDemoCache(false);
@@ -809,8 +810,10 @@ export default function OracleDashboard() {
     );
 
     try {
-      const result =
-        await window.electronAPI.skinsnipe.fetchPrices(activeSelected);
+      const result = await window.electronAPI.skinsnipe.fetchPrices(
+        activeSelected,
+        activeScope,
+      );
       setIsDemoCache(false);
       setCacheStatus({
         itemCount: result.itemCount,

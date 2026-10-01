@@ -155,7 +155,7 @@ export default function BalanceDashboard() {
               </span>
             </div>
             <div style={styles.allowanceNote}>
-              Resets daily at 00:00 UTC (usable across all services)
+              Resets daily at 00:00 UTC
             </div>
           </div>
         )}

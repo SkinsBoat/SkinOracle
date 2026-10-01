@@ -7,6 +7,7 @@ import { secureGet, STORAGE_KEYS } from "../../storage/secure-store";
 import { setLocalPriceCache } from "./skinsnipe.ipc";
 import { trendStore } from "../services/trendStore";
 import { Cs2CapStreamProgress, Cs2CapFetchResult } from "../../shared/types";
+import { MarketScanScope } from "../../shared/types/autoRefresh.types";
 import {
   parseCs2CapLine,
   getMarketCounts,
@@ -236,7 +237,7 @@ async function streamCs2CapCatalog(
 
 // ── Runnable cycle: shared by the renderer IPC call and the auto-refresh scheduler ──
 export async function runCs2CapStreamCycle(
-  options?: { providers?: string[] },
+  options?: { providers?: string[]; scope?: MarketScanScope },
   emit?: (payload: Cs2CapStreamProgress) => void,
 ): Promise<Cs2CapFetchResult> {
   const apiKey = secureGet(STORAGE_KEYS.CS2CAP);
@@ -264,9 +265,13 @@ export async function runCs2CapStreamCycle(
     if (itemCount > 0) {
       // Commit directly to local price cache and trend store
       setLocalPriceCache(cache);
-      trendStore.saveDailySnapshots(cache).catch((err) => {
-        console.warn("[TrendStore] CS2Cap Auto-snapshot error:", err);
-      });
+      // Snipe-scope streams are ephemeral execution refreshes; only wide
+      // baseline streams should feed historical trend snapshots.
+      if (options?.scope !== "snipe") {
+        trendStore.saveDailySnapshots(cache).catch((err) => {
+          console.warn("[TrendStore] CS2Cap Auto-snapshot error:", err);
+        });
+      }
     }
 
     return {

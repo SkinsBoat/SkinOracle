@@ -112,11 +112,16 @@ async function runCycle() {
   try {
     let aborted = false;
     if (config.provider === "skinsnipe") {
-      const result = await runSkinsnipeFetchCycle(config.markets);
+      const result = await runSkinsnipeFetchCycle(
+        config.markets,
+        undefined,
+        config.scope,
+      );
       aborted = !!result.aborted;
     } else {
       const result = await runCs2CapStreamCycle({
         providers: config.providers,
+        scope: config.scope,
       });
       aborted = !!result.aborted;
     }

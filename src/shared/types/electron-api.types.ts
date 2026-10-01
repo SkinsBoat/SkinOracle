@@ -57,7 +57,11 @@ import {
   VersionGateState,
   BalanceTransactionItem,
 } from "./system.types";
-import { AutoRefreshConfig, AutoRefreshStatus } from "./autoRefresh.types";
+import {
+  AutoRefreshConfig,
+  AutoRefreshStatus,
+  MarketScanScope,
+} from "./autoRefresh.types";
 
 export interface ElectronAPI {
   auth: {
@@ -94,6 +98,7 @@ export interface ElectronAPI {
   skinsnipe: {
     fetchPrices: (
       targetMarkets?: SkinsnipeMarketId[],
+      scope?: MarketScanScope,
     ) => Promise<SkinsnipeFetchResult>;
     cancelFetch: () => Promise<{ success: boolean; message: string }>;
     onFetchProgress: (
@@ -126,6 +131,7 @@ export interface ElectronAPI {
   cs2cap: {
     fetchPrices: (options?: {
       providers?: string[];
+      scope?: MarketScanScope;
     }) => Promise<Cs2CapFetchResult>;
     cancelFetch: () => Promise<{ success: boolean; message: string }>;
     onStreamProgress: (
