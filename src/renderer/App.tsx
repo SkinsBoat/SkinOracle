@@ -507,7 +507,7 @@ export default function App() {
                     <>
                       <Settings
                         size={18}
-                        style={getNavIconStyle(isActive, "muted")}
+                        style={getNavIconStyle(isActive, "accent")}
                       />
                       {isSidebarExpanded && <span>Settings</span>}
                     </>

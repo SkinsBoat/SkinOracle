@@ -71,6 +71,9 @@ function createWindow() {
   // Explicitly hide menu bar & remove application menu
   win.setMenuBarVisibility(false);
 
+  // Start maximized (same as clicking the OS Maximize button)
+  win.maximize();
+
   // Allow DevTools shortcuts ONLY in development; completely blocked in production
   if (isDev) {
     win.webContents.on("before-input-event", (_, input) => {

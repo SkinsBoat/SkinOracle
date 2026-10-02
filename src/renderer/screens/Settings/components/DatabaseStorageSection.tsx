@@ -278,6 +278,28 @@ export const DatabaseStorageSection: React.FC = () => {
           <div style={styles.pruneButtonGroup}>
             <button
               type="button"
+              onClick={() => handlePrune(7)}
+              disabled={isPruning || !trendStats || trendStats.daysCount <= 7}
+              style={styles.pruneBtn}
+              title="Remove snapshots older than 7 days"
+            >
+              <Scissors size={13} />
+              Prune &gt;7 Days
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handlePrune(14)}
+              disabled={isPruning || !trendStats || trendStats.daysCount <= 14}
+              style={styles.pruneBtn}
+              title="Remove snapshots older than 14 days"
+            >
+              <Scissors size={13} />
+              Prune &gt;14 Days
+            </button>
+
+            <button
+              type="button"
               onClick={() => handlePrune(30)}
               disabled={isPruning || !trendStats || trendStats.daysCount <= 30}
               style={styles.pruneBtn}
@@ -285,17 +307,6 @@ export const DatabaseStorageSection: React.FC = () => {
             >
               <Scissors size={13} />
               Prune &gt;30 Days
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handlePrune(60)}
-              disabled={isPruning || !trendStats || trendStats.daysCount <= 60}
-              style={styles.pruneBtn}
-              title="Remove snapshots older than 60 days"
-            >
-              <Scissors size={13} />
-              Prune &gt;60 Days
             </button>
           </div>
 

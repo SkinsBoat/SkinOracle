@@ -31,13 +31,13 @@ import { MarketLogo } from "../../components/MarketLogo";
 import { CopyMarketHashButton } from "../../components/CopyMarketHashButton";
 import { TrendSparkline } from "../../components/TrendSparkline";
 import { SkinImage } from "../../components/SkinImage";
+import { WorkstationDataStatusCards } from "../../components/WorkstationDataStatusCards";
 import { getMarketItemUrl } from "../../utils/marketUrls";
 import { SKINSNIPE_AVAILABLE_MARKETS } from "../Oracle/components/Step1MarketCache";
 import {
   CSFloatLookupModal,
   LookupModalItemData,
 } from "../CSFloat/modals/CSFloatLookupModal";
-import { formatTimeAgo } from "../Oracle/utils/oracleUtils";
 
 export default function SoCloseWorkstationScreen() {
   const { selectedMarkets } = useOracleStore();
@@ -48,19 +48,10 @@ export default function SoCloseWorkstationScreen() {
     lastFetchedAt: string | null;
   }>({ itemCount: 0, isFetching: false, lastFetchedAt: null });
 
-  const [evaluatedSummary, setEvaluatedSummary] = useState<{
-    totalEvaluated: number;
-    soCloseCount: number;
-    highSssCount: number;
-    isBatchEvaluating: boolean;
-    lastBuiltAt: string | null;
-  }>({
-    totalEvaluated: 0,
-    soCloseCount: 0,
-    highSssCount: 0,
-    isBatchEvaluating: false,
-    lastBuiltAt: null,
-  });
+  const [acceptedMeta, setAcceptedMeta] = useState<{
+    itemCount: number;
+    storedAt: string | null;
+  } | null>(null);
 
   const [soCloseResults, setSoCloseResults] = useState<SoCloseResultItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -95,13 +86,6 @@ export default function SoCloseWorkstationScreen() {
   const [cachedMarkets, setCachedMarkets] = useState<string[]>([]);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState<boolean>(true);
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
-
-  // Live 15-second tick to keep relative timestamps ("just now", "2m ago") dynamically advancing
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 15000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Available markets extracted strictly from local cached price data
   const availableMarkets = useMemo(() => {
@@ -287,12 +271,11 @@ export default function SoCloseWorkstationScreen() {
     if (window.electronAPI?.oracle) {
       try {
         const res: any = await window.electronAPI.oracle.getAcceptedPrices();
-        if (res && res.itemCount > 0) {
-          setEvaluatedSummary((prev) => ({
-            ...prev,
-            totalEvaluated: res.itemCount,
-            lastBuiltAt: res.storedAt || null,
-          }));
+        if (res) {
+          setAcceptedMeta({
+            itemCount: res.itemCount ?? 0,
+            storedAt: res.storedAt || null,
+          });
         }
       } catch (e) {}
     }
@@ -635,68 +618,15 @@ export default function SoCloseWorkstationScreen() {
 
       {/* Main Workstation Container */}
       <div className="card" style={styles.mainCard}>
-        {/* Data Freshness & System Status Strip */}
-        <div style={styles.statusStrip}>
-          <div style={styles.statusGroup}>
-            {/* Box 1: Market Price Cache Status */}
-            <div style={styles.statusBox}>
-              <div style={styles.statusIconBoxCache}>
-                <Database size={16} style={styles.statusIconCache} />
-              </div>
-              <div>
-                <div style={styles.statusLabel}>Market Price Cache</div>
-                <div style={styles.statusValue}>
-                  {cacheStatus.itemCount > 0 ? (
-                    <span>
-                      {cacheStatus.itemCount.toLocaleString()} listings
-                    </span>
-                  ) : (
-                    <span style={styles.statusWarningText}>No Cache Data</span>
-                  )}
-                  {cacheStatus.lastFetchedAt && (
-                    <span
-                      title={`Updated at: ${new Date(cacheStatus.lastFetchedAt).toLocaleString()}`}
-                      style={styles.statusBadgeUpdated}
-                    >
-                      Updated {formatTimeAgo(cacheStatus.lastFetchedAt)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div style={styles.statusDivider} />
-
-            {/* Box 2: Accepted Buy Ceilings Status */}
-            <div style={styles.statusBox}>
-              <div style={styles.statusIconBoxAccepted}>
-                <CheckCircle2 size={16} style={styles.statusIconAccepted} />
-              </div>
-              <div>
-                <div style={styles.statusLabel}>Accepted Buy Ceilings</div>
-                <div style={styles.statusValue}>
-                  {evaluatedSummary.totalEvaluated > 0 ? (
-                    <span>
-                      {evaluatedSummary.totalEvaluated.toLocaleString()} priced
-                      items
-                    </span>
-                  ) : (
-                    <span style={styles.statusWarningText}>Not Built Yet</span>
-                  )}
-                  {evaluatedSummary.lastBuiltAt && (
-                    <span
-                      title={`Built at: ${new Date(evaluatedSummary.lastBuiltAt).toLocaleString()}`}
-                      style={styles.statusBadgeUpdated}
-                    >
-                      Built {formatTimeAgo(evaluatedSummary.lastBuiltAt)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Data Freshness & System Status Strip (same cards as workstations) */}
+        <WorkstationDataStatusCards
+          cacheStatus={cacheStatus}
+          oracle={acceptedMeta}
+          oracleKind="accepted"
+          oracleNoun="Accepted prices"
+          oracleEmptyLabel="Accepted ceilings not built"
+          cacheEmptyLabel="No market prices cached"
+        />
 
         {/* Section 1: Target Market Filter (Skinsnipe Standard Props & Toolbar) */}
         <div style={styles.targetMarketPanel}>
@@ -1386,83 +1316,6 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "20px",
-  },
-  statusStrip: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    gap: "12px",
-    padding: "12px 16px",
-    borderRadius: "8px",
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    border: "1px solid var(--so-border-subtle)",
-  },
-  statusGroup: {
-    display: "flex",
-    alignItems: "center",
-    gap: "20px",
-    flexWrap: "wrap",
-  },
-  statusBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  statusIconBoxCache: {
-    width: "34px",
-    height: "34px",
-    borderRadius: "6px",
-    backgroundColor: "rgba(56, 189, 248, 0.12)",
-    border: "1px solid rgba(56, 189, 248, 0.25)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statusIconCache: {
-    color: "#38bdf8",
-  },
-  statusLabel: {
-    fontSize: "11px",
-    color: "var(--so-text-muted)",
-    fontWeight: 700,
-  },
-  statusValue: {
-    fontSize: "12.5px",
-    fontWeight: 800,
-    color: "var(--so-text-primary)",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  statusWarningText: {
-    color: "#f59e0b",
-  },
-  statusBadgeUpdated: {
-    fontSize: "10.5px",
-    fontWeight: 600,
-    color: "#10b981",
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
-    padding: "1px 6px",
-    borderRadius: "4px",
-  },
-  statusDivider: {
-    width: "1px",
-    height: "28px",
-    backgroundColor: "var(--so-border-subtle)",
-  },
-  statusIconBoxAccepted: {
-    width: "34px",
-    height: "34px",
-    borderRadius: "6px",
-    backgroundColor: "rgba(16, 185, 129, 0.12)",
-    border: "1px solid rgba(16, 185, 129, 0.25)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statusIconAccepted: {
-    color: "#10b981",
   },
   targetMarketPanel: {
     padding: "18px 20px",

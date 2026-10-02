@@ -422,6 +422,7 @@ export default function DmarketWorkstation() {
         <div style={styles.tabsRightGroup}>
           <WorkstationOracleAction
             meta={mainTab === "listings" ? listingPricesMeta : acceptedPricesMeta}
+            datasetKind={mainTab === "listings" ? "listing" : "accepted"}
             loading={mainTab === "listings" ? loadingListingPrices : loadingPrices}
             onLoad={handleLoadOracle}
           />

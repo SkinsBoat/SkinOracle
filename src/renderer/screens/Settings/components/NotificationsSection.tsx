@@ -3,9 +3,7 @@ import {
   Bell,
   Volume2,
   VolumeX,
-  Sliders,
   Monitor,
-  CheckCircle2,
   ShieldCheck,
   RotateCcw,
   Sparkles,
@@ -20,16 +18,10 @@ export const NotificationsSection: React.FC = () => {
     soundVolume,
     desktopNotificationsEnabled,
     onlyNotifyInBackground,
-    notifyOnCacheComplete,
-    notifyOnNewDeals,
-    dealSoundCooldownSeconds,
     setSoundEnabled,
     setSoundVolume,
     setDesktopNotificationsEnabled,
     setOnlyNotifyInBackground,
-    setNotifyOnCacheComplete,
-    setNotifyOnNewDeals,
-    setDealSoundCooldownSeconds,
     resetDefaults,
   } = useNotificationStore();
 
@@ -208,81 +200,6 @@ export const NotificationsSection: React.FC = () => {
                 <span style={getSwitchThumbStyle(onlyNotifyInBackground)} />
               </span>
             </label>
-          </div>
-        )}
-      </div>
-
-      {/* Event Triggers & Cooldowns */}
-      <div style={styles.card}>
-        <div style={styles.sectionHeaderRow}>
-          <div style={styles.sectionIconRow}>
-            <Sliders size={16} style={{ color: "var(--so-primary)" }} />
-            <h3 style={styles.sectionTitle}>Event Specific Triggers &amp; Anti-Spam</h3>
-          </div>
-        </div>
-
-        {/* Milestone Trigger */}
-        <div style={styles.controlRow}>
-          <div style={styles.labelCol}>
-            <span style={styles.controlLabel}>Market Cache Scan Complete</span>
-            <span style={styles.controlDesc}>
-              Notify when Step 1 Market Cache or CS2CAP bulk price streaming finishes, so you can safely browse elsewhere while caching.
-            </span>
-          </div>
-          <label style={styles.switchWrapper}>
-            <input
-              type="checkbox"
-              checked={notifyOnCacheComplete}
-              onChange={(e) => setNotifyOnCacheComplete(e.target.checked)}
-              style={styles.hiddenCheckbox}
-            />
-            <span style={getSwitchTrackStyle(notifyOnCacheComplete)}>
-              <span style={getSwitchThumbStyle(notifyOnCacheComplete)} />
-            </span>
-          </label>
-        </div>
-
-        {/* DealMaker Trigger */}
-        <div style={styles.controlRow}>
-          <div style={styles.labelCol}>
-            <span style={styles.controlLabel}>DealMaker Floor &amp; Target Matches</span>
-            <span style={styles.controlDesc}>
-              Alert when new targets within your buy ceilings drop on the floor. Includes automatic deduplication so existing listings never trigger repeatedly.
-            </span>
-          </div>
-          <label style={styles.switchWrapper}>
-            <input
-              type="checkbox"
-              checked={notifyOnNewDeals}
-              onChange={(e) => setNotifyOnNewDeals(e.target.checked)}
-              style={styles.hiddenCheckbox}
-            />
-            <span style={getSwitchTrackStyle(notifyOnNewDeals)}>
-              <span style={getSwitchThumbStyle(notifyOnNewDeals)} />
-            </span>
-          </label>
-        </div>
-
-        {/* Cooldown setting */}
-        {notifyOnNewDeals && (
-          <div style={styles.controlRow}>
-            <div style={styles.labelCol}>
-              <span style={styles.controlLabel}>Deal Sound Cooldown</span>
-              <span style={styles.controlDesc}>
-                Minimum delay between consecutive deal sound alerts to protect against rapid audio fatigue.
-              </span>
-            </div>
-            <select
-              value={dealSoundCooldownSeconds}
-              onChange={(e) => setDealSoundCooldownSeconds(parseInt(e.target.value, 10))}
-              style={styles.selectInput}
-            >
-              <option value={5}>5 seconds</option>
-              <option value={10}>10 seconds (Recommended)</option>
-              <option value={15}>15 seconds</option>
-              <option value={30}>30 seconds</option>
-              <option value={60}>1 minute</option>
-            </select>
           </div>
         )}
       </div>
@@ -562,17 +479,6 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0,
     width: 0,
     height: 0,
-  },
-  selectInput: {
-    backgroundColor: "var(--so-surface-panel)",
-    border: "1px solid var(--so-border-medium)",
-    borderRadius: "var(--so-radius-sm)",
-    color: "var(--so-text-primary)",
-    padding: "6px 10px",
-    fontSize: "12px",
-    fontWeight: 600,
-    outline: "none",
-    cursor: "pointer",
   },
   infoStrip: {
     display: "flex",

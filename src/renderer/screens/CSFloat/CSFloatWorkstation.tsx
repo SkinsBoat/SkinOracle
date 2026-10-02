@@ -1612,6 +1612,7 @@ export default function CSFloatWorkstation() {
           <div style={styles.tabsRightGroup}>
             <WorkstationOracleAction
               meta={currentOracleMeta}
+              datasetKind={activeTab === "listings" ? "listing" : "accepted"}
               loading={
                 activeTab === "listings" ? loadingListingPrices : loadingPrices
               }

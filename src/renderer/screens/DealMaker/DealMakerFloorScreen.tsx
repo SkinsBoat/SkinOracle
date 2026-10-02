@@ -10,8 +10,12 @@ import {
   Sliders,
   Users,
   Settings2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useDealMakerStore } from '../../store/useDealMakerStore';
+import { useDataFreshnessStore } from '../../store/useDataFreshnessStore';
+import { getFreshness } from '../../utils/dataFreshness';
+import { formatTimeAgo } from '../../utils/timeAgo';
 import { DEALMAKER_CONSTANTS } from '../../../shared/types/dealmaker.types';
 import { DealItemCard } from './components/DealItemCard';
 import { SellerActiveDealCard } from './components/SellerActiveDealCard';
@@ -51,6 +55,15 @@ export const DealMakerFloorScreen: React.FC = () => {
     {},
   );
 
+  const [acceptedStoredAt, setAcceptedStoredAt] = useState<string | null>(null);
+
+  const acceptedPriceExpiryMinutes = useDataFreshnessStore(
+    (s) => s.acceptedPriceExpiryMinutes,
+  );
+  const freshnessWarningsEnabled = useDataFreshnessStore(
+    (s) => s.freshnessWarningsEnabled,
+  );
+
   const [filters, setFilters] =
     useState<DealFloorFilters>(DEFAULT_DEAL_FILTERS);
 
@@ -87,6 +100,14 @@ export const DealMakerFloorScreen: React.FC = () => {
 
   const isFilterActive = isAnyFilterActive(filters);
 
+  const hasCeilings = Object.keys(acceptedCeilingsMap).length > 0;
+  const acceptedFreshness = getFreshness(
+    acceptedStoredAt,
+    acceptedPriceExpiryMinutes,
+  );
+  const acceptedIsStale =
+    freshnessWarningsEnabled && hasCeilings && acceptedFreshness.isExpired;
+
   // Fetch active buy ceilings snapshot from local Oracle cache
   useEffect(() => {
     if (window.electronAPI?.oracle) {
@@ -107,6 +128,7 @@ export const DealMakerFloorScreen: React.FC = () => {
             setAcceptedCeilingsMap(ceilingNumbers);
             setAcceptedSssMap(sssNumbers);
           }
+          setAcceptedStoredAt(res.storedAt ?? null);
         })
         .catch(() => {});
     }
@@ -143,7 +165,7 @@ export const DealMakerFloorScreen: React.FC = () => {
                 </span>
               </div>
               <p style={styles.subtitle}>
-                Real-time P2P deal matchmaking across CSFloat & DMarket
+                Real-time P2P deal matchmaking across supported marketplaces
               </p>
             </div>
           </div>
@@ -215,6 +237,22 @@ export const DealMakerFloorScreen: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Stale Buy-Ceiling Warning (advisory only) */}
+      {acceptedIsStale && (
+        <div style={styles.staleBanner}>
+          <AlertTriangle size={15} style={styles.staleBannerIcon} />
+          <span style={styles.staleBannerText}>
+            Buy ceilings expired
+            {acceptedStoredAt
+              ? ` (calculated ${formatTimeAgo(acceptedStoredAt)})`
+              : ""}{" "}
+            — deal matching may use stale accepted prices. Recalculate accepted
+            prices in Pricing Central.
+          </span>
+          <span style={styles.staleBannerBadge}>EXPIRED</span>
+        </div>
+      )}
 
       {/* Navigation Filter Tabs */}
       <div style={styles.tabsContainer}>
@@ -431,6 +469,37 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerHandshakeIcon: {
     color: '#38bdf8',
+  },
+  staleBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    border: '1px solid rgba(245, 158, 11, 0.45)',
+    borderRadius: 'var(--so-radius-md, 8px)',
+    padding: '10px 14px',
+    color: '#fbbf24',
+    fontSize: '12px',
+    fontWeight: 700,
+  },
+  staleBannerIcon: {
+    color: '#f59e0b',
+    flexShrink: 0,
+  },
+  staleBannerText: {
+    flex: 1,
+    lineHeight: 1.4,
+  },
+  staleBannerBadge: {
+    fontSize: '9px',
+    fontWeight: 800,
+    letterSpacing: '0.5px',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    border: '1px solid rgba(245, 158, 11, 0.45)',
+    color: '#fbbf24',
+    flexShrink: 0,
   },
   titleLine: {
     display: 'flex',
