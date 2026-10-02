@@ -14,6 +14,10 @@ describe("TrendStore Community Marketplace (Export & Full Replace)", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "trend-market-test-"));
     tempDbPath = path.join(tempDir, "market-analytics.sqlite");
     store = TrendStore.getInstance(tempDbPath);
+    // Pin the effective date so windowed reads (getTrendHistoryBatch /
+    // exportTrendPackPayload) do not expire as wall-clock time advances past
+    // the fixed 2026-09 fixture dates.
+    store.setSimulatedDate("2026-09-30");
   });
 
   afterEach(() => {
