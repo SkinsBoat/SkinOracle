@@ -120,7 +120,6 @@ export default function SettingsScreen() {
       id: "data-storage",
       label: "Data & Storage",
       icon: <Database size={15} />,
-      badge: blockedSkins.length > 0 ? `${blockedSkins.length}` : undefined,
     },
     {
       id: "diagnostics",

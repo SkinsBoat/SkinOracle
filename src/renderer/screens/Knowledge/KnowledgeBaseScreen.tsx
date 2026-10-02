@@ -13,9 +13,7 @@ type CategoryFilter = KnowledgeCategory | typeof ALL_FILTER;
 
 export default function KnowledgeBaseScreen() {
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>(ALL_FILTER);
-  const [expandedId, setExpandedId] = useState<string | null>(
-    KNOWLEDGE_ARTICLES[0]?.id ?? null,
-  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const visibleArticles = useMemo(() => {
     if (activeFilter === ALL_FILTER) return KNOWLEDGE_ARTICLES;

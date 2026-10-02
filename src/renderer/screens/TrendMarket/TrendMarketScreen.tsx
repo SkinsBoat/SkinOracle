@@ -570,7 +570,7 @@ export const TrendMarketScreen: React.FC = () => {
           {isLoadingListings ? (
             <div style={styles.loadingBox}>
               <Loader2 size={26} className="spin" />
-              <span>Fetching verified trend datasets…</span>
+              <span>Streaming verified trend datasets…</span>
             </div>
           ) : listings.length > 0 ? (
             <div style={styles.grid}>

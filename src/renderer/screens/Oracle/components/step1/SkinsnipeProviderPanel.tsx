@@ -184,7 +184,7 @@ export const SkinsnipeProviderPanel: React.FC<SkinsnipeProviderPanelProps> = ({
 
         <div style={step1Styles.estimatedCycleText}>
           <Layers size={14} />
-          Estimated fetch cycle: ~{Math.floor(estimatedFetchSeconds / 60)}m{" "}
+          Estimated scan cycle: ~{Math.floor(estimatedFetchSeconds / 60)}m{" "}
           {estimatedFetchSeconds % 60}s
         </div>
 

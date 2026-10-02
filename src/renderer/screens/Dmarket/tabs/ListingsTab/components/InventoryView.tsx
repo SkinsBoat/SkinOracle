@@ -81,7 +81,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 className="spin"
                 style={{ color: "var(--so-primary)" }}
               />
-              <div>Fetching inventory from DMarket...</div>
+              <div>Streaming inventory from DMarket...</div>
             </div>
           ) : (
             <div>

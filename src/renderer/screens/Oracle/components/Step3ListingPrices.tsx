@@ -394,21 +394,21 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
                   cacheStatus.itemCount === 0 ||
                   listingSummary.isBatchEvaluating
                 }
-                className="btn btn-primary btn-lg"
+                className="btn btn-primary"
                 style={styles.actionBtnListing}
               >
                 {listingSummary.isBatchEvaluating ? (
                   <>
-                    <Loader2 size={18} className="spin" /> Generating Listings…
+                    <Loader2 size={15} className="spin" /> Generating Listings…
                     ({listingSummary.totalEvaluated.toLocaleString()})
                   </>
                 ) : listingSummary.lastBuiltAt ? (
                   <>
-                    <RotateCw size={18} /> Regenerate Listing Prices
+                    <RotateCw size={15} /> Regenerate Listing Prices
                   </>
                 ) : (
                   <>
-                    <Tag size={18} /> Generate Listing Prices
+                    <Tag size={15} /> Generate Listing Prices
                   </>
                 )}
               </button>
@@ -789,9 +789,13 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-text-muted)",
   },
   actionBtnListing: {
-    minWidth: "220px",
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
-    color: "var(--so-success-text)",
-    border: "1px solid rgba(16, 185, 129, 0.4)",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    height: "34px",
+    padding: "0 16px",
+    fontWeight: 700,
+    fontSize: "12.5px",
+    whiteSpace: "nowrap",
   },
 };
