@@ -1398,7 +1398,6 @@ export default function CSFloatWorkstation() {
       setHasKey(status.hasCsfloatKey);
       if (status.hasCsfloatKey) {
         fetchUserData();
-        fetchOrders();
       }
     });
   }, []);

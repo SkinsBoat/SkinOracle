@@ -230,7 +230,7 @@ export default function DmarketWorkstation() {
 
     checkApiKey().then((ok) => {
       if (ok) {
-        fetchTargets();
+        fetchUserData();
       }
     });
   }, []);
