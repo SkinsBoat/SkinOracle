@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Loader2, Clock, Database, AlertTriangle } from "lucide-react";
+import { Clock, Database, AlertTriangle } from "lucide-react";
 import { formatTimeAgo } from "../utils/timeAgo";
 import { useDataFreshnessStore } from "../store/useDataFreshnessStore";
 import { getFreshness, formatRemainingLabel } from "../utils/dataFreshness";
 
 export interface WorkstationDataStatusCardsProps {
-  /** Live market price cache status (shared in-memory cache). */
+  /** Market price cache snapshot (shared in-memory cache). */
   cacheStatus: {
     itemCount: number;
-    isFetching?: boolean;
     lastFetchedAt: string | null;
   } | null;
   /** Calculated Oracle dataset (accepted prices or listing prices). */
@@ -118,24 +117,16 @@ export const WorkstationDataStatusCards: React.FC<
             ? ` — ${formatRemainingLabel(cacheFreshness.remainingMs)}`
             : ""
       }`
-    : cacheStatus?.isFetching
-      ? "Market price scan in progress…"
-      : "No market prices cached. Scan prices in Oracle Step 1 or enable Auto-Refresh.";
+    : "No market prices cached. Scan prices in Oracle Step 1 or enable Auto-Refresh.";
 
   return (
     <div style={{ ...styles.container, ...style }}>
-      {/* Market Price Cache Card: how many prices are cached & how fresh */}
+      {/* Market Price Cache Card: always reflects count, timestamp & expiry */}
       <div
-        style={getCacheIndicatorStyle(
-          cacheHasData,
-          !!cacheStatus?.isFetching,
-          cacheIsStale,
-        )}
+        style={getCacheIndicatorStyle(cacheHasData, cacheIsStale)}
         title={cacheTooltipText}
       >
-        {cacheStatus?.isFetching ? (
-          <Loader2 size={11} className="spin" style={styles.cacheSpinnerIcon} />
-        ) : cacheIsStale ? (
+        {cacheIsStale ? (
           <AlertTriangle size={11} style={styles.warningIcon} />
         ) : (
           <Database
@@ -162,8 +153,6 @@ export const WorkstationDataStatusCards: React.FC<
             )}
             {cacheIsStale && <span style={styles.staleBadge}>EXPIRED</span>}
           </span>
-        ) : cacheStatus?.isFetching ? (
-          <span style={styles.timeAgoText}>Scanning…</span>
         ) : (
           <span style={styles.noDataText}>{cacheEmptyLabel}</span>
         )}
@@ -246,10 +235,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-text-muted)",
     flexShrink: 0,
   },
-  cacheSpinnerIcon: {
-    color: "#f59e0b",
-    flexShrink: 0,
-  },
   warningIcon: {
     color: "#f59e0b",
     flexShrink: 0,
@@ -297,7 +282,6 @@ const getIndicatorStyle = (
 
 const getCacheIndicatorStyle = (
   hasData: boolean,
-  isFetching: boolean,
   isStale = false,
 ): React.CSSProperties => ({
   display: "inline-flex",
@@ -305,21 +289,17 @@ const getCacheIndicatorStyle = (
   gap: "6px",
   padding: "3px 10px",
   borderRadius: "14px",
-  backgroundColor: isFetching
+  backgroundColor: isStale
     ? "rgba(245, 158, 11, 0.1)"
-    : isStale
-      ? "rgba(245, 158, 11, 0.1)"
-      : hasData
-        ? "rgba(99, 102, 241, 0.1)"
-        : "rgba(100, 116, 139, 0.12)",
+    : hasData
+      ? "rgba(99, 102, 241, 0.1)"
+      : "rgba(100, 116, 139, 0.12)",
   border: `1px solid ${
-    isFetching
-      ? "rgba(245, 158, 11, 0.3)"
-      : isStale
-        ? "rgba(245, 158, 11, 0.45)"
-        : hasData
-          ? "rgba(99, 102, 241, 0.3)"
-          : "rgba(100, 116, 139, 0.25)"
+    isStale
+      ? "rgba(245, 158, 11, 0.45)"
+      : hasData
+        ? "rgba(99, 102, 241, 0.3)"
+        : "rgba(100, 116, 139, 0.25)"
   }`,
   cursor: "default",
   userSelect: "none",
