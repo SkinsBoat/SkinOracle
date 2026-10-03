@@ -17,6 +17,8 @@ import {
   OracleStrategyProfile,
   NexusStrategyProfile,
 } from "../../../store/useOracleStore";
+import { useDataFreshnessStore } from "../../../store/useDataFreshnessStore";
+import { isExpiredNow } from "../../../utils/dataFreshness";
 
 import { PreFiltersPanel } from "./step2/PreFiltersPanel";
 import { EngineStrategyPanel } from "./step2/EngineStrategyPanel";
@@ -111,6 +113,20 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
     const timer = setInterval(() => setTicker((t) => t + 1), 30000);
     return () => clearInterval(timer);
   }, []);
+
+  // Data expiry: header badge reflects stale accepted prices based on trader TTL
+  const acceptedPriceExpiryMinutes = useDataFreshnessStore(
+    (s) => s.acceptedPriceExpiryMinutes,
+  );
+  const freshnessWarningsEnabled = useDataFreshnessStore(
+    (s) => s.freshnessWarningsEnabled,
+  );
+  const acceptedPricesExpired = isExpiredNow(
+    evaluatedSummary.lastBuiltAt,
+    acceptedPriceExpiryMinutes,
+    freshnessWarningsEnabled,
+    Number(evaluatedSummary.totalEvaluated) > 0,
+  );
 
   React.useEffect(() => {
     if (nexusProfile.trendWindow) {
@@ -318,7 +334,11 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
 
           <span
             className="badge badge-ghost"
-            style={styles.timeAgoBadge}
+            style={
+              acceptedPricesExpired
+                ? { ...styles.timeAgoBadge, ...getExpiredBadgeStyle() }
+                : styles.timeAgoBadge
+            }
             title={
               evaluatedSummary.lastBuiltAt
                 ? `Last calculated: ${evaluatedSummary.lastBuiltAt}`
@@ -551,6 +571,13 @@ function getStaleBadgeStyle(isStale?: boolean): React.CSSProperties {
     backgroundColor: "rgba(239, 68, 68, 0.15)",
     color: "var(--so-danger-text, #ef4444)",
     border: "1px solid rgba(239, 68, 68, 0.35)",
+  };
+}
+
+// Expiry cue: amber border on the time-ago badge only.
+function getExpiredBadgeStyle(): React.CSSProperties {
+  return {
+    borderColor: "rgba(245, 158, 11, 0.55)",
   };
 }
 

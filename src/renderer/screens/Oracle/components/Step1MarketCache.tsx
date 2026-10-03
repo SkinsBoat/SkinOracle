@@ -19,6 +19,8 @@ import { Cs2capProviderPanel } from "./step1/Cs2capProviderPanel";
 import { SkinsnipeProviderPanel } from "./step1/SkinsnipeProviderPanel";
 import { MarketScope, useOracleStore } from "../../../store/useOracleStore";
 import { useNotificationStore } from "../../../store/useNotificationStore";
+import { useDataFreshnessStore } from "../../../store/useDataFreshnessStore";
+import { isExpiredNow } from "../../../utils/dataFreshness";
 import { notificationManager } from "../../../services/notificationManager";
 import { Step1CacheStatus } from "./step1/types";
 import {
@@ -132,6 +134,18 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   const { notifyOnCacheComplete, setNotifyOnCacheComplete } =
     useNotificationStore();
 
+  // Data expiry: header badge reflects stale cache based on the trader TTL
+  const cacheExpiryMinutes = useDataFreshnessStore((s) => s.cacheExpiryMinutes);
+  const freshnessWarningsEnabled = useDataFreshnessStore(
+    (s) => s.freshnessWarningsEnabled,
+  );
+  const cacheExpired = isExpiredNow(
+    cacheStatus.lastFetchedAt,
+    cacheExpiryMinutes,
+    freshnessWarningsEnabled,
+    cacheStatus.itemCount > 0,
+  );
+
   // Track completion milestones for notifications & audio alerts
   const wasFetchingRef = useRef(cacheStatus.isFetching);
   const wasStreamingRef = useRef(!!isCs2capStreaming);
@@ -218,7 +232,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
           <span
             className="badge badge-ghost"
-            style={styles.timeAgoBadge}
+            style={
+              cacheExpired
+                ? { ...styles.timeAgoBadge, ...getExpiredBadgeStyle() }
+                : styles.timeAgoBadge
+            }
             title={
               cacheStatus.lastFetchedAt
                 ? `Last synced: ${cacheStatus.lastFetchedAt}`
@@ -438,5 +456,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
     </div>
   );
 };
+
+// Expiry cue: amber border on the time-ago badge only.
+const getExpiredBadgeStyle = (): React.CSSProperties => ({
+  borderColor: "rgba(245, 158, 11, 0.55)",
+});
 
 export default Step1MarketCache;

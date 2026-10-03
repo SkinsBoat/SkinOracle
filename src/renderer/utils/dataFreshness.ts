@@ -83,3 +83,18 @@ export function formatRemainingLabel(remainingMs: number | null): string {
   const totalMinutes = Math.ceil(remainingMs / 60_000);
   return `${formatTtlLabel(totalMinutes)} left`;
 }
+
+/**
+ * Convenience predicate for UI badges: true only when warnings are enabled,
+ * the dataset actually holds data, and its timestamp is past its TTL.
+ */
+export function isExpiredNow(
+  storedAt: string | null | undefined,
+  ttlMinutes: number | null | undefined,
+  warningsEnabled: boolean,
+  hasData: boolean,
+  now: number = Date.now(),
+): boolean {
+  if (!warningsEnabled || !hasData) return false;
+  return getFreshness(storedAt, ttlMinutes, now).isExpired;
+}

@@ -16,6 +16,8 @@ import {
   Clock,
 } from "lucide-react";
 import { ListingPriceStrategy } from "../../../store/useOracleStore";
+import { useDataFreshnessStore } from "../../../store/useDataFreshnessStore";
+import { isExpiredNow } from "../../../utils/dataFreshness";
 import { formatTimeAgo } from "../utils/oracleUtils";
 
 interface Step3ListingPricesProps {
@@ -53,6 +55,20 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
     return () => clearInterval(timer);
   }, []);
 
+  // Data expiry: header badge reflects stale sell targets based on trader TTL
+  const listingPriceExpiryMinutes = useDataFreshnessStore(
+    (s) => s.listingPriceExpiryMinutes,
+  );
+  const freshnessWarningsEnabled = useDataFreshnessStore(
+    (s) => s.freshnessWarningsEnabled,
+  );
+  const listingPricesExpired = isExpiredNow(
+    listingSummary.lastBuiltAt,
+    listingPriceExpiryMinutes,
+    freshnessWarningsEnabled,
+    listingSummary.totalEvaluated > 0,
+  );
+
   return (
     <div className="card" style={getAccordionCardStyle(isOpen)}>
       {/* Accordion Header Bar */}
@@ -88,7 +104,11 @@ export const Step3ListingPrices: React.FC<Step3ListingPricesProps> = ({
 
           <span
             className="badge badge-ghost"
-            style={styles.timeAgoBadge}
+            style={
+              listingPricesExpired
+                ? { ...styles.timeAgoBadge, ...getExpiredBadgeStyle() }
+                : styles.timeAgoBadge
+            }
             title={
               listingSummary.lastBuiltAt
                 ? `Last generated: ${listingSummary.lastBuiltAt}`
@@ -565,6 +585,13 @@ function getOutlierRowStyle(enabled: boolean): React.CSSProperties {
     alignItems: "center",
     gap: "8px",
     opacity: enabled ? 1 : 0.45,
+  };
+}
+
+// Expiry cue: amber border on the time-ago badge only.
+function getExpiredBadgeStyle(): React.CSSProperties {
+  return {
+    borderColor: "rgba(245, 158, 11, 0.55)",
   };
 }
 

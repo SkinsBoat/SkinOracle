@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Clock, Database, AlertTriangle } from "lucide-react";
+import { Clock, Database } from "lucide-react";
 import { formatTimeAgo } from "../utils/timeAgo";
 import { useDataFreshnessStore } from "../store/useDataFreshnessStore";
 import { getFreshness, formatRemainingLabel } from "../utils/dataFreshness";
@@ -121,21 +121,15 @@ export const WorkstationDataStatusCards: React.FC<
 
   return (
     <div style={{ ...styles.container, ...style }}>
-      {/* Market Price Cache Card: always reflects count, timestamp & expiry */}
+      {/* Market Price Cache Card: expiry cue is the amber border only */}
       <div
         style={getCacheIndicatorStyle(cacheHasData, cacheIsStale)}
         title={cacheTooltipText}
       >
-        {cacheIsStale ? (
-          <AlertTriangle size={11} style={styles.warningIcon} />
-        ) : (
-          <Database
-            size={11}
-            style={
-              cacheHasData ? styles.cacheIconActive : styles.cacheIconMuted
-            }
-          />
-        )}
+        <Database
+          size={11}
+          style={cacheHasData ? styles.cacheIconActive : styles.cacheIconMuted}
+        />
         {cacheHasData ? (
           <span style={styles.indicatorText}>
             <span style={styles.countText}>
@@ -144,42 +138,29 @@ export const WorkstationDataStatusCards: React.FC<
             {cacheTimeAgoText && (
               <span style={styles.timeAgoWrapper}>
                 <Clock size={11} style={styles.clockIcon} />
-                <span
-                  style={cacheIsStale ? styles.staleText : styles.timeAgoText}
-                >
-                  {cacheTimeAgoText}
-                </span>
+                <span style={styles.timeAgoText}>{cacheTimeAgoText}</span>
               </span>
             )}
-            {cacheIsStale && <span style={styles.staleBadge}>EXPIRED</span>}
           </span>
         ) : (
           <span style={styles.noDataText}>{cacheEmptyLabel}</span>
         )}
       </div>
 
-      {/* Calculated Oracle Dataset Card: item count & time ago */}
+      {/* Calculated Oracle Dataset Card: expiry cue is the amber border only */}
       <div style={getIndicatorStyle(hasData, datasetIsStale)} title={tooltipText}>
-        <span style={getDotStyle(hasData, datasetIsStale)} />
+        <span style={getDotStyle(hasData)} />
         {hasData ? (
           <span style={styles.indicatorText}>
-            {datasetIsStale && (
-              <AlertTriangle size={11} style={styles.warningIcon} />
-            )}
             <span style={styles.countText}>
               {oracle!.itemCount.toLocaleString()} items
             </span>
             {timeAgoText && (
               <span style={styles.timeAgoWrapper}>
                 <Clock size={11} style={styles.clockIcon} />
-                <span
-                  style={datasetIsStale ? styles.staleText : styles.timeAgoText}
-                >
-                  {timeAgoText}
-                </span>
+                <span style={styles.timeAgoText}>{timeAgoText}</span>
               </span>
             )}
-            {datasetIsStale && <span style={styles.staleBadge}>EXPIRED</span>}
           </span>
         ) : (
           <span style={styles.noDataText}>{oracleEmptyLabel}</span>
@@ -235,24 +216,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-text-muted)",
     flexShrink: 0,
   },
-  warningIcon: {
-    color: "#f59e0b",
-    flexShrink: 0,
-  },
-  staleText: {
-    color: "#fbbf24",
-    fontWeight: 700,
-  },
-  staleBadge: {
-    fontSize: "9px",
-    fontWeight: 800,
-    letterSpacing: "0.5px",
-    padding: "1px 5px",
-    borderRadius: "4px",
-    backgroundColor: "rgba(245, 158, 11, 0.18)",
-    border: "1px solid rgba(245, 158, 11, 0.45)",
-    color: "#fbbf24",
-  },
 };
 
 const getIndicatorStyle = (
@@ -264,14 +227,12 @@ const getIndicatorStyle = (
   gap: "6px",
   padding: "3px 10px",
   borderRadius: "14px",
-  backgroundColor: isStale
-    ? "rgba(245, 158, 11, 0.1)"
-    : hasData
-      ? "rgba(6, 182, 212, 0.08)"
-      : "rgba(100, 116, 139, 0.12)",
+  backgroundColor: hasData
+    ? "rgba(6, 182, 212, 0.08)"
+    : "rgba(100, 116, 139, 0.12)",
   border: `1px solid ${
     isStale
-      ? "rgba(245, 158, 11, 0.45)"
+      ? "rgba(245, 158, 11, 0.55)"
       : hasData
         ? "rgba(6, 182, 212, 0.25)"
         : "rgba(100, 116, 139, 0.25)"
@@ -289,14 +250,12 @@ const getCacheIndicatorStyle = (
   gap: "6px",
   padding: "3px 10px",
   borderRadius: "14px",
-  backgroundColor: isStale
-    ? "rgba(245, 158, 11, 0.1)"
-    : hasData
-      ? "rgba(99, 102, 241, 0.1)"
-      : "rgba(100, 116, 139, 0.12)",
+  backgroundColor: hasData
+    ? "rgba(99, 102, 241, 0.1)"
+    : "rgba(100, 116, 139, 0.12)",
   border: `1px solid ${
     isStale
-      ? "rgba(245, 158, 11, 0.45)"
+      ? "rgba(245, 158, 11, 0.55)"
       : hasData
         ? "rgba(99, 102, 241, 0.3)"
         : "rgba(100, 116, 139, 0.25)"
@@ -305,22 +264,13 @@ const getCacheIndicatorStyle = (
   userSelect: "none",
 });
 
-const getDotStyle = (
-  hasData: boolean,
-  isStale = false,
-): React.CSSProperties => ({
+const getDotStyle = (hasData: boolean): React.CSSProperties => ({
   width: 6,
   height: 6,
   borderRadius: "50%",
-  backgroundColor: isStale
-    ? "#f59e0b"
-    : hasData
-      ? "var(--so-accent-cyan, #06b6d4)"
-      : "var(--so-text-muted)",
-  boxShadow: isStale
-    ? "0 0 6px rgba(245, 158, 11, 0.6)"
-    : hasData
-      ? "0 0 6px rgba(6, 182, 212, 0.6)"
-      : "none",
+  backgroundColor: hasData
+    ? "var(--so-accent-cyan, #06b6d4)"
+    : "var(--so-text-muted)",
+  boxShadow: hasData ? "0 0 6px rgba(6, 182, 212, 0.6)" : "none",
   flexShrink: 0,
 });
