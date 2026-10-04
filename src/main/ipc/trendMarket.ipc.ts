@@ -25,6 +25,11 @@ import {
   TREND_MARKET_MY_LISTING,
   TREND_MARKET_DELETE_LISTING,
 } from '../constants/apiUrls';
+import {
+  FEATURE_FLAGS,
+  TREND_MARKET_FEATURE_NAME,
+  featureDisabledResponse,
+} from '../../shared/featureFlags';
 
 export interface TrendMarketHeldResult {
   success: false;
@@ -74,6 +79,46 @@ async function guarded<T>(fn: () => Promise<T>): Promise<T | TrendMarketHeldResu
 }
 
 export function setupTrendMarketIPC() {
+  // Temporarily disabled via FEATURE_FLAGS.TREND_MARKET. Register inert handlers
+  // so every marketplace IPC channel resolves with a clean "temporarily disabled"
+  // response instead of touching the SaaS backend or local trend store.
+  if (!FEATURE_FLAGS.TREND_MARKET) {
+    const disabled = featureDisabledResponse(TREND_MARKET_FEATURE_NAME);
+    const disabledListings = {
+      ...disabled,
+      listings: [],
+      total: 0,
+      page: 1,
+      totalPages: 1,
+    };
+    const disabledPreview = {
+      ...disabled,
+      packId: '',
+      availableSkins: [],
+      chartData: null,
+    };
+    const disabledMyListing = {
+      ...disabled,
+      listing: null,
+      totalSales: 0,
+      totalEarnedCredits: 0,
+      formattedEarned: '$0.00',
+    };
+
+    ipcMain.handle('trend-market:get-listings', async () => disabledListings);
+    ipcMain.handle('trend-market:preview-skin', async () => disabledPreview);
+    ipcMain.handle('trend-market:purchase-pack', async () => disabled);
+    ipcMain.handle('trend-market:upload-pack', async () => disabled);
+    ipcMain.handle('trend-market:get-my-listing', async () => disabledMyListing);
+    ipcMain.handle('trend-market:delete-listing', async () => disabled);
+    ipcMain.handle('trend-market:get-export-preview', async () => disabled);
+
+    console.warn(
+      '[TrendMarket] Feature disabled (FEATURE_FLAGS.TREND_MARKET=false); IPC endpoints return a disabled response.',
+    );
+    return;
+  }
+
   // 1. Get paginated marketplace listings
   ipcMain.handle(
     'trend-market:get-listings',

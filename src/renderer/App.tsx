@@ -42,6 +42,7 @@ import { CreateDealModal } from "./screens/DealMaker/modals/CreateDealModal";
 import MaintenanceScreen from "./screens/MaintenanceScreen";
 import VersionBlockedScreen from "./screens/VersionBlockedScreen";
 import { VersionGateState } from "../shared/types";
+import { FEATURE_FLAGS } from "../shared/featureFlags";
 import { safeGetItem, safeSetItem } from "./utils/storage";
 import { useLayoutStore } from "./store/useLayoutStore";
 import "./App.css";
@@ -422,6 +423,7 @@ export default function App() {
                   {isSidebarExpanded && <span>DMarket</span>}
                 </NavLink>
 
+                {FEATURE_FLAGS.TREND_MARKET && (
                 <NavLink
                   to="/trend-market"
                   title={
@@ -446,6 +448,7 @@ export default function App() {
                     </>
                   )}
                 </NavLink>
+                )}
 
                 {/* Skins.com Workstation NavLink - Temporarily Commented Out
                 <NavLink
@@ -594,7 +597,9 @@ export default function App() {
               <Route path="/dealmaker" element={<DealMakerFloorScreen />} />
               <Route path="/auctions" element={<DealMakerFloorScreen />} />
               {/* <Route path="/skinscom" element={<SkinscomWorkstation />} /> */}
-              <Route path="/trend-market" element={<TrendMarketScreen />} />
+              {FEATURE_FLAGS.TREND_MARKET && (
+                <Route path="/trend-market" element={<TrendMarketScreen />} />
+              )}
               <Route path="/playbook" element={<KnowledgeBaseScreen />} />
               <Route path="/balance" element={<BalanceDashboard />} />
               <Route path="/settings" element={<SettingsScreen />} />

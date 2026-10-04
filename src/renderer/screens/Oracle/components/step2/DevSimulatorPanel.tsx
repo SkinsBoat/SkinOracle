@@ -14,6 +14,7 @@ import {
   evaluateTrendHealth,
   TrendHealthStatus,
 } from "../../utils/oracleUtils";
+import { FEATURE_FLAGS } from "../../../../../shared/featureFlags";
 
 interface DevSimulatorPanelProps {
   trendStats: {
@@ -153,10 +154,12 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
               for capital safety. Build price cache in Step 1 daily to accumulate
               history, or ingest verified community datasets.
             </span>
-            <Link to="/trend-market" style={styles.marketLink}>
-              <Globe size={12} />
-              Open Community Trend Marketplace ($5.00) &rarr;
-            </Link>
+            {FEATURE_FLAGS.TREND_MARKET && (
+              <Link to="/trend-market" style={styles.marketLink}>
+                <Globe size={12} />
+                Open Community Trend Marketplace ($5.00) &rarr;
+              </Link>
+            )}
           </div>
         </div>
       )}
