@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   Layers,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import {
   BuildPreFilters,
@@ -140,6 +141,10 @@ export const ProfitOverridePanel: React.FC<ProfitOverridePanelProps> = ({
   };
 
   const [sampleSeed, setSampleSeed] = React.useState(0);
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  const activeModeLabel =
+    MODE_OPTIONS.find((m) => m.id === policy.mode)?.label ?? "Disabled";
 
   // Representative sample: prefer one item per distinct wear × SSS combo so
   // the preview actually exercises every active delta, rotated by sampleSeed
@@ -216,17 +221,28 @@ export const ProfitOverridePanel: React.FC<ProfitOverridePanelProps> = ({
 
   return (
     <div style={styles.panelContainer}>
-      <div style={styles.headerRow}>
-        <div style={styles.headerTitle}>
-          <Wand2 size={16} style={styles.wandIcon} /> Section 4: Profit Override
-          (Bid Policy)
+      <div
+        style={styles.headerRow}
+        onClick={() => setIsExpanded((v) => !v)}
+      >
+        <div style={styles.headerLeft}>
+          <div style={styles.headerTitle}>
+            <Wand2 size={16} style={styles.wandIcon} /> Section 4: Profit Override
+            (Bid Policy)
+          </div>
+          <div style={styles.headerSubtitle}>
+            {activeModeLabel} · {active ? "Active" : "Disabled"}
+          </div>
         </div>
         <div style={styles.headerRight}>
           <button
             type="button"
             className={`btn btn-sm ${active ? "btn-primary" : "btn-ghost"}`}
             style={styles.enableBtn}
-            onClick={() => onToggleEnabled(!policy.enabled)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleEnabled(!policy.enabled);
+            }}
           >
             {active ? (
               <>
@@ -242,14 +258,20 @@ export const ProfitOverridePanel: React.FC<ProfitOverridePanelProps> = ({
             type="button"
             className="btn btn-sm btn-ghost"
             style={styles.enableBtn}
-            onClick={() => setPolicy({ ...DEFAULT_PROFIT_OVERRIDE_POLICY })}
+            onClick={(e) => {
+              e.stopPropagation();
+              setPolicy({ ...DEFAULT_PROFIT_OVERRIDE_POLICY });
+            }}
             title="Reset the override policy back to pure Oracle values."
           >
             <RotateCcw size={12} /> Revert
           </button>
+          <ChevronDown size={16} style={getChevronStyle(isExpanded)} />
         </div>
       </div>
 
+      <div style={getCollapseStyle(isExpanded)}>
+        <div style={getCollapseInnerStyle(isExpanded)}>
       <p style={styles.subtitle}>
         Override the Oracle's accepted price (buy ceiling) with your own signed
         adjustment. Negative trims the ceiling for more margin; positive bids
@@ -492,6 +514,8 @@ export const ProfitOverridePanel: React.FC<ProfitOverridePanelProps> = ({
           </span>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -561,6 +585,33 @@ function getModeCardStyle(selected: boolean): React.CSSProperties {
   };
 }
 
+function getCollapseStyle(isExpanded: boolean): React.CSSProperties {
+  return {
+    display: "grid",
+    gridTemplateRows: isExpanded ? "1fr" : "0fr",
+    transition: "grid-template-rows 0.45s cubic-bezier(0.25, 1, 0.35, 1)",
+    overflow: "hidden",
+  };
+}
+
+function getCollapseInnerStyle(isExpanded: boolean): React.CSSProperties {
+  return {
+    minHeight: 0,
+    overflow: "hidden",
+    opacity: isExpanded ? 1 : 0,
+    transition: "opacity 0.35s ease",
+  };
+}
+
+function getChevronStyle(isExpanded: boolean): React.CSSProperties {
+  return {
+    color: "var(--so-text-muted)",
+    transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+    transition: "transform 0.35s cubic-bezier(0.25, 1, 0.35, 1)",
+    flexShrink: 0,
+  };
+}
+
 function getModeIconStyle(selected: boolean): React.CSSProperties {
   return {
     ...styles.modeIcon,
@@ -581,6 +632,7 @@ function getModeTitleStyle(selected: boolean): React.CSSProperties {
 const styles: Record<string, React.CSSProperties> = {
   panelContainer: {
     padding: "18px 20px",
+    overflow: "hidden",
     borderRadius: "var(--so-radius-md)",
     backgroundColor: "rgba(99, 102, 241, 0.04)",
     border: "1px solid rgba(99, 102, 241, 0.3)",
@@ -590,9 +642,21 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "12px",
+    marginBottom: "0px",
     flexWrap: "wrap",
     gap: "8px",
+    cursor: "pointer",
+    userSelect: "none",
+  },
+  headerLeft: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    minWidth: 0,
+  },
+  headerSubtitle: {
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
   },
   headerTitle: {
     fontWeight: 800,
@@ -643,6 +707,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   subtitle: {
     fontSize: "12.5px",
+    marginTop: "12px",
     color: "var(--so-text-muted)",
     marginBottom: "12px",
   },
