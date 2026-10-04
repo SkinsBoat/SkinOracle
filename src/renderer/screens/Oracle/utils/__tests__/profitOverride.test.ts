@@ -64,6 +64,16 @@ describe("profitOverride — classification", () => {
     expect(sv.isSouvenir).toBe(true);
   });
 
+  it("flags stickers separately from vanilla knives/gloves", () => {
+    const sticker = classifyWear("Sticker | Titan (Holo) | Katowice 2014");
+    expect(sticker.isSticker).toBe(true);
+    expect(sticker.wear).toBe("vanilla");
+
+    const knife = classifyWear("★ Karambit");
+    expect(knife.isSticker).toBe(false);
+    expect(knife.wear).toBe("vanilla");
+  });
+
   it("buckets SSS by supply stability, not liquidity", () => {
     expect(classifySss(1.5)).toBe("prime");
     expect(classifySss(1.2)).toBe("prime");
@@ -193,6 +203,41 @@ describe("profitOverride — apply", () => {
     expect(
       computeEffectiveAdjustment(policy, "x", makeInfo({ supplyStabilityScore: 2.4 })),
     ).toBe(-20);
+  });
+
+  it("does not apply wear/vanilla deltas to stickers in wear mode", () => {
+    const policy = makePolicy({
+      mode: "wear",
+      wearAdjustments: { ...makePolicy().wearAdjustments, vanilla: -15 },
+    });
+    expect(
+      computeEffectiveAdjustment(
+        policy,
+        "Sticker | Titan (Holo) | Katowice 2014",
+        makeInfo(),
+      ),
+    ).toBe(0);
+    // A vanilla knife still receives the vanilla delta.
+    expect(computeEffectiveAdjustment(policy, "★ Karambit", makeInfo())).toBe(
+      -15,
+    );
+  });
+
+  it("applies base (combined) and SSS (stability) to stickers", () => {
+    const combined = makePolicy({
+      mode: "combined",
+      bidAdjustmentPercent: -10,
+      wearAdjustments: { ...makePolicy().wearAdjustments, vanilla: -15 },
+      sssAdjustments: { prime: 0, solid: 0, moderate: 0, thin: -20 },
+    });
+    // base (-10) + no wear + thin (-20) = -30
+    expect(
+      computeEffectiveAdjustment(
+        combined,
+        "Sticker | Titan (Holo) | Katowice 2014",
+        makeInfo({ supplyStabilityScore: 0.2 }),
+      ),
+    ).toBe(-30);
   });
 
   it("sums base + wear + SSS in combined mode", () => {

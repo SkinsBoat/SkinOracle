@@ -151,7 +151,8 @@ export const ProfitOverridePanel: React.FC<ProfitOverridePanelProps> = ({
     const seen = new Set<string>();
     for (let i = 0; i < previewItems.length && picks.length < max; i++) {
       const item = previewItems[(i + sampleSeed) % previewItems.length];
-      const key = `${classifyWear(item.name).wear}:${classifySss(
+      const w = classifyWear(item.name);
+      const key = `${w.isSticker ? "sticker" : w.wear}:${classifySss(
         item.supplyStabilityScore,
       )}`;
       if (seen.has(key)) continue;
@@ -181,9 +182,10 @@ export const ProfitOverridePanel: React.FC<ProfitOverridePanelProps> = ({
         item.name,
         policy,
       );
+      const w = classifyWear(item.name);
       return {
         name: item.name,
-        wear: classifyWear(item.name).wear,
+        wear: w.isSticker ? "sticker" : w.wear,
         band: classifySss(item.supplyStabilityScore),
         oraclePrice: item.oraclePrice,
         bidPrice: projected.acceptedPrice,

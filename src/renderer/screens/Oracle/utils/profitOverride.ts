@@ -47,6 +47,8 @@ export type ProfitWearClassification = {
   wear: ProfitWearBucket;
   isStatTrak: boolean;
   isSouvenir: boolean;
+  /** Stickers (and similar non-wear items) have no wear condition. */
+  isSticker: boolean;
 };
 
 const WEAR_MATCHERS: { wear: ProfitWearBucket; re: RegExp }[] = [
@@ -57,9 +59,13 @@ const WEAR_MATCHERS: { wear: ProfitWearBucket; re: RegExp }[] = [
   { wear: "bs", re: /\(battle-scarred\)/i },
 ];
 
+const STICKER_RE = /^sticker\s*\|/i;
+
 /**
  * Classifies an item by its primary wear plus any StatTrak / Souvenir
  * modifier. Vanilla knives/gloves (no wear suffix) fall into "vanilla".
+ * Stickers are flagged separately because they have no wear condition and
+ * must not inherit the vanilla (knife/glove) delta.
  */
 export function classifyWear(itemName: string): ProfitWearClassification {
   const name = itemName || "";
@@ -68,6 +74,7 @@ export function classifyWear(itemName: string): ProfitWearClassification {
     wear: matched ? matched.wear : "vanilla",
     isStatTrak: /stattrak/i.test(name),
     isSouvenir: /souvenir/i.test(name),
+    isSticker: STICKER_RE.test(name.trim()),
   };
 }
 
@@ -109,9 +116,12 @@ export function computeEffectiveAdjustment(
 
   if (policy.mode === "wear" || policy.mode === "combined") {
     const wear = classifyWear(itemName);
-    adjustment += policy.wearAdjustments?.[wear.wear] ?? 0;
-    if (wear.isStatTrak) adjustment += policy.wearAdjustments?.stattrak ?? 0;
-    if (wear.isSouvenir) adjustment += policy.wearAdjustments?.souvenir ?? 0;
+    // Stickers have no wear condition: skip wear/vanilla/modifier deltas.
+    if (!wear.isSticker) {
+      adjustment += policy.wearAdjustments?.[wear.wear] ?? 0;
+      if (wear.isStatTrak) adjustment += policy.wearAdjustments?.stattrak ?? 0;
+      if (wear.isSouvenir) adjustment += policy.wearAdjustments?.souvenir ?? 0;
+    }
   }
 
   if (policy.mode === "stability" || policy.mode === "combined") {
