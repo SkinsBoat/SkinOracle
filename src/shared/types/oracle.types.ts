@@ -60,6 +60,62 @@ export interface AcceptedPriceInfo {
   trendMomentum14d?: number;
   nexusConfidence?: string;
   v1Benchmark?: number;
+  /**
+   * Server-authoritative Oracle ceiling BEFORE any front-end override was
+   * applied. Kept immutable so a changed policy can be re-applied instantly
+   * with no server call and no credits, and so the original value is
+   * auditable after the fact.
+   */
+  oracleAcceptedPrice?: number;
+  /** True when a front-end profit override changed the stored bid. */
+  overrideApplied?: boolean;
+  /** Signed percent the override applied (positive = above Oracle ceiling). */
+  appliedAdjustmentPercent?: number;
+}
+
+/** Wear buckets used by the front-end profit override policy. */
+export type ProfitWearBucket =
+  | "fn"
+  | "mw"
+  | "ft"
+  | "ww"
+  | "bs"
+  | "vanilla"
+  | "stattrak"
+  | "souvenir";
+
+/**
+ * Supply-stability (SSS) buckets. SSS is NOT a liquidity metric; it measures
+ * how stable an item's supply is. In practice it stays at or below ~1.5, and a
+ * strong score starts around 1.2.
+ */
+export type ProfitSssBucket = "prime" | "solid" | "moderate" | "thin";
+
+export type ProfitOverrideMode =
+  | "off"
+  | "flat"
+  | "wear"
+  | "stability"
+  | "combined";
+
+/**
+ * Front-end-only bid override policy.
+ *
+ * IMPORTANT: This layer never re-derives the Oracle valuation. It takes the
+ * server-delivered ceiling and applies a trader-chosen, signed adjustment on
+ * top of it. The backend is never contacted, no DTO/IPC contract changes, and
+ * `oracleAcceptedPrice` is preserved so the pure Oracle value stays auditable.
+ *
+ * `bidAdjustmentPercent` is signed:
+ *   negative → trim the ceiling (more profit margin, safer)
+ *   positive → bid above the Oracle ceiling (aggressive, higher risk)
+ */
+export interface ProfitOverridePolicy {
+  enabled: boolean;
+  mode: ProfitOverrideMode;
+  bidAdjustmentPercent: number;
+  wearAdjustments: Record<ProfitWearBucket, number>;
+  sssAdjustments: Record<ProfitSssBucket, number>;
 }
 
 /**

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Settings, KeyRound, Database, Cpu, Ban, Bell, Clock } from "lucide-react";
+import { Settings, KeyRound, Database, Cpu, Ban, Bell, Clock, Sliders } from "lucide-react";
 import { ApiKeysSection } from "./components/ApiKeysSection";
 import { NotificationsSection } from "./components/NotificationsSection";
 import { DataFreshnessSection } from "./components/DataFreshnessSection";
 import { DatabaseStorageSection } from "./components/DatabaseStorageSection";
 import { SystemDiagnosticsSection } from "./components/SystemDiagnosticsSection";
 import { BlockedSkinsSection } from "./components/BlockedSkinsSection";
+import { AdvancedToolsSection } from "./components/AdvancedToolsSection";
 import { useOracleStore } from "../../store/useOracleStore";
 
 export type SettingsTabId =
@@ -15,7 +16,7 @@ export type SettingsTabId =
   | "data-storage"
   | "diagnostics";
 
-export type SettingsSubTabId = "data-freshness" | "database" | "blocked-skins";
+export type SettingsSubTabId = "data-freshness" | "database" | "blocked-skins" | "advanced";
 
 interface SettingsTab {
   id: SettingsTabId;
@@ -42,6 +43,7 @@ const SUB_TABS: SettingsSubTabId[] = [
   "data-freshness",
   "database",
   "blocked-skins",
+  "advanced",
 ];
 
 // Legacy top-level tab ids that were merged under the "Data & Storage" parent.
@@ -52,6 +54,7 @@ const LEGACY_TAB_MAP: Record<
   "data-freshness": { tab: "data-storage", sub: "data-freshness" },
   database: { tab: "data-storage", sub: "database" },
   "blocked-skins": { tab: "data-storage", sub: "blocked-skins" },
+  advanced: { tab: "data-storage", sub: "advanced" },
 };
 
 function resolveTab(raw: string | null): {
@@ -144,6 +147,11 @@ export default function SettingsScreen() {
       label: "Blocked Skins",
       icon: <Ban size={14} />,
       badge: blockedSkins.length > 0 ? `${blockedSkins.length}` : undefined,
+    },
+    {
+      id: "advanced",
+      label: "Advanced",
+      icon: <Sliders size={14} />,
     },
   ];
 
@@ -244,6 +252,7 @@ export default function SettingsScreen() {
               {activeSubTab === "data-freshness" && <DataFreshnessSection />}
               {activeSubTab === "database" && <DatabaseStorageSection />}
               {activeSubTab === "blocked-skins" && <BlockedSkinsSection />}
+              {activeSubTab === "advanced" && <AdvancedToolsSection />}
             </div>
           </>
         )}

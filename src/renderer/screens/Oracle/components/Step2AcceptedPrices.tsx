@@ -11,11 +11,13 @@ import {
   Loader2,
   Clock,
   Ban,
+  Wand2,
 } from "lucide-react";
 import {
   BuildPreFilters,
   OracleStrategyProfile,
   NexusStrategyProfile,
+  ProfitOverridePolicy,
 } from "../../../store/useOracleStore";
 import { useDataFreshnessStore } from "../../../store/useDataFreshnessStore";
 import { isExpiredNow } from "../../../utils/dataFreshness";
@@ -25,6 +27,10 @@ import { EngineStrategyPanel } from "./step2/EngineStrategyPanel";
 import { NexusLabControls } from "./step2/NexusLabControls";
 import { DevSimulatorPanel } from "./step2/DevSimulatorPanel";
 import { CostLedgerSummary } from "./step2/CostLedgerSummary";
+import {
+  ProfitOverridePanel,
+  ProfitOverridePreviewItem,
+} from "./step2/ProfitOverridePanel";
 import { evaluateTrendHealth, formatTimeAgo } from "../utils/oracleUtils";
 
 interface Step2AcceptedPricesProps {
@@ -60,6 +66,10 @@ interface Step2AcceptedPricesProps {
   >;
   nexusProfile: NexusStrategyProfile;
   setNexusProfile: React.Dispatch<React.SetStateAction<NexusStrategyProfile>>;
+  profitOverride: ProfitOverridePolicy;
+  setProfitOverride: React.Dispatch<React.SetStateAction<ProfitOverridePolicy>>;
+  showProfitOverride: boolean;
+  onReapplyProfitOverride: () => void;
   blockedSkins: string[];
   blockSkin: (name: string) => void;
   unblockSkin: (name: string) => void;
@@ -84,6 +94,10 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
   setStrategyProfile,
   nexusProfile,
   setNexusProfile,
+  profitOverride,
+  setProfitOverride,
+  showProfitOverride,
+  onReapplyProfitOverride,
   blockedSkins,
   blockSkin,
   unblockSkin,
@@ -127,6 +141,9 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
     freshnessWarningsEnabled,
     Number(evaluatedSummary.totalEvaluated) > 0,
   );
+
+  const profitOverrideActive =
+    profitOverride.enabled && profitOverride.mode !== "off";
 
   React.useEffect(() => {
     if (nexusProfile.trendWindow) {
@@ -252,6 +269,55 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
       trendHealth.hasContinuityGap);
   const effectiveCanBuild = canBuild && !isNexusTrendBlocked;
 
+  const [profitPreviewItems, setProfitPreviewItems] = React.useState<
+    ProfitOverridePreviewItem[]
+  >([]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await window.electronAPI?.oracle?.getAcceptedPrices?.();
+        const map = (res?.map || {}) as Record<string, any>;
+        const items = Object.entries(map).map(([name, info]) => ({
+          name,
+          oraclePrice:
+            Number(info.oracleAcceptedPrice ?? info.acceptedPrice) || 0,
+          supplyStabilityScore: Number(info.supplyStabilityScore) || 0,
+          isHyperStable: Boolean(info.isHyperStable),
+        }));
+        if (!cancelled) setProfitPreviewItems(items);
+      } catch {
+        if (!cancelled) setProfitPreviewItems([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, evaluatedSummary.lastBuiltAt]);
+
+  const handleToggleProfitOverride = async (nextEnabled: boolean) => {
+    if (!nextEnabled) {
+      setProfitOverride((p) => ({ ...p, enabled: false }));
+      return;
+    }
+    const confirmed = await confirmModal({
+      title: "Enable Profit Override?",
+      message:
+        "You are about to override the Oracle's accepted prices (buy ceilings) with your own signed adjustment. Buy ceilings will no longer be pure Oracle values, and engine safety shields will not validate your custom margins. Recalculate or Re-apply to push the new ceilings to your workstations.",
+      confirmText: "Enable Override",
+      cancelText: "Cancel",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    setProfitOverride((p) => ({
+      ...p,
+      enabled: true,
+      mode: p.mode === "off" ? "flat" : p.mode,
+    }));
+  };
+
   const handleBuildAcceptedPrices = () => {
     if (isNexusTrendBlocked) {
       toast.error(
@@ -321,6 +387,16 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
                   : trendHealth.hasContinuityGap
                     ? `▲ Gap (${trendHealth.missingDaysInRange}d)`
                     : `● ${trendDaysCount}d Trend`}
+            </span>
+          )}
+          {profitOverrideActive && (
+            <span
+              className="badge badge-warning"
+              style={styles.overrideBadge}
+              title="A front-end profit override is active. Stored buy ceilings are no longer pure Oracle values."
+            >
+              <Wand2 size={11} />
+              Override
             </span>
           )}
           <span
@@ -463,6 +539,19 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
               handleClearTrendHistory={handleClearTrendHistory}
               trendHealth={trendHealth}
             />
+
+            {/* Section 4: Profit Override (front-end bid policy) — opt-in
+                advanced tool, enabled from Settings → Data & Storage */}
+            {showProfitOverride && (
+              <ProfitOverridePanel
+                policy={profitOverride}
+                setPolicy={setProfitOverride}
+                preFilters={preFilters}
+                previewItems={profitPreviewItems}
+                onToggleEnabled={handleToggleProfitOverride}
+                onReapply={onReapplyProfitOverride}
+              />
+            )}
 
             {/* Section 5: Cost Breakdown & Build Trigger */}
             <CostLedgerSummary
@@ -634,6 +723,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerBadge: {
     fontSize: "11px",
+    whiteSpace: "nowrap",
+  },
+  overrideBadge: {
+    fontSize: "11px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
     whiteSpace: "nowrap",
   },
   timeAgoBadge: {

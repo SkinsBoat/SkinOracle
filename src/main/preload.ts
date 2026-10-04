@@ -3,6 +3,7 @@ import {
   OracleStrategyProfile,
   NexusStrategyProfile,
   OracleEvaluationResponse,
+  AcceptedPriceInfo,
 } from "../shared/types/oracle.types";
 import {
   AutoRefreshConfig,
@@ -191,16 +192,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ),
     // Store the accepted price map (called by OracleDashboard after "Build Accepted Price")
     storeAcceptedPrices: (
-      map: Record<
-        string,
-        {
-          acceptedPrice: number;
-          supplyStabilityScore: number;
-          isHyperStable: boolean;
-          nexusDelta?: number;
-          trendAdjustment?: number;
-        }
-      >,
+      map: Record<string, AcceptedPriceInfo>,
     ) => safeInvoke("oracle:store-accepted-prices", map),
     // Get the accepted price map (called by market workstations like CSFloat, Skins.com)
     getAcceptedPrices: () => safeInvoke("oracle:get-accepted-prices"),

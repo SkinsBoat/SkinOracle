@@ -8,6 +8,7 @@ import { trendStore } from "../services/trendStore";
 import {
   OracleStrategyProfile,
   NexusStrategyProfile,
+  AcceptedPriceInfo,
 } from "../../shared/types/oracle.types";
 
 function compressPayload(payload: any): {
@@ -34,16 +35,7 @@ let priceCache: Record<
 
 // In-memory accepted price map — populated by OracleDashboard "Build Accepted Price" action
 // Consumed by all market workstations (CSFloat, Skins.com) without re-hitting the saas-api
-let acceptedPriceMap: Record<
-  string,
-  {
-    acceptedPrice: number;
-    supplyStabilityScore: number;
-    isHyperStable: boolean;
-    nexusDelta?: number;
-    trendAdjustment?: number;
-  }
-> = {};
+let acceptedPriceMap: Record<string, AcceptedPriceInfo> = {};
 let cacheTimestamp: Date | null = null;
 let acceptedPriceTimestamp: Date | null = null;
 

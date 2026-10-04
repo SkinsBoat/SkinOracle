@@ -27,9 +27,14 @@ export interface BuildPreFilters {
 import {
   OracleStrategyProfile,
   NexusStrategyProfile,
+  ProfitOverridePolicy,
 } from "../../shared/types/oracle.types";
 
-export type { OracleStrategyProfile, NexusStrategyProfile };
+export type {
+  OracleStrategyProfile,
+  NexusStrategyProfile,
+  ProfitOverridePolicy,
+};
 
 export type ListingStrategyMode = "lowest" | "average" | "undercut" | "markup";
 
@@ -80,6 +85,27 @@ export const DEFAULT_LISTING_STRATEGY: ListingPriceStrategy = {
   offsetPercent: 2.0,
   ignoreOutliers: true,
   maxOutlierDiscountPercent: 30.0,
+};
+
+/**
+ * Front-end profit override defaults. Disabled by default so out-of-the-box
+ * buy ceilings are pure Oracle values; the trader opts in explicitly.
+ */
+export const DEFAULT_PROFIT_OVERRIDE_POLICY: ProfitOverridePolicy = {
+  enabled: false,
+  mode: "off",
+  bidAdjustmentPercent: 0,
+  wearAdjustments: {
+    fn: 0,
+    mw: 0,
+    ft: 0,
+    ww: 0,
+    bs: 0,
+    vanilla: 0,
+    stattrak: 0,
+    souvenir: 0,
+  },
+  sssAdjustments: { prime: 0, solid: 0, moderate: 0, thin: 0 },
 };
 
 export const DEFAULT_SELECTED_MARKETS: SkinsnipeMarketId[] = [
@@ -146,6 +172,10 @@ interface OracleStoreState {
   selectedEngine: "standard" | "nexus";
   strategyProfile: OracleStrategyProfile;
   nexusProfile: NexusStrategyProfile;
+  profitOverride: ProfitOverridePolicy;
+  /** Advanced/opt-in visibility for the Profit Override section. */
+  showProfitOverride: boolean;
+  setShowProfitOverride: (visible: boolean) => void;
   listingStrategy: ListingPriceStrategy;
   hideTradeMarkets: boolean;
   setHideTradeMarkets: (hide: boolean | ((prev: boolean) => boolean)) => void;
@@ -186,6 +216,11 @@ interface OracleStoreState {
       | NexusStrategyProfile
       | ((prev: NexusStrategyProfile) => NexusStrategyProfile),
   ) => void;
+  setProfitOverride: (
+    policy:
+      | ProfitOverridePolicy
+      | ((prev: ProfitOverridePolicy) => ProfitOverridePolicy),
+  ) => void;
   setListingStrategy: (
     strategy:
       | ListingPriceStrategy
@@ -207,6 +242,8 @@ export const useOracleStore = create<OracleStoreState>()(
       selectedEngine: "standard",
       strategyProfile: DEFAULT_STRATEGY_PROFILE,
       nexusProfile: DEFAULT_NEXUS_PROFILE,
+      profitOverride: DEFAULT_PROFIT_OVERRIDE_POLICY,
+      showProfitOverride: false,
       listingStrategy: DEFAULT_LISTING_STRATEGY,
       hideTradeMarkets: false,
 
@@ -398,6 +435,15 @@ export const useOracleStore = create<OracleStoreState>()(
               ? profile(state.nexusProfile)
               : profile,
         })),
+      setProfitOverride: (policy) =>
+        set((state) => ({
+          profitOverride:
+            typeof policy === "function"
+              ? policy(state.profitOverride)
+              : policy,
+        })),
+      setShowProfitOverride: (visible) =>
+        set({ showProfitOverride: visible }),
       setListingStrategy: (strategy) =>
         set((state) => ({
           listingStrategy:
@@ -408,7 +454,7 @@ export const useOracleStore = create<OracleStoreState>()(
     }),
     {
       name: "oracle_dashboard_store",
-      version: 5,
+      version: 8,
       migrate: (persistedState: any, version: number) => {
         if (!persistedState || typeof persistedState !== "object") {
           return persistedState;
@@ -472,6 +518,34 @@ export const useOracleStore = create<OracleStoreState>()(
           persistedState.activeScope !== "snipe"
         ) {
           persistedState.activeScope = "baseline";
+        }
+
+        // v6: front-end profit override policy. Default to disabled so an
+        // upgraded install keeps pure Oracle buy ceilings until the trader
+        // opts in.
+        if (
+          !persistedState.profitOverride ||
+          typeof persistedState.profitOverride !== "object"
+        ) {
+          persistedState.profitOverride = DEFAULT_PROFIT_OVERRIDE_POLICY;
+        }
+
+        // v7: SSS buckets were renamed from liquidity-flavored keys
+        // (hyper/high/medium/low) to stability levels (prime/solid/
+        // moderate/thin). SSS is a supply-stability measure, not liquidity.
+        const sss = persistedState.profitOverride?.sssAdjustments;
+        if (sss) {
+          persistedState.profitOverride.sssAdjustments = {
+            prime: sss.prime ?? sss.hyper ?? 0,
+            solid: sss.solid ?? sss.high ?? 0,
+            moderate: sss.moderate ?? sss.medium ?? 0,
+            thin: sss.thin ?? sss.low ?? 0,
+          };
+        }
+
+        // v8: advanced Profit Override section is opt-in (hidden by default).
+        if (typeof persistedState.showProfitOverride !== "boolean") {
+          persistedState.showProfitOverride = false;
         }
         return persistedState;
       },

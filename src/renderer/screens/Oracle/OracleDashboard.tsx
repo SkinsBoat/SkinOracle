@@ -20,6 +20,7 @@ import {
   Step1MarketCache,
   SKINSNIPE_AVAILABLE_MARKETS,
 } from "./components/Step1MarketCache";
+import { applyProfitOverride } from "./utils/profitOverride";
 import { Step2AcceptedPrices } from "./components/Step2AcceptedPrices";
 import { Step3ListingPrices } from "./components/Step3ListingPrices";
 import { Step4SingleLookup } from "./components/Step4SingleLookup";
@@ -111,6 +112,9 @@ export default function OracleDashboard() {
     setStrategyProfile,
     nexusProfile,
     setNexusProfile,
+    profitOverride,
+    setProfitOverride,
+    showProfitOverride,
     listingStrategy,
     setListingStrategy,
     blockedSkins,
@@ -571,7 +575,7 @@ export default function OracleDashboard() {
               const acceptedPrice = roundToCsFloatStep(
                 r.oracle.finalAcceptedPrice,
               );
-              acceptedPriceMap[r.name] = {
+              const baseInfo: AcceptedPriceInfo = {
                 acceptedPrice,
                 supplyStabilityScore: r.oracle.supplyStabilityScore || 0,
                 isHyperStable: r.oracle.isHyperStable || false,
@@ -582,6 +586,12 @@ export default function OracleDashboard() {
                 nexusConfidence: r.oracle.nexusConfidence,
                 v1Benchmark: r.oracle.v1Benchmark,
               };
+              const overridden = applyProfitOverride(
+                baseInfo,
+                r.name,
+                profitOverride,
+              );
+              acceptedPriceMap[r.name] = overridden;
               total++;
               if ((r.oracle.supplyStabilityScore || 0) >= 1.2) highLiq++;
 
@@ -596,7 +606,11 @@ export default function OracleDashboard() {
                   const isTargetMarket = activeMarkets.some((mId) =>
                     isMarketMatch(l.m, mId),
                   );
-                  return isTargetMarket && l.p / acceptedPrice <= 1.1;
+                  return (
+                    isTargetMarket &&
+                    overridden.acceptedPrice > 0 &&
+                    l.p / overridden.acceptedPrice <= 1.1
+                  );
                 });
                 if (hasSoCloseDeal) soClose++;
               }
@@ -687,6 +701,44 @@ export default function OracleDashboard() {
           batchProgress: null,
         }));
       }
+    }
+  };
+
+  /**
+   * Re-applies the front-end override policy to the already-stored accepted
+   * price map WITHOUT contacting the valuation engine. Uses the preserved
+   * `oracleAcceptedPrice` as the base so it is idempotent and costs zero
+   * credits. Also restores pure Oracle ceilings when the policy is disabled.
+   */
+  const reapplyProfitOverride = async () => {
+    try {
+      const res = await window.electronAPI.oracle.getAcceptedPrices();
+      const map = (res?.map || {}) as Record<string, AcceptedPriceInfo>;
+      const names = Object.keys(map);
+      if (names.length === 0) {
+        toast.error(
+          "No calculated buy ceilings to re-apply. Calculate Accepted Prices first.",
+        );
+        return;
+      }
+      const next: Record<string, AcceptedPriceInfo> = {};
+      for (const name of names) {
+        next[name] = applyProfitOverride(map[name], name, profitOverride);
+      }
+      const storeResult =
+        await window.electronAPI.oracle.storeAcceptedPrices(next);
+      const appliedCount = Object.values(next).filter(
+        (i) => i.overrideApplied,
+      ).length;
+      const storedAt = storeResult?.storedAt || new Date().toISOString();
+      setEvaluatedSummary((prev) => ({ ...prev, lastBuiltAt: storedAt }));
+      toast.success(
+        profitOverride.enabled
+          ? `Re-applied override to ${appliedCount.toLocaleString()} of ${names.length.toLocaleString()} buy ceilings (0 credits).`
+          : `Restored pure Oracle buy ceilings for ${names.length.toLocaleString()} items.`,
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to re-apply the profit override");
     }
   };
 
@@ -1127,6 +1179,10 @@ export default function OracleDashboard() {
         setStrategyProfile={setStrategyProfile}
         nexusProfile={nexusProfile}
         setNexusProfile={setNexusProfile}
+        profitOverride={profitOverride}
+        setProfitOverride={setProfitOverride}
+        showProfitOverride={showProfitOverride}
+        onReapplyProfitOverride={reapplyProfitOverride}
         onBuildAcceptedPrices={buildAcceptedPrices}
         canBuild={canBuild}
       />

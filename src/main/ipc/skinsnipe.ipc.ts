@@ -307,7 +307,7 @@ async function mergeAndBuild(
 
   for (let i = 0; i < activeMarkets.length; i++) {
     if (cancelRequested) {
-      criticalError = "Fetch process manually stopped by user.";
+      criticalError = "Scan process manually stopped by user.";
       sendProgress(activeMarkets[i], i + 1, "aborted", criticalError);
       break;
     }
@@ -362,7 +362,7 @@ async function mergeAndBuild(
     }
 
     if (cancelRequested) {
-      criticalError = "Fetch process manually stopped by user.";
+      criticalError = "Scan process manually stopped by user.";
       sendProgress(market, i + 1, "aborted", criticalError);
       break;
     }
