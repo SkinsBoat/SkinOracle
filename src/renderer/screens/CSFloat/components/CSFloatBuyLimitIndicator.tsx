@@ -121,7 +121,7 @@ export const CSFloatBuyLimitIndicator: React.FC<
   return (
     <div
       style={getContainerStyle(isExceeded, statusTheme.shadow)}
-      title={`CSFloat 10x Balance Limit: $${maxLimitValue.toFixed(2)} | Active: $${activeOrdersTotal.toFixed(2)} (${activeOrdersCount} orders) | Remaining: $${remainingCapacity.toFixed(2)} | Max Orders: 1,000`}
+      title={`CSFloat Total Buy Order Limit (10x Balance): $${maxLimitValue.toFixed(2)} | Active Buy Orders: $${activeOrdersTotal.toFixed(2)} (${activeOrdersCount} orders) | Remaining: $${remainingCapacity.toFixed(2)} | Max Orders: 1,000`}
     >
       {/* Top Header Row: Title, Values & Dynamic Badge */}
       <div style={styles.headerRow}>
@@ -131,7 +131,7 @@ export const CSFloatBuyLimitIndicator: React.FC<
             style={{ color: statusTheme.color, flexShrink: 0 }}
           />
           <span style={styles.headerTitle}>
-            CSFloat Buy Limit (10x)
+            CSFloat Total Buy Order Limit (10x)
           </span>
 
           <span

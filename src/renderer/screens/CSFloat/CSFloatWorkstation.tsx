@@ -1424,7 +1424,7 @@ export default function CSFloatWorkstation() {
     (o) => getOrderDriftDetails(o)?.isActionRequired,
   ).length;
 
-  // Totals for Buy Limit Indicator (CSFloat 10x balance rule & 1,000 orders max limit)
+  // Totals for Total Buy Order Limit Indicator (CSFloat 10x balance rule & 1,000 orders max limit)
   const selectedOrdersTotal = orders
     .filter((order) => selectedItems[order.id])
     .reduce((sum, order) => {
@@ -1521,7 +1521,7 @@ export default function CSFloatWorkstation() {
             </div>
           </div>
 
-          {/* CSFloat Buy Order 10x Balance & Count Limit Indicator (Active on Buy Tabs) */}
+          {/* CSFloat Total Buy Order Limit Indicator (Active on Buy Tabs) */}
           {activeTab !== "listings" && (
             <CSFloatBuyLimitIndicator
               balance={userData?.balance}
