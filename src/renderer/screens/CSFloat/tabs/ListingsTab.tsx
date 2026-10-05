@@ -439,7 +439,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
 const getPrivateModeButtonStyle = (isPrivateMode: boolean): React.CSSProperties => ({
   backgroundColor: isPrivateMode
     ? "rgba(59, 130, 246, 0.15)"
-    : "rgba(16, 185, 129, 0.15)",
+    : "rgba(56, 189, 248, 0.15)",
   color: isPrivateMode
     ? "var(--so-primary)"
     : "var(--so-success-text)",

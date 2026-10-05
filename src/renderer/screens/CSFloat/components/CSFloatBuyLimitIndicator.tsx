@@ -74,11 +74,11 @@ export const CSFloatBuyLimitIndicator: React.FC<
 
   // Dynamic theme colors based on exposure percentage
   let statusTheme = {
-    color: "#10b981",
-    bgColor: "rgba(16, 185, 129, 0.14)",
-    borderColor: "rgba(16, 185, 129, 0.35)",
+    color: "var(--so-success-text)",
+    bgColor: "rgba(56, 189, 248, 0.14)",
+    borderColor: "rgba(56, 189, 248, 0.35)",
     label: "Safe",
-    barGradient: "linear-gradient(90deg, #10b981 0%, #06b6d4 100%)",
+    barGradient: "linear-gradient(90deg, #0ea5e9 0%, #06b6d4 100%)",
     previewGradient: "linear-gradient(90deg, #06b6d4 0%, #3b82f6 100%)",
     shadow: "none",
   };
@@ -244,7 +244,7 @@ const getContainerStyle = (
   borderRadius: "var(--so-radius-md)",
   padding: "6px 12px",
   flex: 1,
-  maxWidth: "460px",
+  maxWidth: "560px",
   minWidth: "280px",
   boxShadow,
   transition: "all 0.25s ease",
@@ -255,6 +255,8 @@ const getCountBadgeStyle = (isCountExceeded: boolean): React.CSSProperties => ({
   fontWeight: 700,
   padding: "1px 5px",
   borderRadius: "3px",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
   backgroundColor: isCountExceeded
     ? "rgba(239, 68, 68, 0.2)"
     : "var(--so-surface-panel)",
@@ -278,6 +280,8 @@ const getStatusBadgeStyle = (statusTheme: {
   fontSize: "9.5px",
   fontWeight: 800,
   letterSpacing: "0.2px",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
 });
 
 const getActiveFillStyle = (
@@ -321,12 +325,16 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     gap: "8px",
+    flexWrap: "nowrap",
+    minWidth: 0,
   } as React.CSSProperties,
 
   headerLeft: {
     display: "flex",
     alignItems: "center",
     gap: "6px",
+    minWidth: 0,
+    overflow: "hidden",
   } as React.CSSProperties,
 
   headerTitle: {
@@ -335,12 +343,18 @@ const styles = {
     color: "var(--so-text-secondary)",
     textTransform: "uppercase",
     letterSpacing: "0.4px",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    flexShrink: 1,
+    minWidth: 0,
   } as React.CSSProperties,
 
   headerRight: {
     display: "flex",
     alignItems: "center",
     gap: "6px",
+    flexShrink: 0,
   } as React.CSSProperties,
 
   barTrack: {
@@ -385,7 +399,7 @@ const styles = {
   } as React.CSSProperties,
 
   selectedOrdersText: {
-    color: "var(--so-primary)",
+    color: "var(--so-balance-accent)",
   } as React.CSSProperties,
 
   metricsRight: {

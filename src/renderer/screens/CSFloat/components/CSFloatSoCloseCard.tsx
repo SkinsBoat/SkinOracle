@@ -255,7 +255,7 @@ const getSssBadgeStyle = (score: number): React.CSSProperties => ({
   borderRadius: "4px",
   backgroundColor:
     score >= 1.2
-      ? "rgba(16, 185, 129, 0.18)"
+      ? "rgba(56, 189, 248, 0.18)"
       : score >= 0.8
         ? "rgba(6, 182, 212, 0.18)"
         : "rgba(245, 158, 11, 0.18)",
@@ -263,11 +263,11 @@ const getSssBadgeStyle = (score: number): React.CSSProperties => ({
     score >= 1.2
       ? "var(--so-success-text)"
       : score >= 0.8
-        ? "var(--so-cyan-text)"
+        ? "var(--so-success-text)"
         : "var(--so-warning)",
   border: `1px solid ${
     score >= 1.2
-      ? "rgba(16, 185, 129, 0.35)"
+      ? "rgba(56, 189, 248, 0.35)"
       : score >= 0.8
         ? "rgba(6, 182, 212, 0.35)"
         : "rgba(245, 158, 11, 0.35)"
@@ -280,10 +280,10 @@ const getPricingBoxStyle = (
   isClosenessUnder1: boolean,
 ): React.CSSProperties => ({
   backgroundColor: isClosenessUnder1
-    ? "rgba(16, 185, 129, 0.12)"
+    ? "rgba(56, 189, 248, 0.12)"
     : "var(--so-surface-input)",
   border: `1px solid ${
-    isClosenessUnder1 ? "rgba(16, 185, 129, 0.3)" : "var(--so-border-subtle)"
+    isClosenessUnder1 ? "rgba(56, 189, 248, 0.3)" : "var(--so-border-subtle)"
   }`,
   padding: "6px 8px",
   borderRadius: "var(--so-radius-sm)",

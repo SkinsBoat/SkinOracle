@@ -567,10 +567,10 @@ const getStallBadgeStyle = (isListed: boolean): React.CSSProperties => ({
   fontSize: "8.5px",
   color: isListed ? "var(--so-success-text)" : "var(--so-text-muted)",
   backgroundColor: isListed
-    ? "rgba(16, 185, 129, 0.15)"
+    ? "rgba(56, 189, 248, 0.15)"
     : "var(--so-surface-panel)",
   border: `1px solid ${
-    isListed ? "rgba(16, 185, 129, 0.3)" : "var(--so-border-subtle)"
+    isListed ? "rgba(56, 189, 248, 0.3)" : "var(--so-border-subtle)"
   }`,
   borderRadius: "3px",
   fontWeight: 800,
@@ -698,9 +698,9 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: "3px",
-    backgroundColor: "rgba(16, 185, 129, 0.12)",
-    color: "#34d399",
-    border: "1px solid rgba(16, 185, 129, 0.3)",
+    backgroundColor: "rgba(56, 189, 248, 0.12)",
+    color: "var(--so-success-text)",
+    border: "1px solid rgba(56, 189, 248, 0.3)",
     fontWeight: 800,
     fontSize: "9px",
     padding: "1px 5px",
@@ -748,7 +748,7 @@ const styles = {
 
   floatText: {
     fontSize: "9.5px",
-    color: "var(--so-cyan-text)",
+    color: "var(--so-success-text)",
     fontFamily: "monospace",
   } as React.CSSProperties,
 

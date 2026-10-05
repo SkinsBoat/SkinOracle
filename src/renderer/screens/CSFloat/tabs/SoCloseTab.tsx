@@ -487,7 +487,7 @@ const getSssTierStyle = (score: number): React.CSSProperties => ({
     score >= 1.2
       ? "var(--so-success-text)"
       : score >= 0.8
-        ? "var(--so-cyan-text)"
+        ? "var(--so-accent-cyan)"
         : "var(--so-warning)",
 });
 
