@@ -39,6 +39,68 @@ import {
   LookupModalItemData,
 } from "../CSFloat/modals/CSFloatLookupModal";
 
+type SoCloseSortKey = "closeness" | "profit" | "price" | "sss";
+
+type AllowedWears = {
+  fn: boolean;
+  mw: boolean;
+  ft: boolean;
+  ww: boolean;
+  bs: boolean;
+  souvenir: boolean;
+  sticker: boolean;
+};
+
+type PersistedScannerParams = {
+  minPrice: string;
+  maxPrice: string;
+  soCloseMaxCloseness: string;
+  soCloseMinSssScore: string;
+  sortBy: SoCloseSortKey;
+  allowedWears: AllowedWears;
+};
+
+const SOCLOSE_SCANNER_PARAMS_KEY = "soclose_scanner_params";
+
+const DEFAULT_SCANNER_PARAMS: PersistedScannerParams = {
+  minPrice: "1",
+  maxPrice: "250",
+  soCloseMaxCloseness: "1.08",
+  soCloseMinSssScore: "1.2",
+  sortBy: "closeness",
+  allowedWears: {
+    fn: true,
+    mw: true,
+    ft: true,
+    ww: true,
+    bs: true,
+    souvenir: true,
+    sticker: true,
+  },
+};
+
+function loadScannerParams(): PersistedScannerParams {
+  try {
+    const saved = localStorage.getItem(SOCLOSE_SCANNER_PARAMS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === "object") {
+        return {
+          ...DEFAULT_SCANNER_PARAMS,
+          ...parsed,
+          allowedWears: {
+            ...DEFAULT_SCANNER_PARAMS.allowedWears,
+            ...(parsed.allowedWears && typeof parsed.allowedWears === "object"
+              ? parsed.allowedWears
+              : {}),
+          },
+        };
+      }
+    }
+  } catch (e) {}
+  return { ...DEFAULT_SCANNER_PARAMS };
+}
+
 export default function SoCloseWorkstationScreen() {
   const { selectedMarkets } = useOracleStore();
 
@@ -233,25 +295,52 @@ export default function SoCloseWorkstationScreen() {
     });
   };
 
-  const [minPrice, setMinPrice] = useState<string>("1");
-  const [maxPrice, setMaxPrice] = useState<string>("250");
-  const [soCloseMaxCloseness, setSoCloseMaxCloseness] =
-    useState<string>("1.08"); // 8% distance ceiling
-  const [soCloseMinSssScore, setSoCloseMinSssScore] = useState<string>("1.2"); // Supply stability threshold
+  const [minPrice, setMinPrice] = useState<string>(
+    () => loadScannerParams().minPrice,
+  );
+  const [maxPrice, setMaxPrice] = useState<string>(
+    () => loadScannerParams().maxPrice,
+  );
+  const [soCloseMaxCloseness, setSoCloseMaxCloseness] = useState<string>(
+    () => loadScannerParams().soCloseMaxCloseness,
+  ); // 8% distance ceiling
+  const [soCloseMinSssScore, setSoCloseMinSssScore] = useState<string>(
+    () => loadScannerParams().soCloseMinSssScore,
+  ); // Supply stability threshold
   const [resultSearchQuery, setResultSearchQuery] = useState<string>("");
-  const [sortBy, setSortBy] = useState<
-    "closeness" | "profit" | "price" | "sss"
-  >("closeness");
+  const [sortBy, setSortBy] = useState<SoCloseSortKey>(
+    () => loadScannerParams().sortBy,
+  );
 
-  const [allowedWears, setAllowedWears] = useState({
-    fn: true,
-    mw: true,
-    ft: true,
-    ww: true,
-    bs: true,
-    souvenir: true,
-    sticker: true,
-  });
+  const [allowedWears, setAllowedWears] = useState<AllowedWears>(
+    () => loadScannerParams().allowedWears,
+  );
+
+  // Persist scanner parameter choices locally so they survive app restarts
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SOCLOSE_SCANNER_PARAMS_KEY,
+        JSON.stringify({
+          minPrice,
+          maxPrice,
+          soCloseMaxCloseness,
+          soCloseMinSssScore,
+          sortBy,
+          allowedWears,
+        }),
+      );
+    } catch (e) {
+      console.error("Failed to save soclose scanner params:", e);
+    }
+  }, [
+    minPrice,
+    maxPrice,
+    soCloseMaxCloseness,
+    soCloseMinSssScore,
+    sortBy,
+    allowedWears,
+  ]);
 
   // Refresh status from main process
   const refreshStatuses = async () => {
@@ -1300,9 +1389,9 @@ const styles = {
     letterSpacing: "0.5px",
     padding: "2px 7px",
     borderRadius: "10px",
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
-    color: "#10b981",
-    border: "1px solid rgba(16, 185, 129, 0.4)",
+    backgroundColor: "rgba(56, 189, 248, 0.18)",
+    color: "#38bdf8",
+    border: "1px solid rgba(56, 189, 248, 0.45)",
   },
   headerSubtitle: {
     fontSize: "13px",
