@@ -37,6 +37,16 @@ export default defineConfig(({ mode }) => {
         main: {
           entry: "src/main/main.ts",
           vite: {
+            build: {
+              rollupOptions: {
+                // Keep the socket.io client out of the bundle so Node resolves
+                // its Node build (engine.io-client → `ws`) at runtime from
+                // node_modules, instead of Vite bundling the browser transports
+                // (XMLHttpRequest / global WebSocket), which do not exist in the
+                // Electron main process.
+                external: [/^socket\.io-client(\/|$)/],
+              },
+            },
             define: {
               ...(env.SAAS_API_URL && {
                 "process.env.SAAS_API_URL": JSON.stringify(env.SAAS_API_URL),

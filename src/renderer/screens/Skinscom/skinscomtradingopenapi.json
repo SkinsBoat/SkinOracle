@@ -1,0 +1,4705 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Skins.com Trading API",
+    "version": "1.0.0",
+    "license": {
+      "name": "Proprietary",
+      "url": "https://skins.com/legal/terms"
+    },
+    "description": "The Skins.com trading API lets bots and apps trade CS2 items: list items from your Steam inventory, reprice and cancel listings, buy fixed-price items, bid on auctions, and follow every change live on the websocket.\n\n**Money fields are integer USD cents.** `coin_value`, `market_value`, `bid_value` and the other money fields are in cents: 100 means $1.00.\n\nAuthentication: create a key under Profile > Developers (two-factor authentication is required to create one) and send `Authorization: Bearer <key>`.\n\nRate limits: 120 requests per 60 seconds per IP across all endpoints. Going over locks the IP out for 60 seconds with HTTP 429. Buying, selling and bidding also have per-account limits. Prefer the websocket to polling.\n\nPricing: a listing price can be edited once every 5 minutes. Bids must be at least the next bid (`purchase_price`) and are placed at exactly the next bid.\n\nWebsocket: socket.io v4 at `wss://trading-api.skins.com`, path `/s/`, namespace `/trade`. Get `socket_token` and `socket_signature` from `GET /metadata/socket`, connect with query `uid` and `token`, then emit `identify` `{ uid, model, authorizationToken, signature }` if `init.authenticated` is false. Emit `filters` to start receiving item events, and optionally `allowedEvents` `{ events: [...] }` to limit them. Every item event payload is an array. Events are listed under `x-websocket-events`.\n\nMCP: AI agents can use the API through the MCP server at `https://trading-api.skins.com/mcp` (Streamable HTTP). Every endpoint is a tool named after its operation id, with `-` replaced by `_` (`create-deposit` is `create_deposit`). Send the same `Authorization: Bearer <key>` header; tool calls count against the same rate limits."
+  },
+  "servers": [
+    {
+      "url": "https://trading-api.skins.com"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Account",
+      "description": "Socket credentials and account data."
+    },
+    {
+      "name": "Deposit",
+      "description": "Selling: list, reprice, cancel and deliver items."
+    },
+    {
+      "name": "Withdraw",
+      "description": "Buying: browse, buy, bid and confirm delivery."
+    }
+  ],
+  "security": [
+    {
+      "sec0": []
+    }
+  ],
+  "paths": {
+    "/metadata/socket": {
+      "get": {
+        "operationId": "metadata",
+        "summary": "Metadata",
+        "description": "Returns the user object and the socket credentials (`socket_token`, `socket_signature`) used to authenticate on the websocket. The token is valid for 30 seconds.",
+        "tags": [
+          "Account"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocketMetadataResponse"
+                },
+                "example": {
+                  "user": {
+                    "id": 1204,
+                    "steam_id": "76561198012345678",
+                    "steam_name": "trader",
+                    "username": "trader",
+                    "avatar": "https://avatars.steamstatic.com/60d676610e6303f1f5fde66f307dbe753fc91221_full.jpg",
+                    "balance": 125050,
+                    "trade_url": "https://steamcommunity.com/tradeoffer/new/?partner=52079950&token=AbCdEfGh",
+                    "steam_level": 32,
+                    "registration_timestamp": "2025-03-01 12:00:00",
+                    "extra_security_type": "2fa"
+                  },
+                  "socket_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjEyMDQsInN1YiI6Ii4uLiJ9.signature",
+                  "socket_signature": "5f2b6c0a3e9d4f7b8c1a2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/user/inventory": {
+      "get": {
+        "operationId": "get-cs2-inventory",
+        "summary": "Get CS2 Inventory",
+        "description": "Your tradable CS2 inventory. `id` is the Steam asset id; use it (or `asset_id`) to deposit. Items already in a deposit carry an `invalid` reason, except deposits back on the market after an auction ended unsold: those can be deposited again to re-auction them.",
+        "tags": [
+          "Deposit"
+        ],
+        "parameters": [
+          {
+            "name": "invalid",
+            "in": "query",
+            "required": false,
+            "description": "\"yes\" filters out items that cannot be deposited",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryResponse"
+                },
+                "example": {
+                  "success": true,
+                  "updatedAt": 1790272800,
+                  "allowUpdate": true,
+                  "data": [
+                    {
+                      "id": 45059553777,
+                      "asset_id": 45059553777,
+                      "app_id": 730,
+                      "context_id": 2,
+                      "market_name": "AK-47 | Redline (Field-Tested)",
+                      "market_value": 3310,
+                      "suggested_price": 3310,
+                      "price_is_unreliable": false,
+                      "custom_price_percentage": null,
+                      "icon_url": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09-vloWZh-L6OITck29Y_cg_0r_HrY2m2ATmqhBlYT-nd9TDdFNoZQvWrla2xL29gMDpuM6cnHQ2vj5iuyhtZhH0GA",
+                      "name_color": "D2D2D2",
+                      "preview_id": null,
+                      "type": "Classified Rifles",
+                      "wear": 0.2512,
+                      "blue_percentage": null,
+                      "fade_percentage": null,
+                      "stickers": [],
+                      "is_commodity": false,
+                      "tradable": true,
+                      "tradelock": false,
+                      "trade_exists": false,
+                      "invalid": null,
+                      "position": 0,
+                      "full_position": 0,
+                      "created_at": "2026-09-24 16:00:00",
+                      "updated_at": "2026-09-24 16:00:00"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit": {
+      "post": {
+        "operationId": "create-deposit",
+        "summary": "Create Deposit",
+        "description": "List items for sale. `coin_value` is the price in USD cents. Send at most 20 items per request. Each item gets a tracking code; the listing result arrives as `new_item` or `deposit_failed` on the websocket. Depositing an item whose auction ended unsold replaces its old deposit with a new one (new deposit id): the old one arrives as `deleted_item`, the new one as `new_item`.",
+        "tags": [
+          "Deposit"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepositRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateDepositResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "item_id": 45059553777,
+                      "tracking_code": "01K3H28BXWM3HM5MDACGEKETN0",
+                      "tracking_expires_at": 1790276400,
+                      "asset_id": 45059553777
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "The items.0.coin_value field is invalid: Too small: expected number to be >0",
+                  "message_localized": {
+                    "key": "errors.validation_error"
+                  },
+                  "data": {
+                    "items.0.coin_value": [
+                      "Too small: expected number to be >0"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trading or the site is temporarily disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/status/{tracking_code}": {
+      "get": {
+        "operationId": "check-deposit-status",
+        "summary": "Check Deposit Status",
+        "description": "Status of a deposit by tracking code, as a backup to the websocket.",
+        "tags": [
+          "Deposit"
+        ],
+        "parameters": [
+          {
+            "name": "tracking_code",
+            "in": "path",
+            "required": true,
+            "description": "Tracking code from Create Deposit",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositStatusResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "user_id": 1204,
+                    "item_id": 45059553777,
+                    "status": "completed",
+                    "error": null,
+                    "created_at": 1790272800,
+                    "updated_at": 1790272805,
+                    "tracking_expires_at": 1790276400,
+                    "deposit_id": 288775415
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{deposit_id}/cancel": {
+      "post": {
+        "operationId": "cancel-deposit",
+        "summary": "Cancel Deposit",
+        "description": "Cancels a deposit that has no bids. Once a bid is placed the deposit cannot be canceled. A deposit whose auction is closing returns 409 `auction_not_active`.",
+        "tags": [
+          "Deposit"
+        ],
+        "parameters": [
+          {
+            "name": "deposit_id",
+            "in": "path",
+            "required": true,
+            "description": "Deposit id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It changed state in the meantime (e.g. the auction is closing)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Auction is closing and can no longer be canceled",
+                  "message_localized": {
+                    "key": "errors.auction_not_active"
+                  },
+                  "data": {
+                    "error_key": "auction_not_active"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/cancel": {
+      "post": {
+        "operationId": "cancel-multiple-deposits",
+        "summary": "Cancel Multiple Deposits",
+        "description": "Cancels several deposits. The result is reported per id; a deposit whose auction is closing reports its error message.",
+        "tags": [
+          "Deposit"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelDepositsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelDepositsResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "288775415": {
+                      "success": true
+                    },
+                    "288775416": {
+                      "success": false,
+                      "message": "You don't have a cancellable deposit."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "The ids field is invalid: Too small: expected array to have >=1 items",
+                  "message_localized": {
+                    "key": "errors.validation_error"
+                  },
+                  "data": {
+                    "ids": [
+                      "Too small: expected array to have >=1 items"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{deposit_id}/sell": {
+      "post": {
+        "operationId": "sell-now",
+        "summary": "Sell Now",
+        "description": "Ends an auction immediately at the current highest bid. Only works for auctions with at least one bid.",
+        "tags": [
+          "Deposit"
+        ],
+        "parameters": [
+          {
+            "name": "deposit_id",
+            "in": "path",
+            "required": true,
+            "description": "Deposit id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SellNowResponse"
+                },
+                "example": {
+                  "success": true,
+                  "auction_data": {
+                    "id": 288767047,
+                    "app_id": 730,
+                    "auction_highest_bid": 3730,
+                    "auction_number_of_bids": 2,
+                    "auction_ends_at": 1790276430
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{deposit_id}/sent": {
+      "post": {
+        "operationId": "mark-as-sent",
+        "summary": "Mark as sent",
+        "description": "Mark an item as sent after sending the Steam trade offer.",
+        "tags": [
+          "Deposit"
+        ],
+        "parameters": [
+          {
+            "name": "deposit_id",
+            "in": "path",
+            "required": true,
+            "description": "Deposit id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{deposit_id}": {
+      "patch": {
+        "operationId": "update-listing-price",
+        "summary": "Update Listing Price",
+        "description": "Update the price (USD cents) of an active deposit. Accepts a deposit id or a Steam asset id. A listing price can be edited once every 5 minutes.",
+        "tags": [
+          "Deposit"
+        ],
+        "parameters": [
+          {
+            "name": "deposit_id",
+            "in": "path",
+            "required": true,
+            "description": "Deposit id or Steam asset id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePriceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "The coin_value field is invalid: Too small: expected number to be >0",
+                  "message_localized": {
+                    "key": "errors.validation_error"
+                  },
+                  "data": {
+                    "coin_value": [
+                      "Too small: expected number to be >0"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/bulk": {
+      "patch": {
+        "operationId": "bulk-update-listing-prices",
+        "summary": "Bulk Update Listing Prices",
+        "description": "Update prices for up to 20 deposits per request. Each entry is reported as updated, unchanged or failed.",
+        "tags": [
+          "Deposit"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkUpdatePricesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkUpdatePricesResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "attempted": 3,
+                      "updated": 1,
+                      "unchanged": 1,
+                      "failed": 1
+                    },
+                    "updated": [
+                      {
+                        "index": 0,
+                        "id": 288775415,
+                        "old_price": 16300,
+                        "new_price": 15990
+                      }
+                    ],
+                    "unchanged": [
+                      {
+                        "index": 1,
+                        "id": 288775416
+                      }
+                    ],
+                    "failed": [
+                      {
+                        "index": 2,
+                        "id": 288775417,
+                        "error": "You can edit the price again in 4 minutes"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "The items.0.coin_value field is invalid: Too small: expected number to be >0",
+                  "message_localized": {
+                    "key": "errors.validation_error"
+                  },
+                  "data": {
+                    "items.0.coin_value": [
+                      "Too small: expected number to be >0"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/items": {
+      "get": {
+        "operationId": "get-listed-items",
+        "summary": "Get Listed Items",
+        "description": "Items listed for sale. `per_page` is 1-200 without an API key and up to 2500 with one. Prices and price filters are USD cents.",
+        "tags": [
+          "Withdraw"
+        ],
+        "security": [
+          {},
+          {
+            "sec0": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2500
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "auction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "market_value"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "price_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "price_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "price_max_above",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "delivery_time_long_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "delivery_time_long_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "wear_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          {
+            "name": "wear_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          {
+            "name": "has_stickers",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          },
+          {
+            "name": "is_commodity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListedItemsResponse"
+                },
+                "example": {
+                  "success": true,
+                  "current_page": 1,
+                  "data": [
+                    {
+                      "id": 288775415,
+                      "market_name": "AWP | Asiimov (Well-Worn)",
+                      "market_value": 16300,
+                      "purchase_price": 16300,
+                      "suggested_price": 16643,
+                      "above_recommended_price": -2.06,
+                      "price_is_unreliable": false,
+                      "is_commodity": false,
+                      "icon_url": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09-vloWZh-L6OITck29Y_cg_0r_HrY2m2ATmqhBlYT-nd9TDdFNoZQvWrla2xL29gMDpuM6cnHQ2vj5iuyhtZhH0GA",
+                      "name_color": "D2D2D2",
+                      "preview_id": null,
+                      "wear": 0.398,
+                      "wear_name": "Well-Worn",
+                      "stickers": [
+                        {
+                          "sticker_id": null,
+                          "wear": null,
+                          "name": "Fnatic | Rio 2022",
+                          "image": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXQ9QVcJY8gulRPQV6CF7b9mMndR15LKQVFsb_rfVdk0qDNIWRHvYvjkNCNxPWlYL_QlD4E6ZF3iLmRoYikjlDkqRI6MHezetGzJZPHxg"
+                        }
+                      ],
+                      "blue_percentage": null,
+                      "fade_percentage": null,
+                      "auction_ends_at": null,
+                      "auction_highest_bid": null,
+                      "auction_number_of_bids": 0,
+                      "published_at": "2026-09-24T17:11:43.378Z",
+                      "marketplace_privacy_protection_level": "base",
+                      "depositor_stats": {
+                        "delivery_rate_recent": 1,
+                        "delivery_rate_long": 0.9412,
+                        "delivery_time_minutes_recent": 2,
+                        "delivery_time_minutes_long": 4,
+                        "delivery_rate_status": null,
+                        "steam_level_min_range": 21,
+                        "steam_level_max_range": 40,
+                        "user_has_trade_notifications_enabled": true,
+                        "user_online_status": 1
+                      }
+                    },
+                    {
+                      "id": 288767047,
+                      "market_name": "M4A4 | Cyber Security (Field-Tested)",
+                      "market_value": 3656,
+                      "purchase_price": 3693,
+                      "suggested_price": 3801,
+                      "above_recommended_price": -2.84,
+                      "price_is_unreliable": false,
+                      "is_commodity": false,
+                      "icon_url": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09-vloWZh-L6OITck29Y_cg_0r_HrY2m2ATmqhBlYT-nd9TDdFNoZQvWrla2xL29gMDpuM6cnHQ2vj5iuyhtZhH0GA",
+                      "name_color": "D2D2D2",
+                      "preview_id": null,
+                      "wear": 0.2271,
+                      "wear_name": "Field-Tested",
+                      "stickers": [],
+                      "blue_percentage": null,
+                      "fade_percentage": null,
+                      "auction_ends_at": 1790276400,
+                      "auction_highest_bid": 3656,
+                      "auction_number_of_bids": 1,
+                      "published_at": "2026-09-24T17:11:43.378Z",
+                      "marketplace_privacy_protection_level": "base",
+                      "depositor_stats": {
+                        "delivery_rate_recent": 1,
+                        "delivery_rate_long": 0.9412,
+                        "delivery_time_minutes_recent": 2,
+                        "delivery_time_minutes_long": 4,
+                        "delivery_rate_status": null,
+                        "steam_level_min_range": 21,
+                        "steam_level_max_range": 40,
+                        "user_has_trade_notifications_enabled": true,
+                        "user_online_status": 1
+                      }
+                    }
+                  ],
+                  "first_page_url": "https://trading-api.skins.com/trading/items?per_page=2&page=1",
+                  "from": 1,
+                  "last_page": 11164,
+                  "last_page_url": "https://trading-api.skins.com/trading/items?per_page=2&page=11164",
+                  "links": [
+                    {
+                      "url": null,
+                      "label": "&laquo; Previous",
+                      "active": false
+                    },
+                    {
+                      "url": "https://trading-api.skins.com/trading/items?per_page=2&page=1",
+                      "label": "1",
+                      "active": true
+                    },
+                    {
+                      "url": "https://trading-api.skins.com/trading/items?per_page=2&page=2",
+                      "label": "2",
+                      "active": false
+                    },
+                    {
+                      "url": "https://trading-api.skins.com/trading/items?per_page=2&page=2",
+                      "label": "Next &raquo;",
+                      "active": false
+                    }
+                  ],
+                  "next_page_url": "https://trading-api.skins.com/trading/items?per_page=2&page=2",
+                  "path": "https://trading-api.skins.com/trading/items",
+                  "per_page": 2,
+                  "prev_page_url": null,
+                  "to": 2,
+                  "total": 22328
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "The per_page field is invalid: Too big: expected number to be <=2500",
+                  "message_localized": {
+                    "key": "errors.validation_error"
+                  },
+                  "data": {
+                    "per_page": [
+                      "Too big: expected number to be <=2500"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{deposit_id}/stats": {
+      "get": {
+        "operationId": "get-depositor-stats",
+        "summary": "Get Depositor Stats",
+        "description": "The seller's delivery stats for a deposit.",
+        "tags": [
+          "Withdraw"
+        ],
+        "parameters": [
+          {
+            "name": "deposit_id",
+            "in": "path",
+            "required": true,
+            "description": "Deposit id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositorStats"
+                },
+                "example": {
+                  "delivery_rate_recent": 1,
+                  "delivery_rate_long": 0.9412,
+                  "delivery_time_minutes_recent": 2,
+                  "delivery_time_minutes_long": 4,
+                  "delivery_rate_status": null,
+                  "steam_level_min_range": 21,
+                  "steam_level_max_range": 40,
+                  "user_has_trade_notifications_enabled": true,
+                  "user_online_status": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{deposit_id}/withdraw": {
+      "post": {
+        "operationId": "create-withdrawal",
+        "summary": "Create Withdrawal",
+        "description": "Buy a fixed-price item. `coin_value` is the highest price you accept, in USD cents; it defaults to the current price. Items in an auction need Place Bid instead.",
+        "tags": [
+          "Withdraw"
+        ],
+        "parameters": [
+          {
+            "name": "deposit_id",
+            "in": "path",
+            "required": true,
+            "description": "Deposit id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WithdrawResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": 291452362,
+                    "tradeoffer_id": null
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "The coin_value field is invalid: Too small: expected number to be >0",
+                  "message_localized": {
+                    "key": "errors.validation_error"
+                  },
+                  "data": {
+                    "coin_value": [
+                      "Too small: expected number to be >0"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trading or the site is temporarily disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{deposit_id}/bid": {
+      "post": {
+        "operationId": "place-bid",
+        "summary": "Place Bid",
+        "description": "Place a bid on an auction. `bid_value` (USD cents) must be at least the next bid, which is `purchase_price` on the listing; the bid is placed at the next bid.",
+        "tags": [
+          "Withdraw"
+        ],
+        "parameters": [
+          {
+            "name": "deposit_id",
+            "in": "path",
+            "required": true,
+            "description": "Deposit id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceBidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceBidResponse"
+                },
+                "example": {
+                  "success": true,
+                  "auction_data": {
+                    "id": 288767047,
+                    "app_id": 730,
+                    "above_recommended_price": -1.87,
+                    "auction_highest_bid": 3730,
+                    "auction_number_of_bids": 2,
+                    "auction_ends_at": 1790276430
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "The bid_value field is invalid: Too small: expected number to be >0",
+                  "message_localized": {
+                    "key": "errors.validation_error"
+                  },
+                  "data": {
+                    "bid_value": [
+                      "Too small: expected number to be >0"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trading or the site is temporarily disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{tradeoffer_id}/received": {
+      "post": {
+        "operationId": "mark-as-received",
+        "summary": "Mark as received",
+        "description": "Mark an item as received after accepting the Steam trade offer.",
+        "tags": [
+          "Withdraw"
+        ],
+        "parameters": [
+          {
+            "name": "tradeoffer_id",
+            "in": "path",
+            "required": true,
+            "description": "Trade id from the withdraw response, or the Steam trade offer id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trading/deposit/{tradeoffer_id}/dispute": {
+      "post": {
+        "operationId": "dispute-trade",
+        "summary": "Dispute trade",
+        "description": "Dispute a trade when the seller marked it as sent but you did not receive the item.",
+        "tags": [
+          "Withdraw"
+        ],
+        "parameters": [
+          {
+            "name": "tradeoffer_id",
+            "in": "path",
+            "required": true,
+            "description": "Trade id from the withdraw response, or the Steam trade offer id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                },
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The action was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "message_localized": {
+                    "key": "errors.insufficient_balance"
+                  },
+                  "data": {
+                    "error_key": "insufficient_balance"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Unauthenticated.",
+                  "message_localized": {
+                    "key": "errors.unauthenticated"
+                  },
+                  "data": {
+                    "error_key": "unauthenticated"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or account restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Deposit not found",
+                  "message_localized": {
+                    "key": "errors.deposit_not_found"
+                  },
+                  "data": {
+                    "error_key": "deposit_not_found"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited: 120 requests per 60 s per IP, then locked out for 60 s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too Many Attempts.",
+                  "message_localized": {
+                    "key": "errors.rate_limited"
+                  },
+                  "data": {
+                    "error_key": "rate_limited",
+                    "retry_after": 60
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sec0": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key from Profile > Developers: `Authorization: Bearer <key>`"
+      }
+    },
+    "schemas": {
+      "Sticker": {
+        "type": "object",
+        "properties": {
+          "sticker_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sticker_id",
+          "wear",
+          "name",
+          "image"
+        ]
+      },
+      "DepositorStats": {
+        "type": "object",
+        "properties": {
+          "delivery_rate_recent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of the last 10 sales delivered, 0-1"
+          },
+          "delivery_rate_long": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of the last 100 sales delivered, 0-1"
+          },
+          "delivery_time_minutes_recent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delivery_time_minutes_long": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delivery_rate_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "poor"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steam_level_min_range": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steam_level_max_range": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "user_has_trade_notifications_enabled": {
+            "type": "boolean"
+          },
+          "user_online_status": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        },
+        "required": [
+          "delivery_rate_recent",
+          "delivery_rate_long",
+          "delivery_time_minutes_recent",
+          "delivery_time_minutes_long",
+          "delivery_rate_status",
+          "steam_level_min_range",
+          "steam_level_max_range",
+          "user_has_trade_notifications_enabled",
+          "user_online_status"
+        ]
+      },
+      "ItemSearch": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sub_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rarity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "category",
+          "type",
+          "sub_type",
+          "rarity"
+        ]
+      },
+      "Listing": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Deposit id"
+          },
+          "market_name": {
+            "type": "string"
+          },
+          "market_value": {
+            "type": "integer",
+            "description": "Listing price (USD cents)"
+          },
+          "purchase_price": {
+            "type": "integer",
+            "description": "Price a buyer pays now: the listing price, or the next bid for auctions (USD cents)"
+          },
+          "suggested_price": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "Reference market price (USD cents)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "above_recommended_price": {
+            "type": "number",
+            "description": "Percent above (positive) or below (negative) the suggested price"
+          },
+          "price_is_unreliable": {
+            "type": "boolean"
+          },
+          "is_commodity": {
+            "type": "boolean"
+          },
+          "icon_url": {
+            "type": "string",
+            "description": "Steam economy image hash; prefix with https://community.cloudflare.steamstatic.com/economy/image/"
+          },
+          "name_color": {
+            "type": "string"
+          },
+          "preview_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wear_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stickers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Sticker"
+            }
+          },
+          "blue_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fade_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "auction_ends_at": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "Auction end (unix seconds)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null for fixed-price listings"
+          },
+          "auction_highest_bid": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "Highest bid (USD cents)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "auction_number_of_bids": {
+            "type": "integer"
+          },
+          "published_at": {
+            "type": "string",
+            "description": "ISO 8601"
+          },
+          "marketplace_privacy_protection_level": {
+            "type": "string",
+            "enum": [
+              "base",
+              "strict"
+            ]
+          },
+          "depositor_stats": {
+            "$ref": "#/components/schemas/DepositorStats"
+          },
+          "item_search": {
+            "description": "Websocket payloads only",
+            "$ref": "#/components/schemas/ItemSearch"
+          }
+        },
+        "required": [
+          "id",
+          "market_name",
+          "market_value",
+          "purchase_price",
+          "suggested_price",
+          "above_recommended_price",
+          "price_is_unreliable",
+          "is_commodity",
+          "icon_url",
+          "name_color",
+          "preview_id",
+          "wear",
+          "wear_name",
+          "stickers",
+          "blue_percentage",
+          "fade_percentage",
+          "auction_ends_at",
+          "auction_highest_bid",
+          "auction_number_of_bids",
+          "published_at",
+          "marketplace_privacy_protection_level",
+          "depositor_stats"
+        ]
+      },
+      "InventoryItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Item id to deposit with; equals the Steam asset id"
+          },
+          "asset_id": {
+            "type": "integer"
+          },
+          "app_id": {
+            "type": "integer",
+            "const": 730
+          },
+          "context_id": {
+            "type": "integer",
+            "const": 2
+          },
+          "market_name": {
+            "type": "string"
+          },
+          "market_value": {
+            "type": "integer",
+            "description": "Reference market price (USD cents)"
+          },
+          "suggested_price": {
+            "type": "integer",
+            "description": "Reference market price (USD cents)"
+          },
+          "price_is_unreliable": {
+            "type": "boolean"
+          },
+          "custom_price_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon_url": {
+            "type": "string"
+          },
+          "name_color": {
+            "type": "string"
+          },
+          "preview_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "blue_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fade_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stickers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Sticker"
+            }
+          },
+          "is_commodity": {
+            "type": "boolean"
+          },
+          "tradable": {
+            "type": "boolean"
+          },
+          "tradelock": {
+            "type": "boolean"
+          },
+          "trade_exists": {
+            "type": "boolean"
+          },
+          "invalid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the item cannot be deposited, or null"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "full_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "description": "UTC date, \"YYYY-MM-DD HH:MM:SS\""
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "UTC date, \"YYYY-MM-DD HH:MM:SS\""
+          }
+        },
+        "required": [
+          "id",
+          "asset_id",
+          "app_id",
+          "context_id",
+          "market_name",
+          "market_value",
+          "suggested_price",
+          "price_is_unreliable",
+          "custom_price_percentage",
+          "icon_url",
+          "name_color",
+          "preview_id",
+          "type",
+          "wear",
+          "blue_percentage",
+          "fade_percentage",
+          "stickers",
+          "is_commodity",
+          "tradable",
+          "tradelock",
+          "trade_exists",
+          "invalid",
+          "position",
+          "full_position",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "TradeItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Deposit id"
+          },
+          "asset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market_name": {
+            "type": "string"
+          },
+          "market_value": {
+            "type": "integer",
+            "description": "Trade value (USD cents)"
+          },
+          "suggested_price": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "Reference market price (USD cents)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price_is_unreliable": {
+            "type": "boolean"
+          },
+          "is_commodity": {
+            "type": "boolean"
+          },
+          "icon_url": {
+            "type": "string"
+          },
+          "name_color": {
+            "type": "string"
+          },
+          "preview_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "blue_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fade_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stickers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Sticker"
+            }
+          },
+          "marketplace_privacy_protection_level": {
+            "type": "string",
+            "enum": [
+              "base",
+              "strict"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "asset_id",
+          "market_name",
+          "market_value",
+          "suggested_price",
+          "price_is_unreliable",
+          "is_commodity",
+          "icon_url",
+          "name_color",
+          "preview_id",
+          "type",
+          "wear",
+          "blue_percentage",
+          "fade_percentage",
+          "stickers",
+          "marketplace_privacy_protection_level"
+        ]
+      },
+      "TradeStatus": {
+        "type": "integer",
+        "enum": [
+          -1,
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          15
+        ],
+        "description": "-1 Error, 0 Pending, 1 Received, 2 Processing, 3 Sending, 4 Confirming, 5 Sent, 6 Completed, 7 Declined, 8 Canceled, 9 Timed Out, 10 Credited, 11 Disputed, 13 CompletedButReversible, 14 TradeReversed, 15 TimedOutButReversible"
+      },
+      "TradePartner": {
+        "type": "object",
+        "properties": {
+          "steam_id": {
+            "type": "string"
+          },
+          "steam_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatar_full": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile_url": {
+            "type": "string"
+          },
+          "timecreated": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steam_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "steam_id",
+          "steam_name",
+          "avatar",
+          "avatar_full",
+          "profile_url",
+          "timecreated",
+          "steam_level"
+        ]
+      },
+      "Trade": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Trade id"
+          },
+          "item_id": {
+            "type": "integer",
+            "description": "Deposit id"
+          },
+          "total_value": {
+            "type": "integer",
+            "description": "Trade value (USD cents)"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TradeStatus"
+          },
+          "status_message": {
+            "type": "string"
+          },
+          "tradeoffer_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Steam trade offer id once known"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "UTC date, \"YYYY-MM-DD HH:MM:SS\""
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "UTC date, \"YYYY-MM-DD HH:MM:SS\""
+          },
+          "item": {
+            "$ref": "#/components/schemas/TradeItem"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "item_validation": {
+                "type": "object",
+                "properties": {
+                  "numWrongItemDetections": {
+                    "type": "integer"
+                  },
+                  "validItemDetected": {
+                    "type": "boolean"
+                  },
+                  "validatedAt": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "numWrongItemDetections",
+                  "validItemDetected"
+                ]
+              },
+              "expires_at": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "description": "Deadline for the current step (unix seconds)"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "partner": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/TradePartner"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "trade_url": {
+                "description": "Buyer trade URL, seller side only",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "item_validation",
+              "expires_at",
+              "partner"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "item_id",
+          "total_value",
+          "status",
+          "status_message",
+          "tradeoffer_id",
+          "created_at",
+          "updated_at",
+          "item",
+          "metadata"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "message": {
+            "type": "string"
+          },
+          "message_localized": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "error_key": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "error_key"
+            ],
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "message": {
+            "type": "string"
+          },
+          "message_localized": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Field name to validation messages"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ]
+      },
+      "Success": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "SocketUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "steam_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steam_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "balance": {
+            "type": "integer",
+            "description": "Wallet balance (USD cents)"
+          },
+          "trade_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steam_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "registration_timestamp": {
+            "type": "string",
+            "description": "UTC date, \"YYYY-MM-DD HH:MM:SS\""
+          },
+          "extra_security_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "2fa"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "steam_id",
+          "steam_name",
+          "username",
+          "avatar",
+          "balance",
+          "trade_url",
+          "steam_level",
+          "registration_timestamp",
+          "extra_security_type"
+        ]
+      },
+      "SocketMetadataResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SocketUser"
+          },
+          "socket_token": {
+            "type": "string",
+            "description": "Valid for 30 seconds; fetch a new one before every (re)connect"
+          },
+          "socket_signature": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user",
+          "socket_token",
+          "socket_signature"
+        ]
+      },
+      "InventoryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "updatedAt": {
+            "type": "integer",
+            "description": "Inventory fetched at (unix seconds)"
+          },
+          "allowUpdate": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryItem"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "updatedAt",
+          "allowUpdate",
+          "data"
+        ]
+      },
+      "CreateDepositRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "Item id from the inventory endpoint",
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{1,20}$"
+                    }
+                  ]
+                },
+                "asset_id": {
+                  "description": "Steam asset id",
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{1,20}$"
+                    }
+                  ]
+                },
+                "coin_value": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "description": "Listing price (USD cents)"
+                }
+              },
+              "required": [
+                "coin_value"
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CreateDepositResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "item_id": {
+                  "type": "integer"
+                },
+                "tracking_code": {
+                  "type": "string"
+                },
+                "tracking_expires_at": {
+                  "type": "integer",
+                  "description": "Tracking code expiry (unix seconds)"
+                },
+                "asset_id": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "item_id",
+                "tracking_code",
+                "tracking_expires_at",
+                "asset_id"
+              ]
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "DepositStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "user_id": {
+                "type": "integer"
+              },
+              "item_id": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "processing",
+                  "completed",
+                  "failed"
+                ]
+              },
+              "error": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "created_at": {
+                "type": "integer",
+                "description": "Created (unix seconds)"
+              },
+              "updated_at": {
+                "type": "integer",
+                "description": "Updated (unix seconds)"
+              },
+              "tracking_expires_at": {
+                "type": "integer",
+                "description": "Tracking code expiry (unix seconds)"
+              },
+              "deposit_id": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "user_id",
+              "item_id",
+              "status",
+              "error",
+              "created_at",
+              "updated_at",
+              "tracking_expires_at",
+              "deposit_id"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "CancelDepositsRequest": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\d{1,20}$"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "CancelDepositsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "success"
+              ]
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "AuctionData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "app_id": {
+            "type": "integer",
+            "const": 730
+          },
+          "above_recommended_price": {
+            "type": "number"
+          },
+          "auction_highest_bid": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "Highest bid (USD cents)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "auction_number_of_bids": {
+            "type": "integer"
+          },
+          "auction_ends_at": {
+            "type": "integer",
+            "description": "Auction end (unix seconds)"
+          }
+        },
+        "required": [
+          "id",
+          "app_id",
+          "auction_highest_bid",
+          "auction_number_of_bids",
+          "auction_ends_at"
+        ]
+      },
+      "SellNowResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "auction_data": {
+            "$ref": "#/components/schemas/AuctionData"
+          }
+        },
+        "required": [
+          "success",
+          "auction_data"
+        ]
+      },
+      "UpdatePriceRequest": {
+        "type": "object",
+        "properties": {
+          "coin_value": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "New listing price (USD cents)"
+          }
+        },
+        "required": [
+          "coin_value"
+        ]
+      },
+      "BulkUpdatePricesRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{1,20}$"
+                    }
+                  ]
+                },
+                "coin_value": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "id",
+                "coin_value"
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "BulkUpdatePricesResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "object",
+                "properties": {
+                  "attempted": {
+                    "type": "integer"
+                  },
+                  "updated": {
+                    "type": "integer"
+                  },
+                  "unchanged": {
+                    "type": "integer"
+                  },
+                  "failed": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "attempted",
+                  "updated",
+                  "unchanged",
+                  "failed"
+                ]
+              },
+              "updated": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "integer"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "old_price": {
+                      "type": "integer"
+                    },
+                    "new_price": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "id",
+                    "old_price",
+                    "new_price"
+                  ]
+                }
+              },
+              "unchanged": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "integer"
+                    },
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "id"
+                  ]
+                }
+              },
+              "failed": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "integer"
+                    },
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "id",
+                    "error"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "summary",
+              "updated",
+              "unchanged",
+              "failed"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PaginatorLink": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "url",
+          "label",
+          "active"
+        ]
+      },
+      "ListedItemsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "current_page": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Listing"
+            }
+          },
+          "first_page_url": {
+            "type": "string"
+          },
+          "from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_page": {
+            "type": "integer"
+          },
+          "last_page_url": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaginatorLink"
+            }
+          },
+          "next_page_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "prev_page_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "success",
+          "current_page",
+          "data",
+          "first_page_url",
+          "from",
+          "last_page",
+          "last_page_url",
+          "links",
+          "next_page_url",
+          "path",
+          "per_page",
+          "prev_page_url",
+          "to",
+          "total"
+        ]
+      },
+      "WithdrawRequest": {
+        "type": "object",
+        "properties": {
+          "coin_value": {
+            "description": "Highest price you accept (USD cents); defaults to the current price",
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        }
+      },
+      "WithdrawResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Trade id"
+              },
+              "tradeoffer_id": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "tradeoffer_id"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "PlaceBidRequest": {
+        "type": "object",
+        "properties": {
+          "bid_value": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Bid (USD cents); must be at least the next bid"
+          }
+        },
+        "required": [
+          "bid_value"
+        ]
+      },
+      "PlaceBidResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "auction_data": {
+            "$ref": "#/components/schemas/AuctionData"
+          }
+        },
+        "required": [
+          "success",
+          "auction_data"
+        ]
+      },
+      "AuctionUpdate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "above_recommended_price": {
+            "type": "number"
+          },
+          "auction_highest_bid": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "Highest bid (USD cents)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "auction_number_of_bids": {
+            "type": "integer"
+          },
+          "auction_ends_at": {
+            "type": "integer",
+            "description": "Auction end (unix seconds)"
+          }
+        },
+        "required": [
+          "id",
+          "above_recommended_price",
+          "auction_highest_bid",
+          "auction_number_of_bids",
+          "auction_ends_at"
+        ]
+      },
+      "TradeStatusEvent": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "deposit",
+              "withdrawal"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Trade"
+          }
+        },
+        "required": [
+          "type",
+          "data"
+        ]
+      },
+      "DepositFailedEvent": {
+        "type": "object",
+        "properties": {
+          "response": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "const": false
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "error_key": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "item_id": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "success",
+                  "message",
+                  "error_key",
+                  "item_id"
+                ]
+              },
+              "status": {
+                "type": "integer",
+                "const": 400
+              },
+              "statusText": {
+                "type": "string",
+                "const": "Bad Request"
+              }
+            },
+            "required": [
+              "data",
+              "status",
+              "statusText"
+            ]
+          }
+        },
+        "required": [
+          "response"
+        ]
+      },
+      "InitEvent": {
+        "type": "object",
+        "properties": {
+          "authenticated": {
+            "type": "boolean"
+          },
+          "serverTime": {
+            "type": "string"
+          },
+          "server": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "uid": {
+            "type": "integer"
+          },
+          "steam_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steam_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "balance": {
+            "type": "integer",
+            "description": "Wallet balance (USD cents)"
+          }
+        },
+        "required": [
+          "authenticated",
+          "serverTime",
+          "server"
+        ]
+      }
+    }
+  },
+  "x-websocket": {
+    "url": "wss://trading-api.skins.com",
+    "path": "/s/",
+    "namespace": "/trade"
+  },
+  "x-websocket-events": {
+    "new_item": {
+      "direction": "server",
+      "description": "Items that became available.",
+      "payload": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Listing"
+        }
+      },
+      "example": [
+        {
+          "id": 288775415,
+          "market_name": "AWP | Asiimov (Well-Worn)",
+          "market_value": 16300,
+          "purchase_price": 16300,
+          "suggested_price": 16643,
+          "above_recommended_price": -2.06,
+          "price_is_unreliable": false,
+          "is_commodity": false,
+          "icon_url": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09-vloWZh-L6OITck29Y_cg_0r_HrY2m2ATmqhBlYT-nd9TDdFNoZQvWrla2xL29gMDpuM6cnHQ2vj5iuyhtZhH0GA",
+          "name_color": "D2D2D2",
+          "preview_id": null,
+          "wear": 0.398,
+          "wear_name": "Well-Worn",
+          "stickers": [
+            {
+              "sticker_id": null,
+              "wear": null,
+              "name": "Fnatic | Rio 2022",
+              "image": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXQ9QVcJY8gulRPQV6CF7b9mMndR15LKQVFsb_rfVdk0qDNIWRHvYvjkNCNxPWlYL_QlD4E6ZF3iLmRoYikjlDkqRI6MHezetGzJZPHxg"
+            }
+          ],
+          "blue_percentage": null,
+          "fade_percentage": null,
+          "auction_ends_at": null,
+          "auction_highest_bid": null,
+          "auction_number_of_bids": 0,
+          "published_at": "2026-09-24T17:11:43.378Z",
+          "marketplace_privacy_protection_level": "base",
+          "depositor_stats": {
+            "delivery_rate_recent": 1,
+            "delivery_rate_long": 0.9412,
+            "delivery_time_minutes_recent": 2,
+            "delivery_time_minutes_long": 4,
+            "delivery_rate_status": null,
+            "steam_level_min_range": 21,
+            "steam_level_max_range": 40,
+            "user_has_trade_notifications_enabled": true,
+            "user_online_status": 1
+          },
+          "item_search": {
+            "category": "Sniper Rifles",
+            "type": "Sniper Rifles",
+            "sub_type": "AWP",
+            "rarity": "Covert"
+          }
+        }
+      ]
+    },
+    "updated_item": {
+      "direction": "server",
+      "description": "Items whose price or state changed.",
+      "payload": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Listing"
+        }
+      },
+      "example": [
+        {
+          "id": 288775415,
+          "market_name": "AWP | Asiimov (Well-Worn)",
+          "market_value": 15990,
+          "purchase_price": 15990,
+          "suggested_price": 16643,
+          "above_recommended_price": -3.92,
+          "price_is_unreliable": false,
+          "is_commodity": false,
+          "icon_url": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09-vloWZh-L6OITck29Y_cg_0r_HrY2m2ATmqhBlYT-nd9TDdFNoZQvWrla2xL29gMDpuM6cnHQ2vj5iuyhtZhH0GA",
+          "name_color": "D2D2D2",
+          "preview_id": null,
+          "wear": 0.398,
+          "wear_name": "Well-Worn",
+          "stickers": [
+            {
+              "sticker_id": null,
+              "wear": null,
+              "name": "Fnatic | Rio 2022",
+              "image": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXQ9QVcJY8gulRPQV6CF7b9mMndR15LKQVFsb_rfVdk0qDNIWRHvYvjkNCNxPWlYL_QlD4E6ZF3iLmRoYikjlDkqRI6MHezetGzJZPHxg"
+            }
+          ],
+          "blue_percentage": null,
+          "fade_percentage": null,
+          "auction_ends_at": null,
+          "auction_highest_bid": null,
+          "auction_number_of_bids": 0,
+          "published_at": "2026-09-24T17:11:43.378Z",
+          "marketplace_privacy_protection_level": "base",
+          "depositor_stats": {
+            "delivery_rate_recent": 1,
+            "delivery_rate_long": 0.9412,
+            "delivery_time_minutes_recent": 2,
+            "delivery_time_minutes_long": 4,
+            "delivery_rate_status": null,
+            "steam_level_min_range": 21,
+            "steam_level_max_range": 40,
+            "user_has_trade_notifications_enabled": true,
+            "user_online_status": 1
+          },
+          "item_search": {
+            "category": "Sniper Rifles",
+            "type": "Sniper Rifles",
+            "sub_type": "AWP",
+            "rarity": "Covert"
+          }
+        }
+      ]
+    },
+    "auction_update": {
+      "direction": "server",
+      "description": "Bids placed on auction items.",
+      "payload": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/AuctionUpdate"
+        }
+      },
+      "example": [
+        {
+          "id": 288767047,
+          "above_recommended_price": -1.87,
+          "auction_highest_bid": 3730,
+          "auction_number_of_bids": 2,
+          "auction_ends_at": 1790276430
+        }
+      ]
+    },
+    "deleted_item": {
+      "direction": "server",
+      "description": "Deposit ids that are no longer available.",
+      "payload": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "example": [
+        288775415,
+        288775416
+      ]
+    },
+    "trade_status": {
+      "direction": "server",
+      "description": "Status changes of your trades. `type` is `deposit` for your sales and `withdrawal` for your purchases.",
+      "payload": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TradeStatusEvent"
+        }
+      },
+      "example": [
+        {
+          "type": "withdrawal",
+          "data": {
+            "id": 291452362,
+            "item_id": 288775415,
+            "total_value": 16300,
+            "status": 5,
+            "status_message": "Sent",
+            "tradeoffer_id": 6812345678,
+            "created_at": "2026-09-24 17:12:01",
+            "updated_at": "2026-09-24 17:15:40",
+            "item": {
+              "id": 288775415,
+              "asset_id": 45030133221,
+              "market_name": "AWP | Asiimov (Well-Worn)",
+              "market_value": 16300,
+              "suggested_price": 16643,
+              "price_is_unreliable": false,
+              "is_commodity": false,
+              "icon_url": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJTwW09-vloWZh-L6OITck29Y_cg_0r_HrY2m2ATmqhBlYT-nd9TDdFNoZQvWrla2xL29gMDpuM6cnHQ2vj5iuyhtZhH0GA",
+              "name_color": "D2D2D2",
+              "preview_id": null,
+              "type": "Covert AWP",
+              "wear": 0.398,
+              "blue_percentage": null,
+              "fade_percentage": null,
+              "stickers": [],
+              "marketplace_privacy_protection_level": "base"
+            },
+            "metadata": {
+              "item_validation": {
+                "numWrongItemDetections": 0,
+                "validItemDetected": false
+              },
+              "expires_at": 1790280000,
+              "partner": {
+                "steam_id": "76561198382602085",
+                "steam_name": "exampleProfile",
+                "avatar": "https://avatars.steamstatic.com/60d676610e6303f1f5fde66f307dbe753fc91221.jpg",
+                "avatar_full": "https://avatars.steamstatic.com/60d676610e6303f1f5fde66f307dbe753fc91221.jpg",
+                "profile_url": "https://steamcommunity.com/profiles/76561198382602085",
+                "timecreated": 1497100000,
+                "steam_level": 10
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deposit_failed": {
+      "direction": "server",
+      "description": "A deposit could not be listed.",
+      "payload": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DepositFailedEvent"
+        }
+      },
+      "example": [
+        {
+          "response": {
+            "data": {
+              "success": false,
+              "message": "Item is already listed on the marketplace",
+              "error_key": "item_already_deposited",
+              "item_id": 45059553777
+            },
+            "status": 400,
+            "statusText": "Bad Request"
+          }
+        }
+      ]
+    },
+    "init": {
+      "direction": "server",
+      "description": "Sent on connect and after `identify`. `authenticated` tells whether the socket is signed in.",
+      "payload": {
+        "$ref": "#/components/schemas/InitEvent"
+      },
+      "example": {
+        "authenticated": true,
+        "serverTime": "2026-09-24T17:11:43.378Z",
+        "server": "trade",
+        "id": 1204,
+        "uid": 1204,
+        "steam_id": "76561198012345678",
+        "steam_name": "trader",
+        "avatar": "https://avatars.steamstatic.com/60d676610e6303f1f5fde66f307dbe753fc91221_full.jpg",
+        "balance": 125050
+      }
+    },
+    "timesync": {
+      "direction": "server",
+      "description": "Server time in milliseconds, sent in reply to a `timesync` emit.",
+      "payload": {
+        "type": "integer"
+      },
+      "example": 1790272800123
+    },
+    "identify": {
+      "direction": "client",
+      "description": "Authenticate the socket with the credentials from `GET /metadata/socket`.",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "model": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "authorizationToken": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uid",
+          "authorizationToken",
+          "signature"
+        ]
+      }
+    },
+    "filters": {
+      "direction": "client",
+      "description": "Start receiving item events. Optional `price_min` / `price_max` (USD cents) and `auction` (\"yes\") narrow them.",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "price_min": {
+            "type": "integer"
+          },
+          "price_max": {
+            "type": "integer"
+          },
+          "auction": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no"
+            ]
+          }
+        }
+      },
+      "example": {
+        "price_max": 9999999
+      }
+    },
+    "allowedEvents": {
+      "direction": "client",
+      "description": "Limit which events this socket receives.",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "events"
+        ]
+      },
+      "example": {
+        "events": [
+          "new_item",
+          "deleted_item"
+        ]
+      }
+    }
+  },
+  "x-mcp": {
+    "url": "https://trading-api.skins.com/mcp",
+    "transport": "streamable-http"
+  }
+}

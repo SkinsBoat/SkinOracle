@@ -346,27 +346,6 @@ export default function App() {
                 </NavLink>
 
                 <NavLink
-                  to="/dealmaker"
-                  title={!isSidebarExpanded ? "Deal Maker" : undefined}
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
-                  }
-                  style={({ isActive }) =>
-                    getNavLinkStyle(isActive, isSidebarExpanded)
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Handshake
-                        size={18}
-                        style={getNavIconStyle(isActive, "accent")}
-                      />
-                      {isSidebarExpanded && <span>Deal Maker</span>}
-                    </>
-                  )}
-                </NavLink>
-
-                <NavLink
                   to="/soclose"
                   title={!isSidebarExpanded ? "So Close Scanner" : undefined}
                   className={({ isActive }) =>
@@ -388,8 +367,8 @@ export default function App() {
                 </NavLink>
 
                 <NavLink
-                  to="/csfloat"
-                  title={!isSidebarExpanded ? "CSFloat Workstation" : undefined}
+                  to="/dealmaker"
+                  title={!isSidebarExpanded ? "Deal Maker" : undefined}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
@@ -397,12 +376,15 @@ export default function App() {
                     getNavLinkStyle(isActive, isSidebarExpanded)
                   }
                 >
-                  <img
-                    src={csfloatLogo}
-                    alt="CSFloat"
-                    style={styles.marketIcon}
-                  />
-                  {isSidebarExpanded && <span>CSFloat</span>}
+                  {({ isActive }) => (
+                    <>
+                      <Handshake
+                        size={18}
+                        style={getNavIconStyle(isActive, "accent")}
+                      />
+                      {isSidebarExpanded && <span>Deal Maker</span>}
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
@@ -421,6 +403,42 @@ export default function App() {
                     style={styles.marketIcon}
                   />
                   {isSidebarExpanded && <span>DMarket</span>}
+                </NavLink>
+
+                <NavLink
+                  to="/skinscom"
+                  title={!isSidebarExpanded ? "Skins.com Workstation" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
+                >
+                  <img
+                    src={skinsLogo}
+                    alt="Skins.com"
+                    style={styles.marketIcon}
+                  />
+                  {isSidebarExpanded && <span>Skins.com</span>}
+                </NavLink>
+
+                <NavLink
+                  to="/csfloat"
+                  title={!isSidebarExpanded ? "CSFloat Workstation" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
+                >
+                  <img
+                    src={csfloatLogo}
+                    alt="CSFloat"
+                    style={styles.marketIcon}
+                  />
+                  {isSidebarExpanded && <span>CSFloat</span>}
                 </NavLink>
 
                 {FEATURE_FLAGS.TREND_MARKET && (
@@ -449,20 +467,6 @@ export default function App() {
                   )}
                 </NavLink>
                 )}
-
-                {/* Skins.com Workstation NavLink - Temporarily Commented Out
-                <NavLink
-                  to="/skinscom"
-                  title={!isSidebarExpanded ? 'Skins.com Workstation' : undefined}
-                  className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
-                  style={({ isActive }) =>
-                    getNavLinkStyle(isActive, isSidebarExpanded)
-                  }
-                >
-                  <img src={skinsLogo} alt="Skins.com" style={styles.marketIcon} />
-                  {isSidebarExpanded && <span>Skins.com</span>}
-                </NavLink>
-                */}
 
                 <NavLink
                   to="/balance"
@@ -596,7 +600,7 @@ export default function App() {
               <Route path="/soclose" element={<SoCloseWorkstationScreen />} />
               <Route path="/dealmaker" element={<DealMakerFloorScreen />} />
               <Route path="/auctions" element={<DealMakerFloorScreen />} />
-              {/* <Route path="/skinscom" element={<SkinscomWorkstation />} /> */}
+              <Route path="/skinscom" element={<SkinscomWorkstation />} />
               {FEATURE_FLAGS.TREND_MARKET && (
                 <Route path="/trend-market" element={<TrendMarketScreen />} />
               )}

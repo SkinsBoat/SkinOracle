@@ -19,6 +19,20 @@ import {
 } from "./oracle.types";
 import { CsFloatInventoryItem, ListingPriceInfo } from "./csfloat.types";
 import {
+  SkinscomListedItemsParams,
+  SkinscomListedItemsResponse,
+  SkinscomInventoryResponse,
+  SkinscomCreateDepositItem,
+  SkinscomCreateDepositResponse,
+  SkinscomBulkPriceItem,
+  SkinscomBulkUpdateResponse,
+  SkinscomMetadataResponse,
+  SkinscomSuccessResponse,
+  SkinscomStreamFilters,
+  SkinscomStreamEvent,
+  SkinscomStreamStatus,
+} from "./skinscom.types";
+import {
   DealMakerItem,
   DealMakerOffer,
   CreateDealPayload,
@@ -273,9 +287,35 @@ export interface ElectronAPI {
     ) => () => void;
   };
   skinscom: {
-    getOrders: () => Promise<any>;
-    createBuyOrder: (marketHashName: string, price: number) => Promise<any>;
-    deleteOrder: (orderId: string) => Promise<{ success: boolean }>;
+    getMetadata: () => Promise<SkinscomMetadataResponse>;
+    getListedItems: (
+      params?: SkinscomListedItemsParams,
+    ) => Promise<SkinscomListedItemsResponse>;
+    getInventory: () => Promise<SkinscomInventoryResponse>;
+    createDeposit: (
+      items: SkinscomCreateDepositItem[],
+    ) => Promise<SkinscomCreateDepositResponse>;
+    updateListingPrice: (
+      depositId: number | string,
+      coinValue: number,
+    ) => Promise<SkinscomSuccessResponse>;
+    bulkUpdateListingPrices: (
+      items: SkinscomBulkPriceItem[],
+    ) => Promise<SkinscomBulkUpdateResponse>;
+    cancelDeposit: (
+      depositId: number | string,
+    ) => Promise<SkinscomSuccessResponse>;
+    startStream: (
+      filters?: SkinscomStreamFilters,
+    ) => Promise<SkinscomStreamStatus>;
+    stopStream: () => Promise<SkinscomStreamStatus>;
+    getStreamStatus: () => Promise<SkinscomStreamStatus>;
+    onStreamEvent: (
+      callback: (event: SkinscomStreamEvent) => void,
+    ) => () => void;
+    onStreamStatus: (
+      callback: (status: SkinscomStreamStatus) => void,
+    ) => () => void;
   };
   dmarket: {
     getProfile: () => Promise<DmarketUserProfile>;

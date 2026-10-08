@@ -7,7 +7,6 @@
 
 // Base API Roots
 export const CSFLOAT_API = "https://csfloat.com/api/v1";
-export const SKINSCOM_API = "https://api.skins.com/v1";
 export const SKINSNIPE_API = "https://pricing.tradeupspy.com/public";
 export const CS2CAP_API = "https://api.cs2c.app/v1";
 export const DMARKET_API = "https://api.dmarket.com";
@@ -37,9 +36,40 @@ export const CSFLOAT_ITEM_BUY_ORDERS = `${CSFLOAT_API}/buy-orders/item`;
 export const CSFLOAT_ME_TRADES = `${CSFLOAT_API}/me/trades`;
 
 // ── Skins.com Endpoints ───────────────────────────────────────────
-export const SKINSCOM_BUY_ORDERS = `${SKINSCOM_API}/buy-orders`;
-export const SKINSCOM_BUY_ORDER_BY_ID = (orderId: string) =>
-  `${SKINSCOM_API}/buy-orders/${orderId}`;
+// Source of truth: src/renderer/screens/Skinscom/SKINSCOM_TRADING_API.md
+// (vendored spec: skinscomtradingopenapi.json). Auth: Bearer API key from
+// the user's Skins.com Profile > Developers. All values are USD cents.
+export const SKINSCOM_TRADING_API = "https://trading-api.skins.com";
+// Live item feed (socket.io v4, path `/s/`, namespace `/trade`). The socket is
+// opened from the Node.js main process with the short-lived `socket_token` /
+// `socket_signature` from `GET /metadata/socket`; the API key never leaves main.
+export const SKINSCOM_TRADING_WS = "https://trading-api.skins.com";
+export const SKINSCOM_METADATA = `${SKINSCOM_TRADING_API}/metadata/socket`;
+export const SKINSCOM_LISTED_ITEMS = `${SKINSCOM_TRADING_API}/trading/items`;
+export const SKINSCOM_USER_INVENTORY = `${SKINSCOM_TRADING_API}/trading/user/inventory`;
+export const SKINSCOM_DEPOSITS = `${SKINSCOM_TRADING_API}/trading/deposit`;
+export const SKINSCOM_DEPOSIT_BY_ID = (depositId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${depositId}`;
+export const SKINSCOM_DEPOSIT_BULK_PRICES = `${SKINSCOM_DEPOSITS}/bulk`;
+export const SKINSCOM_DEPOSIT_STATUS = (trackingCode: string) =>
+  `${SKINSCOM_DEPOSITS}/status/${encodeURIComponent(trackingCode)}`;
+export const SKINSCOM_DEPOSIT_CANCEL = (depositId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${depositId}/cancel`;
+export const SKINSCOM_DEPOSIT_CANCEL_BULK = `${SKINSCOM_DEPOSITS}/cancel`;
+export const SKINSCOM_DEPOSIT_SELL_NOW = (depositId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${depositId}/sell`;
+export const SKINSCOM_DEPOSIT_SENT = (depositId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${depositId}/sent`;
+export const SKINSCOM_DEPOSITOR_STATS = (depositId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${depositId}/stats`;
+export const SKINSCOM_DEPOSIT_WITHDRAW = (depositId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${depositId}/withdraw`;
+export const SKINSCOM_DEPOSIT_BID = (depositId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${depositId}/bid`;
+export const SKINSCOM_DEPOSIT_RECEIVED = (tradeofferId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${tradeofferId}/received`;
+export const SKINSCOM_DEPOSIT_DISPUTE = (tradeofferId: string | number) =>
+  `${SKINSCOM_DEPOSITS}/${tradeofferId}/dispute`;
 
 // ── Skinsnipe Endpoints ───────────────────────────────────────────
 export const SKINSNIPE_LOWEST_PRICES = `${SKINSNIPE_API}/lowest-prices`;

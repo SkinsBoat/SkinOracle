@@ -10,6 +10,14 @@ import {
   AutoRefreshStatus,
   MarketScanScope,
 } from "../shared/types/autoRefresh.types";
+import type {
+  SkinscomListedItemsParams,
+  SkinscomCreateDepositItem,
+  SkinscomBulkPriceItem,
+  SkinscomStreamFilters,
+  SkinscomStreamEvent,
+  SkinscomStreamStatus,
+} from "../shared/types/skinscom.types";
 
 /**
  * Clean helper function to invoke IPC channels and strip Electron's wrapper noise.
@@ -334,13 +342,43 @@ contextBridge.exposeInMainWorld("electronAPI", {
     },
   },
 
-  // ── Skins.com (buy orders fired directly from user's device) ──
+  // ── Skins.com Trading API (fires directly from the user's device) ──
+  // Reference: src/renderer/screens/Skinscom/SKINSCOM_TRADING_API.md
   skinscom: {
-    getOrders: () => safeInvoke("skinscom:get-orders"),
-    createBuyOrder: (marketHashName: string, price: number) =>
-      safeInvoke("skinscom:create-buy-order", marketHashName, price),
-    deleteOrder: (orderId: string) =>
-      safeInvoke("skinscom:delete-order", orderId),
+    getMetadata: () => safeInvoke("skinscom:get-metadata"),
+    getListedItems: (params?: SkinscomListedItemsParams) =>
+      safeInvoke("skinscom:get-listed-items", params),
+    getInventory: () => safeInvoke("skinscom:get-inventory"),
+    createDeposit: (items: SkinscomCreateDepositItem[]) =>
+      safeInvoke("skinscom:create-deposit", items),
+    updateListingPrice: (depositId: number | string, coinValue: number) =>
+      safeInvoke("skinscom:update-listing-price", depositId, coinValue),
+    bulkUpdateListingPrices: (items: SkinscomBulkPriceItem[]) =>
+      safeInvoke("skinscom:bulk-update-listing-prices", items),
+    cancelDeposit: (depositId: number | string) =>
+      safeInvoke("skinscom:cancel-deposit", depositId),
+    startStream: (filters?: SkinscomStreamFilters) =>
+      safeInvoke<SkinscomStreamStatus>("skinscom:start-stream", filters),
+    stopStream: () =>
+      safeInvoke<SkinscomStreamStatus>("skinscom:stop-stream"),
+    getStreamStatus: () =>
+      safeInvoke<SkinscomStreamStatus>("skinscom:get-stream-status"),
+    onStreamEvent: (callback: (event: SkinscomStreamEvent) => void) => {
+      const subscription = (_: any, data: SkinscomStreamEvent) =>
+        callback(data);
+      ipcRenderer.on("skinscom:stream-event", subscription);
+      return () => {
+        ipcRenderer.removeListener("skinscom:stream-event", subscription);
+      };
+    },
+    onStreamStatus: (callback: (status: SkinscomStreamStatus) => void) => {
+      const subscription = (_: any, data: SkinscomStreamStatus) =>
+        callback(data);
+      ipcRenderer.on("skinscom:stream-status", subscription);
+      return () => {
+        ipcRenderer.removeListener("skinscom:stream-status", subscription);
+      };
+    },
   },
 
   // ── DMarket (targets & profile fired directly from user's device) ──
