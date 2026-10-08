@@ -1,6 +1,5 @@
 import { ipcMain } from "electron";
 import axios from "axios";
-import { secureGet, STORAGE_KEYS } from "../../storage/secure-store";
 import {
   SKINSCOM_METADATA,
   SKINSCOM_LISTED_ITEMS,
@@ -22,6 +21,7 @@ import {
   stopSkinscomStream,
   getSkinscomStreamStatus,
 } from "../services/skinscomSocket";
+import { readSkinscomApiKey } from "../services/skinscomCredentials";
 
 // ─────────────────────────────────────────────────────────────────
 // Skins.com Trading API IPC handlers
@@ -46,9 +46,32 @@ function getHeaders(apiKey: string) {
 }
 
 function requireApiKey(): string {
-  const apiKey = secureGet(STORAGE_KEYS.SKINSCOM);
-  if (!apiKey) throw new Error("Skins.com API key not set");
-  return apiKey;
+  return readSkinscomApiKey();
+}
+
+/** Explicit allow-list of query params (never spread caller input wholesale). */
+function buildListedItemsParams(
+  query: SkinscomListedItemsParams,
+  perPage: number,
+  page: number,
+): Record<string, string | number | undefined> {
+  return {
+    search: query.search,
+    auction: query.auction,
+    sort: query.sort,
+    order: query.order,
+    price_min: query.price_min,
+    price_max: query.price_max,
+    price_max_above: query.price_max_above,
+    wear_min: query.wear_min,
+    wear_max: query.wear_max,
+    delivery_time_long_min: query.delivery_time_long_min,
+    delivery_time_long_max: query.delivery_time_long_max,
+    has_stickers: query.has_stickers,
+    is_commodity: query.is_commodity,
+    per_page: perPage,
+    page,
+  };
 }
 
 /**
@@ -108,7 +131,7 @@ ipcMain.handle(
       return request(() =>
         axios.get(SKINSCOM_LISTED_ITEMS, {
           headers: getHeaders(apiKey),
-          params: { ...query, per_page: perPage, page: query.page ?? 1 },
+          params: buildListedItemsParams(query, perPage, query.page ?? 1),
         }),
       );
     }
@@ -116,7 +139,7 @@ ipcMain.handle(
     const first = await request<any>(() =>
       axios.get(SKINSCOM_LISTED_ITEMS, {
         headers: getHeaders(apiKey),
-        params: { ...query, per_page: perPage, page: 1 },
+        params: buildListedItemsParams(query, perPage, 1),
       }),
     );
 
@@ -129,7 +152,7 @@ ipcMain.handle(
       const next = await request<any>(() =>
         axios.get(SKINSCOM_LISTED_ITEMS, {
           headers: getHeaders(apiKey),
-          params: { ...query, per_page: perPage, page },
+          params: buildListedItemsParams(query, perPage, page),
         }),
       );
       const pageItems = Array.isArray(next?.data) ? next.data : [];

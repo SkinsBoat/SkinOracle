@@ -1,9 +1,9 @@
 import { BrowserWindow } from "electron";
 import axios from "axios";
 import { io, type Socket } from "socket.io-client";
-import { secureGet, STORAGE_KEYS } from "../../storage/secure-store";
 import { SKINSCOM_METADATA, SKINSCOM_TRADING_WS } from "../constants/apiUrls";
 import { getAppUserAgent } from "../constants/userAgent";
+import { readSkinscomApiKey } from "./skinscomCredentials";
 import type {
   SkinscomMetadataResponse,
   SkinscomStreamEvent,
@@ -145,14 +145,22 @@ export function startSkinscomStream(
 }
 
 async function connectStream(token: number): Promise<SkinscomStreamStatus> {
-  // Preserve a healthy status if we are already connected (defensive).
+  const apiKey = readSkinscomApiKey();
+
   status = { ...emptyStatus(), connecting: true };
   broadcastStatus();
 
-  const apiKey = secureGet(STORAGE_KEYS.SKINSCOM);
-  if (!apiKey) throw new Error("Skins.com API key not set");
-
-  const meta = await fetchMetadata(apiKey);
+  let meta: SkinscomMetadataResponse;
+  try {
+    meta = await fetchMetadata(apiKey);
+  } catch (err) {
+    status = {
+      ...emptyStatus(),
+      error: (err as Error)?.message || "Failed to load socket credentials",
+    };
+    broadcastStatus();
+    throw err;
+  }
 
   // A stop() while the credentials were in flight supersedes this start.
   if (token !== startToken) return status;
