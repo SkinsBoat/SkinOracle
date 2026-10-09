@@ -36,12 +36,29 @@ function triggerDownload(blob: Blob, filename: string): void {
  */
 async function fetchMediaDataUrl(url: string): Promise<string | false> {
   const media = window.electronAPI?.media;
-  if (!media?.fetchDataUrl) return false;
+  if (!media?.fetchDataUrl) {
+    console.warn(
+      "[lookupImageExport] window.electronAPI.media is unavailable — restart the app so the updated preload/main process load. Images will fall back to placeholders.",
+    );
+    return false;
+  }
   if (!/^https?:/i.test(url)) return false;
   try {
     const dataUrl = await media.fetchDataUrl(url);
-    return /^data:/i.test(dataUrl) ? dataUrl : false;
-  } catch {
+    if (!/^data:/i.test(dataUrl)) {
+      console.warn(
+        "[lookupImageExport] media fetch returned no data URL:",
+        url,
+      );
+      return false;
+    }
+    return dataUrl;
+  } catch (err: any) {
+    console.warn(
+      "[lookupImageExport] media fetch failed:",
+      url,
+      err?.message || err,
+    );
     return false;
   }
 }

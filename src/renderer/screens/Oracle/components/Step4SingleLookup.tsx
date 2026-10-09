@@ -7,26 +7,20 @@ import {
   Zap,
   BarChart3,
   AlertCircle,
-  AlertTriangle,
   Tag,
   Layers,
   TrendingUp,
   Clipboard,
-  ExternalLink,
   Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ListingPriceStrategy } from "../../../store/useOracleStore";
-import {
-  getMarketDisplayName,
-  isTradeMarket,
-} from "../../../../shared/canonicalMarkets";
-import { getMarketItemUrl } from "../../../utils/marketUrls";
 import { calculateSuggestedListingPrice } from "../utils/oracleUtils";
 import { exportNodeAsPng } from "../utils/lookupImageExport";
 import { TrendDetailedChart } from "../../../components/TrendDetailedChart";
 import { TrendSparkline } from "../../../components/TrendSparkline";
 import { MarketLogo } from "../../../components/MarketLogo";
+import { MarketBreakdownGrid } from "./step4/MarketBreakdownGrid";
 
 interface Step4SingleLookupProps {
   isOpen: boolean;
@@ -524,138 +518,13 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                           </div>
                         </div>
 
-                        {/* Individual Market Breakdown Table */}
-                        {marketListings.length > 0 ? (
-                          <div>
-                            <div style={styles.marketBreakdownTitle}>
-                              <Layers size={14} style={styles.cyanIcon} /> Live
-                              Market Price Breakdown ({marketListings.length}{" "}
-                              Markets)
-                            </div>
-
-                            <div style={styles.tableWrapper}>
-                              <table style={styles.table}>
-                                <thead>
-                                  <tr style={styles.tableHeaderRow}>
-                                    <th style={styles.thLeft}>Marketplace</th>
-                                    <th style={styles.thRight}>
-                                      Lowest Active Price
-                                    </th>
-                                    <th style={styles.thRight}>
-                                      Active Quantity
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {marketListings.map((m, idx) => {
-                                    const marketName = getMarketDisplayName(
-                                      m.marketId,
-                                    );
-                                    const marketUrl = getMarketItemUrl(
-                                      m.marketId,
-                                      r.name,
-                                    );
-                                    return (
-                                      <tr
-                                        key={m.marketId + idx}
-                                        style={getTableRowStyle(
-                                          idx,
-                                          marketListings.length,
-                                        )}
-                                      >
-                                        <td style={styles.tdMarket}>
-                                          <MarketLogo
-                                            marketId={m.marketId}
-                                            marketName={marketName}
-                                            size={18}
-                                          />
-                                          <span>{marketName}</span>
-                                          {marketUrl && (
-                                            <a
-                                              href={marketUrl}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              title={`Open ${r.name} on ${marketName}`}
-                                              style={styles.marketLink}
-                                              onMouseEnter={(e) =>
-                                                (e.currentTarget.style.color =
-                                                  "var(--so-accent-primary, #3b82f6)")
-                                              }
-                                              onMouseLeave={(e) =>
-                                                (e.currentTarget.style.color =
-                                                  "var(--so-text-muted, #94a3b8)")
-                                              }
-                                            >
-                                              <ExternalLink size={13} />
-                                            </a>
-                                          )}
-                                          {isTradeMarket(m.marketId) && (
-                                            <span
-                                              className="badge"
-                                              style={styles.tradeBadge}
-                                              title="Trade bot / swap platform: prices may reflect marked-up virtual credit"
-                                            >
-                                              <AlertTriangle
-                                                size={10}
-                                                style={styles.tradeAlertIcon}
-                                              />
-                                              TRADE
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td
-                                          className="tabular-nums"
-                                          style={styles.tdPrice}
-                                        >
-                                          ${m.price.toFixed(2)}
-                                        </td>
-                                        <td style={styles.tdQuantity}>
-                                          {m.quantity !== undefined ? (
-                                            <div
-                                              className="tabular-nums"
-                                              style={styles.qtyBarWrap}
-                                            >
-                                              <div style={styles.qtyBarTrack}>
-                                                <div
-                                                  style={getQtyBarFillStyle(
-                                                    m.quantity,
-                                                    maxQuantity,
-                                                  )}
-                                                />
-                                              </div>
-                                              <span style={styles.qtyValueText}>
-                                                {m.quantity.toLocaleString()}
-                                              </span>
-                                            </div>
-                                          ) : (
-                                            <span
-                                              style={styles.unverifiedQtyText}
-                                              title="Market source did not provide quantity for this listing"
-                                            >
-                                              Unverified
-                                            </span>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={styles.noListingsNotice}>
-                            <AlertCircle
-                              size={15}
-                              style={styles.noListingsIcon}
-                            />
-                            <span>
-                              No live market listings found in cache. Scan or
-                              stream market data in Step 1 to populate
-                              marketplace listings.
-                            </span>
-                          </div>
-                        )}
+                        {/* Individual Market Breakdown Grid */}
+                        <MarketBreakdownGrid
+                          itemName={r.name}
+                          listings={marketListings}
+                          maxQuantity={maxQuantity}
+                          averagePrice={oracle.averageMarketPrice || 0}
+                        />
                       </div>
                     );
                   })}
@@ -785,24 +654,6 @@ function getSssBadgeStyle(score: number): React.CSSProperties {
           : "rgba(245, 158, 11, 0.3)"
     }`,
   };
-}
-
-function getTableRowStyle(idx: number, total: number): React.CSSProperties {
-  return {
-    borderBottom:
-      idx < total - 1 ? "1px solid var(--so-border-subtle)" : "none",
-    backgroundColor:
-      idx % 2 === 0 ? "transparent" : "rgba(255, 255, 255, 0.02)",
-  };
-}
-
-function getQtyBarFillStyle(
-  quantity: number,
-  maxQuantity: number,
-): React.CSSProperties {
-  const ratio = maxQuantity > 0 ? quantity / maxQuantity : 0;
-  const pct = Math.max(4, Math.min(100, Math.round(ratio * 100)));
-  return { ...styles.qtyBarFill, width: `${pct}%` };
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -1109,128 +960,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     color: "var(--so-success-text, #38bdf8)",
     marginTop: "2px",
-  },
-  marketBreakdownTitle: {
-    fontSize: "13px",
-    fontWeight: 700,
-    color: "var(--so-text-primary)",
-    marginBottom: "8px",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  cyanIcon: {
-    color: "var(--so-cyan-text, #38bdf8)",
-  },
-  tableWrapper: {
-    overflowX: "auto",
-    border: "1px solid var(--so-border-subtle)",
-    borderRadius: "var(--so-radius-sm)",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    fontSize: "12.5px",
-  },
-  tableHeaderRow: {
-    backgroundColor: "var(--so-surface-input)",
-    borderBottom: "1px solid var(--so-border-subtle)",
-    textAlign: "left",
-    color: "var(--so-text-muted)",
-  },
-  thLeft: {
-    padding: "8px 12px",
-    fontWeight: 700,
-  },
-  thRight: {
-    padding: "8px 12px",
-    fontWeight: 700,
-    textAlign: "right",
-  },
-  tdMarket: {
-    padding: "8px 12px",
-    fontWeight: 700,
-    color: "var(--so-text-primary)",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  marketLink: {
-    display: "inline-flex",
-    alignItems: "center",
-    color: "var(--so-text-muted, #94a3b8)",
-    transition: "color 0.15s ease",
-  },
-  tradeBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "3px",
-    fontSize: "9px",
-    fontWeight: 800,
-    padding: "1px 5px",
-    borderRadius: "3px",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    color: "#f59e0b",
-    border: "1px solid rgba(245, 158, 11, 0.35)",
-  },
-  tradeAlertIcon: {
-    color: "#f59e0b",
-  },
-  tdPrice: {
-    padding: "8px 12px",
-    textAlign: "right",
-    fontWeight: 800,
-    color: "var(--so-success-text, #38bdf8)",
-  },
-  tdQuantity: {
-    padding: "8px 12px",
-    textAlign: "right",
-  },
-  qtyBarWrap: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: "8px",
-  },
-  qtyBarTrack: {
-    flex: 1,
-    minWidth: "48px",
-    maxWidth: "110px",
-    height: "6px",
-    borderRadius: "3px",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    overflow: "hidden",
-  },
-  qtyBarFill: {
-    height: "100%",
-    borderRadius: "3px",
-    backgroundColor: "var(--so-success-text, #38bdf8)",
-  },
-  qtyValueText: {
-    color: "var(--so-text-primary)",
-    fontWeight: 700,
-    minWidth: "36px",
-    textAlign: "right",
-  },
-  unverifiedQtyText: {
-    color: "var(--so-warning-text, #f59e0b)",
-    fontSize: "11px",
-    fontWeight: 600,
-  },
-  noListingsNotice: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "12px 16px",
-    borderRadius: "var(--so-radius-sm)",
-    backgroundColor: "rgba(245, 158, 11, 0.08)",
-    border: "1px solid rgba(245, 158, 11, 0.25)",
-    color: "var(--so-warning-text, #f59e0b)",
-    fontSize: "12.5px",
-    fontWeight: 500,
-  },
-  noListingsIcon: {
-    flexShrink: 0,
-    color: "var(--so-warning-text, #f59e0b)",
   },
 };
