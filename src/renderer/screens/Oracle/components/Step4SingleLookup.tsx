@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Clipboard,
   ExternalLink,
+  Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ListingPriceStrategy } from "../../../store/useOracleStore";
@@ -22,6 +23,7 @@ import {
 } from "../../../../shared/canonicalMarkets";
 import { getMarketItemUrl } from "../../../utils/marketUrls";
 import { calculateSuggestedListingPrice } from "../utils/oracleUtils";
+import { exportNodeAsPng } from "../utils/lookupImageExport";
 import { TrendDetailedChart } from "../../../components/TrendDetailedChart";
 import { TrendSparkline } from "../../../components/TrendSparkline";
 import { MarketLogo } from "../../../components/MarketLogo";
@@ -59,6 +61,21 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
     } catch (err: any) {
       toast.error(
         "Failed to read clipboard: " + (err?.message || "Permission denied"),
+      );
+    }
+  };
+
+  const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+  const handleExportResult = async (key: string, nameHint: string) => {
+    const node = cardRefs.current[key];
+    if (!node) return;
+    try {
+      await exportNodeAsPng(node, nameHint);
+      toast.success("Exported PNG image");
+    } catch (err: any) {
+      toast.error(
+        "Failed to export image: " + (err?.message || "unknown error"),
       );
     }
   };
@@ -190,9 +207,39 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                       .sort((a, b) => a.price - b.price);
 
                     const buyTarget = oracle.finalAcceptedPrice || 0;
+                    const maxQuantity = marketListings.reduce(
+                      (max, m) => Math.max(max, m.quantity || 0),
+                      0,
+                    );
+
+                    const itemPrices = marketListings
+                      .map((m) => m.price)
+                      .filter((p) => p > 0);
+                    const hasMarketPrices =
+                      itemPrices.length > 0 ||
+                      Boolean(oracle.lowestPrice && oracle.lowestPrice > 0) ||
+                      Boolean(
+                        oracle.averageMarketPrice &&
+                        oracle.averageMarketPrice > 0,
+                      );
+                    const suggestedListing = hasMarketPrices
+                      ? calculateSuggestedListingPrice(
+                          itemPrices.length > 0
+                            ? itemPrices
+                            : [oracle.lowestPrice || 0],
+                          oracle.averageMarketPrice || 0,
+                          listingStrategy,
+                        )
+                      : 0;
 
                     return (
-                      <div key={r.name} style={styles.itemCard}>
+                      <div
+                        key={r.name}
+                        ref={(el) => {
+                          cardRefs.current[r.name] = el;
+                        }}
+                        style={styles.itemCard}
+                      >
                         {/* Item Header */}
                         <div style={styles.itemHeader}>
                           <div style={styles.itemHeaderLeft}>
@@ -218,11 +265,6 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               <div style={styles.itemMetaRow}>
                                 {wear && (
                                   <span style={styles.wearText}>({wear})</span>
-                                )}
-                                {r.source === "built_cache" && (
-                                  <span className="badge badge-success">
-                                    CALCULATED CACHE
-                                  </span>
                                 )}
                                 {r.source === "oracle_api" && (
                                   <span className="badge badge-cyan">
@@ -274,97 +316,138 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                               </div>
                             </div>
                           </div>
+
+                          {/* Export to image */}
+                          <div
+                            style={styles.exportGroup}
+                            data-export-ignore="true"
+                          >
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={styles.exportBtn}
+                              title="Export this lookup as a PNG image"
+                              onClick={() => handleExportResult(r.name, r.name)}
+                            >
+                              <Download size={13} /> Export PNG
+                            </button>
+                          </div>
                         </div>
 
-                        {/* 4-Stat Metric Grid */}
-                        <div style={styles.metricGrid}>
-                          <div style={styles.metricCard}>
-                            <div style={styles.metricLabel}>Market Average</div>
-                            <div
-                              className="tabular-nums"
-                              style={styles.metricPrimaryValue}
-                            >
-                              {typeof oracle.averageMarketPrice === "number" &&
-                              oracle.averageMarketPrice > 0
-                                ? `$${oracle.averageMarketPrice.toFixed(2)}`
-                                : "—"}
+                        {/* Market Metrics — reorganized into typed groups */}
+                        <div style={styles.metricGroups}>
+                          {/* Pricing type: actionable buy-side numbers first */}
+                          <div style={styles.metricGroup}>
+                            <div style={styles.metricGroupLabel}>
+                              <Tag size={12} style={styles.pricingGroupIcon} />
+                              Pricing
+                            </div>
+                            <div style={styles.metricGrid}>
+                              <div style={styles.metricCard}>
+                                <div style={styles.metricLowestLabel}>
+                                  <span>Lowest Listing</span>
+                                  {marketListings.length > 0 && (
+                                    <MarketLogo
+                                      marketId={marketListings[0].marketId}
+                                      size={14}
+                                    />
+                                  )}
+                                </div>
+                                <div
+                                  className="tabular-nums"
+                                  style={styles.metricTextValue}
+                                >
+                                  {typeof oracle.lowestPrice === "number" &&
+                                  oracle.lowestPrice > 0
+                                    ? `$${oracle.lowestPrice.toFixed(2)}`
+                                    : "—"}
+                                </div>
+                              </div>
+
+                              <div style={styles.metricCard}>
+                                <div style={styles.metricLabel}>
+                                  Market Average
+                                </div>
+                                <div
+                                  className="tabular-nums"
+                                  style={styles.metricPrimaryValue}
+                                >
+                                  {typeof oracle.averageMarketPrice ===
+                                    "number" && oracle.averageMarketPrice > 0
+                                    ? `$${oracle.averageMarketPrice.toFixed(2)}`
+                                    : "—"}
+                                </div>
+                              </div>
                             </div>
                           </div>
 
-                          <div style={styles.metricCard}>
-                            <div style={styles.metricLowestLabel}>
-                              <span>Lowest Listing</span>
-                              {marketListings.length > 0 && (
-                                <MarketLogo
-                                  marketId={marketListings[0].marketId}
-                                  size={14}
-                                />
-                              )}
+                          {/* Supply type: liquidity depth + market coverage */}
+                          <div style={styles.metricGroup}>
+                            <div style={styles.metricGroupLabel}>
+                              <Layers
+                                size={12}
+                                style={styles.supplyGroupIcon}
+                              />
+                              Supply &amp; Coverage
                             </div>
-                            <div
-                              className="tabular-nums"
-                              style={styles.metricTextValue}
-                            >
-                              {typeof oracle.lowestPrice === "number" &&
-                              oracle.lowestPrice > 0
-                                ? `$${oracle.lowestPrice.toFixed(2)}`
-                                : "—"}
-                            </div>
-                          </div>
+                            <div style={styles.metricGrid}>
+                              <div style={styles.metricCard}>
+                                <div style={styles.metricLabel}>
+                                  Total Market Supply
+                                </div>
+                                <div
+                                  className="tabular-nums"
+                                  style={styles.metricSuccessValue}
+                                >
+                                  {(() => {
+                                    if (marketListings.length === 0) {
+                                      return "—";
+                                    }
+                                    const verifiedQty = marketListings.reduce(
+                                      (sum, m) => sum + (m.quantity || 0),
+                                      0,
+                                    );
+                                    const hasUnverified = marketListings.some(
+                                      (m) => m.quantity === undefined,
+                                    );
+                                    if (verifiedQty === 0 && hasUnverified) {
+                                      return (
+                                        <span style={styles.unverifiedText}>
+                                          Unverified
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <>
+                                        {verifiedQty.toLocaleString()} Qty
+                                        {hasUnverified && (
+                                          <span
+                                            style={styles.unverifiedAsterisk}
+                                            title="Some market sources omitted listing quantity"
+                                          >
+                                            *
+                                          </span>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
 
-                          <div style={styles.metricCard}>
-                            <div style={styles.metricLabel}>
-                              Total Market Supply
-                            </div>
-                            <div
-                              className="tabular-nums"
-                              style={styles.metricSuccessValue}
-                            >
-                              {(() => {
-                                if (marketListings.length === 0) {
-                                  return "—";
-                                }
-                                const verifiedQty = marketListings.reduce(
-                                  (sum, m) => sum + (m.quantity || 0),
-                                  0,
-                                );
-                                const hasUnverified = marketListings.some(
-                                  (m) => m.quantity === undefined,
-                                );
-                                if (verifiedQty === 0 && hasUnverified) {
-                                  return (
-                                    <span style={styles.unverifiedText}>
-                                      Unverified
-                                    </span>
-                                  );
-                                }
-                                return (
-                                  <>
-                                    {verifiedQty.toLocaleString()} Qty
-                                    {hasUnverified && (
-                                      <span
-                                        style={styles.unverifiedAsterisk}
-                                        title="Some market sources omitted listing quantity"
-                                      >
-                                        *
-                                      </span>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          </div>
-
-                          <div style={styles.metricCard}>
-                            <div style={styles.metricLabel}>
-                              Markets Tracked
-                            </div>
-                            <div
-                              className="tabular-nums"
-                              style={styles.metricCyanValue}
-                            >
-                              {marketListings.length || oracle.marketCount || 0}{" "}
-                              Markets
+                              <div style={styles.metricCard}>
+                                <div style={styles.metricLabel}>
+                                  Markets Tracked
+                                </div>
+                                <div
+                                  className="tabular-nums"
+                                  style={styles.metricCyanValue}
+                                >
+                                  {marketListings.length ||
+                                    oracle.marketCount ||
+                                    0}{" "}
+                                  Markets
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -373,101 +456,73 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                         <TrendDetailedChart name={r.name} height={115} />
 
                         {/* Centralized Buy & Listing Target Box */}
-                        {(() => {
-                          const itemPrices = marketListings
-                            .map((m) => m.price)
-                            .filter((p) => p > 0);
-                          const hasMarketPrices =
-                            itemPrices.length > 0 ||
-                            Boolean(
-                              oracle.lowestPrice && oracle.lowestPrice > 0,
-                            ) ||
-                            Boolean(
-                              oracle.averageMarketPrice &&
-                              oracle.averageMarketPrice > 0,
-                            );
-                          const suggestedListing = hasMarketPrices
-                            ? calculateSuggestedListingPrice(
-                                itemPrices.length > 0
-                                  ? itemPrices
-                                  : [oracle.lowestPrice || 0],
-                                oracle.averageMarketPrice || 0,
-                                listingStrategy,
-                              )
-                            : 0;
-                          return (
-                            <div style={styles.targetBox}>
-                              {/* Left Column: Target Buy Ceiling */}
-                              <div>
-                                <div style={styles.targetLabel}>
-                                  Workstation Buy Ceiling
-                                </div>
-                                <div
-                                  className="tabular-nums"
-                                  style={styles.buyCeilingValue}
-                                >
-                                  ${buyTarget.toFixed(2)}
-                                </div>
-                                <div style={styles.buyCeilingDesc}>
-                                  {oracle.nexusDelta !== undefined &&
-                                  oracle.nexusDelta !== null ? (
-                                    <span style={styles.nexusInlineMeta}>
-                                      <span>
-                                        Base: $
-                                        {oracle.v1Benchmark
-                                          ? oracle.v1Benchmark.toFixed(2)
-                                          : "—"}
-                                      </span>
-                                      <span
-                                        style={getNexusDeltaTextStyle(
-                                          oracle.nexusDelta,
-                                        )}
-                                      >
-                                        {oracle.nexusDelta > 0
-                                          ? `+$${oracle.nexusDelta.toFixed(2)}`
-                                          : oracle.nexusDelta < 0
-                                            ? `-$${Math.abs(oracle.nexusDelta).toFixed(2)}`
-                                            : "$0.00"}{" "}
-                                        Nexus
-                                      </span>
-                                      {oracle.trendAdjustment !== undefined && (
-                                        <span style={styles.trendAdjText}>
-                                          (
-                                          {(
-                                            oracle.trendAdjustment * 100
-                                          ).toFixed(1)}
-                                          %)
-                                        </span>
-                                      )}
-                                    </span>
-                                  ) : (
-                                    "Maximum price to accept for buy orders"
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Right Column: Local Suggested Listing Price */}
-                              <div style={styles.suggestedListingCol}>
-                                <div style={styles.suggestedListingLabel}>
-                                  <Tag
-                                    size={13}
-                                    style={styles.tagPrimaryIcon}
-                                  />{" "}
-                                  Suggested Selling Price (
-                                  {listingStrategy.mode.toUpperCase()})
-                                </div>
-                                <div
-                                  className="tabular-nums"
-                                  style={styles.suggestedListingValue}
-                                >
-                                  {suggestedListing > 0
-                                    ? `$${suggestedListing.toFixed(2)}`
-                                    : "—"}
-                                </div>
-                              </div>
+                        <div style={styles.targetBox}>
+                          {/* Left Column: Target Buy Ceiling */}
+                          <div>
+                            <div style={styles.targetLabel}>
+                              Workstation Buy Ceiling
                             </div>
-                          );
-                        })()}
+                            <div
+                              className="tabular-nums"
+                              style={styles.buyCeilingValue}
+                            >
+                              ${buyTarget.toFixed(2)}
+                            </div>
+                            <div style={styles.buyCeilingDesc}>
+                              {oracle.nexusDelta !== undefined &&
+                              oracle.nexusDelta !== null ? (
+                                <span style={styles.nexusInlineMeta}>
+                                  <span>
+                                    Base: $
+                                    {oracle.v1Benchmark
+                                      ? oracle.v1Benchmark.toFixed(2)
+                                      : "—"}
+                                  </span>
+                                  <span
+                                    style={getNexusDeltaTextStyle(
+                                      oracle.nexusDelta,
+                                    )}
+                                  >
+                                    {oracle.nexusDelta > 0
+                                      ? `+$${oracle.nexusDelta.toFixed(2)}`
+                                      : oracle.nexusDelta < 0
+                                        ? `-$${Math.abs(oracle.nexusDelta).toFixed(2)}`
+                                        : "$0.00"}{" "}
+                                    Nexus
+                                  </span>
+                                  {oracle.trendAdjustment !== undefined && (
+                                    <span style={styles.trendAdjText}>
+                                      (
+                                      {(oracle.trendAdjustment * 100).toFixed(
+                                        1,
+                                      )}
+                                      %)
+                                    </span>
+                                  )}
+                                </span>
+                              ) : (
+                                "Maximum price to accept for buy orders"
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Right Column: Local Suggested Listing Price */}
+                          <div style={styles.suggestedListingCol}>
+                            <div style={styles.suggestedListingLabel}>
+                              <Tag size={13} style={styles.tagPrimaryIcon} />{" "}
+                              Suggested Selling Price (
+                              {listingStrategy.mode.toUpperCase()})
+                            </div>
+                            <div
+                              className="tabular-nums"
+                              style={styles.suggestedListingValue}
+                            >
+                              {suggestedListing > 0
+                                ? `$${suggestedListing.toFixed(2)}`
+                                : "—"}
+                            </div>
+                          </div>
+                        </div>
 
                         {/* Individual Market Breakdown Table */}
                         {marketListings.length > 0 ? (
@@ -554,12 +609,24 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                                         >
                                           ${m.price.toFixed(2)}
                                         </td>
-                                        <td
-                                          className="tabular-nums"
-                                          style={styles.tdQuantity}
-                                        >
+                                        <td style={styles.tdQuantity}>
                                           {m.quantity !== undefined ? (
-                                            m.quantity.toLocaleString()
+                                            <div
+                                              className="tabular-nums"
+                                              style={styles.qtyBarWrap}
+                                            >
+                                              <div style={styles.qtyBarTrack}>
+                                                <div
+                                                  style={getQtyBarFillStyle(
+                                                    m.quantity,
+                                                    maxQuantity,
+                                                  )}
+                                                />
+                                              </div>
+                                              <span style={styles.qtyValueText}>
+                                                {m.quantity.toLocaleString()}
+                                              </span>
+                                            </div>
                                           ) : (
                                             <span
                                               style={styles.unverifiedQtyText}
@@ -700,7 +767,7 @@ function getSssBadgeStyle(score: number): React.CSSProperties {
     fontWeight: 700,
     backgroundColor:
       score >= 1.2
-        ? "rgba(16, 185, 129, 0.15)"
+        ? "var(--so-balance-bg)"
         : score >= 0.8
           ? "rgba(6, 182, 212, 0.15)"
           : "rgba(245, 158, 11, 0.15)",
@@ -708,11 +775,11 @@ function getSssBadgeStyle(score: number): React.CSSProperties {
       score >= 1.2
         ? "var(--so-success-text)"
         : score >= 0.8
-          ? "var(--so-cyan-text)"
+          ? "var(--so-cyan-text, #38bdf8)"
           : "var(--so-warning)",
     border: `1px solid ${
       score >= 1.2
-        ? "rgba(16, 185, 129, 0.3)"
+        ? "var(--so-balance-border)"
         : score >= 0.8
           ? "rgba(6, 182, 212, 0.3)"
           : "rgba(245, 158, 11, 0.3)"
@@ -727,6 +794,15 @@ function getTableRowStyle(idx: number, total: number): React.CSSProperties {
     backgroundColor:
       idx % 2 === 0 ? "transparent" : "rgba(255, 255, 255, 0.02)",
   };
+}
+
+function getQtyBarFillStyle(
+  quantity: number,
+  maxQuantity: number,
+): React.CSSProperties {
+  const ratio = maxQuantity > 0 ? quantity / maxQuantity : 0;
+  const pct = Math.max(4, Math.min(100, Math.round(ratio * 100)));
+  return { ...styles.qtyBarFill, width: `${pct}%` };
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -844,6 +920,21 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "14px",
   },
+  exportGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginLeft: "auto",
+  },
+  exportBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "7px 12px",
+    fontSize: "12px",
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+  },
   itemImage: {
     width: 60,
     height: 60,
@@ -878,6 +969,33 @@ const styles: Record<string, React.CSSProperties> = {
   gradeBadge: {
     fontSize: "11px",
   },
+  metricGroups: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: "14px",
+  },
+  metricGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  metricGroupLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "10.5px",
+    fontWeight: 800,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "var(--so-text-muted)",
+    paddingLeft: "2px",
+  },
+  pricingGroupIcon: {
+    color: "var(--so-success-text, #38bdf8)",
+  },
+  supplyGroupIcon: {
+    color: "var(--so-cyan-text, #38bdf8)",
+  },
   metricGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
@@ -905,7 +1023,7 @@ const styles: Record<string, React.CSSProperties> = {
   metricPrimaryValue: {
     fontSize: "15px",
     fontWeight: 800,
-    color: "var(--so-primary)",
+    color: "var(--so-success-text, #38bdf8)",
     marginTop: "2px",
   },
   metricTextValue: {
@@ -923,7 +1041,7 @@ const styles: Record<string, React.CSSProperties> = {
   metricCyanValue: {
     fontSize: "15px",
     fontWeight: 800,
-    color: "var(--so-cyan-text)",
+    color: "var(--so-cyan-text, #38bdf8)",
     marginTop: "2px",
   },
   unverifiedText: {
@@ -938,8 +1056,8 @@ const styles: Record<string, React.CSSProperties> = {
   targetBox: {
     padding: "18px 20px",
     borderRadius: "var(--so-radius-md)",
-    backgroundColor: "rgba(16, 185, 129, 0.08)",
-    border: "1px solid rgba(16, 185, 129, 0.3)",
+    backgroundColor: "var(--so-balance-bg)",
+    border: "1px solid var(--so-balance-border)",
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "16px",
@@ -972,7 +1090,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   suggestedListingCol: {
     paddingLeft: "16px",
-    borderLeft: "1px solid rgba(16, 185, 129, 0.2)",
+    borderLeft: "1px solid var(--so-balance-border)",
   },
   suggestedListingLabel: {
     fontSize: "11px",
@@ -989,7 +1107,7 @@ const styles: Record<string, React.CSSProperties> = {
   suggestedListingValue: {
     fontSize: "24px",
     fontWeight: 900,
-    color: "var(--so-primary)",
+    color: "var(--so-success-text, #38bdf8)",
     marginTop: "2px",
   },
   marketBreakdownTitle: {
@@ -1002,7 +1120,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "6px",
   },
   cyanIcon: {
-    color: "var(--so-cyan-text)",
+    color: "var(--so-cyan-text, #38bdf8)",
   },
   tableWrapper: {
     overflowX: "auto",
@@ -1062,13 +1180,37 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 12px",
     textAlign: "right",
     fontWeight: 800,
-    color: "var(--so-primary)",
+    color: "var(--so-success-text, #38bdf8)",
   },
   tdQuantity: {
     padding: "8px 12px",
     textAlign: "right",
-    color: "var(--so-text-secondary)",
-    fontWeight: 600,
+  },
+  qtyBarWrap: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: "8px",
+  },
+  qtyBarTrack: {
+    flex: 1,
+    minWidth: "48px",
+    maxWidth: "110px",
+    height: "6px",
+    borderRadius: "3px",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    overflow: "hidden",
+  },
+  qtyBarFill: {
+    height: "100%",
+    borderRadius: "3px",
+    backgroundColor: "var(--so-success-text, #38bdf8)",
+  },
+  qtyValueText: {
+    color: "var(--so-text-primary)",
+    fontWeight: 700,
+    minWidth: "36px",
+    textAlign: "right",
   },
   unverifiedQtyText: {
     color: "var(--so-warning-text, #f59e0b)",

@@ -642,6 +642,10 @@ export interface ElectronAPI {
       sampleItemsJson: Record<string, { labels: string[]; prices: number[] }>;
     }>;
   };
+  media: {
+    /** Fetches a remote image via the main process (CORS-free) as a data URL. */
+    fetchDataUrl: (url: string) => Promise<string>;
+  };
 }
 
 export interface TrendMarketListing {

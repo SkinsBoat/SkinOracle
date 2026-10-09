@@ -174,17 +174,10 @@ export default function App() {
     return (
       <div className="splash">
         <div className="splash-logo" style={styles.splashLogo}>
-          <img
-            src={oracleLogo}
-            alt="Skin Oracle"
-            style={styles.splashImg}
-          />
+          <img src={oracleLogo} alt="Skin Oracle" style={styles.splashImg} />
         </div>
         <div className="splash-text">
-          Skin Oracle{" "}
-          <span style={styles.splashBetaBadge}>
-            BETA
-          </span>
+          Skin Oracle <span style={styles.splashBetaBadge}>BETA</span>
         </div>
       </div>
     );
@@ -206,9 +199,7 @@ export default function App() {
       <CreateDealModal />
 
       {systemConfig?.globalBannerMessage && (
-        <div
-          style={getGlobalBannerStyle(systemConfig.globalBannerType)}
-        >
+        <div style={getGlobalBannerStyle(systemConfig.globalBannerType)}>
           {systemConfig.globalBannerMessage}
         </div>
       )}
@@ -242,7 +233,9 @@ export default function App() {
       ) : isLoggedIn ? (
         <div
           className="app-container"
-          style={getAppContainerStyle(Boolean(systemConfig?.globalBannerMessage))}
+          style={getAppContainerStyle(
+            Boolean(systemConfig?.globalBannerMessage),
+          )}
         >
           {/* Expandable/Collapsible Sidebar */}
           <aside
@@ -262,12 +255,8 @@ export default function App() {
                       style={styles.logoImgExpanded}
                     />
                     <div style={styles.titleGroup}>
-                      <span style={styles.titleText}>
-                        Skin Oracle
-                      </span>
-                      <span style={styles.betaBadge}>
-                        BETA
-                      </span>
+                      <span style={styles.titleText}>Skin Oracle</span>
+                      <span style={styles.betaBadge}>BETA</span>
                     </div>
                   </div>
 
@@ -405,23 +394,28 @@ export default function App() {
                   {isSidebarExpanded && <span>DMarket</span>}
                 </NavLink>
 
-                <NavLink
-                  to="/skinscom"
-                  title={!isSidebarExpanded ? "Skins.com Workstation" : undefined}
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
-                  }
-                  style={({ isActive }) =>
-                    getNavLinkStyle(isActive, isSidebarExpanded)
-                  }
-                >
-                  <img
-                    src={skinsLogo}
-                    alt="Skins.com"
-                    style={styles.marketIcon}
-                  />
-                  {isSidebarExpanded && <span>Skins.com</span>}
-                </NavLink>
+                {(import.meta.env.DEV ||
+                  FEATURE_FLAGS.SKINSCOM_WORKSTATION) && (
+                  <NavLink
+                    to="/skinscom"
+                    title={
+                      !isSidebarExpanded ? "Skins.com Workstation" : undefined
+                    }
+                    className={({ isActive }) =>
+                      `sidebar-nav-item ${isActive ? "active" : ""}`
+                    }
+                    style={({ isActive }) =>
+                      getNavLinkStyle(isActive, isSidebarExpanded)
+                    }
+                  >
+                    <img
+                      src={skinsLogo}
+                      alt="Skins.com"
+                      style={styles.marketIcon}
+                    />
+                    {isSidebarExpanded && <span>Skins.com</span>}
+                  </NavLink>
+                )}
 
                 <NavLink
                   to="/csfloat"
@@ -442,30 +436,30 @@ export default function App() {
                 </NavLink>
 
                 {FEATURE_FLAGS.TREND_MARKET && (
-                <NavLink
-                  to="/trend-market"
-                  title={
-                    !isSidebarExpanded
-                      ? "Community Trend Marketplace"
-                      : undefined
-                  }
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
-                  }
-                  style={({ isActive }) =>
-                    getNavLinkStyle(isActive, isSidebarExpanded)
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Globe
-                        size={18}
-                        style={getNavIconStyle(isActive, "accent")}
-                      />
-                      {isSidebarExpanded && <span>Trend Market</span>}
-                    </>
-                  )}
-                </NavLink>
+                  <NavLink
+                    to="/trend-market"
+                    title={
+                      !isSidebarExpanded
+                        ? "Community Trend Marketplace"
+                        : undefined
+                    }
+                    className={({ isActive }) =>
+                      `sidebar-nav-item ${isActive ? "active" : ""}`
+                    }
+                    style={({ isActive }) =>
+                      getNavLinkStyle(isActive, isSidebarExpanded)
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Globe
+                          size={18}
+                          style={getNavIconStyle(isActive, "accent")}
+                        />
+                        {isSidebarExpanded && <span>Trend Market</span>}
+                      </>
+                    )}
+                  </NavLink>
                 )}
 
                 <NavLink

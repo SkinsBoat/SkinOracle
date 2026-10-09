@@ -25,6 +25,7 @@ import { setupDealMakerIPC } from "./ipc/dealmaker.ipc";
 import { setupNotificationIPC } from "./ipc/notification.ipc";
 import { setupTrendMarketIPC } from "./ipc/trendMarket.ipc";
 import { setupAutoRefreshIPC } from "./ipc/autoRefresh.ipc";
+import { setupMediaIPC } from "./ipc/media.ipc";
 import "../storage/secure-store";
 import { autoUpdateService } from "./services/autoUpdater";
 
@@ -36,6 +37,7 @@ setupDealMakerIPC();
 setupNotificationIPC();
 setupTrendMarketIPC();
 setupAutoRefreshIPC();
+setupMediaIPC();
 
 function createWindow() {
   const isDev = !!process.env.VITE_DEV_SERVER_URL;

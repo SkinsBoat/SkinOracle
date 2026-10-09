@@ -26,11 +26,19 @@ export const FEATURE_FLAGS = {
    * write-up. Flip to `true` only once a reliable status source exists.
    */
   SKINSCOM_LISTINGS: false,
+
+  /**
+   * Skins.com Workstation — PRODUCTION gate for the sidebar entry.
+   *
+   * Always visible in development (`import.meta.env.DEV`) and hidden in
+   * production unless this flag is `true`. Flip to `true` to re-expose the
+   * Skins.com workstation in production.
+   */
+  SKINSCOM_WORKSTATION: false,
 };
 
 /** Human-readable feature name used in disabled responses and notices. */
-export const TREND_MARKET_FEATURE_NAME =
-  "Community Trend History Marketplace";
+export const TREND_MARKET_FEATURE_NAME = "Community Trend History Marketplace";
 
 /** Uniform soft result returned by a disabled feature's endpoints. */
 export interface FeatureDisabledResponse {

@@ -199,9 +199,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
         batchId,
       ),
     // Store the accepted price map (called by OracleDashboard after "Build Accepted Price")
-    storeAcceptedPrices: (
-      map: Record<string, AcceptedPriceInfo>,
-    ) => safeInvoke("oracle:store-accepted-prices", map),
+    storeAcceptedPrices: (map: Record<string, AcceptedPriceInfo>) =>
+      safeInvoke("oracle:store-accepted-prices", map),
     // Get the accepted price map (called by market workstations like CSFloat, Skins.com)
     getAcceptedPrices: () => safeInvoke("oracle:get-accepted-prices"),
     // Store the listing price map (called by OracleDashboard after "Build Listing Prices")
@@ -359,8 +358,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke("skinscom:cancel-deposit", depositId),
     startStream: (filters?: SkinscomStreamFilters) =>
       safeInvoke<SkinscomStreamStatus>("skinscom:start-stream", filters),
-    stopStream: () =>
-      safeInvoke<SkinscomStreamStatus>("skinscom:stop-stream"),
+    stopStream: () => safeInvoke<SkinscomStreamStatus>("skinscom:stop-stream"),
     getStreamStatus: () =>
       safeInvoke<SkinscomStreamStatus>("skinscom:get-stream-status"),
     onStreamEvent: (callback: (event: SkinscomStreamEvent) => void) => {
@@ -545,5 +543,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     deleteListing: () => safeInvoke("trend-market:delete-listing"),
     getExportPreview: (days?: number) =>
       safeInvoke("trend-market:get-export-preview", days),
+  },
+
+  // ── Media (CORS-free asset fetch for renderer exports) ──
+  media: {
+    fetchDataUrl: (url: string) => safeInvoke("media:fetch-data-url", url),
   },
 });
