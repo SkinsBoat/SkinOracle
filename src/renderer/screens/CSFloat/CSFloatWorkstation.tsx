@@ -20,6 +20,7 @@ import { BuyOrdersTab } from "./tabs/BuyOrdersTab";
 import { ListingsTab } from "./tabs/ListingsTab";
 import { SoCloseTab } from "./tabs/SoCloseTab";
 import { WorkstationOracleAction } from "../../components/WorkstationOracleAction";
+import { WorkstationHeader } from "../../components/WorkstationHeader";
 import { formatTimeAgo } from "../../utils/timeAgo";
 
 import {
@@ -957,9 +958,7 @@ export default function CSFloatWorkstation() {
           ? res.trades[0]
           : null;
       const isSold = Boolean(
-        firstTrade ||
-          res?.state === "sold" ||
-          res?.contract?.state === "sold",
+        firstTrade || res?.state === "sold" || res?.contract?.state === "sold",
       );
 
       const createdListingId =
@@ -1057,9 +1056,7 @@ export default function CSFloatWorkstation() {
           ? res.trades[0]
           : null;
       const isSold = Boolean(
-        firstTrade ||
-          res?.state === "sold" ||
-          res?.contract?.state === "sold",
+        firstTrade || res?.state === "sold" || res?.contract?.state === "sold",
       );
 
       const finalPriceCents = firstTrade?.contract?.price ?? priceCents;
@@ -1369,8 +1366,9 @@ export default function CSFloatWorkstation() {
     // Fast initial check for in-memory Oracle prices (zero network fetch)
     const checkInitialOracleMeta = async () => {
       try {
-        const acceptedRes: any =
-          await (window.electronAPI.oracle as any).getAcceptedPrices();
+        const acceptedRes: any = await (
+          window.electronAPI.oracle as any
+        ).getAcceptedPrices();
         if (acceptedRes && acceptedRes.itemCount > 0) {
           setAcceptedPricesMeta({
             itemCount: acceptedRes.itemCount,
@@ -1378,7 +1376,10 @@ export default function CSFloatWorkstation() {
           });
         }
       } catch (err) {
-        console.warn("[CSFloat Workstation] Initial accepted prices check:", err);
+        console.warn(
+          "[CSFloat Workstation] Initial accepted prices check:",
+          err,
+        );
       }
       try {
         const listingRes = await window.electronAPI.oracle.getListingPrices();
@@ -1389,7 +1390,10 @@ export default function CSFloatWorkstation() {
           });
         }
       } catch (err) {
-        console.warn("[CSFloat Workstation] Initial listing prices check:", err);
+        console.warn(
+          "[CSFloat Workstation] Initial listing prices check:",
+          err,
+        );
       }
     };
     checkInitialOracleMeta();
@@ -1506,77 +1510,67 @@ export default function CSFloatWorkstation() {
         )}
 
         {/* Main Header Bar */}
-        <div style={styles.headerBar}>
-          {/* Brand */}
-          <div style={styles.brandSection}>
-            <div style={styles.brandTitleWrapper}>
-              <img
-                src={csfloatLogo}
-                alt="CSFloat"
-                style={styles.logo}
-              />
-              <span style={styles.brandTitle}>
-                CSFloat Workstation
-              </span>
-            </div>
-          </div>
-
-          {/* CSFloat Total Buy Order Limit Indicator (Active on Buy Tabs) */}
-          {activeTab !== "listings" && (
-            <CSFloatBuyLimitIndicator
-              balance={userData?.balance}
-              balanceLoading={balanceLoading}
-              orders={orders}
-              ordersLoading={loading}
-              activeTab={activeTab}
-              selectedSoCloseTotal={selectedSoCloseTotal}
-              selectedSoCloseCount={selectedSoCloseCount}
-              selectedOrdersTotal={selectedOrdersTotal}
-              selectedOrdersCount={selectedCount}
-            />
-          )}
-
-          {/* Balance Widget */}
-          <div style={styles.balanceWidget}>
-            {userData?.avatar && (
-              <img
-                src={userData.avatar}
-                alt="avatar"
-                style={styles.avatar}
-              />
-            )}
-            <div style={styles.balanceTextWrapper}>
-              <div style={styles.balanceLabel}>
-                CSFloat Balance
-              </div>
-              <div
-                className="tabular-nums"
-                style={styles.balanceValue}
-              >
-                $
-                {userData?.balance !== undefined
-                  ? userData.balance.toFixed(2)
-                  : "--.--"}
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                if (hasKey) fetchUserData();
-                else checkApiKey();
-              }}
-              disabled={balanceLoading}
-              className="btn btn-secondary btn-sm"
-              title="Refresh Balance"
-              style={styles.refreshBtn}
-            >
-              {balanceLoading ? (
-                <Loader2 size={12} className="spin" />
-              ) : (
-                <RefreshCw size={12} />
+        <WorkstationHeader
+          logo={csfloatLogo}
+          logoAlt="CSFloat"
+          title="CSFloat Workstation"
+          badge="Direct Device IPC"
+          subtitle="Direct device-to-marketplace · Buy orders, listings & So Close scanner"
+          right={
+            <>
+              {/* CSFloat Total Buy Order Limit Indicator (Active on Buy Tabs) */}
+              {activeTab !== "listings" && (
+                <CSFloatBuyLimitIndicator
+                  balance={userData?.balance}
+                  balanceLoading={balanceLoading}
+                  orders={orders}
+                  ordersLoading={loading}
+                  activeTab={activeTab}
+                  selectedSoCloseTotal={selectedSoCloseTotal}
+                  selectedSoCloseCount={selectedSoCloseCount}
+                  selectedOrdersTotal={selectedOrdersTotal}
+                  selectedOrdersCount={selectedCount}
+                />
               )}
-            </button>
-          </div>
-        </div>
+
+              {/* Balance Widget */}
+              <div style={styles.balanceWidget}>
+                {userData?.avatar && (
+                  <img
+                    src={userData.avatar}
+                    alt="avatar"
+                    style={styles.avatar}
+                  />
+                )}
+                <div style={styles.balanceTextWrapper}>
+                  <div style={styles.balanceLabel}>CSFloat Balance</div>
+                  <div className="tabular-nums" style={styles.balanceValue}>
+                    $
+                    {userData?.balance !== undefined
+                      ? userData.balance.toFixed(2)
+                      : "--.--"}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (hasKey) fetchUserData();
+                    else checkApiKey();
+                  }}
+                  disabled={balanceLoading}
+                  className="btn btn-secondary btn-sm"
+                  title="Refresh Balance"
+                  style={styles.refreshBtn}
+                >
+                  {balanceLoading ? (
+                    <Loader2 size={12} className="spin" />
+                  ) : (
+                    <RefreshCw size={12} />
+                  )}
+                </button>
+              </div>
+            </>
+          }
+        />
 
         {/* Workstation Sub-Tabs Navigation & Unified Oracle Action */}
         <div style={styles.tabsNav}>
@@ -1593,10 +1587,7 @@ export default function CSFloatWorkstation() {
               className={`btn ${activeTab === "soclose" ? "btn-primary" : "btn-outline"} btn-sm`}
               style={styles.tabButton}
             >
-              <Zap
-                size={13}
-                style={getZapIconStyle(activeTab === "soclose")}
-              />{" "}
+              <Zap size={13} style={getZapIconStyle(activeTab === "soclose")} />{" "}
               So Close
             </button>
             <button
@@ -1799,51 +1790,6 @@ const styles = {
     fontSize: "11px",
   } as React.CSSProperties,
 
-  headerBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "10px 16px",
-    backgroundColor: "var(--so-surface-header)",
-    border: "1px solid var(--so-border-medium)",
-    borderRadius: "var(--so-radius-md)",
-    gap: "12px",
-    minHeight: "74px",
-    boxSizing: "border-box",
-  } as React.CSSProperties,
-
-  brandSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "3px",
-    flexShrink: 0,
-  } as React.CSSProperties,
-
-  brandTitleWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  } as React.CSSProperties,
-
-  logo: {
-    height: 22,
-    width: "auto",
-    objectFit: "contain",
-  } as React.CSSProperties,
-
-  brandTitle: {
-    color: "var(--so-text-primary)",
-    fontWeight: 800,
-    fontSize: "15px",
-    letterSpacing: "-0.3px",
-  } as React.CSSProperties,
-
-  statusIndicatorWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  } as React.CSSProperties,
-
   balanceWidget: {
     display: "flex",
     alignItems: "center",
@@ -1911,4 +1857,3 @@ const styles = {
     padding: "5px 12px",
   } as React.CSSProperties,
 };
-

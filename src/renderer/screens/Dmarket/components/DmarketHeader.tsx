@@ -2,6 +2,7 @@ import React from "react";
 import { Loader2, RefreshCw, KeyRound, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { dmarketLogo } from "../../../../../assets/images";
+import { WorkstationHeader } from "../../../components/WorkstationHeader";
 
 interface DmarketHeaderProps {
   profileData: {
@@ -28,102 +29,30 @@ export const DmarketHeader: React.FC<DmarketHeaderProps> = ({
   hasKey,
   onRefreshBalance,
 }) => {
-
   return (
     <>
       {/* ── WORKSTATION HEADER ────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "14px",
-          backgroundColor: "var(--so-surface-card)",
-          border: "1px solid var(--so-border-medium)",
-          borderRadius: "var(--so-radius-md)",
-          padding: "14px 20px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <img
-            src={dmarketLogo}
-            alt="DMarket"
-            style={{ width: "36px", height: "36px", objectFit: "contain" }}
-          />
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-              <h1
-                style={{
-                  fontSize: "19px",
-                  fontWeight: 800,
-                  color: "var(--so-text-primary)",
-                  margin: 0,
-                }}
-              >
-                DMarket Workstation
-              </h1>
-              <span
-                style={{
-                  fontSize: "10.5px",
-                  fontWeight: 700,
-                  padding: "2px 7px",
-                  borderRadius: "12px",
-                  backgroundColor: "rgba(56, 189, 248, 0.12)",
-                  color: "var(--so-accent-cyan)",
-                  border: "1px solid rgba(56, 189, 248, 0.3)",
-                }}
-              >
-                Direct Device IPC
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "var(--so-text-muted)",
-                marginTop: "3px",
-              }}
-            >
-              {profileData?.username
-                ? `Logged in as ${profileData.username}`
-                : "Direct device API connection"}
-              {profileData?.targetsLimit
-                ? ` • Quota: ${targetCount}/${profileData.targetsLimit} Targets`
-                : ""}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {/* Balance Indicator */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "6px 14px",
-              backgroundColor: "rgba(14, 165, 233, 0.08)",
-              border: "1px solid rgba(14, 165, 233, 0.22)",
-              borderRadius: "var(--so-radius-sm)",
-            }}
-          >
+      <WorkstationHeader
+        logo={dmarketLogo}
+        logoAlt="DMarket"
+        title="DMarket Workstation"
+        badge="Direct Device IPC"
+        subtitle={
+          <>
+            {profileData?.username
+              ? `Logged in as ${profileData.username}`
+              : "Direct device API connection"}
+            {profileData?.targetsLimit
+              ? ` • Quota: ${targetCount}/${profileData.targetsLimit} Targets`
+              : ""}
+          </>
+        }
+        right={
+          <div style={styles.balanceWidget}>
             <Wallet size={15} style={{ color: "#38bdf8" }} />
             <div>
-              <div
-                style={{
-                  fontSize: "9.5px",
-                  color: "var(--so-text-muted)",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.4px",
-                }}
-              >
-                DMarket USD Balance
-              </div>
-              <div
-                className="tabular-nums"
-                style={{ fontSize: "15px", fontWeight: 900, color: "#ffffff" }}
-              >
+              <div style={styles.balanceLabel}>DMarket USD Balance</div>
+              <div className="tabular-nums" style={styles.balanceValue}>
                 {balanceLoading ? (
                   <Loader2 size={13} className="spin" />
                 ) : (
@@ -136,7 +65,7 @@ export const DmarketHeader: React.FC<DmarketHeaderProps> = ({
               disabled={balanceLoading}
               className="btn btn-secondary btn-sm"
               title="Refresh Balance"
-              style={{ padding: "3px 6px", marginLeft: "4px" }}
+              style={styles.refreshBtn}
             >
               {balanceLoading ? (
                 <Loader2 size={12} className="spin" />
@@ -145,8 +74,8 @@ export const DmarketHeader: React.FC<DmarketHeaderProps> = ({
               )}
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* API Key Missing Warning Banner */}
       {hasKey === false && (
@@ -189,4 +118,34 @@ export const DmarketHeader: React.FC<DmarketHeaderProps> = ({
       )}
     </>
   );
+};
+
+// ── EXTRACTED STYLES ────────────────────────────────────────────────
+
+const styles: Record<string, React.CSSProperties> = {
+  balanceWidget: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "6px 14px",
+    backgroundColor: "rgba(14, 165, 233, 0.08)",
+    border: "1px solid rgba(14, 165, 233, 0.22)",
+    borderRadius: "var(--so-radius-sm)",
+  },
+  balanceLabel: {
+    fontSize: "9.5px",
+    color: "var(--so-text-muted)",
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.4px",
+  },
+  balanceValue: {
+    fontSize: "15px",
+    fontWeight: 900,
+    color: "#ffffff",
+  },
+  refreshBtn: {
+    padding: "3px 6px",
+    marginLeft: "4px",
+  },
 };

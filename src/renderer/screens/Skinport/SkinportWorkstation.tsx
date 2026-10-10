@@ -3,6 +3,7 @@ import { Activity, BellOff, BellRing, ScanLine } from "lucide-react";
 import { skinportLogo } from "../../../../assets/images";
 import { useAcceptedPrices } from "../../hooks/useAcceptedPrices";
 import { WorkstationOracleAction } from "../../components/WorkstationOracleAction";
+import { WorkstationHeader } from "../../components/WorkstationHeader";
 import { useNotificationStore } from "../../store/useNotificationStore";
 import { MarketItemsTab } from "./tabs/MarketItemsTab";
 import { EventFeedTab } from "./tabs/EventFeedTab";
@@ -33,7 +34,9 @@ export default function SkinportWorkstation() {
   } = useAcceptedPrices();
 
   const notifyOnNewDeals = useNotificationStore((s) => s.notifyOnNewDeals);
-  const setNotifyOnNewDeals = useNotificationStore((s) => s.setNotifyOnNewDeals);
+  const setNotifyOnNewDeals = useNotificationStore(
+    (s) => s.setNotifyOnNewDeals,
+  );
 
   const handleLoadOracle = async () => {
     await loadAcceptedPrices(false);
@@ -52,37 +55,33 @@ export default function SkinportWorkstation() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.headerBar}>
-        <div style={styles.brandSection}>
-          <div style={styles.brandTitleWrapper}>
-            <img src={skinportLogo} alt="Skinport" style={styles.logo} />
-            <span style={styles.brandTitle}>Skinport Workstation</span>
-          </div>
-          <span style={styles.brandSubtitle}>
-            Direct device-to-marketplace · Public market items &amp; live sale
-            feed
-          </span>
-        </div>
-
-        <div style={styles.headerRight}>
-          <div style={styles.statBox}>
-            <span style={styles.statLabel}>
-              {activeTab === "events" ? "EVENT FEED" : "MARKET ITEMS"}
-            </span>
-            <span className="tabular-nums" style={styles.statValue}>
-              {activeTab === "events"
-                ? eventStats.events
-                : scannedCount.toLocaleString()}
-            </span>
-          </div>
-          <div style={styles.statBox}>
-            <span style={styles.statLabel}>BUY CEILINGS</span>
-            <span className="tabular-nums" style={styles.statValue}>
-              {acceptedPricesMeta?.itemCount.toLocaleString() ?? 0}
-            </span>
-          </div>
-        </div>
-      </div>
+      <WorkstationHeader
+        logo={skinportLogo}
+        logoAlt="Skinport"
+        title="Skinport Workstation"
+        badge="Direct Device IPC"
+        subtitle="Direct device-to-marketplace · Public market items & live sale feed"
+        right={
+          <>
+            <div style={styles.statBox}>
+              <span style={styles.statLabel}>
+                {activeTab === "events" ? "EVENT FEED" : "MARKET ITEMS"}
+              </span>
+              <span className="tabular-nums" style={styles.statValue}>
+                {activeTab === "events"
+                  ? eventStats.events
+                  : scannedCount.toLocaleString()}
+              </span>
+            </div>
+            <div style={styles.statBox}>
+              <span style={styles.statLabel}>BUY CEILINGS</span>
+              <span className="tabular-nums" style={styles.statValue}>
+                {acceptedPricesMeta?.itemCount.toLocaleString() ?? 0}
+              </span>
+            </div>
+          </>
+        }
+      />
 
       <div style={styles.tabsNav}>
         <div style={styles.tabsLeftGroup}>
@@ -116,11 +115,7 @@ export default function SkinportWorkstation() {
                 : "Deal alerts OFF — click to be alerted on target matches"
             }
           >
-            {notifyOnNewDeals ? (
-              <BellRing size={13} />
-            ) : (
-              <BellOff size={13} />
-            )}
+            {notifyOnNewDeals ? <BellRing size={13} /> : <BellOff size={13} />}
             {notifyOnNewDeals ? "Alerts On" : "Alerts Off"}
           </button>
           <WorkstationOracleAction
@@ -155,50 +150,6 @@ const styles: Record<string, React.CSSProperties> = {
     height: "calc(100vh - 48px)",
     gap: "10px",
     overflow: "hidden",
-  },
-  headerBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "10px 16px",
-    backgroundColor: "var(--so-surface-header)",
-    border: "1px solid var(--so-border-medium)",
-    borderRadius: "var(--so-radius-md)",
-    gap: "12px",
-    minHeight: "74px",
-    boxSizing: "border-box",
-    flexShrink: 0,
-  },
-  brandSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "3px",
-  },
-  brandTitleWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  logo: {
-    height: 22,
-    width: "auto",
-    objectFit: "contain",
-  },
-  brandTitle: {
-    color: "var(--so-text-primary)",
-    fontWeight: 800,
-    fontSize: "15px",
-    letterSpacing: "-0.3px",
-  },
-  brandSubtitle: {
-    fontSize: "10.5px",
-    color: "var(--so-text-muted)",
-    fontWeight: 600,
-  },
-  headerRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
   },
   statBox: {
     display: "flex",

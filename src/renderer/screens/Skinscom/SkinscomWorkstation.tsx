@@ -14,6 +14,7 @@ import { useAcceptedPrices } from "../../hooks/useAcceptedPrices";
 import { useListingPrices } from "../../hooks/useListingPrices";
 import { FEATURE_FLAGS } from "../../../shared/featureFlags";
 import { WorkstationOracleAction } from "../../components/WorkstationOracleAction";
+import { WorkstationHeader } from "../../components/WorkstationHeader";
 import { formatUsdFromCents } from "./utils/skinscomUtils";
 import { SkinscomMarketScanTab } from "./tabs/MarketScanTab";
 import { SkinscomEventStreamTab } from "./tabs/EventStreamTab";
@@ -38,8 +39,7 @@ type SkinscomTab = "marketScan" | "events" | "listings";
 
 // Listings & Inventory is hidden in production (see FEATURE_FLAGS.SKINSCOM_LISTINGS)
 // but always available in development.
-const SHOW_LISTINGS =
-  import.meta.env.DEV || FEATURE_FLAGS.SKINSCOM_LISTINGS;
+const SHOW_LISTINGS = import.meta.env.DEV || FEATURE_FLAGS.SKINSCOM_LISTINGS;
 
 export default function SkinscomWorkstation() {
   const [hasKey, setHasKey] = useState<boolean | null>(null);
@@ -139,83 +139,80 @@ export default function SkinscomWorkstation() {
       )}
 
       {/* Header Bar */}
-      <div style={styles.headerBar}>
-        <div style={styles.brandSection}>
-          <div style={styles.brandTitleWrapper}>
-            <img src={skinsLogo} alt="Skins.com" style={styles.logo} />
-            <span style={styles.brandTitle}>Skins.com Workstation</span>
-          </div>
-          <span style={styles.brandSubtitle}>
-            Direct device-to-marketplace trading · Trading API
-          </span>
-        </div>
-
-        <div style={styles.headerRight}>
-          {activeTab !== "listings" ? (
-            <>
-              <div style={styles.statBox}>
-                <span style={styles.statLabel}>
-                  {activeTab === "events" ? "EVENT FEED" : "MARKET ITEMS"}
-                </span>
-                <span className="tabular-nums" style={styles.statValue}>
-                  {activeTab === "events" ? eventStats.events : scannedCount}
-                </span>
-              </div>
-              <div style={styles.statBox}>
-                <span style={styles.statLabel}>BUY CEILINGS</span>
-                <span className="tabular-nums" style={styles.statValue}>
-                  {acceptedPricesMeta?.itemCount.toLocaleString() ?? 0}
-                </span>
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={styles.statBox}>
-                <span style={styles.statLabel}>INVENTORY</span>
-                <span className="tabular-nums" style={styles.statValue}>
-                  {inventoryStats.total}
-                </span>
-              </div>
-              <div style={styles.statBox}>
-                <span style={styles.statLabel}>LISTABLE</span>
-                <span className="tabular-nums" style={styles.statValue}>
-                  {inventoryStats.depositable}
-                </span>
-              </div>
-            </>
-          )}
-
-          <div style={styles.balanceWidget}>
-            {user?.avatar && (
-              <img src={user.avatar} alt="avatar" style={styles.avatar} />
+      <WorkstationHeader
+        logo={skinsLogo}
+        logoAlt="Skins.com"
+        title="Skins.com Workstation"
+        badge="Direct Device IPC"
+        subtitle="Direct device-to-marketplace trading · Trading API"
+        right={
+          <>
+            {activeTab !== "listings" ? (
+              <>
+                <div style={styles.statBox}>
+                  <span style={styles.statLabel}>
+                    {activeTab === "events" ? "EVENT FEED" : "MARKET ITEMS"}
+                  </span>
+                  <span className="tabular-nums" style={styles.statValue}>
+                    {activeTab === "events" ? eventStats.events : scannedCount}
+                  </span>
+                </div>
+                <div style={styles.statBox}>
+                  <span style={styles.statLabel}>BUY CEILINGS</span>
+                  <span className="tabular-nums" style={styles.statValue}>
+                    {acceptedPricesMeta?.itemCount.toLocaleString() ?? 0}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={styles.statBox}>
+                  <span style={styles.statLabel}>INVENTORY</span>
+                  <span className="tabular-nums" style={styles.statValue}>
+                    {inventoryStats.total}
+                  </span>
+                </div>
+                <div style={styles.statBox}>
+                  <span style={styles.statLabel}>LISTABLE</span>
+                  <span className="tabular-nums" style={styles.statValue}>
+                    {inventoryStats.depositable}
+                  </span>
+                </div>
+              </>
             )}
-            <div style={styles.balanceTextWrapper}>
-              <div style={styles.balanceLabel}>
-                {user?.username || user?.steam_name || "Skins.com Balance"}
-              </div>
-              <div className="tabular-nums" style={styles.balanceValue}>
-                {user ? formatUsdFromCents(user.balance) : "$--.--"}
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                if (hasKey) fetchAccount();
-                else checkApiKey();
-              }}
-              disabled={balanceLoading}
-              className="btn btn-secondary btn-sm"
-              style={styles.refreshBtn}
-              title="Refresh account"
-            >
-              {balanceLoading ? (
-                <Loader2 size={12} className="spin" />
-              ) : (
-                <RefreshCw size={12} />
+
+            <div style={styles.balanceWidget}>
+              {user?.avatar && (
+                <img src={user.avatar} alt="avatar" style={styles.avatar} />
               )}
-            </button>
-          </div>
-        </div>
-      </div>
+              <div style={styles.balanceTextWrapper}>
+                <div style={styles.balanceLabel}>
+                  {user?.username || user?.steam_name || "Skins.com Balance"}
+                </div>
+                <div className="tabular-nums" style={styles.balanceValue}>
+                  {user ? formatUsdFromCents(user.balance) : "$--.--"}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (hasKey) fetchAccount();
+                  else checkApiKey();
+                }}
+                disabled={balanceLoading}
+                className="btn btn-secondary btn-sm"
+                style={styles.refreshBtn}
+                title="Refresh account"
+              >
+                {balanceLoading ? (
+                  <Loader2 size={12} className="spin" />
+                ) : (
+                  <RefreshCw size={12} />
+                )}
+              </button>
+            </div>
+          </>
+        }
+      />
 
       {/* Workstation Sub-Tabs & Unified Oracle Action */}
       <div style={styles.tabsNav}>
@@ -324,50 +321,6 @@ const styles: Record<string, React.CSSProperties> = {
   warningLink: {
     textDecoration: "none",
     fontSize: "11px",
-  },
-  headerBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "10px 16px",
-    backgroundColor: "var(--so-surface-header)",
-    border: "1px solid var(--so-border-medium)",
-    borderRadius: "var(--so-radius-md)",
-    gap: "12px",
-    minHeight: "74px",
-    boxSizing: "border-box",
-    flexShrink: 0,
-  },
-  brandSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "3px",
-  },
-  brandTitleWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  logo: {
-    height: 22,
-    width: "auto",
-    objectFit: "contain",
-  },
-  brandTitle: {
-    color: "var(--so-text-primary)",
-    fontWeight: 800,
-    fontSize: "15px",
-    letterSpacing: "-0.3px",
-  },
-  brandSubtitle: {
-    fontSize: "10.5px",
-    color: "var(--so-text-muted)",
-    fontWeight: 600,
-  },
-  headerRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
   },
   statBox: {
     display: "flex",
