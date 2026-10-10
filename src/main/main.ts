@@ -18,6 +18,7 @@ import "./ipc/skinsnipe.ipc";
 import "./ipc/cs2cap.ipc";
 import "./ipc/csfloat.ipc";
 import "./ipc/skinscom.ipc";
+import "./ipc/skinport.ipc";
 import "./ipc/dmarket.ipc";
 import "./ipc/updater.ipc";
 import { setupBalanceIPC } from "./ipc/balance.ipc";
@@ -28,9 +29,19 @@ import { setupAutoRefreshIPC } from "./ipc/autoRefresh.ipc";
 import { setupMediaIPC } from "./ipc/media.ipc";
 import "../storage/secure-store";
 import { autoUpdateService } from "./services/autoUpdater";
+import { setMainWindow, focusMainWindow } from "./windowManager";
+
+// Windows toast notifications are bound to an AppUserModelID. It MUST match
+// electron-builder's `appId` so a notification click activates THIS running app
+// instead of launching a second instance (which would open a new window).
+const WINDOWS_APP_ID = "com.skinoracle.app";
 
 // Disable hardware acceleration to eliminate Windows Chromium GPU/black screen glitches
 app.disableHardwareAcceleration();
+
+if (process.platform === "win32") {
+  app.setAppUserModelId(WINDOWS_APP_ID);
+}
 
 setupBalanceIPC();
 setupDealMakerIPC();
@@ -61,6 +72,9 @@ function createWindow() {
     },
     icon: path.join(__dirname, "../../assets/icon.png"),
   });
+
+  setMainWindow(win);
+  win.on("closed", () => setMainWindow(null));
 
   // Open external links directly in user's default web browser
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -166,18 +180,32 @@ ipcMain.handle("system:get-version-gate", async () => {
   };
 });
 
-app.whenReady().then(async () => {
-  // Remove default top application menu (File, Edit, View, Window, Help)
-  Menu.setApplicationMenu(null);
+// Enforce a single running instance. Without this, activating the app (e.g. via
+// a Windows/Linux notification click) can launch a second copy and open a new
+// window. The second instance hands focus to the existing window and exits.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
-  // Perform startup version check gate
-  currentGateResult = await checkVersionGate();
-
-  createWindow();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    focusMainWindow();
   });
-});
+
+  app.whenReady().then(async () => {
+    // Remove default top application menu (File, Edit, View, Window, Help)
+    Menu.setApplicationMenu(null);
+
+    // Perform startup version check gate
+    currentGateResult = await checkVersionGate();
+
+    createWindow();
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      else focusMainWindow();
+    });
+  });
+}
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

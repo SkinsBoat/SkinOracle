@@ -71,6 +71,15 @@ export const SKINSCOM_DEPOSIT_RECEIVED = (tradeofferId: string | number) =>
 export const SKINSCOM_DEPOSIT_DISPUTE = (tradeofferId: string | number) =>
   `${SKINSCOM_DEPOSITS}/${tradeofferId}/dispute`;
 
+// ── Skinport Endpoints ────────────────────────────────────────────
+// Public marketplace items (GET, no auth). `br` Accept-Encoding is required,
+// the response is cached 5 minutes and rate-limited 8 req / 5 min. Prices are
+// USD dollars (float). The live sale feed is socket.io over the same host with
+// the msgpack parser (`saleFeedJoin` -> `saleFeed`); sale prices are USD cents.
+export const SKINPORT_API = "https://api.skinport.com";
+export const SKINPORT_ITEMS = `${SKINPORT_API}/v1/items`;
+export const SKINPORT_WS = "wss://skinport.com";
+
 // ── Skinsnipe Endpoints ───────────────────────────────────────────
 export const SKINSNIPE_LOWEST_PRICES = `${SKINSNIPE_API}/lowest-prices`;
 

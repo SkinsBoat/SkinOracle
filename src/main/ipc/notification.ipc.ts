@@ -1,5 +1,6 @@
-import { ipcMain, Notification, BrowserWindow } from "electron";
+import { ipcMain, Notification } from "electron";
 import * as path from "path";
+import { focusMainWindow } from "../windowManager";
 
 export interface ShowNotificationPayload {
   title: string;
@@ -27,13 +28,8 @@ export function setupNotificationIPC() {
         });
 
         notification.on("click", () => {
-          const windows = BrowserWindow.getAllWindows();
-          if (windows.length > 0) {
-            const win = windows[0];
-            if (win.isMinimized()) win.restore();
-            win.show();
-            win.focus();
-          }
+          // Restore & focus the existing window. Never create a new one.
+          focusMainWindow();
         });
 
         notification.show();

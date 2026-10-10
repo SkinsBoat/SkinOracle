@@ -33,6 +33,12 @@ import {
   SkinscomStreamStatus,
 } from "./skinscom.types";
 import {
+  SkinportItemsParams,
+  SkinportMarketItem,
+  SkinportStreamEvent,
+  SkinportStreamStatus,
+} from "./skinport.types";
+import {
   DealMakerItem,
   DealMakerOffer,
   CreateDealPayload,
@@ -315,6 +321,18 @@ export interface ElectronAPI {
     ) => () => void;
     onStreamStatus: (
       callback: (status: SkinscomStreamStatus) => void,
+    ) => () => void;
+  };
+  skinport: {
+    getItems: (params?: SkinportItemsParams) => Promise<SkinportMarketItem[]>;
+    startStream: () => Promise<SkinportStreamStatus>;
+    stopStream: () => Promise<SkinportStreamStatus>;
+    getStreamStatus: () => Promise<SkinportStreamStatus>;
+    onStreamEvent: (
+      callback: (event: SkinportStreamEvent) => void,
+    ) => () => void;
+    onStreamStatus: (
+      callback: (status: SkinportStreamStatus) => void,
     ) => () => void;
   };
   dmarket: {

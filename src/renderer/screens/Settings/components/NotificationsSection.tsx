@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   RotateCcw,
   Sparkles,
+  Target,
 } from "lucide-react";
 import { useNotificationStore } from "../../../store/useNotificationStore";
 import { soundService } from "../../../services/soundService";
@@ -18,10 +19,14 @@ export const NotificationsSection: React.FC = () => {
     soundVolume,
     desktopNotificationsEnabled,
     onlyNotifyInBackground,
+    notifyOnNewDeals,
+    dealSoundCooldownSeconds,
     setSoundEnabled,
     setSoundVolume,
     setDesktopNotificationsEnabled,
     setOnlyNotifyInBackground,
+    setNotifyOnNewDeals,
+    setDealSoundCooldownSeconds,
     resetDefaults,
   } = useNotificationStore();
 
@@ -200,6 +205,71 @@ export const NotificationsSection: React.FC = () => {
                 <span style={getSwitchThumbStyle(onlyNotifyInBackground)} />
               </span>
             </label>
+          </div>
+        )}
+      </div>
+
+      {/* Target & Deal Alerts Card */}
+      <div style={styles.card}>
+        <div style={styles.sectionHeaderRow}>
+          <div style={styles.sectionIconRow}>
+            <Target size={16} style={{ color: "var(--so-primary)" }} />
+            <h3 style={styles.sectionTitle}>Target &amp; Deal Alerts</h3>
+          </div>
+          <span style={getStatusBadgeStyle(notifyOnNewDeals, "green")}>
+            <span style={getDotStyle(notifyOnNewDeals, "green")} />
+            {notifyOnNewDeals ? "Deal Alerts Active" : "Disabled"}
+          </span>
+        </div>
+
+        <div style={styles.controlRow}>
+          <div style={styles.labelCol}>
+            <span style={styles.controlLabel}>
+              Alert when a listing is at or below a Buy Ceiling
+            </span>
+            <span style={styles.controlDesc}>
+              The market workstations chime, toast, and raise an OS banner the
+              moment a genuine deal appears (price ≤ Oracle Buy Ceiling). Each
+              item alerts once per session and rapid bursts are summarised into a
+              single, safe notification.
+            </span>
+          </div>
+          <label style={styles.switchWrapper}>
+            <input
+              type="checkbox"
+              checked={notifyOnNewDeals}
+              onChange={(e) => setNotifyOnNewDeals(e.target.checked)}
+              style={styles.hiddenCheckbox}
+            />
+            <span style={getSwitchTrackStyle(notifyOnNewDeals)}>
+              <span style={getSwitchThumbStyle(notifyOnNewDeals)} />
+            </span>
+          </label>
+        </div>
+
+        {notifyOnNewDeals && (
+          <div style={styles.controlRow}>
+            <div style={styles.labelCol}>
+              <span style={styles.controlLabel}>Alert cooldown (seconds)</span>
+              <span style={styles.controlDesc}>
+                Minimum gap between consecutive deal chimes. Repeated matches for
+                the same item are always suppressed regardless of this value.
+              </span>
+            </div>
+            <input
+              type="number"
+              min="2"
+              max="120"
+              value={dealSoundCooldownSeconds}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setDealSoundCooldownSeconds(
+                  Number.isFinite(v) ? Math.max(0, Math.min(120, v)) : 0,
+                );
+              }}
+              style={styles.numberInput}
+              aria-label="Deal alert cooldown in seconds"
+            />
           </div>
         )}
       </div>
@@ -468,6 +538,17 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     cursor: "pointer",
     accentColor: "var(--so-primary)",
+  },
+  numberInput: {
+    width: "72px",
+    padding: "6px 10px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-input)",
+    border: "1px solid var(--so-border-medium)",
+    color: "var(--so-text-primary)",
+    fontSize: "13px",
+    fontWeight: 700,
+    textAlign: "center",
   },
   switchWrapper: {
     cursor: "pointer",

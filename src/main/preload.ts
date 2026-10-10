@@ -18,6 +18,11 @@ import type {
   SkinscomStreamEvent,
   SkinscomStreamStatus,
 } from "../shared/types/skinscom.types";
+import type {
+  SkinportItemsParams,
+  SkinportStreamEvent,
+  SkinportStreamStatus,
+} from "../shared/types/skinport.types";
 
 /**
  * Clean helper function to invoke IPC channels and strip Electron's wrapper noise.
@@ -375,6 +380,33 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.on("skinscom:stream-status", subscription);
       return () => {
         ipcRenderer.removeListener("skinscom:stream-status", subscription);
+      };
+    },
+  },
+
+  // ── Skinport Marketplace (public market items + live sale feed) ──
+  skinport: {
+    getItems: (params?: SkinportItemsParams) =>
+      safeInvoke("skinport:get-items", params),
+    startStream: () =>
+      safeInvoke<SkinportStreamStatus>("skinport:start-stream"),
+    stopStream: () => safeInvoke<SkinportStreamStatus>("skinport:stop-stream"),
+    getStreamStatus: () =>
+      safeInvoke<SkinportStreamStatus>("skinport:get-stream-status"),
+    onStreamEvent: (callback: (event: SkinportStreamEvent) => void) => {
+      const subscription = (_: any, data: SkinportStreamEvent) =>
+        callback(data);
+      ipcRenderer.on("skinport:stream-event", subscription);
+      return () => {
+        ipcRenderer.removeListener("skinport:stream-event", subscription);
+      };
+    },
+    onStreamStatus: (callback: (status: SkinportStreamStatus) => void) => {
+      const subscription = (_: any, data: SkinportStreamStatus) =>
+        callback(data);
+      ipcRenderer.on("skinport:stream-status", subscription);
+      return () => {
+        ipcRenderer.removeListener("skinport:stream-status", subscription);
       };
     },
   },

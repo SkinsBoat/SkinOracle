@@ -34,6 +34,7 @@
     "react-router-dom": "^6.20.0",
     "recharts": "^3.10.1",
     "socket.io-client": "^4.8.4",
+    "socket.io-msgpack-parser": "^3.0.2",
     "sql.js": "^1.14.2",
     "tweetnacl": "^1.0.3",
     "zustand": "^4.4.7"

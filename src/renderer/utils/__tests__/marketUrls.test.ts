@@ -16,6 +16,7 @@ import {
   handleBuffMarketReferenceLink,
   handleSkinsComReferenceLink,
   handleSkinBaronReferenceLink,
+  handleSkinportReferenceLink,
 } from "../marketUrls";
 
 describe("Market Link Generators", () => {
@@ -252,8 +253,18 @@ describe("Market Link Generators", () => {
     );
   });
 
-  it("getMarketItemUrl dispatches properly and resolves all supported platform aliases", () => {
-    expect(getMarketItemUrl("dmarket", "AK-47 | Redline")).toContain(
+  it("handleSkinportReferenceLink searches the market sorted by ascending price", () => {
+    expect(
+      handleSkinportReferenceLink("AK-47 | Redline (Field-Tested)"),
+    ).toBe(
+      "https://skinport.com/market?search=AK-47%20%7C%20Redline%20(Field-Tested)&sort=price&order=asc",
+    );
+    expect(handleSkinportReferenceLink(null)).toBe(
+      "https://skinport.com/market?sort=price&order=asc",
+    );
+  });
+
+  it("getMarketItemUrl dispatches properly and resolves all supported platform aliases", () => {    expect(getMarketItemUrl("dmarket", "AK-47 | Redline")).toContain(
       "dmarket.com",
     );
     expect(getMarketItemUrl("d_market", "AK-47 | Redline")).toContain(

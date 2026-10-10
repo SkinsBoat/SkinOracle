@@ -35,6 +35,14 @@ export const FEATURE_FLAGS = {
    * Skins.com workstation in production.
    */
   SKINSCOM_WORKSTATION: false,
+
+  /**
+   * Skinport Workstation — sidebar entry for the public Skinport market items
+   * scan and the live sale feed. Always visible in development
+   * (`import.meta.env.DEV`); visible in production only while this is `true`.
+   * No API key is required (both Skinport endpoints are public).
+   */
+  SKINPORT_WORKSTATION: true,
 };
 
 /** Human-readable feature name used in disabled responses and notices. */

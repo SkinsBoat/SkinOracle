@@ -242,8 +242,8 @@ export function handleSkinlandReferenceLink(
 export function handleSkinportReferenceLink(
   name: string | undefined | null,
 ): string {
-  if (!name) return "https://skinport.com/market";
-  return `https://skinport.com/market?search=${encodeURIComponent(name)}`;
+  if (!name) return "https://skinport.com/market?sort=price&order=asc";
+  return `https://skinport.com/market?search=${encodeURIComponent(name)}&sort=price&order=asc`;
 }
 
 export function handleSteamReferenceLink(

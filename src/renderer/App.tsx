@@ -21,6 +21,7 @@ import {
   csfloatLogo,
   skinsLogo,
   dmarketLogo,
+  skinportLogo,
   skinsBoatLogo,
 } from "../../assets/images";
 import RegisterScreen from "./screens/Onboarding/RegisterScreen";
@@ -32,6 +33,7 @@ import DmarketWorkstation from "./screens/Dmarket/DmarketWorkstation";
 import SoCloseWorkstationScreen from "./screens/SoClose/SoCloseWorkstationScreen";
 import { DealMakerFloorScreen } from "./screens/DealMaker/DealMakerFloorScreen";
 import SkinscomWorkstation from "./screens/Skinscom/SkinscomWorkstation";
+import SkinportWorkstation from "./screens/Skinport/SkinportWorkstation";
 import BalanceDashboard from "./screens/Balance/BalanceDashboard";
 import { TrendMarketScreen } from "./screens/TrendMarket/TrendMarketScreen";
 import KnowledgeBaseScreen from "./screens/Knowledge/KnowledgeBaseScreen";
@@ -417,6 +419,29 @@ export default function App() {
                   </NavLink>
                 )}
 
+                {(import.meta.env.DEV ||
+                  FEATURE_FLAGS.SKINPORT_WORKSTATION) && (
+                  <NavLink
+                    to="/skinport"
+                    title={
+                      !isSidebarExpanded ? "Skinport Workstation" : undefined
+                    }
+                    className={({ isActive }) =>
+                      `sidebar-nav-item ${isActive ? "active" : ""}`
+                    }
+                    style={({ isActive }) =>
+                      getNavLinkStyle(isActive, isSidebarExpanded)
+                    }
+                  >
+                    <img
+                      src={skinportLogo}
+                      alt="Skinport"
+                      style={styles.marketIcon}
+                    />
+                    {isSidebarExpanded && <span>Skinport</span>}
+                  </NavLink>
+                )}
+
                 <NavLink
                   to="/csfloat"
                   title={!isSidebarExpanded ? "CSFloat Workstation" : undefined}
@@ -595,6 +620,7 @@ export default function App() {
               <Route path="/dealmaker" element={<DealMakerFloorScreen />} />
               <Route path="/auctions" element={<DealMakerFloorScreen />} />
               <Route path="/skinscom" element={<SkinscomWorkstation />} />
+              <Route path="/skinport" element={<SkinportWorkstation />} />
               {FEATURE_FLAGS.TREND_MARKET && (
                 <Route path="/trend-market" element={<TrendMarketScreen />} />
               )}

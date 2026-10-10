@@ -44,7 +44,10 @@ export default defineConfig(({ mode }) => {
                 // node_modules, instead of Vite bundling the browser transports
                 // (XMLHttpRequest / global WebSocket), which do not exist in the
                 // Electron main process.
-                external: [/^socket\.io-client(\/|$)/],
+                external: [
+                  /^socket\.io-client(\/|$)/,
+                  /^socket\.io-msgpack-parser(\/|$)/,
+                ],
               },
             },
             define: {
