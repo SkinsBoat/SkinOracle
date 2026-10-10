@@ -6,6 +6,7 @@ import type { AcceptedPriceEntry } from "../../../hooks/useAcceptedPrices";
 import {
   classifySkinportItem,
   computeCloseness,
+  isSouvenirName,
   itemPriceCents,
   saleIdentity,
   wearKeyFromFloat,
@@ -90,6 +91,7 @@ export function isItemVisible(
   const name = item.market_hash_name;
   if (!matchesCategory(name, filters.category)) return false;
   if (!matchesWear(wearKeyFromName(name), filters)) return false;
+  if (!filters.allowedWears.souvenir && isSouvenirName(name)) return false;
   const cents = itemPriceCents(item);
   if (!inPriceRange(cents, filters)) return false;
   return passesCeiling(cents, name, ceilings, filters);
@@ -125,6 +127,12 @@ export function isSaleVisible(
   const name = sale.marketHashName;
   if (!matchesCategory(name, filters.category)) return false;
   if (!matchesWear(wearKeyFromFloat(sale.wear), filters)) return false;
+  if (
+    !filters.allowedWears.souvenir &&
+    (sale.souvenir || isSouvenirName(name))
+  ) {
+    return false;
+  }
   if (!inPriceRange(sale.salePrice, filters)) return false;
   return passesCeiling(sale.salePrice, name, ceilings, filters);
 }

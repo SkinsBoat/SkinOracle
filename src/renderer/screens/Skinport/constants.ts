@@ -39,7 +39,10 @@ export const WEAR_KEY_BY_NAME: Record<string, WearKey> = {
   "Battle-Scarred": "bs",
 };
 
-export type AllowedWears = Record<WearKey, boolean>;
+export type AllowedWears = Record<WearKey, boolean> & {
+  /** Souvenir variants toggle (in addition to the five wear buckets). */
+  souvenir: boolean;
+};
 
 export const DEFAULT_ALLOWED_WEARS: AllowedWears = {
   fn: true,
@@ -47,6 +50,7 @@ export const DEFAULT_ALLOWED_WEARS: AllowedWears = {
   ft: true,
   ww: true,
   bs: true,
+  souvenir: true,
 };
 
 export const CATEGORY_BADGES: { key: CategoryFilter; label: string }[] = [

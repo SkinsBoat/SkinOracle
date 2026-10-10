@@ -58,6 +58,13 @@ export function computeCloseness(
 
 export type SkinportItemCategory = "weapon" | "sticker" | "other";
 
+const SOUVENIR_PREFIX = /^Souvenir\s/i;
+
+/** True when a market hash name is a Souvenir variant (e.g. "Souvenir AWP | …"). */
+export function isSouvenirName(name: string): boolean {
+  return SOUVENIR_PREFIX.test((name || "").trim());
+}
+
 const WEAR_SUFFIX =
   /\((?:Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)\s*$/i;
 

@@ -110,6 +110,24 @@ export const SkinportFilterBar: React.FC<SkinportFilterBarProps> = ({
               </button>
             ))}
           </div>
+
+          <div style={styles.wearsWrapper}>
+            <span style={styles.wearsLabel}>Variant:</span>
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  allowedWears: {
+                    ...filters.allowedWears,
+                    souvenir: !filters.allowedWears.souvenir,
+                  },
+                })
+              }
+              style={getBadgeStyle(filters.allowedWears.souvenir)}
+            >
+              Souvenir
+            </button>
+          </div>
         </div>
 
         <span style={styles.groupDivider} />

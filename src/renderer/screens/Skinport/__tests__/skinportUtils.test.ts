@@ -4,6 +4,7 @@ import {
   computeCloseness,
   formatUsd,
   formatUsdFromCents,
+  isSouvenirName,
   itemPriceCents,
   saleDiscountPercent,
   saleIdentity,
@@ -62,6 +63,13 @@ describe("skinportUtils", () => {
     );
     expect(classifySkinportItem("Sticker | Titan (Holo)")).toBe("sticker");
     expect(classifySkinportItem("Operation Bravo Case")).toBe("other");
+  });
+
+  it("detects Souvenir variants by name prefix", () => {
+    expect(isSouvenirName("Souvenir AWP | Desert Hydra (Field-Tested)")).toBe(
+      true,
+    );
+    expect(isSouvenirName("AWP | Asiimov (Field-Tested)")).toBe(false);
   });
 
   it("maps wear names and floats to bucket keys", () => {
@@ -123,6 +131,32 @@ describe("skinportFilters", () => {
         ...DEFAULT_FILTERS,
         priceMax: "200",
         minSss: 0,
+      }),
+    ).toHaveLength(0);
+  });
+
+  it("gates Souvenir variants behind the Souvenir toggle", () => {
+    const souvenir = item({
+      market_hash_name: "Souvenir AWP | Desert Hydra (Field-Tested)",
+    });
+    const souvenirCeilings = buildCeilingMap({
+      "Souvenir AWP | Desert Hydra (Field-Tested)": accepted(12),
+    });
+
+    // Included by default.
+    expect(
+      selectVisibleItems([souvenir], souvenirCeilings, {
+        ...DEFAULT_FILTERS,
+        minSss: 0,
+      }),
+    ).toHaveLength(1);
+
+    // Excluded when the Souvenir toggle is turned off.
+    expect(
+      selectVisibleItems([souvenir], souvenirCeilings, {
+        ...DEFAULT_FILTERS,
+        minSss: 0,
+        allowedWears: { ...DEFAULT_FILTERS.allowedWears, souvenir: false },
       }),
     ).toHaveLength(0);
   });
