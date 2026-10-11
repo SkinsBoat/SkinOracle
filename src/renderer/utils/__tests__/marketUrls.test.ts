@@ -31,16 +31,16 @@ describe("Market Link Generators", () => {
 
   it("handleDmarketReferenceLink handles StatTrak, Souvenir, and normal query parameters", () => {
     expect(handleDmarketReferenceLink("MAC-10 | Fade (Minimal Wear)")).toBe(
-      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=MAC-10%20%7C%20Fade%20(Minimal%20Wear)&souvenir=false&stattrak=false",
+      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=MAC-10%20%7C%20Fade%20(Minimal%20Wear)&souvenir=false&stattrak=false&orderBy=price&orderDir=asc",
     );
     expect(handleDmarketReferenceLink("Nova | Hyper Beast (Minimal Wear)")).toBe(
-      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=Nova%20%7C%20Hyper%20Beast%20(Minimal%20Wear)&souvenir=false&stattrak=false",
+      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=Nova%20%7C%20Hyper%20Beast%20(Minimal%20Wear)&souvenir=false&stattrak=false&orderBy=price&orderDir=asc",
     );
     expect(handleDmarketReferenceLink("StatTrak™ AK-47 | Redline (FT)")).toBe(
-      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=StatTrak%E2%84%A2%20AK-47%20%7C%20Redline%20(FT)&souvenir=false",
+      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=StatTrak%E2%84%A2%20AK-47%20%7C%20Redline%20(FT)&souvenir=false&orderBy=price&orderDir=asc",
     );
     expect(handleDmarketReferenceLink("Souvenir MAC-10 | Amber Fade (Minimal Wear)")).toBe(
-      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=Souvenir%20MAC-10%20%7C%20Amber%20Fade%20(Minimal%20Wear)&stattrak=false",
+      "https://dmarket.com/ingame-items/item-list/csgo-skins?title=Souvenir%20MAC-10%20%7C%20Amber%20Fade%20(Minimal%20Wear)&stattrak=false&orderBy=price&orderDir=asc",
     );
     expect(handleDmarketReferenceLink(null)).toBe(
       "https://dmarket.com/ingame-items/item-list/csgo-skins",

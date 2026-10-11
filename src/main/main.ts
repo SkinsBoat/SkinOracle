@@ -17,7 +17,6 @@ import "./ipc/oracle.ipc";
 import "./ipc/skinsnipe.ipc";
 import "./ipc/cs2cap.ipc";
 import "./ipc/csfloat.ipc";
-import "./ipc/skinscom.ipc";
 import "./ipc/skinport.ipc";
 import "./ipc/dmarket.ipc";
 import "./ipc/updater.ipc";

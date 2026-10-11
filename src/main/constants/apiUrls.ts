@@ -35,42 +35,6 @@ export const CSFLOAT_USER_STALL = (userId: string) =>
 export const CSFLOAT_ITEM_BUY_ORDERS = `${CSFLOAT_API}/buy-orders/item`;
 export const CSFLOAT_ME_TRADES = `${CSFLOAT_API}/me/trades`;
 
-// ── Skins.com Endpoints ───────────────────────────────────────────
-// Source of truth: src/renderer/screens/Skinscom/SKINSCOM_TRADING_API.md
-// (vendored spec: skinscomtradingopenapi.json). Auth: Bearer API key from
-// the user's Skins.com Profile > Developers. All values are USD cents.
-export const SKINSCOM_TRADING_API = "https://trading-api.skins.com";
-// Live item feed (socket.io v4, path `/s/`, namespace `/trade`). The socket is
-// opened from the Node.js main process with the short-lived `socket_token` /
-// `socket_signature` from `GET /metadata/socket`; the API key never leaves main.
-export const SKINSCOM_TRADING_WS = "https://trading-api.skins.com";
-export const SKINSCOM_METADATA = `${SKINSCOM_TRADING_API}/metadata/socket`;
-export const SKINSCOM_LISTED_ITEMS = `${SKINSCOM_TRADING_API}/trading/items`;
-export const SKINSCOM_USER_INVENTORY = `${SKINSCOM_TRADING_API}/trading/user/inventory`;
-export const SKINSCOM_DEPOSITS = `${SKINSCOM_TRADING_API}/trading/deposit`;
-export const SKINSCOM_DEPOSIT_BY_ID = (depositId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${depositId}`;
-export const SKINSCOM_DEPOSIT_BULK_PRICES = `${SKINSCOM_DEPOSITS}/bulk`;
-export const SKINSCOM_DEPOSIT_STATUS = (trackingCode: string) =>
-  `${SKINSCOM_DEPOSITS}/status/${encodeURIComponent(trackingCode)}`;
-export const SKINSCOM_DEPOSIT_CANCEL = (depositId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${depositId}/cancel`;
-export const SKINSCOM_DEPOSIT_CANCEL_BULK = `${SKINSCOM_DEPOSITS}/cancel`;
-export const SKINSCOM_DEPOSIT_SELL_NOW = (depositId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${depositId}/sell`;
-export const SKINSCOM_DEPOSIT_SENT = (depositId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${depositId}/sent`;
-export const SKINSCOM_DEPOSITOR_STATS = (depositId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${depositId}/stats`;
-export const SKINSCOM_DEPOSIT_WITHDRAW = (depositId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${depositId}/withdraw`;
-export const SKINSCOM_DEPOSIT_BID = (depositId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${depositId}/bid`;
-export const SKINSCOM_DEPOSIT_RECEIVED = (tradeofferId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${tradeofferId}/received`;
-export const SKINSCOM_DEPOSIT_DISPUTE = (tradeofferId: string | number) =>
-  `${SKINSCOM_DEPOSITS}/${tradeofferId}/dispute`;
-
 // ── Skinport Endpoints ────────────────────────────────────────────
 // Public marketplace items (GET, no auth). `br` Accept-Encoding is required,
 // the response is cached 5 minutes and rate-limited 8 req / 5 min. Prices are

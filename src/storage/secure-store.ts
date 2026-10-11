@@ -20,7 +20,6 @@ const STORAGE_KEYS = {
   SKINSNIPE: "skinsnipe_api_key",
   CS2CAP: "cs2cap_api_key",
   CSFLOAT: "csfloat_api_key",
-  SKINSCOM: "skinscom_token",
   DMARKET_PUBLIC: "dmarket_public_key",
   DMARKET_SECRET: "dmarket_secret_key",
   JWT: "saas_jwt",
@@ -110,11 +109,6 @@ if (ipcMain?.handle) {
     return { success: true };
   });
 
-  ipcMain.handle("settings:set-skinscom-token", (_, token: string) => {
-    secureSet(STORAGE_KEYS.SKINSCOM, token);
-    return { success: true };
-  });
-
   ipcMain.handle("settings:revoke-skinsnipe-key", () => {
     secureDelete(STORAGE_KEYS.SKINSNIPE);
     return { success: true };
@@ -139,11 +133,6 @@ if (ipcMain?.handle) {
     },
   );
 
-  ipcMain.handle("settings:revoke-skinscom-token", () => {
-    secureDelete(STORAGE_KEYS.SKINSCOM);
-    return { success: true };
-  });
-
   ipcMain.handle("settings:revoke-dmarket-keys", () => {
     secureDelete(STORAGE_KEYS.DMARKET_PUBLIC);
     secureDelete(STORAGE_KEYS.DMARKET_SECRET);
@@ -155,7 +144,6 @@ if (ipcMain?.handle) {
       hasSkinsnipeKey: !!secureGet(STORAGE_KEYS.SKINSNIPE),
       hasCs2capKey: !!secureGet(STORAGE_KEYS.CS2CAP),
       hasCsfloatKey: !!secureGet(STORAGE_KEYS.CSFLOAT),
-      hasSkinscomToken: !!secureGet(STORAGE_KEYS.SKINSCOM),
       hasDmarketKeys:
         !!secureGet(STORAGE_KEYS.DMARKET_PUBLIC) &&
         !!secureGet(STORAGE_KEYS.DMARKET_SECRET),

@@ -4,7 +4,6 @@
 export * from "./providers.types";
 export * from "./oracle.types";
 export * from "./csfloat.types";
-export * from "./skinscom.types";
 export * from "./dmarket.types";
 export * from "./system.types";
 export * from "./autoRefresh.types";

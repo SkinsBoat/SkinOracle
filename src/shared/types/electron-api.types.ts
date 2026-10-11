@@ -19,20 +19,6 @@ import {
 } from "./oracle.types";
 import { CsFloatInventoryItem, ListingPriceInfo } from "./csfloat.types";
 import {
-  SkinscomListedItemsParams,
-  SkinscomListedItemsResponse,
-  SkinscomInventoryResponse,
-  SkinscomCreateDepositItem,
-  SkinscomCreateDepositResponse,
-  SkinscomBulkPriceItem,
-  SkinscomBulkUpdateResponse,
-  SkinscomMetadataResponse,
-  SkinscomSuccessResponse,
-  SkinscomStreamFilters,
-  SkinscomStreamEvent,
-  SkinscomStreamStatus,
-} from "./skinscom.types";
-import {
   SkinportItemsParams,
   SkinportMarketItem,
   SkinportStreamEvent,
@@ -95,7 +81,6 @@ export interface ElectronAPI {
     setSkinsnipeKey: (key: string) => Promise<{ success: boolean }>;
     setCs2capKey: (key: string) => Promise<{ success: boolean }>;
     setCsfloatKey: (key: string) => Promise<{ success: boolean }>;
-    setSkinscomToken: (token: string) => Promise<{ success: boolean }>;
     setDmarketKeys: (
       publicKey: string,
       secretKey: string,
@@ -103,13 +88,11 @@ export interface ElectronAPI {
     revokeSkinsnipeKey: () => Promise<{ success: boolean }>;
     revokeCs2capKey: () => Promise<{ success: boolean }>;
     revokeCsfloatKey: () => Promise<{ success: boolean }>;
-    revokeSkinscomToken: () => Promise<{ success: boolean }>;
     revokeDmarketKeys: () => Promise<{ success: boolean }>;
     getKeysStatus: () => Promise<{
       hasSkinsnipeKey: boolean;
       hasCs2capKey: boolean;
       hasCsfloatKey: boolean;
-      hasSkinscomToken: boolean;
       hasDmarketKeys: boolean;
       hasJwt: boolean;
     }>;
@@ -290,37 +273,6 @@ export interface ElectronAPI {
     getStatus?: () => Promise<UpdateStatusState>;
     onUpdateStatus: (
       callback: (state: UpdateStatusState) => void,
-    ) => () => void;
-  };
-  skinscom: {
-    getMetadata: () => Promise<SkinscomMetadataResponse>;
-    getListedItems: (
-      params?: SkinscomListedItemsParams,
-    ) => Promise<SkinscomListedItemsResponse>;
-    getInventory: () => Promise<SkinscomInventoryResponse>;
-    createDeposit: (
-      items: SkinscomCreateDepositItem[],
-    ) => Promise<SkinscomCreateDepositResponse>;
-    updateListingPrice: (
-      depositId: number | string,
-      coinValue: number,
-    ) => Promise<SkinscomSuccessResponse>;
-    bulkUpdateListingPrices: (
-      items: SkinscomBulkPriceItem[],
-    ) => Promise<SkinscomBulkUpdateResponse>;
-    cancelDeposit: (
-      depositId: number | string,
-    ) => Promise<SkinscomSuccessResponse>;
-    startStream: (
-      filters?: SkinscomStreamFilters,
-    ) => Promise<SkinscomStreamStatus>;
-    stopStream: () => Promise<SkinscomStreamStatus>;
-    getStreamStatus: () => Promise<SkinscomStreamStatus>;
-    onStreamEvent: (
-      callback: (event: SkinscomStreamEvent) => void,
-    ) => () => void;
-    onStreamStatus: (
-      callback: (status: SkinscomStreamStatus) => void,
     ) => () => void;
   };
   skinport: {

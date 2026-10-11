@@ -6,7 +6,6 @@ import {
   skinSnipeLogo,
   cs2capLogo,
   csfloatLogo,
-  skinsLogo,
   dmarketLogo,
 } from "../../../../../assets/images";
 
@@ -15,14 +14,12 @@ export const ApiKeysSection: React.FC = () => {
     hasSkinsnipeKey: false,
     hasCs2capKey: false,
     hasCsfloatKey: false,
-    hasSkinscomToken: false,
     hasDmarketKeys: false,
   });
 
   const [skinsnipeKey, setSkinsnipeKey] = useState("");
   const [cs2capKey, setCs2capKey] = useState("");
   const [csfloatKey, setCsfloatKey] = useState("");
-  const [skinscomToken, setSkinscomToken] = useState("");
   const [dmarketPublicKey, setDmarketPublicKey] = useState("");
   const [dmarketSecretKey, setDmarketSecretKey] = useState("");
 
@@ -35,7 +32,7 @@ export const ApiKeysSection: React.FC = () => {
   }, []);
 
   const saveKey = async (
-    type: "skinsnipe" | "cs2cap" | "csfloat" | "skinscom" | "dmarket",
+    type: "skinsnipe" | "cs2cap" | "csfloat" | "dmarket",
   ) => {
     setSaving(type);
     try {
@@ -63,10 +60,6 @@ export const ApiKeysSection: React.FC = () => {
         setDmarketPublicKey("");
         setDmarketSecretKey("");
         toast.success("DMarket API keys encrypted & saved!");
-      } else {
-        await window.electronAPI.settings.setSkinscomToken(skinscomToken);
-        setSkinscomToken("");
-        toast.success("Skins.com API key encrypted & saved!");
       }
       const updated = await window.electronAPI.settings.getKeysStatus();
       setKeysStatus(updated);
@@ -78,7 +71,7 @@ export const ApiKeysSection: React.FC = () => {
   };
 
   const revokeKey = async (
-    type: "skinsnipe" | "cs2cap" | "csfloat" | "skinscom" | "dmarket",
+    type: "skinsnipe" | "cs2cap" | "csfloat" | "dmarket",
   ) => {
     const label =
       type === "skinsnipe"
@@ -87,9 +80,7 @@ export const ApiKeysSection: React.FC = () => {
           ? "CS2Cap API key"
           : type === "csfloat"
             ? "CSFloat API key"
-            : type === "dmarket"
-              ? "DMarket API keys"
-              : "Skins.com session token";
+            : "DMarket API keys";
 
     const providerName =
       type === "skinsnipe"
@@ -98,9 +89,7 @@ export const ApiKeysSection: React.FC = () => {
           ? "CS2Cap"
           : type === "csfloat"
             ? "CSFloat"
-            : type === "dmarket"
-              ? "DMarket"
-              : "Skins.com";
+            : "DMarket";
 
     const confirmed = await confirmModal({
       title: type === "dmarket" ? "Remove API Keys?" : "Remove API Key?",
@@ -126,9 +115,6 @@ export const ApiKeysSection: React.FC = () => {
         await window.electronAPI.settings.revokeDmarketKeys();
         setDmarketPublicKey("");
         setDmarketSecretKey("");
-      } else {
-        await window.electronAPI.settings.revokeSkinscomToken();
-        setSkinscomToken("");
       }
       toast.success(`${label} removed from device`);
       const updated = await window.electronAPI.settings.getKeysStatus();
@@ -420,60 +406,6 @@ export const ApiKeysSection: React.FC = () => {
                   </button>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* ── Skins.com API Key Card ──
-              Powers the Skins.com Workstation (Trading API). Create the key
-              under Profile > Developers in your Skins.com account. */}
-          <div style={styles.card}>
-            <div style={styles.cardTopRow}>
-              <div style={styles.cardTitleBox}>
-                <img
-                  src={skinsLogo}
-                  alt="Skins.com"
-                  style={styles.providerLogo}
-                />
-                <span>Skins.com API Key</span>
-              </div>
-              <span
-                style={keysStatus.hasSkinscomToken ? styles.badgeSuccess : styles.badgeWarning}
-              >
-                {keysStatus.hasSkinscomToken ? "CONFIGURED" : "NOT SET"}
-              </span>
-            </div>
-            <p style={styles.cardDesc}>
-              Required for the Skins.com Workstation to stream your active
-              listings and apply listing price adjustments (Trading API).
-            </p>
-            <div style={styles.inputRow}>
-              <input
-                type="password"
-                value={skinscomToken}
-                onChange={(e) => setSkinscomToken(e.target.value)}
-                placeholder={keysStatus.hasSkinscomToken ? "••••••••••••••••••••••••" : "API key from Profile > Developers"}
-                style={styles.keyInput}
-              />
-              <button
-                type="button"
-                style={styles.saveBtn}
-                onClick={() => saveKey("skinscom")}
-                disabled={saving === "skinscom" || !skinscomToken}
-              >
-                <Save size={14} />
-                {saving === "skinscom" ? "Saving..." : "Save Key"}
-              </button>
-              {keysStatus.hasSkinscomToken && (
-                <button
-                  type="button"
-                  style={styles.revokeBtn}
-                  onClick={() => revokeKey("skinscom")}
-                  disabled={saving === "revoke_skinscom"}
-                >
-                  <Trash2 size={14} />
-                  {saving === "revoke_skinscom" ? "Removing..." : "Remove"}
-                </button>
-              )}
             </div>
           </div>
         </div>

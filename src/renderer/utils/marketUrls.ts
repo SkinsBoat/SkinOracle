@@ -36,6 +36,7 @@ export function handleDmarketReferenceLink(
   if (!isStatTrak) {
     queryParams.push("stattrak=false");
   }
+  queryParams.push("orderBy=price", "orderDir=asc");
 
   return `${base}?${queryParams.join("&")}`;
 }

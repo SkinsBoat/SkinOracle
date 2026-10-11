@@ -11,14 +11,6 @@ import {
   MarketScanScope,
 } from "../shared/types/autoRefresh.types";
 import type {
-  SkinscomListedItemsParams,
-  SkinscomCreateDepositItem,
-  SkinscomBulkPriceItem,
-  SkinscomStreamFilters,
-  SkinscomStreamEvent,
-  SkinscomStreamStatus,
-} from "../shared/types/skinscom.types";
-import type {
   SkinportItemsParams,
   SkinportStreamEvent,
   SkinportStreamStatus,
@@ -74,14 +66,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke("settings:set-skinsnipe-key", key),
     setCs2capKey: (key: string) => safeInvoke("settings:set-cs2cap-key", key),
     setCsfloatKey: (key: string) => safeInvoke("settings:set-csfloat-key", key),
-    setSkinscomToken: (token: string) =>
-      safeInvoke("settings:set-skinscom-token", token),
     setDmarketKeys: (publicKey: string, secretKey: string) =>
       safeInvoke("settings:set-dmarket-keys", publicKey, secretKey),
     revokeSkinsnipeKey: () => safeInvoke("settings:revoke-skinsnipe-key"),
     revokeCs2capKey: () => safeInvoke("settings:revoke-cs2cap-key"),
     revokeCsfloatKey: () => safeInvoke("settings:revoke-csfloat-key"),
-    revokeSkinscomToken: () => safeInvoke("settings:revoke-skinscom-token"),
     revokeDmarketKeys: () => safeInvoke("settings:revoke-dmarket-keys"),
     getKeysStatus: () => safeInvoke("settings:get-keys-status"),
     // Returns { isEncrypted: boolean } — false means keys are stored as base64 (OS fallback)
@@ -342,44 +331,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.on("auto-updater:status", subscription);
       return () => {
         ipcRenderer.removeListener("auto-updater:status", subscription);
-      };
-    },
-  },
-
-  // ── Skins.com Trading API (fires directly from the user's device) ──
-  // Reference: src/renderer/screens/Skinscom/SKINSCOM_TRADING_API.md
-  skinscom: {
-    getMetadata: () => safeInvoke("skinscom:get-metadata"),
-    getListedItems: (params?: SkinscomListedItemsParams) =>
-      safeInvoke("skinscom:get-listed-items", params),
-    getInventory: () => safeInvoke("skinscom:get-inventory"),
-    createDeposit: (items: SkinscomCreateDepositItem[]) =>
-      safeInvoke("skinscom:create-deposit", items),
-    updateListingPrice: (depositId: number | string, coinValue: number) =>
-      safeInvoke("skinscom:update-listing-price", depositId, coinValue),
-    bulkUpdateListingPrices: (items: SkinscomBulkPriceItem[]) =>
-      safeInvoke("skinscom:bulk-update-listing-prices", items),
-    cancelDeposit: (depositId: number | string) =>
-      safeInvoke("skinscom:cancel-deposit", depositId),
-    startStream: (filters?: SkinscomStreamFilters) =>
-      safeInvoke<SkinscomStreamStatus>("skinscom:start-stream", filters),
-    stopStream: () => safeInvoke<SkinscomStreamStatus>("skinscom:stop-stream"),
-    getStreamStatus: () =>
-      safeInvoke<SkinscomStreamStatus>("skinscom:get-stream-status"),
-    onStreamEvent: (callback: (event: SkinscomStreamEvent) => void) => {
-      const subscription = (_: any, data: SkinscomStreamEvent) =>
-        callback(data);
-      ipcRenderer.on("skinscom:stream-event", subscription);
-      return () => {
-        ipcRenderer.removeListener("skinscom:stream-event", subscription);
-      };
-    },
-    onStreamStatus: (callback: (status: SkinscomStreamStatus) => void) => {
-      const subscription = (_: any, data: SkinscomStreamStatus) =>
-        callback(data);
-      ipcRenderer.on("skinscom:stream-status", subscription);
-      return () => {
-        ipcRenderer.removeListener("skinscom:stream-status", subscription);
       };
     },
   },
