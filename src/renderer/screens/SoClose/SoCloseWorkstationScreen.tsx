@@ -14,6 +14,7 @@ import {
   Database,
   Sliders,
   Info,
+  Download,
 } from "lucide-react";
 import { useOracleStore } from "../../store/useOracleStore";
 import { SkinsnipeMarketId, SoCloseResultItem } from "../../../shared/types";
@@ -33,6 +34,7 @@ import { TrendSparkline } from "../../components/TrendSparkline";
 import { SkinImage } from "../../components/SkinImage";
 import { WorkstationDataStatusCards } from "../../components/WorkstationDataStatusCards";
 import { getMarketItemUrl } from "../../utils/marketUrls";
+import { exportNodeAsPng } from "../Oracle/utils/lookupImageExport";
 import { SKINSNIPE_AVAILABLE_MARKETS } from "../Oracle/components/Step1MarketCache";
 import {
   CSFloatLookupModal,
@@ -119,6 +121,23 @@ export default function SoCloseWorkstationScreen() {
   const [isScanning, setIsScanning] = useState(false);
   const [lookupModalItem, setLookupModalItem] =
     useState<LookupModalItemData | null>(null);
+
+  // Right-click context menu anchored to the clicked result card.
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    item: SoCloseResultItem;
+    target: HTMLElement;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setContextMenu(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [contextMenu]);
 
   const handleOpenLookupModal = async (
     name: string,
@@ -688,6 +707,35 @@ export default function SoCloseWorkstationScreen() {
     toast.success(`Copied ${label} to clipboard!`);
   };
 
+  // Right-click a result card to export a pixel-faithful PNG of that card.
+  const handleExportCard = async (node: HTMLElement, nameHint: string) => {
+    const toastId = toast.loading("Exporting card as PNG...");
+    try {
+      await exportNodeAsPng(node, nameHint);
+      toast.success("Exported PNG image", { id: toastId });
+    } catch (err: any) {
+      toast.error(
+        "Failed to export image: " + (err?.message || "unknown error"),
+        { id: toastId },
+      );
+    }
+  };
+
+  const openItemMarket = (item: SoCloseResultItem) => {
+    const url = getMarketItemUrl(item.market || "csfloat", item.name);
+    if (!url) {
+      toast.error(
+        `Market link not available for ${getMarketDisplayName(item.market)}`,
+      );
+      return;
+    }
+    if (window.electronAPI?.app?.openExternal) {
+      window.electronAPI.app.openExternal(url);
+    } else {
+      window.open(url, "_blank");
+    }
+  };
+
   return (
     <div style={styles.container}>
       {/* Top Header Banner */}
@@ -998,6 +1046,16 @@ export default function SoCloseWorkstationScreen() {
                   key={`${item.name}-${item.market}-${index}`}
                   className="card"
                   style={getOpportunityCardStyle(isInstantProfit)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setContextMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      item,
+                      target: e.currentTarget,
+                    });
+                  }}
+                  title="Right-click for card actions"
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLElement).style.borderColor =
                       isInstantProfit
@@ -1016,6 +1074,7 @@ export default function SoCloseWorkstationScreen() {
                     {/* Top Left: 3 Action Icons (View, Copy, Link) */}
                     <div
                       style={styles.cardActionIcons}
+                      data-export-ignore="true"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* View icon: Quick preview item details & all-market price breakdown */}
@@ -1228,6 +1287,83 @@ export default function SoCloseWorkstationScreen() {
         )}
       </div>
 
+      {/* Right-click Card Context Menu */}
+      {contextMenu && (
+        <>
+          <div
+            style={styles.contextMenuOverlay}
+            onClick={() => setContextMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setContextMenu(null);
+            }}
+          />
+          <div
+            style={getContextMenuStyle(contextMenu.x, contextMenu.y)}
+            role="menu"
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              style={styles.contextMenuItem}
+              onClick={() => {
+                const { target, item } = contextMenu;
+                setContextMenu(null);
+                handleExportCard(target, item.name);
+              }}
+            >
+              <Download size={13} style={styles.contextMenuIcon} />
+              Export as PNG
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              style={styles.contextMenuItem}
+              onClick={() => {
+                const { item } = contextMenu;
+                setContextMenu(null);
+                openItemMarket(item);
+              }}
+            >
+              <ExternalLink size={13} style={styles.contextMenuIcon} />
+              Open on {getMarketDisplayName(contextMenu.item.market)}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              style={styles.contextMenuItem}
+              onClick={() => {
+                const { item } = contextMenu;
+                setContextMenu(null);
+                handleOpenLookupModal(
+                  item.name,
+                  item.acceptedPrice,
+                  item.currentMarketPrice,
+                  item.iconUrl,
+                  item.market,
+                );
+              }}
+            >
+              <Eye size={13} style={styles.contextMenuIcon} />
+              Inspect details
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              style={styles.contextMenuItem}
+              onClick={() => {
+                copyToClipboard(contextMenu.item.name, "market hash name");
+                setContextMenu(null);
+              }}
+            >
+              <Copy size={13} style={styles.contextMenuIcon} />
+              Copy item name
+            </button>
+          </div>
+        </>
+      )}
+
       {/* Lookup Modal */}
       {lookupModalItem && (
         <CSFloatLookupModal
@@ -1253,6 +1389,21 @@ export default function SoCloseWorkstationScreen() {
 }
 
 // ── Pure Dynamic Style Helpers ─────────────────────────────────────
+
+function getContextMenuStyle(x: number, y: number): React.CSSProperties {
+  const MENU_WIDTH = 210;
+  const MENU_HEIGHT = 4 * 34 + 10;
+  const margin = 8;
+  const left = Math.max(
+    margin,
+    Math.min(x, window.innerWidth - MENU_WIDTH - margin),
+  );
+  const top = Math.max(
+    margin,
+    Math.min(y, window.innerHeight - MENU_HEIGHT - margin),
+  );
+  return { ...styles.contextMenu, left, top };
+}
 
 function getWearLabelStyle(active: boolean): React.CSSProperties {
   return {
@@ -1361,6 +1512,43 @@ const styles = {
     flexDirection: "column",
     gap: "20px",
     paddingBottom: "40px",
+  },
+  contextMenuOverlay: {
+    position: "fixed" as const,
+    inset: 0,
+    zIndex: 9998,
+  },
+  contextMenu: {
+    position: "fixed" as const,
+    zIndex: 9999,
+    minWidth: "190px",
+    padding: "5px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-medium)",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.45)",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "2px",
+  },
+  contextMenuItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    width: "100%",
+    padding: "7px 10px",
+    border: "none",
+    borderRadius: "var(--so-radius-sm)",
+    background: "transparent",
+    color: "var(--so-text-primary)",
+    fontSize: "12.5px",
+    fontWeight: 600,
+    cursor: "pointer",
+    textAlign: "left" as const,
+  },
+  contextMenuIcon: {
+    color: "var(--so-text-muted)",
+    flexShrink: 0,
   },
   headerBanner: {
     display: "flex",
