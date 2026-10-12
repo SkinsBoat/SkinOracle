@@ -101,7 +101,9 @@ const styles: Record<string, React.CSSProperties> = {
   right: {
     display: "flex",
     alignItems: "center",
+    justifyContent: "flex-end",
     gap: "10px",
     flexShrink: 0,
+    marginLeft: "auto",
   },
 };

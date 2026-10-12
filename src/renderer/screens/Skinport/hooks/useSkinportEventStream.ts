@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import type {
   SkinportStreamEvent,
@@ -16,6 +16,10 @@ import { saleIdentity } from "../utils/skinportUtils";
  */
 
 const MAX_ENTRIES = 600;
+/** Ring buffer length for velocity telemetry (last N socket pushes). */
+const MAX_PUSH_SAMPLES = 60;
+/** Upper bound on queued events while the feed is frozen. */
+const MAX_FROZEN_EVENTS = 1000;
 
 const EMPTY_STATUS: SkinportStreamStatus = {
   connected: false,
@@ -58,19 +62,64 @@ export function reduceSkinportFeedEvent(
   return capEntries(next);
 }
 
+/**
+ * Merge events buffered while the feed was frozen into the visible entries.
+ * Deduplication semantics are identical to the live reducer, so freezing only
+ * delays the layout change — it never loses or double-counts a match.
+ */
+export function flushFrozenEvents(
+  prev: Record<string, SkinportFeedEntry>,
+  buffer: SkinportStreamEvent[],
+): Record<string, SkinportFeedEntry> {
+  return buffer.reduce(
+    (acc, event) => reduceSkinportFeedEvent(acc, event),
+    prev,
+  );
+}
+
 export function useSkinportEventStream() {
   const [entriesByIdentity, setEntriesByIdentity] = useState<
     Record<string, SkinportFeedEntry>
   >({});
   const [status, setStatus] = useState<SkinportStreamStatus>(EMPTY_STATUS);
+  const [pushTimestamps, setPushTimestamps] = useState<number[]>([]);
+  const [isFrozen, setIsFrozen] = useState(false);
+  const [frozenCount, setFrozenCount] = useState(0);
+
+  // Refs mirror the frozen flag and buffer so the socket listener (registered
+  // once) can read the live value without re-subscribing.
+  const frozenRef = useRef(false);
+  const frozenBufferRef = useRef<SkinportStreamEvent[]>([]);
+
+  useEffect(() => {
+    frozenRef.current = isFrozen;
+  }, [isFrozen]);
 
   useEffect(() => {
     const api = window.electronAPI?.skinport;
     if (!api?.onStreamEvent) return;
 
-    const offEvent = api.onStreamEvent((event) =>
-      setEntriesByIdentity((prev) => reduceSkinportFeedEvent(prev, event)),
-    );
+    const offEvent = api.onStreamEvent((event) => {
+      // Velocity tracks socket health regardless of freeze state.
+      setPushTimestamps((prev) => {
+        const next = [...prev, event.receivedAt];
+        return next.length > MAX_PUSH_SAMPLES
+          ? next.slice(next.length - MAX_PUSH_SAMPLES)
+          : next;
+      });
+
+      if (frozenRef.current) {
+        const buf = frozenBufferRef.current;
+        buf.push(event);
+        if (buf.length > MAX_FROZEN_EVENTS) {
+          buf.splice(0, buf.length - MAX_FROZEN_EVENTS);
+        }
+        setFrozenCount(buf.length);
+        return;
+      }
+
+      setEntriesByIdentity((prev) => reduceSkinportFeedEvent(prev, event));
+    });
     const offStatus = api.onStreamStatus?.((next) => setStatus(next));
     api
       .getStreamStatus?.()
@@ -103,12 +152,53 @@ export function useSkinportEventStream() {
     }
   }, []);
 
-  const clear = useCallback(() => setEntriesByIdentity({}), []);
+  const clear = useCallback(() => {
+    setEntriesByIdentity({});
+    setPushTimestamps([]);
+    frozenBufferRef.current = [];
+    setFrozenCount(0);
+  }, []);
+
+  /** Drain any buffered frozen events into the visible entries. */
+  const flushFrozen = useCallback(() => {
+    const buffer = frozenBufferRef.current;
+    if (buffer.length > 0) {
+      setEntriesByIdentity((prev) => flushFrozenEvents(prev, buffer));
+    }
+    frozenBufferRef.current = [];
+    setFrozenCount(0);
+  }, []);
+
+  const setFrozen = useCallback(
+    (frozen: boolean) => {
+      if (!frozen) flushFrozen();
+      frozenRef.current = frozen;
+      setIsFrozen(frozen);
+    },
+    [flushFrozen],
+  );
+
+  const toggleFreeze = useCallback(
+    () => setFrozen(!frozenRef.current),
+    [setFrozen],
+  );
 
   const entries = useMemo(
     () => Object.values(entriesByIdentity),
     [entriesByIdentity],
   );
 
-  return { entries, status, start, stop, clear };
+  return {
+    entries,
+    status,
+    pushTimestamps,
+    isFrozen,
+    frozenCount,
+    toggleFreeze,
+    setFrozen,
+    flushFrozen,
+    start,
+    stop,
+    clear,
+  };
 }

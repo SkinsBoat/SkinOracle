@@ -17,13 +17,8 @@ import {
   selectVisibleItems,
 } from "../utils/skinportFilters";
 import { useSkinportItems } from "../hooks/useSkinportItems";
-import {
-  useSkinportDealAlerts,
-  isAlertEligible,
-  type SkinportDealAlert,
-} from "../hooks/useSkinportDealAlerts";
-import { itemPriceCents } from "../utils/skinportUtils";
 import { SkinportMarketCard } from "../components/SkinportMarketCard";
+import { SkinportMarketTable } from "../components/SkinportMarketTable";
 import {
   SkinportLookupModal,
   type SkinportLookupItem,
@@ -83,29 +78,6 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
     () => selectVisibleItems(items, ceilings, filters),
     [items, ceilings, filters],
   );
-
-  const dealAlerts = useMemo<SkinportDealAlert[]>(
-    () =>
-      visible
-        .map((i) => {
-          const ceiling = ceilings[i.market_hash_name]?.cents;
-          const price = itemPriceCents(i);
-          if (ceiling === undefined || price === null) return null;
-          if (!isAlertEligible(price, ceiling)) {
-            return null;
-          }
-          return {
-            key: i.market_hash_name,
-            name: i.market_hash_name,
-            priceUsd: price / 100,
-            ceilingUsd: ceiling / 100,
-          };
-        })
-        .filter((x): x is SkinportDealAlert => x !== null),
-    [visible, ceilings],
-  );
-
-  useSkinportDealAlerts(dealAlerts);
 
   const openOnSkinport = (name: string) => {
     const url = handleSkinportReferenceLink(name);
@@ -198,6 +170,39 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
               Load Oracle to match listings against your Buy Ceilings.
             </div>
           </div>
+        ) : filters.viewMode === "tape" ? (
+          <SkinportMarketTable
+            items={visible}
+            ceilings={ceilings}
+            maxCloseness={filters.maxCloseness}
+            sortMode={filters.sortMode}
+            onSortChange={(mode) => handleChange({ sortMode: mode })}
+            selected={selected}
+            onToggleSelect={(name) =>
+              setSelected((prev) => ({ ...prev, [name]: !prev[name] }))
+            }
+            onToggleSelectAll={(checked) =>
+              setSelected((prev) => {
+                const next = { ...prev };
+                visible.forEach((i) => {
+                  next[i.market_hash_name] = checked;
+                });
+                return next;
+              })
+            }
+            onOpenMarket={openOnSkinport}
+            onOpenLookup={(i) =>
+              setLookupItem({
+                name: i.market_hash_name,
+                suggestedPrice: i.suggested_price ?? undefined,
+                marketPrice: i.min_price ?? undefined,
+                acceptedPrice: ceilings[i.market_hash_name]
+                  ? ceilings[i.market_hash_name].cents / 100
+                  : undefined,
+                market: "skinport",
+              })
+            }
+          />
         ) : (
           <div style={styles.cardsGrid}>
             {visible.map((item) => (

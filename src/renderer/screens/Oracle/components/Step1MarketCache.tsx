@@ -9,15 +9,17 @@ import {
   Bell,
   BellOff,
   Zap,
+  Timer,
 } from "lucide-react";
 import { skinSnipeLogo, cs2capLogo } from "../../../../../assets/images";
 import { SkinsnipeMarketId } from "../../../../shared/types";
 import { QuantityIntegrityReport, formatTimeAgo } from "../utils/oracleUtils";
 import { resolveMarketCount, resolveMissingQty } from "./step1/Step1Common";
-import { AutoRefreshControl } from "./step1/AutoRefreshControl";
+import { AutoRefreshControl, formatInterval } from "./step1/AutoRefreshControl";
 import { Cs2capProviderPanel } from "./step1/Cs2capProviderPanel";
 import { SkinsnipeProviderPanel } from "./step1/SkinsnipeProviderPanel";
 import { MarketScope, useOracleStore } from "../../../store/useOracleStore";
+import { useAutoRefreshStore } from "../../../store/useAutoRefreshStore";
 import { useNotificationStore } from "../../../store/useNotificationStore";
 import { useDataFreshnessStore } from "../../../store/useDataFreshnessStore";
 import { isExpiredNow } from "../../../utils/dataFreshness";
@@ -184,6 +186,11 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
     notifyOnCacheComplete,
   ]);
 
+  // Auto-refresh timer mirror: surface a static badge while collapsed (no
+  // live countdown — it is distracting in the header).
+  const autoRefreshStatus = useAutoRefreshStore((s) => s.status);
+  const showAutoRefreshBadge = !isOpen && !!autoRefreshStatus?.enabled;
+
   const [, setTicker] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => setTicker((t) => t + 1), 30000);
@@ -246,6 +253,18 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
             <Clock size={11} style={styles.timeAgoIcon} />
             {formatTimeAgo(cacheStatus.lastFetchedAt)}
           </span>
+
+          {/* Auto-Refresh timer badge — shown only while the section is collapsed */}
+          {showAutoRefreshBadge && autoRefreshStatus && (
+            <span
+              className="badge badge-success"
+              style={styles.autoRefreshBadge}
+              title={`Auto-refresh cycle active — repeats every ${formatInterval(autoRefreshStatus.intervalMinutes)}. Expand to configure.`}
+            >
+              <Timer size={11} style={styles.autoRefreshBadgeIcon} />
+              Auto-Refresh On
+            </span>
+          )}
 
           {/* Section-Specific Alert On/Off Switch */}
           <button

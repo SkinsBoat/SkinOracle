@@ -15,6 +15,7 @@ import {
 import {
   type CategoryFilter,
   type SkinportFilterState,
+  type SkinportSortOption,
   type WearKey,
 } from "../constants";
 
@@ -83,6 +84,95 @@ function inPriceRange(
   return true;
 }
 
+// ── SORT COMPARATORS ─────────────────────────────────────────────────
+
+function saleCloseness(
+  entry: SkinportFeedEntry,
+  ceilings: CeilingMap,
+): number {
+  return (
+    computeCloseness(
+      entry.sale.salePrice,
+      ceilings[entry.sale.marketHashName]?.cents,
+    ) ?? Infinity
+  );
+}
+
+function itemCloseness(
+  item: SkinportMarketItem,
+  ceilings: CeilingMap,
+): number {
+  return (
+    computeCloseness(
+      itemPriceCents(item) ?? Infinity,
+      ceilings[item.market_hash_name]?.cents,
+    ) ?? Infinity
+  );
+}
+
+export function sortSales(
+  entries: SkinportFeedEntry[],
+  ceilings: CeilingMap,
+  sortMode: SkinportSortOption,
+): SkinportFeedEntry[] {
+  const sorted = [...entries];
+  switch (sortMode) {
+    case "newest":
+      return sorted.sort((a, b) => b.receivedAt - a.receivedAt);
+    case "price_asc":
+      return sorted.sort((a, b) => a.sale.salePrice - b.sale.salePrice);
+    case "price_desc":
+      return sorted.sort((a, b) => b.sale.salePrice - a.sale.salePrice);
+    case "sss_desc":
+      return sorted.sort(
+        (a, b) =>
+          (ceilings[b.sale.marketHashName]?.sss ?? 0) -
+          (ceilings[a.sale.marketHashName]?.sss ?? 0),
+      );
+    case "closeness":
+    default:
+      return sorted.sort((a, b) => {
+        const ca = saleCloseness(a, ceilings);
+        const cb = saleCloseness(b, ceilings);
+        if (ca !== cb) return ca - cb;
+        return b.receivedAt - a.receivedAt;
+      });
+  }
+}
+
+export function sortMarketItems(
+  items: SkinportMarketItem[],
+  ceilings: CeilingMap,
+  sortMode: SkinportSortOption,
+): SkinportMarketItem[] {
+  const sorted = [...items];
+  switch (sortMode) {
+    case "newest":
+      return sorted.sort((a, b) => (b.updated_at ?? 0) - (a.updated_at ?? 0));
+    case "price_asc":
+      return sorted.sort(
+        (a, b) => (itemPriceCents(a) ?? Infinity) - (itemPriceCents(b) ?? Infinity),
+      );
+    case "price_desc":
+      return sorted.sort(
+        (a, b) => (itemPriceCents(b) ?? 0) - (itemPriceCents(a) ?? 0),
+      );
+    case "sss_desc":
+      return sorted.sort(
+        (a, b) =>
+          (ceilings[b.market_hash_name]?.sss ?? 0) -
+          (ceilings[a.market_hash_name]?.sss ?? 0),
+      );
+    case "closeness":
+    default:
+      return sorted.sort(
+        (a, b) => itemCloseness(a, ceilings) - itemCloseness(b, ceilings),
+      );
+  }
+}
+
+// ── VISIBILITY PREDICATES ────────────────────────────────────────────
+
 export function isItemVisible(
   item: SkinportMarketItem,
   ceilings: CeilingMap,
@@ -102,21 +192,8 @@ export function selectVisibleItems(
   ceilings: CeilingMap,
   filters: SkinportFilterState,
 ): SkinportMarketItem[] {
-  return items
-    .filter((i) => isItemVisible(i, ceilings, filters))
-    .sort((a, b) => {
-      const ca =
-        computeCloseness(
-          itemPriceCents(a) ?? Infinity,
-          ceilings[a.market_hash_name]?.cents,
-        ) ?? Infinity;
-      const cb =
-        computeCloseness(
-          itemPriceCents(b) ?? Infinity,
-          ceilings[b.market_hash_name]?.cents,
-        ) ?? Infinity;
-      return ca - cb;
-    });
+  const visible = items.filter((i) => isItemVisible(i, ceilings, filters));
+  return sortMarketItems(visible, ceilings, filters.sortMode);
 }
 
 export function isSaleVisible(
@@ -150,26 +227,12 @@ export function selectVisibleSales(
   ceilings: CeilingMap,
   filters: SkinportFilterState,
 ): SkinportFeedEntry[] {
-  return entries
-    .filter(
-      (e) =>
-        (filters.feedType === "all" || e.eventType === filters.feedType) &&
-        isSaleVisible(e.sale, ceilings, filters),
-    )
-    .sort((a, b) => {
-      const ca =
-        computeCloseness(
-          a.sale.salePrice,
-          ceilings[a.sale.marketHashName]?.cents,
-        ) ?? Infinity;
-      const cb =
-        computeCloseness(
-          b.sale.salePrice,
-          ceilings[b.sale.marketHashName]?.cents,
-        ) ?? Infinity;
-      if (ca !== cb) return ca - cb;
-      return b.receivedAt - a.receivedAt;
-    });
+  const visible = entries.filter(
+    (e) =>
+      (filters.feedType === "all" || e.eventType === filters.feedType) &&
+      isSaleVisible(e.sale, ceilings, filters),
+  );
+  return sortSales(visible, ceilings, filters.sortMode);
 }
 
 export function countMatchedCeilings(

@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Loader2, Radio, Square, Trash2, Zap } from "lucide-react";
+import { Radio, Square, Trash2 } from "lucide-react";
 import type { AcceptedPriceEntry } from "../../../hooks/useAcceptedPrices";
 import type { SkinportSale } from "../../../../shared/types/skinport.types";
 import { handleSkinportReferenceLink } from "../../../utils/marketUrls";
-import { type SkinportFilterState, type WearKey } from "../constants";
+import {
+  type SkinportFilterState,
+  type SkinportSortOption,
+  type WearKey,
+} from "../constants";
 import {
   loadPersistedEventFilters,
   persistEventFilters,
@@ -12,18 +16,25 @@ import {
   buildCeilingMap,
   selectVisibleSales,
 } from "../utils/skinportFilters";
+import { calculateEventVelocity } from "../utils/skinportUtils";
 import { useSkinportEventStream } from "../hooks/useSkinportEventStream";
 import {
   useSkinportDealAlerts,
   isAlertEligible,
   type SkinportDealAlert,
 } from "../hooks/useSkinportDealAlerts";
+import { useNotificationStore } from "../../../store/useNotificationStore";
 import { SkinportSaleCard } from "../components/SkinportSaleCard";
+import { SkinportStreamHUD } from "../components/SkinportStreamHUD";
+import { SkinportStreamTape } from "../components/SkinportStreamTape";
 import {
   SkinportLookupModal,
   type SkinportLookupItem,
 } from "../components/SkinportLookupModal";
 import { SkinportFilterBar } from "../components/SkinportFilterBar";
+
+/** How long a freshly arrived row keeps its arrival flash. */
+const ARRIVAL_FLASH_MS = 1500;
 
 interface EventFeedTabProps {
   onStreamStats?: (stats: { streaming: boolean; events: number }) => void;
@@ -38,8 +49,24 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
     loadPersistedEventFilters(),
   );
   const [lookupItem, setLookupItem] = useState<SkinportLookupItem | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
-  const { entries, status, start, stop, clear } = useSkinportEventStream();
+  const notifyOnNewDeals = useNotificationStore((s) => s.notifyOnNewDeals);
+  const setNotifyOnNewDeals = useNotificationStore(
+    (s) => s.setNotifyOnNewDeals,
+  );
+
+  const {
+    entries,
+    status,
+    pushTimestamps,
+    isFrozen,
+    frozenCount,
+    toggleFreeze,
+    start,
+    stop,
+    clear,
+  } = useSkinportEventStream();
 
   const streaming = status.connected || status.connecting;
 
@@ -50,6 +77,13 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
   useEffect(() => {
     onStreamStats?.({ streaming, events: entries.length });
   }, [streaming, entries.length, onStreamStats]);
+
+  // Ticker drives arrival flashing, age labels and velocity windows.
+  useEffect(() => {
+    if (!streaming && entries.length === 0) return;
+    const ticker = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(ticker);
+  }, [streaming, entries.length]);
 
   const ceilings = useMemo(
     () => buildCeilingMap(acceptedPriceMap),
@@ -65,6 +99,27 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
     () => selectVisibleSales(entries, ceilings, filters),
     [entries, ceilings, filters],
   );
+
+  const velocity = useMemo(
+    () => calculateEventVelocity(pushTimestamps, 60000, now),
+    [pushTimestamps, now],
+  );
+
+  const recentlyPushed = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => {
+      if (now - e.receivedAt <= ARRIVAL_FLASH_MS) set.add(e.identity);
+    });
+    return set;
+  }, [entries, now]);
+
+  const lastEventAt = pushTimestamps.length
+    ? pushTimestamps[pushTimestamps.length - 1]
+    : status.lastEventAt && status.lastEventAt > 1e12
+      ? status.lastEventAt
+      : status.lastEventAt
+        ? status.lastEventAt * 1000
+        : null;
 
   const dealAlerts = useMemo<SkinportDealAlert[]>(
     () =>
@@ -130,6 +185,7 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
                 icon: <Square size={13} />,
                 onClick: stop,
                 busy: status.connecting,
+                variant: "live" as const,
               }
             : {
                 label: "Start Stream",
@@ -153,33 +209,24 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
         }
       />
 
-      <div style={styles.statusStrip}>
-        <span style={getConnectionStyle(status.connected, status.connecting)}>
-          {status.connecting ? (
-            <Loader2 size={11} className="spin" />
-          ) : (
-            <span style={getDotStyle(status.connected)} />
-          )}
-          {status.connecting
-            ? "Connecting…"
-            : status.connected
-              ? "LIVE"
-              : status.error
-                ? `Offline — ${status.error}`
-                : "Offline"}
-        </span>
-
-        <span style={styles.statItem}>
-          Events: <strong>{entries.length}</strong>
-        </span>
-        <span style={styles.statItem}>
-          Matched to ceilings: <strong>{matchedCount}</strong>
-        </span>
-        <span style={styles.statFiltered}>
-          <Zap size={11} /> Within {filters.maxCloseness.toFixed(2)}× ·{" "}
-          {visible.length} item(s)
-        </span>
-      </div>
+      <SkinportStreamHUD
+        connected={status.connected}
+        connecting={status.connecting}
+        error={status.error}
+        velocity={velocity}
+        lastEventAt={lastEventAt}
+        visibleCount={visible.length}
+        totalCount={entries.length}
+        sortMode={filters.sortMode}
+        onSortChange={(mode: SkinportSortOption) =>
+          handleChange({ sortMode: mode })
+        }
+        isFrozen={isFrozen}
+        frozenCount={frozenCount}
+        onToggleFreeze={toggleFreeze}
+        alertsEnabled={notifyOnNewDeals}
+        onToggleAlerts={() => setNotifyOnNewDeals(!notifyOnNewDeals)}
+      />
 
       <div style={styles.scrollView}>
         {visible.length === 0 ? (
@@ -196,6 +243,15 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
                 : 'Click "Start Stream" to receive the live Skinport sale feed (listed & sold).'}
             </div>
           </div>
+        ) : filters.viewMode === "tape" ? (
+          <SkinportStreamTape
+            entries={visible}
+            ceilings={ceilings}
+            maxCloseness={filters.maxCloseness}
+            recentlyPushed={recentlyPushed}
+            onOpenMarket={openOnSkinport}
+            onOpenLookup={(s) => setLookupItem(toLookup(s))}
+          />
         ) : (
           <div style={styles.cardsGrid}>
             {visible.map((entry) => (
@@ -228,29 +284,6 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
   );
 };
 
-const getDotStyle = (connected: boolean): React.CSSProperties => ({
-  width: "8px",
-  height: "8px",
-  borderRadius: "50%",
-  backgroundColor: connected ? "var(--so-success)" : "var(--so-text-muted)",
-  display: "inline-block",
-});
-
-const getConnectionStyle = (
-  connected: boolean,
-  connecting: boolean,
-): React.CSSProperties => ({
-  display: "flex",
-  alignItems: "center",
-  gap: "5px",
-  fontWeight: 800,
-  color: connecting
-    ? "var(--so-accent-cyan)"
-    : connected
-      ? "var(--so-success-text)"
-      : "var(--so-text-muted)",
-});
-
 const styles: Record<string, React.CSSProperties> = {
   container: {
     display: "flex",
@@ -264,27 +297,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "5px",
     fontSize: "12px",
-  },
-  statusStrip: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    fontSize: "11.5px",
-    fontWeight: 700,
-    color: "var(--so-text-muted)",
-    padding: "0 4px",
-    flexShrink: 0,
-    flexWrap: "wrap",
-  },
-  statItem: {
-    color: "var(--so-text-muted)",
-  },
-  statFiltered: {
-    display: "flex",
-    alignItems: "center",
-    gap: "4px",
-    color: "var(--so-accent-cyan)",
-    marginLeft: "auto",
   },
   scrollView: {
     flex: 1,

@@ -23,6 +23,8 @@ export interface WorkstationDataStatusCardsProps {
   oracleEmptyLabel?: string;
   /** Fallback text when the market cache is empty. */
   cacheEmptyLabel?: string;
+  /** Hide the market-price-cache pill entirely (stations that don't use it). */
+  showCacheStatus?: boolean;
   /** Optional container style override. */
   style?: React.CSSProperties;
 }
@@ -42,6 +44,7 @@ export const WorkstationDataStatusCards: React.FC<
   oracleNoun,
   oracleEmptyLabel = "Not in memory",
   cacheEmptyLabel = "No prices cached",
+  showCacheStatus = true,
   style,
 }) => {
   const cacheExpiryMinutes = useDataFreshnessStore((s) => s.cacheExpiryMinutes);
@@ -122,30 +125,32 @@ export const WorkstationDataStatusCards: React.FC<
   return (
     <div style={{ ...styles.container, ...style }}>
       {/* Market Price Cache Card: expiry cue is the amber border only */}
-      <div
-        style={getCacheIndicatorStyle(cacheHasData, cacheIsStale)}
-        title={cacheTooltipText}
-      >
-        <Database
-          size={11}
-          style={cacheHasData ? styles.cacheIconActive : styles.cacheIconMuted}
-        />
-        {cacheHasData ? (
-          <span style={styles.indicatorText}>
-            <span style={styles.countText}>
-              {cacheStatus!.itemCount.toLocaleString()} prices
-            </span>
-            {cacheTimeAgoText && (
-              <span style={styles.timeAgoWrapper}>
-                <Clock size={11} style={styles.clockIcon} />
-                <span style={styles.timeAgoText}>{cacheTimeAgoText}</span>
+      {showCacheStatus && (
+        <div
+          style={getCacheIndicatorStyle(cacheHasData, cacheIsStale)}
+          title={cacheTooltipText}
+        >
+          <Database
+            size={11}
+            style={cacheHasData ? styles.cacheIconActive : styles.cacheIconMuted}
+          />
+          {cacheHasData ? (
+            <span style={styles.indicatorText}>
+              <span style={styles.countText}>
+                {cacheStatus!.itemCount.toLocaleString()} prices
               </span>
-            )}
-          </span>
-        ) : (
-          <span style={styles.noDataText}>{cacheEmptyLabel}</span>
-        )}
-      </div>
+              {cacheTimeAgoText && (
+                <span style={styles.timeAgoWrapper}>
+                  <Clock size={11} style={styles.clockIcon} />
+                  <span style={styles.timeAgoText}>{cacheTimeAgoText}</span>
+                </span>
+              )}
+            </span>
+          ) : (
+            <span style={styles.noDataText}>{cacheEmptyLabel}</span>
+          )}
+        </div>
+      )}
 
       {/* Calculated Oracle Dataset Card: expiry cue is the amber border only */}
       <div style={getIndicatorStyle(hasData, datasetIsStale)} title={tooltipText}>

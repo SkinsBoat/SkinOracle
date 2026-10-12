@@ -166,3 +166,20 @@ export function saleIdentity(sale: SkinportSale): string {
     sale.wear !== null && sale.wear !== undefined ? String(sale.wear) : "";
   return `${sale.marketHashName}::${wear}`;
 }
+
+/**
+ * Stream velocity in events per minute from a ring buffer of recent push
+ * timestamps. Only pushes inside the window count, then the rate is normalised
+ * to a per-minute figure (a 60s window therefore returns a raw count).
+ */
+export function calculateEventVelocity(
+  timestamps: number[],
+  windowMs = 60000,
+  now = Date.now(),
+): number {
+  if (!timestamps.length || windowMs <= 0) return 0;
+  const cutoff = now - windowMs;
+  const recent = timestamps.filter((t) => t >= cutoff);
+  if (recent.length === 0) return 0;
+  return recent.length * (60000 / windowMs);
+}

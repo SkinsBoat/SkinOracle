@@ -12,11 +12,20 @@ export interface WorkstationOracleActionProps {
   disabled?: boolean;
   /** Which calculated dataset `meta` represents, to pick the expiry window. */
   datasetKind?: "accepted" | "listing";
+  /** Hide the market price-cache pill (stations that don't surface it). */
+  showCacheStatus?: boolean;
 }
 
 export const WorkstationOracleAction: React.FC<
   WorkstationOracleActionProps
-> = ({ meta, loading, onLoad, disabled = false, datasetKind = "accepted" }) => {
+> = ({
+  meta,
+  loading,
+  onLoad,
+  disabled = false,
+  datasetKind = "accepted",
+  showCacheStatus = true,
+}) => {
   // Live market price cache status (shared in-memory cache, refreshed by scans/auto-refresh)
   const [cacheStatus, setCacheStatus] = useState<{
     itemCount: number;
@@ -64,6 +73,7 @@ export const WorkstationOracleAction: React.FC<
         cacheStatus={cacheStatus}
         oracle={meta}
         oracleKind={datasetKind}
+        showCacheStatus={showCacheStatus}
       />
 
       {/* Unified Action Button */}

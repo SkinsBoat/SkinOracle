@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { reduceSkinportFeedEvent } from "../hooks/useSkinportEventStream";
+import {
+  flushFrozenEvents,
+  reduceSkinportFeedEvent,
+} from "../hooks/useSkinportEventStream";
 import type {
   SkinportSale,
   SkinportStreamEvent,
@@ -93,5 +96,35 @@ describe("reduceSkinportFeedEvent", () => {
     const entry = state[Object.keys(state)[0]];
     expect(entry.eventType).toBe("sold");
     expect(entry.sale.saleStatus).toBe("sold");
+  });
+});
+
+describe("flushFrozenEvents", () => {
+  it("merges buffered events using the same dedup semantics", () => {
+    const entries = reduceSkinportFeedEvent({}, event("listed", [sale()]));
+    const buffered = [
+      event("listed", [sale({ id: 2 })], 2000),
+      event("listed", [sale({ id: 3 })], 3000),
+    ];
+
+    const merged = flushFrozenEvents(entries, buffered);
+
+    const keys = Object.keys(merged);
+    expect(keys).toHaveLength(1);
+    expect(merged[keys[0]].count).toBe(3);
+    expect(merged[keys[0]].receivedAt).toBe(3000);
+  });
+
+  it("is a no-op for an empty buffer", () => {
+    const entries = reduceSkinportFeedEvent({}, event("listed", [sale()]));
+    expect(flushFrozenEvents(entries, [])).toEqual(entries);
+  });
+
+  it("adds newly seen identities on flush", () => {
+    const entries = reduceSkinportFeedEvent({}, event("listed", [sale()]));
+    const merged = flushFrozenEvents(entries, [
+      event("listed", [sale({ id: 9, wear: 0.5 })], 4000),
+    ]);
+    expect(Object.keys(merged)).toHaveLength(2);
   });
 });

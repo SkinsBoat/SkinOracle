@@ -255,6 +255,17 @@ export const step1Styles: Record<string, React.CSSProperties> = {
   timeAgoIcon: {
     opacity: 0.75,
   },
+  autoRefreshBadge: {
+    fontSize: "11px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    whiteSpace: "nowrap",
+    fontVariantNumeric: "tabular-nums",
+  },
+  autoRefreshBadgeIcon: {
+    flexShrink: 0,
+  },
   headerActionBtn: {
     padding: "3px 10px",
     fontSize: "11.5px",

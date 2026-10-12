@@ -8,11 +8,12 @@ import {
   Timer,
 } from "lucide-react";
 import { useOracleStore } from "../../../../store/useOracleStore";
+import { useAutoRefreshStore } from "../../../../store/useAutoRefreshStore";
 import type { AutoRefreshStatus } from "../../../../../shared/types/autoRefresh.types";
 
 const PRESET_MINUTES = [15, 30, 60, 120];
 
-const formatInterval = (minutes: number): string => {
+export const formatInterval = (minutes: number): string => {
   if (minutes % 60 === 0 && minutes >= 60) {
     const hours = minutes / 60;
     return `${hours} ${hours === 1 ? "hour" : "hours"}`;
@@ -29,6 +30,8 @@ export const AutoRefreshControl: React.FC = () => {
   const activeScope = useOracleStore((s) => s.activeScope);
 
   const api = window.electronAPI?.autoRefresh;
+
+  const setAutoRefreshStatus = useAutoRefreshStore((s) => s.setStatus);
 
   const [status, setStatus] = useState<AutoRefreshStatus | null>(null);
   const [selectedMinutes, setSelectedMinutes] = useState<number | null>(30);
@@ -52,6 +55,12 @@ export const AutoRefreshControl: React.FC = () => {
       minutes: effectiveMinutes,
     };
   }, [status?.enabled, effectiveMinutes]);
+
+  // Mirror scheduler state into the shared store so collapsed surfaces
+  // (e.g. the Step 1 header badge) can reflect the live timer.
+  useEffect(() => {
+    setAutoRefreshStatus(status);
+  }, [status, setAutoRefreshStatus]);
 
   // Restore scheduler state from the main process and subscribe to updates.
   useEffect(() => {

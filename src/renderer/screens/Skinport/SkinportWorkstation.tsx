@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Activity, BellOff, BellRing, ScanLine } from "lucide-react";
+ import React, { useEffect, useState } from "react";
+import { Activity, ScanLine } from "lucide-react";
 import { skinportLogo } from "../../../../assets/images";
 import { useAcceptedPrices } from "../../hooks/useAcceptedPrices";
 import { WorkstationOracleAction } from "../../components/WorkstationOracleAction";
 import { WorkstationHeader } from "../../components/WorkstationHeader";
-import { useNotificationStore } from "../../store/useNotificationStore";
 import { MarketItemsTab } from "./tabs/MarketItemsTab";
 import { EventFeedTab } from "./tabs/EventFeedTab";
 
@@ -32,11 +31,6 @@ export default function SkinportWorkstation() {
     loadingPrices,
     loadAcceptedPrices,
   } = useAcceptedPrices();
-
-  const notifyOnNewDeals = useNotificationStore((s) => s.notifyOnNewDeals);
-  const setNotifyOnNewDeals = useNotificationStore(
-    (s) => s.setNotifyOnNewDeals,
-  );
 
   const handleLoadOracle = async () => {
     await loadAcceptedPrices(false);
@@ -98,31 +92,18 @@ export default function SkinportWorkstation() {
             style={styles.tabButton}
           >
             <Activity size={13} /> Events
-            {eventStats.streaming && <span style={styles.liveDot} />}
+            {eventStats.streaming && (
+              <span style={getLiveDotStyle(activeTab === "events")} />
+            )}
           </button>
         </div>
         <div style={styles.tabsRightGroup}>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={notifyOnNewDeals}
-            onClick={() => setNotifyOnNewDeals(!notifyOnNewDeals)}
-            className={`btn ${notifyOnNewDeals ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={styles.alertToggle}
-            title={
-              notifyOnNewDeals
-                ? "Deal alerts ON — you are alerted when a listing hits your Buy Ceiling"
-                : "Deal alerts OFF — click to be alerted on target matches"
-            }
-          >
-            {notifyOnNewDeals ? <BellRing size={13} /> : <BellOff size={13} />}
-            {notifyOnNewDeals ? "Alerts On" : "Alerts Off"}
-          </button>
           <WorkstationOracleAction
             meta={acceptedPricesMeta}
             datasetKind="accepted"
             loading={loadingPrices}
             onLoad={handleLoadOracle}
+            showCacheStatus={false}
           />
         </div>
       </div>
@@ -142,6 +123,16 @@ export default function SkinportWorkstation() {
     </div>
   );
 }
+
+const getLiveDotStyle = (isActiveTab: boolean): React.CSSProperties => ({
+  width: "6px",
+  height: "6px",
+  borderRadius: "50%",
+  // On the active (blue) tab the green dot loses contrast — use a light dot.
+  backgroundColor: isActiveTab ? "#ffffff" : "var(--so-success)",
+  marginLeft: "2px",
+  boxShadow: isActiveTab ? "none" : "0 0 6px var(--so-success)",
+});
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
@@ -192,28 +183,11 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "8px",
   },
-  alertToggle: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    fontSize: "12px",
-    fontWeight: 800,
-    padding: "5px 10px",
-    whiteSpace: "nowrap",
-  },
   tabButton: {
     display: "flex",
     alignItems: "center",
     gap: "6px",
     fontSize: "12px",
     padding: "5px 12px",
-  },
-  liveDot: {
-    width: "6px",
-    height: "6px",
-    borderRadius: "50%",
-    backgroundColor: "var(--so-success)",
-    marginLeft: "2px",
-    boxShadow: "0 0 6px var(--so-success)",
   },
 };

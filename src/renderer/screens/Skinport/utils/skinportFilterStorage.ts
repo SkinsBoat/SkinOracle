@@ -1,5 +1,9 @@
 import { safeGetItem, safeSetItem } from "../../../utils/storage";
-import { DEFAULT_FILTERS, type SkinportFilterState } from "../constants";
+import {
+  DEFAULT_EVENT_FILTERS,
+  DEFAULT_FILTERS,
+  type SkinportFilterState,
+} from "../constants";
 
 /**
  * Persist the trader's Skinport filter choices across restarts.
@@ -8,21 +12,24 @@ import { DEFAULT_FILTERS, type SkinportFilterState } from "../constants";
 const MARKET_STORAGE_KEY = "skinport_market_filters_v1";
 const EVENT_STORAGE_KEY = "skinport_event_filters_v1";
 
-function loadFrom(storageKey: string): SkinportFilterState {
+function loadFrom(
+  storageKey: string,
+  defaults: SkinportFilterState,
+): SkinportFilterState {
   try {
     const raw = safeGetItem(storageKey);
-    if (!raw) return DEFAULT_FILTERS;
+    if (!raw) return defaults;
     const parsed = JSON.parse(raw) as Partial<SkinportFilterState>;
     return {
-      ...DEFAULT_FILTERS,
+      ...defaults,
       ...parsed,
       allowedWears: {
-        ...DEFAULT_FILTERS.allowedWears,
+        ...defaults.allowedWears,
         ...(parsed?.allowedWears ?? {}),
       },
     };
   } catch {
-    return DEFAULT_FILTERS;
+    return defaults;
   }
 }
 
@@ -35,7 +42,7 @@ function persistTo(storageKey: string, filters: SkinportFilterState): void {
 }
 
 export function loadPersistedFilters(): SkinportFilterState {
-  return loadFrom(MARKET_STORAGE_KEY);
+  return loadFrom(MARKET_STORAGE_KEY, DEFAULT_FILTERS);
 }
 
 export function persistFilters(filters: SkinportFilterState): void {
@@ -43,7 +50,7 @@ export function persistFilters(filters: SkinportFilterState): void {
 }
 
 export function loadPersistedEventFilters(): SkinportFilterState {
-  return loadFrom(EVENT_STORAGE_KEY);
+  return loadFrom(EVENT_STORAGE_KEY, DEFAULT_EVENT_FILTERS);
 }
 
 export function persistEventFilters(filters: SkinportFilterState): void {

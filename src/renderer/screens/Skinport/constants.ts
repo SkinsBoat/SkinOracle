@@ -16,6 +16,26 @@ export type CategoryFilter = "weapon_sticker" | "weapon" | "sticker" | "all";
 export type FeedTypeFilter = "all" | "listed" | "sold";
 export type WearKey = "fn" | "mw" | "ft" | "ww" | "bs";
 
+/** Ordering applied to visible feed rows / market items. */
+export type SkinportSortOption =
+  | "newest"
+  | "closeness"
+  | "price_asc"
+  | "price_desc"
+  | "sss_desc";
+
+/** Presentation density: high-density tape (table) vs matrix cards (grid). */
+export type SkinportViewMode = "tape" | "grid";
+
+export const SORT_OPTIONS: { key: SkinportSortOption; label: string }[] = [
+  { key: "newest", label: "Newest First" },
+  { key: "closeness", label: "Best Deal (Closeness)" },
+  { key: "price_asc", label: "Price: Low → High" },
+  { key: "price_desc", label: "Price: High → Low" },
+  { key: "sss_desc", label: "Supply Stability" },
+];
+
+
 export interface WearRange {
   key: WearKey;
   label: string;
@@ -68,6 +88,10 @@ export interface SkinportFilterState {
   allowedWears: AllowedWears;
   /** Events tab only: restrict the feed to listed or sold items. */
   feedType: FeedTypeFilter;
+  /** Ordering applied to the visible list. */
+  sortMode: SkinportSortOption;
+  /** Density: dense tape (table) vs matrix cards (grid). */
+  viewMode: SkinportViewMode;
 }
 
 export const DEFAULT_FILTERS: SkinportFilterState = {
@@ -78,4 +102,20 @@ export const DEFAULT_FILTERS: SkinportFilterState = {
   category: "weapon_sticker",
   allowedWears: DEFAULT_ALLOWED_WEARS,
   feedType: "all",
+  sortMode: "closeness",
+  viewMode: "grid",
+};
+
+/** Market Items tab defaults: best ceiling margin first, matrix cards. */
+export const DEFAULT_MARKET_FILTERS: SkinportFilterState = {
+  ...DEFAULT_FILTERS,
+  sortMode: "closeness",
+  viewMode: "grid",
+};
+
+/** Events tab defaults: newest tape inflow first, dense tape. */
+export const DEFAULT_EVENT_FILTERS: SkinportFilterState = {
+  ...DEFAULT_FILTERS,
+  sortMode: "newest",
+  viewMode: "tape",
 };
