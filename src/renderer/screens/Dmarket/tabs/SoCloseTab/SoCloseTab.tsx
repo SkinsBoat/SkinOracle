@@ -777,7 +777,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             ) : (
               <Zap size={13} />
             )}{" "}
-            Run SoClose Scan
+            Scan
           </button>
         </div>
       </div>
@@ -867,7 +867,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 No So Close opportunities loaded
               </div>
               <div style={{ fontSize: "12px" }}>
-                Click &quot;Run SoClose Scan&quot; above to evaluate DMarket
+                Click &quot;Scan&quot; above to evaluate DMarket
                 market prices against Oracle Accepted Prices
               </div>
             </div>

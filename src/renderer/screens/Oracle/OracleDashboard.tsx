@@ -287,7 +287,13 @@ export default function OracleDashboard() {
 
   const handleCancelFetch = async () => {
     try {
-      await window.electronAPI.skinsnipe.cancelFetch();
+      const res = await window.electronAPI.skinsnipe.cancelFetch();
+      // If the main process reports no scan in progress, the renderer was out
+      // of sync (e.g. a missed terminal progress event). Clear the stuck
+      // loading state so the trader can start a fresh scan.
+      if (res && res.success === false) {
+        setCacheStatus((prev) => ({ ...prev, isFetching: false }));
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to cancel price scan");
     }
@@ -330,7 +336,13 @@ export default function OracleDashboard() {
 
   const handleCancelCs2capStream = async () => {
     try {
-      await window.electronAPI.cs2cap.cancelFetch();
+      const res = await window.electronAPI.cs2cap.cancelFetch();
+      // Recover from a desynced state if the main process reports no active
+      // stream, so the Stream button is not left permanently disabled.
+      if (res && res.success === false) {
+        setIsCs2capStreaming(false);
+        setCacheStatus((prev) => ({ ...prev, isFetching: false }));
+      }
       toast("CS2Cap stream cancellation requested.", { icon: "🛑" });
     } catch (err: any) {
       toast.error(err.message || "Failed to cancel CS2Cap stream");

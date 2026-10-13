@@ -1239,7 +1239,7 @@ export default function SoCloseWorkstationScreen() {
                   <div style={getPriceMetricsBlockStyle(item.closeness <= 1.0)}>
                     <div style={styles.metricsRow}>
                       <span style={styles.metricsLabel}>
-                        {getMarketDisplayName(item.market)} Market
+                        {getMarketDisplayName(item.market)} Price
                       </span>
                       <span
                         className="tabular-nums"

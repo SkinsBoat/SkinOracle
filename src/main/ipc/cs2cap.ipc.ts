@@ -284,6 +284,25 @@ export async function runCs2CapStreamCycle(
     };
   } catch (err: any) {
     if (cancelRequested) {
+      // A cancel during the "connecting" phase aborts axios before the
+      // readline handlers attach, so no terminal progress is emitted from
+      // streamCs2CapCatalog. Emit an explicit aborted event here so the
+      // renderer clears `isFetching`/`isCs2capStreaming` and re-enables the
+      // Stream button instead of being stuck in a loading state.
+      try {
+        progressEmitter({
+          linesRead: 0,
+          itemsCount: 0,
+          providersCount: 0,
+          bytesReceived: 0,
+          elapsedMs: 0,
+          status: "aborted",
+          lastError: "Stream cancelled by user.",
+          marketCounts: {},
+        });
+      } catch (emitErr) {
+        console.warn("[CS2Cap] Failed to emit abort progress:", emitErr);
+      }
       return {
         success: false,
         itemCount: 0,

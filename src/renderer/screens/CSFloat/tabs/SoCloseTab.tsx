@@ -314,7 +314,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             ) : (
               <Zap size={14} />
             )}{" "}
-            Run SoClose Scan
+            Scan
           </button>
         </div>
       </div>

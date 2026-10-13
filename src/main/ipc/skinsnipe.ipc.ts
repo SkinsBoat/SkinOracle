@@ -431,6 +431,11 @@ export async function runSkinsnipeFetchCycle(
       lastFetchedAt = new Date();
     }
 
+    // Clear the busy flag BEFORE broadcasting so the renderer's final
+    // cache-status event reports isFetching: false. Broadcasting first would
+    // send a stale `isFetching: true` and leave the Scan button permanently
+    // disabled after a cancellation (the finally below then never re-broadcasts).
+    isFetching = false;
     broadcastCacheStatus();
 
     return {
