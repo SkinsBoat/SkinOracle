@@ -15,7 +15,6 @@ import {
 import {
   type CategoryFilter,
   type SkinportFilterState,
-  type SkinportSortOption,
   type WearKey,
 } from "../constants";
 
@@ -85,18 +84,8 @@ function inPriceRange(
 }
 
 // ── SORT COMPARATORS ─────────────────────────────────────────────────
-
-function saleCloseness(
-  entry: SkinportFeedEntry,
-  ceilings: CeilingMap,
-): number {
-  return (
-    computeCloseness(
-      entry.sale.salePrice,
-      ceilings[entry.sale.marketHashName]?.cents,
-    ) ?? Infinity
-  );
-}
+// Ordering is fixed: market items use the SoClose default (closeness
+// ascending) and the live feed uses newest-first.
 
 function itemCloseness(
   item: SkinportMarketItem,
@@ -110,65 +99,17 @@ function itemCloseness(
   );
 }
 
-export function sortSales(
-  entries: SkinportFeedEntry[],
-  ceilings: CeilingMap,
-  sortMode: SkinportSortOption,
-): SkinportFeedEntry[] {
-  const sorted = [...entries];
-  switch (sortMode) {
-    case "newest":
-      return sorted.sort((a, b) => b.receivedAt - a.receivedAt);
-    case "price_asc":
-      return sorted.sort((a, b) => a.sale.salePrice - b.sale.salePrice);
-    case "price_desc":
-      return sorted.sort((a, b) => b.sale.salePrice - a.sale.salePrice);
-    case "sss_desc":
-      return sorted.sort(
-        (a, b) =>
-          (ceilings[b.sale.marketHashName]?.sss ?? 0) -
-          (ceilings[a.sale.marketHashName]?.sss ?? 0),
-      );
-    case "closeness":
-    default:
-      return sorted.sort((a, b) => {
-        const ca = saleCloseness(a, ceilings);
-        const cb = saleCloseness(b, ceilings);
-        if (ca !== cb) return ca - cb;
-        return b.receivedAt - a.receivedAt;
-      });
-  }
+export function sortSales(entries: SkinportFeedEntry[]): SkinportFeedEntry[] {
+  return [...entries].sort((a, b) => b.receivedAt - a.receivedAt);
 }
 
 export function sortMarketItems(
   items: SkinportMarketItem[],
   ceilings: CeilingMap,
-  sortMode: SkinportSortOption,
 ): SkinportMarketItem[] {
-  const sorted = [...items];
-  switch (sortMode) {
-    case "newest":
-      return sorted.sort((a, b) => (b.updated_at ?? 0) - (a.updated_at ?? 0));
-    case "price_asc":
-      return sorted.sort(
-        (a, b) => (itemPriceCents(a) ?? Infinity) - (itemPriceCents(b) ?? Infinity),
-      );
-    case "price_desc":
-      return sorted.sort(
-        (a, b) => (itemPriceCents(b) ?? 0) - (itemPriceCents(a) ?? 0),
-      );
-    case "sss_desc":
-      return sorted.sort(
-        (a, b) =>
-          (ceilings[b.market_hash_name]?.sss ?? 0) -
-          (ceilings[a.market_hash_name]?.sss ?? 0),
-      );
-    case "closeness":
-    default:
-      return sorted.sort(
-        (a, b) => itemCloseness(a, ceilings) - itemCloseness(b, ceilings),
-      );
-  }
+  return [...items].sort(
+    (a, b) => itemCloseness(a, ceilings) - itemCloseness(b, ceilings),
+  );
 }
 
 // ── VISIBILITY PREDICATES ────────────────────────────────────────────
@@ -193,7 +134,7 @@ export function selectVisibleItems(
   filters: SkinportFilterState,
 ): SkinportMarketItem[] {
   const visible = items.filter((i) => isItemVisible(i, ceilings, filters));
-  return sortMarketItems(visible, ceilings, filters.sortMode);
+  return sortMarketItems(visible, ceilings);
 }
 
 export function isSaleVisible(
@@ -232,7 +173,7 @@ export function selectVisibleSales(
       (filters.feedType === "all" || e.eventType === filters.feedType) &&
       isSaleVisible(e.sale, ceilings, filters),
   );
-  return sortSales(visible, ceilings, filters.sortMode);
+  return sortSales(visible);
 }
 
 export function countMatchedCeilings(

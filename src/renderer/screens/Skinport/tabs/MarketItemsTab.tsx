@@ -175,8 +175,6 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
             items={visible}
             ceilings={ceilings}
             maxCloseness={filters.maxCloseness}
-            sortMode={filters.sortMode}
-            onSortChange={(mode) => handleChange({ sortMode: mode })}
             selected={selected}
             onToggleSelect={(name) =>
               setSelected((prev) => ({ ...prev, [name]: !prev[name] }))

@@ -205,11 +205,9 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
             </div>
           </div>
         )}
-      </div>
 
-      {/* Right Controls: Drift Filter Pills & Oracle Load */}
-      {targetSubTab === "active" && (
-        <div style={styles.rightControls}>
+        {/* Filter Action Buttons + Select Filtered (grouped together, left side) */}
+        {targetSubTab === "active" && (
           <div style={styles.filterPillsRow}>
             {(
               exceedsBalanceCount > 0
@@ -238,25 +236,32 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
                 {pill.label}
               </button>
             ))}
+
+            {selectableFilteredCount > 0 && (
+              <button
+                type="button"
+                onClick={onToggleSelectFiltered}
+                className={`btn ${isAllFilteredSelected ? "btn-primary" : "btn-outline"} btn-sm`}
+                style={styles.actionRequiredButton}
+                title={
+                  isAllFilteredSelected
+                    ? `Click to unselect ${getFilterSelectLabel(filterAction, selectableFilteredCount).toLowerCase()} targets`
+                    : `Click to select all ${selectableFilteredCount} targets in current filter`
+                }
+              >
+                <CheckSquare size={13} />
+                <span>
+                  {getFilterSelectLabel(filterAction, selectableFilteredCount)}
+                </span>
+              </button>
+            )}
           </div>
+        )}
+      </div>
 
-          {selectableFilteredCount > 0 && (
-            <button
-              type="button"
-              onClick={onToggleSelectFiltered}
-              className={`btn ${isAllFilteredSelected ? "btn-primary" : "btn-outline"} btn-sm`}
-              style={styles.actionRequiredButton}
-              title={
-                isAllFilteredSelected
-                  ? `Click to unselect ${getFilterSelectLabel(filterAction, selectableFilteredCount).toLowerCase()} targets`
-                  : `Click to select all ${selectableFilteredCount} targets in current filter`
-              }
-            >
-              <CheckSquare size={13} />
-              <span>{getFilterSelectLabel(filterAction, selectableFilteredCount)}</span>
-            </button>
-          )}
-
+      {/* Right Controls: Main Action */}
+      {targetSubTab === "active" && (
+        <div style={styles.rightControls}>
           <button
             className="btn btn-primary btn-sm"
             onClick={onSyncTargets}
@@ -511,6 +516,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "4px",
+    flexWrap: "wrap",
   } as React.CSSProperties,
 
   actionRequiredButton: {

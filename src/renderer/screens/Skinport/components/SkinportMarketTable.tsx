@@ -1,9 +1,8 @@
 import React from "react";
-import { ArrowDown, ArrowUp, CheckSquare, ExternalLink, Eye, Square } from "lucide-react";
+import { CheckSquare, ExternalLink, Eye, Square } from "lucide-react";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 import type { SkinportMarketItem } from "../../../../shared/types/skinport.types";
 import type { CeilingMap } from "../utils/skinportFilters";
-import type { SkinportSortOption } from "../constants";
 import {
   computeCloseness,
   formatUsdFromCents,
@@ -18,8 +17,6 @@ interface SkinportMarketTableProps {
   items: SkinportMarketItem[];
   ceilings: CeilingMap;
   maxCloseness: number;
-  sortMode: SkinportSortOption;
-  onSortChange: (mode: SkinportSortOption) => void;
   selected: Record<string, boolean>;
   onToggleSelect: (name: string) => void;
   onToggleSelectAll: (checked: boolean) => void;
@@ -31,8 +28,6 @@ export const SkinportMarketTable: React.FC<SkinportMarketTableProps> = ({
   items,
   ceilings,
   maxCloseness,
-  sortMode,
-  onSortChange,
   selected,
   onToggleSelect,
   onToggleSelectAll,
@@ -42,9 +37,6 @@ export const SkinportMarketTable: React.FC<SkinportMarketTableProps> = ({
   const rows = items.slice(0, MAX_ROWS);
   const overflow = items.length - rows.length;
   const allSelected = rows.length > 0 && rows.every((i) => selected[i.market_hash_name]);
-
-  const handleSortPrice = () =>
-    onSortChange(sortMode === "price_asc" ? "price_desc" : "price_asc");
 
   return (
     <div style={styles.wrapper}>
@@ -63,35 +55,10 @@ export const SkinportMarketTable: React.FC<SkinportMarketTableProps> = ({
             </th>
             <th style={{ ...styles.th, textAlign: "left" }}>Skin</th>
             <th style={styles.thRight}>Qty</th>
-            <th style={getSortableThStyle(sortMode === "price_asc" || sortMode === "price_desc")}>
-              <button type="button" onClick={handleSortPrice} style={styles.sortBtn}>
-                Market Price
-                {sortMode === "price_asc" ? (
-                  <ArrowUp size={11} />
-                ) : sortMode === "price_desc" ? (
-                  <ArrowDown size={11} />
-                ) : null}
-              </button>
-            </th>
+            <th style={styles.thRight}>Market Price</th>
             <th style={styles.thRight}>Buy Ceiling</th>
-            <th style={getSortableThStyle(sortMode === "closeness")}>
-              <button
-                type="button"
-                onClick={() => onSortChange("closeness")}
-                style={styles.sortBtn}
-              >
-                Closeness{sortMode === "closeness" ? <ArrowUp size={11} /> : null}
-              </button>
-            </th>
-            <th style={getSortableThStyle(sortMode === "sss_desc")}>
-              <button
-                type="button"
-                onClick={() => onSortChange("sss_desc")}
-                style={styles.sortBtn}
-              >
-                SSS{sortMode === "sss_desc" ? <ArrowDown size={11} /> : null}
-              </button>
-            </th>
+            <th style={styles.thRight}>Closeness</th>
+            <th style={styles.thRight}>SSS</th>
             <th style={styles.thRight}>Actions</th>
           </tr>
         </thead>
@@ -207,22 +174,6 @@ export const SkinportMarketTable: React.FC<SkinportMarketTableProps> = ({
 
 // ── DYNAMIC STYLE HELPERS ────────────────────────────────────────────
 
-const getSortableThStyle = (active: boolean): React.CSSProperties => ({
-  position: "sticky",
-  top: 0,
-  zIndex: 1,
-  textAlign: "right",
-  padding: "6px 8px",
-  fontSize: "9.5px",
-  fontWeight: 800,
-  letterSpacing: "0.4px",
-  textTransform: "uppercase",
-  color: active ? "var(--so-accent-cyan)" : "var(--so-text-muted)",
-  backgroundColor: "var(--so-surface-panel)",
-  borderBottom: "1px solid var(--so-border-medium)",
-  whiteSpace: "nowrap",
-});
-
 const getRowStyle = (isSelected: boolean): React.CSSProperties => ({
   borderBottom: "1px solid var(--so-border-subtle)",
   cursor: "pointer",
@@ -331,20 +282,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "4px 8px",
     backgroundColor: "var(--so-surface-panel)",
     borderBottom: "1px solid var(--so-border-medium)",
-  },
-  sortBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "3px",
-    border: "none",
-    background: "transparent",
-    color: "inherit",
-    cursor: "pointer",
-    fontSize: "9.5px",
-    fontWeight: 800,
-    letterSpacing: "0.4px",
-    textTransform: "uppercase",
-    padding: 0,
   },
   checkBtn: {
     display: "inline-flex",

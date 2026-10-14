@@ -7,7 +7,6 @@ import {
   ExternalLink,
   Copy,
   Layers,
-  ArrowUpDown,
   Sparkles,
   CheckCircle2,
   Eye,
@@ -41,8 +40,6 @@ import {
   LookupModalItemData,
 } from "../CSFloat/modals/CSFloatLookupModal";
 
-type SoCloseSortKey = "closeness" | "profit" | "price" | "sss";
-
 type AllowedWears = {
   fn: boolean;
   mw: boolean;
@@ -58,7 +55,6 @@ type PersistedScannerParams = {
   maxPrice: string;
   soCloseMaxCloseness: string;
   soCloseMinSssScore: string;
-  sortBy: SoCloseSortKey;
   allowedWears: AllowedWears;
 };
 
@@ -69,7 +65,6 @@ const DEFAULT_SCANNER_PARAMS: PersistedScannerParams = {
   maxPrice: "250",
   soCloseMaxCloseness: "1.08",
   soCloseMinSssScore: "1.2",
-  sortBy: "closeness",
   allowedWears: {
     fn: true,
     mw: true,
@@ -327,9 +322,6 @@ export default function SoCloseWorkstationScreen() {
     () => loadScannerParams().soCloseMinSssScore,
   ); // Supply stability threshold
   const [resultSearchQuery, setResultSearchQuery] = useState<string>("");
-  const [sortBy, setSortBy] = useState<SoCloseSortKey>(
-    () => loadScannerParams().sortBy,
-  );
 
   const [allowedWears, setAllowedWears] = useState<AllowedWears>(
     () => loadScannerParams().allowedWears,
@@ -345,7 +337,6 @@ export default function SoCloseWorkstationScreen() {
           maxPrice,
           soCloseMaxCloseness,
           soCloseMinSssScore,
-          sortBy,
           allowedWears,
         }),
       );
@@ -357,7 +348,6 @@ export default function SoCloseWorkstationScreen() {
     maxPrice,
     soCloseMaxCloseness,
     soCloseMinSssScore,
-    sortBy,
     allowedWears,
   ]);
 
@@ -642,7 +632,7 @@ export default function SoCloseWorkstationScreen() {
     }
   };
 
-  // Filter & Sort Results for UI Rendering
+  // Filter Results for UI Rendering (fixed default ordering: closest to ceiling first)
   const processedResults = useMemo(() => {
     let list = [...soCloseResults];
 
@@ -657,20 +647,7 @@ export default function SoCloseWorkstationScreen() {
       list = list.filter((item) => item.name.toLowerCase().includes(q));
     }
 
-    list.sort((a, b) => {
-      if (sortBy === "closeness") return a.closeness - b.closeness;
-      if (sortBy === "profit")
-        return (
-          b.acceptedPrice -
-          b.currentMarketPrice -
-          (a.acceptedPrice - a.currentMarketPrice)
-        );
-      if (sortBy === "price")
-        return a.currentMarketPrice - b.currentMarketPrice;
-      if (sortBy === "sss")
-        return (b.supplyStabilityScore || 0) - (a.supplyStabilityScore || 0);
-      return 0;
-    });
+    list.sort((a, b) => a.closeness - b.closeness);
 
     return list;
   }, [
@@ -678,7 +655,6 @@ export default function SoCloseWorkstationScreen() {
     selectedFilterMarkets,
     isAllSelected,
     resultSearchQuery,
-    sortBy,
   ]);
 
   // Market Breakdown Counts
@@ -992,22 +968,6 @@ export default function SoCloseWorkstationScreen() {
                   placeholder="Filter results..."
                   style={styles.searchInput}
                 />
-              </div>
-
-              {/* Sort By Dropdown */}
-              <div style={styles.sortContainer}>
-                <ArrowUpDown size={13} style={styles.sortIcon} />
-                <select
-                  className="input"
-                  value={sortBy}
-                  onChange={(e: any) => setSortBy(e.target.value)}
-                  style={styles.sortSelect}
-                >
-                  <option value="closeness">Sort: Closeness (Lowest %)</option>
-                  <option value="profit">Sort: Potential Profit ($)</option>
-                  <option value="price">Sort: Price (Lowest $)</option>
-                  <option value="sss">Sort: SSS Score (Highest)</option>
-                </select>
               </div>
             </div>
 
@@ -1844,20 +1804,6 @@ const styles = {
     height: "30px",
     paddingLeft: "28px",
     fontSize: "11px",
-  },
-  sortContainer: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  sortIcon: {
-    color: "var(--so-text-muted)",
-  },
-  sortSelect: {
-    height: "30px",
-    fontSize: "11px",
-    padding: "0 8px",
-    cursor: "pointer",
   },
   resultsCountMeta: {
     fontSize: "12px",

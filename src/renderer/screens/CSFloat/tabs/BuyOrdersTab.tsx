@@ -422,27 +422,33 @@ export const BuyOrdersTab: React.FC<BuyOrdersTabProps> = ({
                 Advanced ({advancedCount})
               </button>
             )}
+
+            {displayedOrders.length > 0 && (
+              <button
+                type="button"
+                onClick={handleToggleSelectFiltered}
+                className={`btn btn-sm ${isAllFilteredSelected ? "btn-primary" : "btn-outline"}`}
+                style={styles.actionRequiredButton}
+                title={
+                  isAllFilteredSelected
+                    ? `Click to unselect ${getCsfloatFilterSelectLabel(statusFilter, displayedOrders.length).toLowerCase()} orders`
+                    : `Click to select all ${displayedOrders.length} orders in current filter`
+                }
+              >
+                <CheckSquare size={13} />
+                <span>
+                  {getCsfloatFilterSelectLabel(
+                    statusFilter,
+                    displayedOrders.length,
+                  )}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Right Actions */}
         <div style={styles.rightActionsGroup}>
-          {displayedOrders.length > 0 && (
-            <button
-              type="button"
-              onClick={handleToggleSelectFiltered}
-              className={`btn btn-sm ${isAllFilteredSelected ? "btn-primary" : "btn-outline"}`}
-              style={styles.actionRequiredButton}
-              title={
-                isAllFilteredSelected
-                  ? `Click to unselect ${getCsfloatFilterSelectLabel(statusFilter, displayedOrders.length).toLowerCase()} orders`
-                  : `Click to select all ${displayedOrders.length} orders in current filter`
-              }
-            >
-              <CheckSquare size={13} />
-              <span>{getCsfloatFilterSelectLabel(statusFilter, displayedOrders.length)}</span>
-            </button>
-          )}
           <button
             onClick={fetchOrders}
             disabled={loading}
@@ -1045,6 +1051,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "4px",
+    flexWrap: "wrap",
     backgroundColor: "var(--so-surface-panel)",
     border: "1px solid var(--so-border-medium)",
     padding: "3px 6px",

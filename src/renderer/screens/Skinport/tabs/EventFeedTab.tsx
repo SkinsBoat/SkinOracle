@@ -5,7 +5,6 @@ import type { SkinportSale } from "../../../../shared/types/skinport.types";
 import { handleSkinportReferenceLink } from "../../../utils/marketUrls";
 import {
   type SkinportFilterState,
-  type SkinportSortOption,
   type WearKey,
 } from "../constants";
 import {
@@ -217,10 +216,6 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
         lastEventAt={lastEventAt}
         visibleCount={visible.length}
         totalCount={entries.length}
-        sortMode={filters.sortMode}
-        onSortChange={(mode: SkinportSortOption) =>
-          handleChange({ sortMode: mode })
-        }
         isFrozen={isFrozen}
         frozenCount={frozenCount}
         onToggleFreeze={toggleFreeze}

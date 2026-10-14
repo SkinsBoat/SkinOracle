@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { BellOff, BellRing, Loader2, Pause, Play } from "lucide-react";
-import {
-  SORT_OPTIONS,
-  type SkinportSortOption,
-} from "../constants";
 
 interface SkinportStreamHUDProps {
   connected: boolean;
@@ -15,8 +11,6 @@ interface SkinportStreamHUDProps {
   lastEventAt: number | null;
   visibleCount: number;
   totalCount: number;
-  sortMode: SkinportSortOption;
-  onSortChange: (mode: SkinportSortOption) => void;
   /** Freeze controls (Phase 5); omitted when unsupported. */
   isFrozen?: boolean;
   frozenCount?: number;
@@ -45,8 +39,6 @@ export const SkinportStreamHUD: React.FC<SkinportStreamHUDProps> = ({
   lastEventAt,
   visibleCount,
   totalCount,
-  sortMode,
-  onSortChange,
   isFrozen,
   frozenCount = 0,
   onToggleFreeze,
@@ -114,19 +106,6 @@ export const SkinportStreamHUD: React.FC<SkinportStreamHUDProps> = ({
             {alertsEnabled ? "Alerts On" : "Alerts Off"}
           </button>
         )}
-        <span style={styles.sortLabel}>Sort:</span>
-        <select
-          value={sortMode}
-          onChange={(e) => onSortChange(e.target.value as SkinportSortOption)}
-          style={styles.sortSelect}
-          aria-label="Sort feed"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.key} value={o.key}>
-              {o.label}
-            </option>
-          ))}
-        </select>
 
         {onToggleFreeze && (
           <button
@@ -218,20 +197,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "8px",
     marginLeft: "auto",
-  },
-  sortLabel: {
-    fontSize: "10px",
-    fontWeight: 700,
-    color: "var(--so-text-muted)",
-  },
-  sortSelect: {
-    fontSize: "11px",
-    fontWeight: 700,
-    padding: "3px 6px",
-    borderRadius: "var(--so-radius-sm)",
-    border: "1px solid var(--so-border-medium)",
-    background: "var(--so-surface-panel)",
-    color: "var(--so-text-primary)",
   },
   freezeBtn: {
     display: "inline-flex",

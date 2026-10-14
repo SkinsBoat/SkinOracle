@@ -73,42 +73,14 @@ const baseFilters = {
 };
 
 describe("sortSales", () => {
-  const ceilings = buildCeilingMap({
-    A: accepted(1000, 0.5),
-    B: accepted(1000, 1.3),
-    C: accepted(1000, 0.9),
-  });
   const entries = [
     entry("A", 1200, 100), // closeness 1.2
     entry("B", 900, 300), // closeness 0.9
     entry("C", 1000, 200), // closeness 1.0
   ];
 
-  it("orders by newest when requested", () => {
-    expect(sortSales(entries, ceilings, "newest").map((e) => e.receivedAt)).toEqual(
-      [300, 200, 100],
-    );
-  });
-
-  it("orders by closeness ascending", () => {
-    expect(
-      sortSales(entries, ceilings, "closeness").map((e) => e.sale.marketHashName),
-    ).toEqual(["B", "C", "A"]);
-  });
-
-  it("orders by price ascending and descending", () => {
-    expect(
-      sortSales(entries, ceilings, "price_asc").map((e) => e.sale.salePrice),
-    ).toEqual([900, 1000, 1200]);
-    expect(
-      sortSales(entries, ceilings, "price_desc").map((e) => e.sale.salePrice),
-    ).toEqual([1200, 1000, 900]);
-  });
-
-  it("orders by supply stability descending", () => {
-    expect(
-      sortSales(entries, ceilings, "sss_desc").map((e) => e.sale.marketHashName),
-    ).toEqual(["B", "C", "A"]);
+  it("orders newest-first by default", () => {
+    expect(sortSales(entries).map((e) => e.receivedAt)).toEqual([300, 200, 100]);
   });
 });
 
@@ -122,22 +94,10 @@ describe("sortMarketItems", () => {
     item("B", 9, 300),
   ];
 
-  it("orders by updated_at descending for newest", () => {
-    expect(sortMarketItems(items, ceilings, "newest").map((i) => i.market_hash_name)).toEqual(
-      ["B", "A"],
-    );
-  });
-
-  it("orders by closeness ascending", () => {
+  it("orders by closeness ascending by default", () => {
     expect(
-      sortMarketItems(items, ceilings, "closeness").map((i) => i.market_hash_name),
+      sortMarketItems(items, ceilings).map((i) => i.market_hash_name),
     ).toEqual(["B", "A"]);
-  });
-
-  it("orders by price ascending", () => {
-    expect(
-      sortMarketItems(items, ceilings, "price_asc").map((i) => i.min_price),
-    ).toEqual([9, 12]);
   });
 });
 
