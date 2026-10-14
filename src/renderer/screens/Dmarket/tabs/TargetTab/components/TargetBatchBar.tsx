@@ -6,6 +6,7 @@ import {
   Loader2,
   CheckSquare,
   Square,
+  Wallet,
 } from "lucide-react";
 
 export interface TargetBatchBarProps {
@@ -13,6 +14,8 @@ export interface TargetBatchBarProps {
   totalTargetsCount: number;
   actionRequiredCount: number;
   isAllActionRequiredSelected: boolean;
+  exceedsBalanceCount?: number;
+  isAllExceedsSelected?: boolean;
   unmatchedSelectedCount: number;
   eligibleSelectedCount?: number;
   isOnlyUnmatchedSelected?: boolean;
@@ -22,6 +25,7 @@ export interface TargetBatchBarProps {
   isSidebarExpanded: boolean;
   onSelectAll: () => void;
   onToggleSelectActionRequired: () => void;
+  onToggleSelectExceeds?: () => void;
   onClearSelection: () => void;
   onBatchDelete: () => void;
   onBatchUpdateToOracle: () => void;
@@ -32,6 +36,8 @@ export const TargetBatchBar: React.FC<TargetBatchBarProps> = ({
   totalTargetsCount,
   actionRequiredCount,
   isAllActionRequiredSelected,
+  exceedsBalanceCount = 0,
+  isAllExceedsSelected = false,
   unmatchedSelectedCount,
   eligibleSelectedCount,
   isOnlyUnmatchedSelected,
@@ -41,6 +47,7 @@ export const TargetBatchBar: React.FC<TargetBatchBarProps> = ({
   isSidebarExpanded,
   onSelectAll,
   onToggleSelectActionRequired,
+  onToggleSelectExceeds,
   onClearSelection,
   onBatchDelete,
   onBatchUpdateToOracle,
@@ -78,6 +85,24 @@ export const TargetBatchBar: React.FC<TargetBatchBarProps> = ({
             {isAllActionRequiredSelected
               ? `Unselect Action (${actionRequiredCount})`
               : `Action Req (${actionRequiredCount})`}
+          </button>
+        )}
+
+        {exceedsBalanceCount > 0 && onToggleSelectExceeds && (
+          <button
+            onClick={onToggleSelectExceeds}
+            className="btn btn-sm btn-ghost"
+            style={getExceedsButtonStyle(isAllExceedsSelected)}
+            title={
+              isAllExceedsSelected
+                ? "Click to unselect targets exceeding balance"
+                : "Click to select all targets priced above available wallet balance"
+            }
+          >
+            <Wallet size={12} style={styles.exceedsWalletIcon} />{" "}
+            {isAllExceedsSelected
+              ? `Unselect Exceeding (${exceedsBalanceCount})`
+              : `Exceeds Balance (${exceedsBalanceCount})`}
           </button>
         )}
 
@@ -206,6 +231,21 @@ const getActionReqButtonStyle = (isSelected: boolean): React.CSSProperties => ({
   gap: "5px",
 });
 
+const getExceedsButtonStyle = (isSelected: boolean): React.CSSProperties => ({
+  fontWeight: 700,
+  padding: "6px 14px",
+  fontSize: "12px",
+  color: "#f87171",
+  backgroundColor: isSelected
+    ? "rgba(239, 68, 68, 0.22)"
+    : "rgba(239, 68, 68, 0.08)",
+  border: "1px solid rgba(239, 68, 68, 0.3)",
+  borderRadius: "4px",
+  display: "flex",
+  alignItems: "center",
+  gap: "5px",
+});
+
 const getDeleteUnmatchedToggleStyle = (
   isChecked: boolean,
 ): React.CSSProperties => ({
@@ -281,6 +321,10 @@ const styles = {
 
   alertIcon: {
     color: "#f59e0b",
+  } as React.CSSProperties,
+
+  exceedsWalletIcon: {
+    color: "#f87171",
   } as React.CSSProperties,
 
   batchDeleteButton: {

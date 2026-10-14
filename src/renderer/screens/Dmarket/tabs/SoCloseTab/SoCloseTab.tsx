@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ExternalLink,
   Eye,
-  EyeOff,
   PlusCircle,
   Info,
 } from "lucide-react";
@@ -41,7 +40,6 @@ export interface SoCloseTabProps {
 
 export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   hasKey,
-  targets,
   balanceData,
   isSidebarExpanded,
   onTargetsUpdated,
@@ -71,27 +69,19 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   >(null);
   const [batchSoCloseProcessing, setBatchSoCloseProcessing] = useState(false);
   const [soCloseSearchQuery, setSoCloseSearchQuery] = useState("");
-  // Hide cards that already have an active target placed (default: show all)
-  const [hideExistingTargets, setHideExistingTargets] = useState(false);
-
-  const existingTargetCount = useMemo(() => {
-    return soCloseResults.filter((r) => r.hasExistingTarget).length;
-  }, [soCloseResults]);
 
   const selectedSoCloseCount = useMemo(() => {
     return Object.values(selectedSoCloseItems).filter(Boolean).length;
   }, [selectedSoCloseItems]);
 
   const filteredSoCloseResults = useMemo(() => {
-    let results = hideExistingTargets
-      ? soCloseResults.filter((r) => !r.hasExistingTarget)
-      : soCloseResults;
+    let results = soCloseResults;
     const q = soCloseSearchQuery.toLowerCase().trim();
     if (q) {
       results = results.filter((r) => r.name.toLowerCase().includes(q));
     }
     return results;
-  }, [soCloseResults, soCloseSearchQuery, hideExistingTargets]);
+  }, [soCloseResults, soCloseSearchQuery]);
 
   const handleSetBalanceAsMax = () => {
     if (
@@ -145,11 +135,6 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
       const maxP = Math.max(0, parseFloat(soCloseMaxPrice) || 9999);
       const results: SoCloseResultItem[] = [];
 
-      const activeTargetTitlesSet = new Set(
-        targets
-          .map((t) => (t.title || (t as any).Title || "").toLowerCase().trim())
-          .filter(Boolean),
-      );
       const namesToScan = Object.keys(acceptedRes.map);
 
       for (const name of namesToScan) {
@@ -200,16 +185,12 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
 
         const closeness = dmarketPrice / acceptedPrice;
         if (closeness <= soCloseMaxCloseness) {
-          const hasExisting = activeTargetTitlesSet.has(
-            name.toLowerCase().trim(),
-          );
           results.push({
             name,
             acceptedPrice,
             currentMarketPrice: dmarketPrice,
             closeness: parseFloat(closeness.toFixed(4)),
             closenessPercent: parseFloat(((closeness - 1) * 100).toFixed(1)),
-            hasExistingTarget: hasExisting,
             iconUrl: cacheItem?.icon_url,
             trendMomentum14d: acceptedEntry.trendMomentum14d,
             supplyStabilityScore: sss,
@@ -255,11 +236,6 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
         1,
       );
 
-      setSoCloseResults((prev) =>
-        prev.map((r) =>
-          r.name === item.name ? { ...r, hasExistingTarget: true } : r,
-        ),
-      );
       toast.success(
         `Target created for ${item.name} at $${targetPriceDollar.toFixed(2)}`,
         { id: toastId },
@@ -286,7 +262,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
 
     for (const name of selectedNames) {
       const item = soCloseResults.find((r) => r.name === name);
-      if (!item || item.hasExistingTarget) continue;
+      if (!item) continue;
 
       try {
         await handleCreateSoCloseTarget(item);
@@ -309,9 +285,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   const selectAllSoCloseAvailable = () => {
     const newSelect: Record<string, boolean> = {};
     filteredSoCloseResults.forEach((r) => {
-      if (!r.hasExistingTarget) {
-        newSelect[r.name] = true;
-      }
+      newSelect[r.name] = true;
     });
     setSelectedSoCloseItems(newSelect);
   };
@@ -319,7 +293,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   const selectBestSoClose = () => {
     const newSelect: Record<string, boolean> = {};
     filteredSoCloseResults.forEach((r) => {
-      if (!r.hasExistingTarget && r.closeness <= 1.05) {
+      if (r.closeness <= 1.05) {
         newSelect[r.name] = true;
       }
     });
@@ -657,8 +631,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 className="btn btn-secondary btn-sm"
                 style={{ fontSize: "10.5px", padding: "3px 8px" }}
               >
-                Select Available (
-                {soCloseResults.filter((r) => !r.hasExistingTarget).length})
+                Select All ({filteredSoCloseResults.length})
               </button>
               <button
                 onClick={selectBestSoClose}
@@ -735,30 +708,6 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             </div>
           )}
 
-          {soCloseResults.length > 0 && (
-            <button
-              onClick={() => setHideExistingTargets((prev) => !prev)}
-              className={`btn ${hideExistingTargets ? "btn-primary" : "btn-outline"} btn-sm`}
-              style={{
-                fontSize: "12px",
-                padding: "5px 14px",
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-              title={
-                hideExistingTargets
-                  ? "Show items that already have a target active"
-                  : "Hide items that already have a target active for easier selection"
-              }
-            >
-              {hideExistingTargets ? <Eye size={13} /> : <EyeOff size={13} />}
-              {hideExistingTargets ? "Show Ordered" : "Hide Ordered"}
-              {existingTargetCount > 0 ? ` (${existingTargetCount})` : ""}
-            </button>
-          )}
-
           <button
             onClick={runSoCloseScan}
             disabled={isSoCloseRunning}
@@ -821,31 +770,6 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 filter to view all {soCloseResults.length} scanned items.
               </div>
             </div>
-          ) : hideExistingTargets && soCloseResults.length > 0 ? (
-            <div>
-              <EyeOff
-                size={32}
-                style={{
-                  marginBottom: "10px",
-                  opacity: 0.5,
-                  color: "var(--so-accent-cyan)",
-                }}
-              />
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: "15px",
-                  color: "var(--so-text-primary)",
-                  marginBottom: "4px",
-                }}
-              >
-                All Results Already Ordered
-              </div>
-              <div style={{ fontSize: "12px" }}>
-                All {soCloseResults.length} scanned items already have targets
-                active. Click &quot;Show Ordered&quot; to display them.
-              </div>
-            </div>
           ) : (
             <div>
               <Zap
@@ -897,11 +821,9 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
 
             const cardBorderColor = isSelected
               ? "var(--so-primary)"
-              : item.hasExistingTarget
-                ? "var(--so-accent-cyan)"
-                : item.closeness <= 1.0
-                  ? "var(--so-success)"
-                  : "var(--so-warning)";
+              : item.closeness <= 1.0
+                ? "var(--so-success)"
+                : "var(--so-warning)";
 
             return (
               <div
@@ -922,17 +844,15 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                   boxShadow: isSelected
                     ? "0 0 12px rgba(37, 99, 235, 0.3)"
                     : "var(--so-shadow-sm)",
-                  cursor: item.hasExistingTarget ? "default" : "pointer",
+                  cursor: "pointer",
                   transition: "all 0.15s ease",
                   overflow: "hidden",
                 }}
                 onClick={() => {
-                  if (!item.hasExistingTarget) {
-                    setSelectedSoCloseItems((prev) => ({
-                      ...prev,
-                      [item.name]: !prev[item.name],
-                    }));
-                  }
+                  setSelectedSoCloseItems((prev) => ({
+                    ...prev,
+                    [item.name]: !prev[item.name],
+                  }));
                 }}
               >
                 {/* Row 1: Actions */}
@@ -952,20 +872,18 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                       gap: "5px",
                     }}
                   >
-                    {!item.hasExistingTarget && (
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {
-                          setSelectedSoCloseItems((prev) => ({
-                            ...prev,
-                            [item.name]: !prev[item.name],
-                          }));
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ cursor: "pointer" }}
-                      />
-                    )}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {
+                        setSelectedSoCloseItems((prev) => ({
+                          ...prev,
+                          [item.name]: !prev[item.name],
+                        }));
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ cursor: "pointer" }}
+                    />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1064,21 +982,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                     <div />
                   )}
 
-                  {item.hasExistingTarget ? (
-                    <span
-                      className="badge badge-cyan"
-                      style={{
-                        fontSize: "9px",
-                        padding: "1px 5px",
-                        fontWeight: 800,
-                        borderRadius: "4px",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
-                    >
-                      TARGET ACTIVE
-                    </span>
-                  ) : item.closeness <= 1.0 ? (
+                  {item.closeness <= 1.0 ? (
                     <span
                       className="badge badge-success"
                       style={{
@@ -1242,46 +1146,30 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                   style={{ display: "flex", gap: "6px" }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {item.hasExistingTarget ? (
-                    <button
-                      disabled
-                      className="btn btn-secondary btn-sm"
-                      style={{
-                        flex: 1,
-                        fontWeight: 700,
-                        fontSize: "11px",
-                        padding: "4px 6px",
-                        opacity: 0.6,
-                      }}
-                    >
-                      Target Active
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleCreateSoCloseTarget(item)}
-                      disabled={isProcessing}
-                      className="btn btn-primary btn-sm"
-                      style={{
-                        flex: 1,
-                        fontWeight: 700,
-                        fontSize: "11px",
-                        padding: "4px 6px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      {isProcessing ? (
-                        <Loader2 size={11} className="spin" />
-                      ) : (
-                        <PlusCircle size={12} />
-                      )}
-                      <span>
-                        Create Target (${item.acceptedPrice.toFixed(2)})
-                      </span>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleCreateSoCloseTarget(item)}
+                    disabled={isProcessing}
+                    className="btn btn-primary btn-sm"
+                    style={{
+                      flex: 1,
+                      fontWeight: 700,
+                      fontSize: "11px",
+                      padding: "4px 6px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    {isProcessing ? (
+                      <Loader2 size={11} className="spin" />
+                    ) : (
+                      <PlusCircle size={12} />
+                    )}
+                    <span>
+                      Create Target (${item.acceptedPrice.toFixed(2)})
+                    </span>
+                  </button>
                 </div>
               </div>
             );

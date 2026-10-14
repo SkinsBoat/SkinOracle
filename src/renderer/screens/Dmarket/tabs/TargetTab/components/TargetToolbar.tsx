@@ -18,6 +18,8 @@ export interface TargetToolbarProps {
   targetsCount: number;
   matchedCount: number;
   actionRequiredCount: number;
+  exceedsBalanceCount?: number;
+  userBalance?: number;
   holdCount?: number;
   showExtraOptions: boolean;
   setShowExtraOptions: React.Dispatch<React.SetStateAction<boolean>>;
@@ -56,6 +58,8 @@ const getFilterSelectLabel = (filter: FilterAction, count: number): string => {
       return `Safe ${count}`;
     case "hold":
       return `Hold ${count}`;
+    case "exceeds":
+      return `Exceeds ${count}`;
     case "all":
     default:
       return `Select ${count}`;
@@ -68,6 +72,8 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
   targetsCount,
   matchedCount,
   actionRequiredCount,
+  exceedsBalanceCount = 0,
+  userBalance,
   selectableFilteredCount,
   isAllFilteredSelected,
   onToggleSelectFiltered,
@@ -123,6 +129,17 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
                 Action Req:{" "}
                 <strong style={styles.actionReqStatValue}>
                   {actionRequiredCount}
+                </strong>
+              </span>
+            )}
+            {exceedsBalanceCount > 0 && (
+              <span
+                style={styles.exceedsStatLabel}
+                title={`${exceedsBalanceCount} target(s) priced above available wallet balance${typeof userBalance === "number" ? ` ($${userBalance.toFixed(2)})` : ""}`}
+              >
+                Exceeds Bal:{" "}
+                <strong style={styles.exceedsStatValue}>
+                  {exceedsBalanceCount}
                 </strong>
               </span>
             )}
@@ -194,11 +211,29 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
       {targetSubTab === "active" && (
         <div style={styles.rightControls}>
           <div style={styles.filterPillsRow}>
-            {FILTER_PILLS.map((pill) => (
+            {(
+              exceedsBalanceCount > 0
+                ? [
+                    ...FILTER_PILLS,
+                    {
+                      id: "exceeds" as FilterAction,
+                      label: `Exceeds (${exceedsBalanceCount})`,
+                    },
+                  ]
+                : FILTER_PILLS
+            ).map((pill) => (
               <button
                 key={pill.id}
                 onClick={() => setFilterAction(pill.id)}
-                style={getFilterPillStyle(filterAction === pill.id)}
+                style={getFilterPillStyle(
+                  filterAction === pill.id,
+                  pill.id === "exceeds" ? "exceeds" : "default",
+                )}
+                title={
+                  pill.id === "exceeds"
+                    ? `Filter targets whose bid exceeds wallet balance${typeof userBalance === "number" ? ` ($${userBalance.toFixed(2)})` : ""}`
+                    : undefined
+                }
               >
                 {pill.label}
               </button>
@@ -281,18 +316,38 @@ const getOptionsCollapsibleStyle = (isOpen: boolean): React.CSSProperties => ({
   gap: "6px",
 });
 
-const getFilterPillStyle = (isSelected: boolean): React.CSSProperties => ({
-  padding: "3px 8px",
-  fontSize: "11px",
-  borderRadius: "12px",
-  border: "1px solid",
-  cursor: "pointer",
-  fontWeight: 700,
-  backgroundColor: isSelected ? "var(--so-primary)" : "transparent",
-  color: isSelected ? "#ffffff" : "var(--so-text-secondary)",
-  borderColor: isSelected ? "var(--so-primary)" : "var(--so-border-subtle)",
-  transition: "all 0.15s ease",
-});
+const getFilterPillStyle = (
+  isSelected: boolean,
+  variant: "default" | "exceeds" = "default",
+): React.CSSProperties => {
+  if (variant === "exceeds") {
+    return {
+      padding: "3px 8px",
+      fontSize: "11px",
+      borderRadius: "12px",
+      border: `1px solid ${isSelected ? "#ef4444" : "rgba(239, 68, 68, 0.4)"}`,
+      cursor: "pointer",
+      fontWeight: 800,
+      backgroundColor: isSelected
+        ? "rgba(239, 68, 68, 0.25)"
+        : "rgba(239, 68, 68, 0.08)",
+      color: "#f87171",
+      transition: "all 0.15s ease",
+    };
+  }
+  return {
+    padding: "3px 8px",
+    fontSize: "11px",
+    borderRadius: "12px",
+    border: "1px solid",
+    cursor: "pointer",
+    fontWeight: 700,
+    backgroundColor: isSelected ? "var(--so-primary)" : "transparent",
+    color: isSelected ? "#ffffff" : "var(--so-text-secondary)",
+    borderColor: isSelected ? "var(--so-primary)" : "var(--so-border-subtle)",
+    transition: "all 0.15s ease",
+  };
+};
 
 const getActionRequiredButtonStyle = (isSelected: boolean): React.CSSProperties => ({
   backgroundColor: isSelected
@@ -381,6 +436,17 @@ const styles = {
 
   actionReqStatValue: {
     color: "#f59e0b",
+  } as React.CSSProperties,
+
+  exceedsStatLabel: {
+    color: "var(--so-text-muted)",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  } as React.CSSProperties,
+
+  exceedsStatValue: {
+    color: "#f87171",
   } as React.CSSProperties,
 
   optionsWrapper: {

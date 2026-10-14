@@ -11,6 +11,7 @@ import {
   Square,
   Lock,
   Clock,
+  Wallet,
 } from "lucide-react";
 import { DmarketTargetItem, TargetAnalysis } from "../../../../../../shared/types";
 import TrendSparkline from "../../../../../components/TrendSparkline";
@@ -23,6 +24,7 @@ export interface TargetCardProps {
   target: DmarketTargetItem;
   analysis?: TargetAnalysis;
   driftDetails: TargetDriftDetails | null;
+  userBalance?: number;
   isSelected: boolean;
   isProcessing: boolean;
   onToggleSelect: (targetId: string) => void;
@@ -49,6 +51,7 @@ export const TargetCard: React.FC<TargetCardProps> = ({
   target,
   analysis,
   driftDetails,
+  userBalance,
   isSelected,
   isProcessing,
   onToggleSelect,
@@ -64,13 +67,20 @@ export const TargetCard: React.FC<TargetCardProps> = ({
   const holdInfo = getTargetHoldInfo(target);
   const isHoldActive = holdInfo.isHoldActive;
 
+  const isExceedsBalance =
+    typeof userBalance === "number" &&
+    userBalance >= 0 &&
+    currentPrice > userBalance;
+
   const cardBorderColor = isSelected
     ? "var(--so-primary)"
-    : driftDetails?.isOverbid
+    : isExceedsBalance
       ? "#ef4444"
-      : driftDetails?.isUnderbid
-        ? "#f59e0b"
-        : "var(--so-border-medium)";
+      : driftDetails?.isOverbid
+        ? "#ef4444"
+        : driftDetails?.isUnderbid
+          ? "#f59e0b"
+          : "var(--so-border-medium)";
 
   const match = target.title.match(/^(.+?)\s*\(([^)]+)\)$/);
   const cleanTitle = match ? match[1] : target.title;
@@ -151,7 +161,15 @@ export const TargetCard: React.FC<TargetCardProps> = ({
 
       {/* Drift Status Badge */}
       <div style={styles.driftBadgeRow}>
-        {driftDetails ? (
+        {isExceedsBalance ? (
+          <span
+            className="badge"
+            style={styles.badgeExceeds}
+            title={`Current bid ($${currentPrice.toFixed(2)}) exceeds wallet balance ($${userBalance?.toFixed(2)})`}
+          >
+            <Wallet size={10} /> EXCEEDS BALANCE
+          </span>
+        ) : driftDetails ? (
           driftDetails.isOverbid ? (
             <span className="badge" style={styles.badgeOverbid}>
               <AlertTriangle size={10} /> OVERBID (
@@ -291,7 +309,16 @@ export const TargetCard: React.FC<TargetCardProps> = ({
           <span style={styles.textMuted}>Current Bid</span>
           <span
             className="tabular-nums"
-            style={getCurrentBidPriceStyle(driftDetails?.isOverbid, driftDetails?.isUnderbid)}
+            style={getCurrentBidPriceStyle(
+              isExceedsBalance,
+              driftDetails?.isOverbid,
+              driftDetails?.isUnderbid,
+            )}
+            title={
+              isExceedsBalance
+                ? `Current bid ($${currentPrice.toFixed(2)}) exceeds wallet balance ($${userBalance?.toFixed(2)})`
+                : undefined
+            }
           >
             ${currentPrice.toFixed(2)}
           </span>
@@ -310,7 +337,9 @@ export const TargetCard: React.FC<TargetCardProps> = ({
 
       {/* Card Actions Footer */}
       <div style={styles.footerActions} onClick={(e) => e.stopPropagation()}>
-        {driftDetails?.acceptedPrice && (
+        {driftDetails?.acceptedPrice &&
+          (!isExceedsBalance ||
+            driftDetails.acceptedPrice <= (userBalance || 0)) && (
           <button
             onClick={() =>
               !isAdvanced &&
@@ -324,11 +353,13 @@ export const TargetCard: React.FC<TargetCardProps> = ({
               ...(isAdvanced || isHoldActive ? styles.disabledQuickUpdateButton : {}),
             }}
             title={
-              isAdvanced
-                ? "Update disabled: Advanced target with custom attributes"
-                : isHoldActive
-                  ? `Update locked: 11-min hold active (${holdInfo.formattedRemaining} remaining)`
-                  : "Update Target to Oracle Price"
+              isExceedsBalance
+                ? `Update target to $${driftDetails.acceptedPrice.toFixed(2)} (within balance)`
+                : isAdvanced
+                  ? "Update disabled: Advanced target with custom attributes"
+                  : isHoldActive
+                    ? `Update locked: 11-min hold active (${holdInfo.formattedRemaining} remaining)`
+                    : "Update Target to Oracle Price"
             }
           >
             {isProcessing ? (
@@ -444,11 +475,18 @@ const getPricingBlockStyle = (
 });
 
 const getCurrentBidPriceStyle = (
+  isExceedsBalance?: boolean,
   isOverbid?: boolean,
   isUnderbid?: boolean,
 ): React.CSSProperties => ({
   fontWeight: 800,
-  color: isOverbid ? "#ef4444" : isUnderbid ? "#f59e0b" : "#ffffff",
+  color: isExceedsBalance
+    ? "#f87171"
+    : isOverbid
+      ? "#ef4444"
+      : isUnderbid
+        ? "#f59e0b"
+        : "#ffffff",
 });
 
 const styles = {
@@ -539,6 +577,19 @@ const styles = {
     color: "#f87171",
     border: "1px solid rgba(239, 68, 68, 0.3)",
     fontWeight: 700,
+    fontSize: "9px",
+    padding: "1px 6px",
+    borderRadius: "4px",
+  } as React.CSSProperties,
+
+  badgeExceeds: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    backgroundColor: "rgba(239, 68, 68, 0.16)",
+    color: "#f87171",
+    border: "1px solid rgba(239, 68, 68, 0.35)",
+    fontWeight: 800,
     fontSize: "9px",
     padding: "1px 6px",
     borderRadius: "4px",

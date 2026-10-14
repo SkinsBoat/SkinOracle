@@ -438,6 +438,11 @@ export default function DmarketWorkstation() {
           loading={loading}
           fetchTargets={fetchTargets}
           isSidebarExpanded={isSidebarExpanded}
+          userBalance={
+            typeof balanceData?.usdCents === "number"
+              ? balanceData.usdCents / 100
+              : undefined
+          }
           onUserDataUpdated={fetchUserData}
           onOpenLookupModal={handleOpenLookupModal}
           onOpenEditModal={(target, analysis) => {

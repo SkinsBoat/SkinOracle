@@ -1,7 +1,7 @@
 import React from "react";
 import { DmarketTargetItem, TargetAnalysis } from "../../../../../shared/types";
 
-export type FilterAction = "all" | "action_required" | "overbid" | "underbid" | "safe" | "hold";
+export type FilterAction = "all" | "action_required" | "overbid" | "underbid" | "safe" | "hold" | "exceeds";
 
 export interface TargetDriftDetails {
   acceptedPrice: number;
@@ -35,6 +35,7 @@ export interface TargetTabProps {
   onOpenMarket: (title: string) => void;
   driftThresholdPercent?: number;
   setDriftThresholdPercent?: React.Dispatch<React.SetStateAction<number>>;
+  userBalance?: number;
   onRegisterLoadOracle?: (fn: () => Promise<void>) => void;
   onAcceptedPricesLoaded?: (meta: { itemCount: number; storedAt: string | null }) => void;
 }

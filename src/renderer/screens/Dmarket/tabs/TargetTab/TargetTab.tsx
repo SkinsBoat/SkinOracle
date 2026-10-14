@@ -34,6 +34,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
   onOpenMarket,
   driftThresholdPercent: propDriftThresholdPercent,
   setDriftThresholdPercent: propSetDriftThresholdPercent,
+  userBalance,
   onRegisterLoadOracle,
   onAcceptedPricesLoaded,
 }) => {
@@ -201,6 +202,12 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       targetAnalysis[target.targetId],
       driftThresholdPercent,
     );
+
+  // Orders whose target price exceeds the available DMarket wallet balance
+  const isTargetExceedsBalance = (target: DmarketTargetItem): boolean => {
+    if (typeof userBalance !== "number" || userBalance < 0) return false;
+    return parseFloat(target.priceCents) / 100 > userBalance;
+  };
 
   const handleDeleteTarget = async (targetId: string, title: string) => {
     setProcessingId(targetId);
@@ -706,11 +713,29 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           if (!driftDetails || driftDetails.isActionRequired) return false;
         } else if (filterAction === "hold") {
           if (!getTargetHoldInfo(target).isHoldActive) return false;
+        } else if (filterAction === "exceeds") {
+          if (!isTargetExceedsBalance(target)) return false;
         }
       }
       return true;
     });
-  }, [targets, filterAction, targetAnalysis, driftThresholdPercent]);
+  }, [
+    targets,
+    filterAction,
+    targetAnalysis,
+    driftThresholdPercent,
+    userBalance,
+  ]);
+
+  const exceedsBalanceTargets = useMemo(() => {
+    return targets.filter((t) => isTargetExceedsBalance(t));
+  }, [targets, userBalance]);
+
+  const exceedsBalanceCount = exceedsBalanceTargets.length;
+
+  const isAllExceedsSelected =
+    exceedsBalanceCount > 0 &&
+    exceedsBalanceTargets.every((t) => !!selectedTargets[t.targetId]);
 
   const holdCount = useMemo(() => {
     return targets.filter((t) => getTargetHoldInfo(t).isHoldActive).length;
@@ -727,9 +752,16 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       const d = getDrift(t);
       const isUnmatched =
         matchedCount > 0 && !targetAnalysis[t.targetId]?.acceptedPrice;
-      return d?.isActionRequired || isUnmatched;
+      const isExceeds = isTargetExceedsBalance(t);
+      return d?.isActionRequired || isUnmatched || isExceeds;
     });
-  }, [targets, targetAnalysis, driftThresholdPercent, matchedCount]);
+  }, [
+    targets,
+    targetAnalysis,
+    driftThresholdPercent,
+    matchedCount,
+    userBalance,
+  ]);
 
   const actionRequiredCount = actionRequiredTargets.length;
 
@@ -801,6 +833,20 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     setSelectedTargets(next);
   };
 
+  const handleToggleSelectExceeds = () => {
+    const next = { ...selectedTargets };
+    if (isAllExceedsSelected) {
+      exceedsBalanceTargets.forEach((t) => {
+        delete next[t.targetId];
+      });
+    } else {
+      exceedsBalanceTargets.forEach((t) => {
+        next[t.targetId] = true;
+      });
+    }
+    setSelectedTargets(next);
+  };
+
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
     targets.forEach((t) => {
@@ -839,6 +885,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         targetsCount={targets.length}
         matchedCount={matchedCount}
         actionRequiredCount={actionRequiredCount}
+        exceedsBalanceCount={exceedsBalanceCount}
+        userBalance={userBalance}
         selectableFilteredCount={selectableFilteredCount}
         isAllFilteredSelected={isAllFilteredSelected}
         onToggleSelectFiltered={handleToggleSelectFiltered}
@@ -882,6 +930,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
                   target={target}
                   analysis={targetAnalysis[target.targetId]}
                   driftDetails={getDrift(target)}
+                  userBalance={userBalance}
                   isSelected={!!selectedTargets[target.targetId]}
                   isProcessing={processingId === target.targetId}
                   onToggleSelect={handleToggleSelectTarget}
@@ -915,6 +964,8 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           totalTargetsCount={targets.filter((t) => !isAdvancedTarget(t)).length}
           actionRequiredCount={actionRequiredCount}
           isAllActionRequiredSelected={isAllActionRequiredSelected}
+          exceedsBalanceCount={exceedsBalanceCount}
+          isAllExceedsSelected={isAllExceedsSelected}
           unmatchedSelectedCount={unmatchedSelectedCount}
           eligibleSelectedCount={eligibleSelectedCount}
           isOnlyUnmatchedSelected={isOnlyUnmatchedSelected}
@@ -924,6 +975,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           isSidebarExpanded={isSidebarExpanded}
           onSelectAll={handleSelectAll}
           onToggleSelectActionRequired={handleToggleSelectActionRequired}
+          onToggleSelectExceeds={handleToggleSelectExceeds}
           onClearSelection={clearSelection}
           onBatchDelete={handleBatchDelete}
           onBatchUpdateToOracle={handleBatchUpdateToOracle}
