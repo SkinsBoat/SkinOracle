@@ -340,7 +340,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           border: "1px solid var(--so-border-medium)",
           borderRadius: "var(--so-radius-md)",
           padding: "8px 14px",
-          flexWrap: "wrap",
+          flexWrap: "nowrap",
           gap: "10px",
         }}
       >
@@ -351,6 +351,8 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             alignItems: "center",
             gap: "10px",
             flexWrap: "wrap",
+            flex: "1 1 auto",
+            minWidth: 0,
           }}
         >
           {/* Price Range Filter Inputs */}
@@ -674,8 +676,17 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
           )}
         </div>
 
-        {/* Right Run Scan Button & Search */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        {/* Right Run Scan Button & Search (pinned right, never wraps) */}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "center",
+            flexShrink: 0,
+            flexWrap: "nowrap",
+            marginLeft: "auto",
+          }}
+        >
           {soCloseResults.length > 0 && (
             <div
               style={{
