@@ -14,6 +14,7 @@ import type {
   SkinportItemsParams,
   SkinportStreamEvent,
   SkinportStreamStatus,
+  SkinportShopApiResponse,
 } from "../shared/types/skinport.types";
 
 /**
@@ -265,6 +266,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     deleteOrder: (orderId: string) =>
       safeInvoke("csfloat:delete-order", orderId),
     getInventory: () => safeInvoke("csfloat:get-inventory"),
+    // RAID: public seller stall by SteamID64 (unauthenticated).
+    getStall: (steamId: string) => safeInvoke("csfloat:get-stall", steamId),
     createListing: (
       assetId: string,
       priceCents: number,
@@ -339,6 +342,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   skinport: {
     getItems: (params?: SkinportItemsParams) =>
       safeInvoke("skinport:get-items", params),
+    // RAID: public seller storefront stock by shop slug.
+    getShop: (shopLink: string) =>
+      safeInvoke<SkinportShopApiResponse>("skinport:get-shop", shopLink),
     startStream: () =>
       safeInvoke<SkinportStreamStatus>("skinport:start-stream"),
     stopStream: () => safeInvoke<SkinportStreamStatus>("skinport:stop-stream"),
@@ -366,6 +372,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   dmarket: {
     getProfile: () => safeInvoke("dmarket:get-profile"),
     getBalance: () => safeInvoke("dmarket:get-balance"),
+    // RAID: public seller store listings by saga address (unauthenticated).
+    getStore: (address: string) => safeInvoke("dmarket:get-store", address),
     getTargets: (params?: any) => safeInvoke("dmarket:get-targets", params),
     createTarget: (
       title: string,
@@ -404,6 +412,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke("dmarket:delete-offers", requests),
     batchCreateTargets: (requests: any[]) =>
       safeInvoke("dmarket:batch-create-targets", requests),
+    batchUpdateTargets: (requests: any[]) =>
+      safeInvoke("dmarket:batch-update-targets", requests),
     batchDeleteTargets: (targetIds: string[]) =>
       safeInvoke("dmarket:batch-delete-targets", targetIds),
     getClosedOffers: (limit?: number, cursor?: string) =>

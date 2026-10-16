@@ -44,6 +44,13 @@ export const SKINPORT_API = "https://api.skinport.com";
 export const SKINPORT_ITEMS = `${SKINPORT_API}/v1/items`;
 export const SKINPORT_WS = "wss://skinport.com";
 
+// Public seller storefront stock (no auth). Used by the RAID seller
+// auditor. Prices in this response are USD cents (integers), unlike the
+// dollar-denominated `/v1/items` market aggregate.
+export const SKINPORT_SITE = "https://skinport.com";
+export const SKINPORT_SHOP = (shopLink: string) =>
+  `${SKINPORT_SITE}/api/shop/${encodeURIComponent(shopLink)}`;
+
 // ── Skinsnipe Endpoints ───────────────────────────────────────────
 export const SKINSNIPE_LOWEST_PRICES = `${SKINSNIPE_API}/lowest-prices`;
 
@@ -78,6 +85,10 @@ export const DMARKET_DEPOSIT_ASSETS = `${DMARKET_API}/marketplace-api/v1/deposit
 export const DMARKET_DEPOSIT_STATUS = (depositId: string) =>
   `${DMARKET_API}/marketplace-api/v1/deposit-status/${encodeURIComponent(depositId)}`;
 export const DMARKET_DEPOSIT_BLOCKED_TITLES = `${DMARKET_API}/marketplace-api/v2/deposit-blocked-titles`;
+
+// Public seller store listings (no auth). Used by the RAID seller auditor.
+// Filtered client-side by `treeFilters=sagaAddress[]={sellerAddress}`.
+export const DMARKET_STORE_ITEMS = `${DMARKET_API}/exchange/v1/market/items/v2`;
 
 // ── SaaS Auth Endpoints ───────────────────────────────────────────
 export const SAAS_AUTH_REGISTER = `${SAAS_API}/auth/register`;

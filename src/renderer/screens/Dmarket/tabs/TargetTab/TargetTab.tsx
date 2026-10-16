@@ -372,6 +372,34 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     }
   };
 
+  // Apply a confirmed target update (in-place batch or sequential fallback)
+  const applyUpdatedTarget = (
+    oldTargetId: string,
+    newTargetId: string,
+    targetPrice: number,
+    updatedAtIso?: string,
+  ) => {
+    const updatedPriceCents = String(Math.round(targetPrice * 100));
+    const nowIso = updatedAtIso || new Date().toISOString();
+    const nowMs = Date.now();
+    setTargets((prev) =>
+      prev.map((t) =>
+        t.targetId === oldTargetId
+          ? {
+              ...t,
+              targetId: newTargetId,
+              priceCents: updatedPriceCents,
+              updatedAt: nowIso,
+              updatedAtMs: nowMs,
+              isHoldActive: true,
+              holdExpiresAt: nowMs + 660 * 1000,
+              holdRemainingSeconds: 660,
+            }
+          : t,
+      ),
+    );
+  };
+
   const handleBatchUpdateToOracle = async () => {
     const selectedIds = Object.keys(selectedTargets).filter(
       (id) => selectedTargets[id],
@@ -448,11 +476,16 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
     const totalOperations =
       eligibleTargets.length + (deleteUnmatched ? unmatchedTargets.length : 0);
-    const toastId = toast.loading(`Processing 0/${totalOperations} targets...`);
+    const toastId = toast.loading(`Processing ${totalOperations} targets...`);
 
-    // 1. Update priced targets
-    for (let i = 0; i < eligibleTargets.length; i++) {
-      const target = eligibleTargets[i];
+    // 1. Update priced targets (native batch first, sequential fallback)
+    const updatePlan: Array<{
+      target: (typeof eligibleTargets)[number];
+      price: number;
+      qty: number;
+    }> = [];
+
+    for (const target of eligibleTargets) {
       if (isAdvancedTarget(target) || getTargetHoldInfo(target).isHoldActive) {
         continue;
       }
@@ -460,42 +493,75 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         continue;
       }
       processedTitles.add(target.title);
+      updatePlan.push({
+        target,
+        price: targetAnalysis[target.targetId].acceptedPrice,
+        qty: parseInt(target.amount, 10) || 1,
+      });
+    }
 
-      const analysis = targetAnalysis[target.targetId];
-      const targetPrice = analysis.acceptedPrice;
-      const targetQty = parseInt(target.amount, 10) || 1;
+    const pendingUpdates = [...updatePlan];
 
+    if (
+      pendingUpdates.length > 0 &&
+      typeof window.electronAPI?.dmarket?.batchUpdateTargets === "function"
+    ) {
       toast.loading(
-        `[${i + 1}/${totalOperations}] Updating: ${target.title}...`,
+        `Batch updating ${pendingUpdates.length}/${totalOperations} target(s)...`,
+        { id: toastId },
+      );
+      try {
+        const res = await window.electronAPI.dmarket.batchUpdateTargets(
+          pendingUpdates.map((u) => ({
+            targetId: u.target.targetId,
+            title: u.target.title,
+            newPriceUsd: u.price,
+            amount: u.qty,
+          })),
+        );
+        const updatedByOldId = new Map(
+          (res?.updated || []).map((u) => [u.targetId, u.newTargetId]),
+        );
+        pendingUpdates.forEach((u) => {
+          const newId = updatedByOldId.get(u.target.targetId);
+          if (newId) {
+            applyUpdatedTarget(u.target.targetId, newId, u.price);
+            successCount++;
+          }
+        });
+        // Keep only unconfirmed targets for the sequential fallback
+        const unconfirmed = pendingUpdates.filter(
+          (u) => !updatedByOldId.has(u.target.targetId),
+        );
+        pendingUpdates.length = 0;
+        pendingUpdates.push(...unconfirmed);
+      } catch (err: any) {
+        console.error(
+          "Batch target update API failed, falling back to sequential:",
+          err,
+        );
+      }
+    }
+
+    // Sequential fallback for any target the batch did not confirm
+    for (let i = 0; i < pendingUpdates.length; i++) {
+      const { target, price, qty } = pendingUpdates[i];
+      toast.loading(
+        `[${i + 1}/${pendingUpdates.length}] Updating: ${target.title}...`,
         { id: toastId },
       );
       try {
         const res = await window.electronAPI.dmarket.updateTarget(
           target.targetId,
           target.title,
-          targetPrice,
-          targetQty,
+          price,
+          qty,
         );
-        const newTargetId = res?.newTargetId || target.targetId;
-        const updatedPriceCents = String(Math.round(targetPrice * 100));
-        const nowIso = res?.updatedAt || new Date().toISOString();
-        const nowMs = Date.now();
-
-        setTargets((prev) =>
-          prev.map((t) =>
-            t.targetId === target.targetId
-              ? {
-                  ...t,
-                  targetId: newTargetId,
-                  priceCents: updatedPriceCents,
-                  updatedAt: nowIso,
-                  updatedAtMs: nowMs,
-                  isHoldActive: true,
-                  holdExpiresAt: nowMs + 660 * 1000,
-                  holdRemainingSeconds: 660,
-                }
-              : t,
-          ),
+        applyUpdatedTarget(
+          target.targetId,
+          res?.newTargetId || target.targetId,
+          price,
+          res?.updatedAt,
         );
         successCount++;
       } catch (err: any) {
@@ -506,7 +572,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
       }
 
       if (
-        i < eligibleTargets.length - 1 ||
+        i < pendingUpdates.length - 1 ||
         (deleteUnmatched && unmatchedTargets.length > 0)
       ) {
         await new Promise((r) => setTimeout(r, 1000));

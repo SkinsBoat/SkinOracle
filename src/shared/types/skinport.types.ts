@@ -113,3 +113,57 @@ export interface SkinportItemsParams {
   /** When false, non-tradable (trade-locked) items are included. */
   tradable?: boolean;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Seller storefront (`GET https://skinport.com/api/shop/{shopLink}`)
+//
+// Public, unauthenticated endpoint used by the RAID seller auditor to
+// value a single trader's listed stock. Unlike `/v1/items`, prices here
+// are USD **cents** (integers), matching the live sale feed.
+// ─────────────────────────────────────────────────────────────────
+
+/** One listing inside a Skinport public shop response. Prices are USD cents. */
+export interface SkinportShopApiItem {
+  saleId: number;
+  shortId: string;
+  productId: number;
+  assetId: number;
+  itemId: number;
+  appid?: number;
+  steamid?: string;
+  url: string;
+  marketName: string;
+  marketHashName: string;
+  name: string;
+  title: string;
+  exterior: string;
+  quality: string;
+  rarity: string;
+  rarityColor: string;
+  collection: string | null;
+  wear: number | null;
+  pattern?: number;
+  finish?: number;
+  souvenir: boolean;
+  stattrak: boolean;
+  /** USD cents. */
+  suggestedPrice: number;
+  /** USD cents. */
+  referencePrice: number;
+  /** USD cents. */
+  salePrice: number;
+  currency: string;
+  image: string;
+  link: string;
+}
+
+/** Raw response of `GET https://skinport.com/api/shop/{shopLink}`. */
+export interface SkinportShopApiResponse {
+  success: boolean;
+  message: string | null;
+  shopSteamId?: string;
+  shopName?: string;
+  shopLink?: string;
+  filter?: { total: number };
+  items: SkinportShopApiItem[];
+}

@@ -17,12 +17,17 @@ import {
   NexusStrategyProfile,
   OracleEvaluationResponse,
 } from "./oracle.types";
-import { CsFloatInventoryItem, ListingPriceInfo } from "./csfloat.types";
+import {
+  CsFloatInventoryItem,
+  CsFloatStallApiResponse,
+  ListingPriceInfo,
+} from "./csfloat.types";
 import {
   SkinportItemsParams,
   SkinportMarketItem,
   SkinportStreamEvent,
   SkinportStreamStatus,
+  SkinportShopApiResponse,
 } from "./skinport.types";
 import {
   DealMakerItem,
@@ -57,6 +62,7 @@ import {
   DmarketWithdrawAssetsResponse,
   DmarketCustomizedFeesResponse,
   DmarketDepositBlockedTitlesResponse,
+  DmarketStoreApiResponse,
 } from "./dmarket.types";
 import {
   UpdateStatusState,
@@ -227,6 +233,7 @@ export interface ElectronAPI {
     ) => Promise<any>;
     deleteOrder: (orderId: string) => Promise<{ success: boolean }>;
     getInventory: () => Promise<CsFloatInventoryItem[]>;
+    getStall: (steamId: string) => Promise<CsFloatStallApiResponse>;
     createListing: (
       assetId: string,
       priceCents: number,
@@ -277,6 +284,7 @@ export interface ElectronAPI {
   };
   skinport: {
     getItems: (params?: SkinportItemsParams) => Promise<SkinportMarketItem[]>;
+    getShop: (shopLink: string) => Promise<SkinportShopApiResponse>;
     startStream: () => Promise<SkinportStreamStatus>;
     stopStream: () => Promise<SkinportStreamStatus>;
     getStreamStatus: () => Promise<SkinportStreamStatus>;
@@ -290,6 +298,7 @@ export interface ElectronAPI {
   dmarket: {
     getProfile: () => Promise<DmarketUserProfile>;
     getBalance: () => Promise<DmarketBalance>;
+    getStore: (address: string) => Promise<DmarketStoreApiResponse>;
     getTargets: (params?: {
       fetchAll?: boolean;
       cursor?: string;
@@ -314,6 +323,20 @@ export interface ElectronAPI {
     batchCreateTargets: (
       requests: DmarketCreateTargetItemRequest[],
     ) => Promise<DmarketBatchCreateTargetsResponse>;
+    batchUpdateTargets: (
+      requests: Array<{
+        targetId: string;
+        title: string;
+        newPriceUsd: number;
+        amount?: number;
+        attrs?: DmarketTargetAttrs;
+      }>,
+    ) => Promise<{
+      updated: Array<{ targetId: string; newTargetId: string }>;
+      failed: string[];
+      failedTargets?: any[];
+      raw?: any;
+    }>;
     deleteTarget: (
       targetId: string,
     ) => Promise<{ success: boolean; result: any }>;

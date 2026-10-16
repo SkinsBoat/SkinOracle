@@ -15,6 +15,7 @@ import {
   Handshake,
   Globe,
   BookOpen,
+  Crosshair,
 } from "lucide-react";
 import {
   oracleLogo,
@@ -31,6 +32,7 @@ import CSFloatWorkstation from "./screens/CSFloat/CSFloatWorkstation";
 import DmarketWorkstation from "./screens/Dmarket/DmarketWorkstation";
 import SoCloseWorkstationScreen from "./screens/SoClose/SoCloseWorkstationScreen";
 import { DealMakerFloorScreen } from "./screens/DealMaker/DealMakerFloorScreen";
+import { RaidScreen } from "./screens/Raid/RaidScreen";
 import SkinportWorkstation from "./screens/Skinport/SkinportWorkstation";
 import BalanceDashboard from "./screens/Balance/BalanceDashboard";
 import { TrendMarketScreen } from "./screens/TrendMarket/TrendMarketScreen";
@@ -377,6 +379,27 @@ export default function App() {
                 </NavLink>
 
                 <NavLink
+                  to="/raid"
+                  title={!isSidebarExpanded ? "RAID Seller Auditor" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Crosshair
+                        size={18}
+                        style={getNavIconStyle(isActive, "accent")}
+                      />
+                      {isSidebarExpanded && <span>RAID</span>}
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
                   to="/dmarket"
                   title={!isSidebarExpanded ? "DMarket Workstation" : undefined}
                   className={({ isActive }) =>
@@ -594,6 +617,7 @@ export default function App() {
               <Route path="/soclose" element={<SoCloseWorkstationScreen />} />
               <Route path="/dealmaker" element={<DealMakerFloorScreen />} />
               <Route path="/auctions" element={<DealMakerFloorScreen />} />
+              <Route path="/raid" element={<RaidScreen />} />
               <Route path="/skinport" element={<SkinportWorkstation />} />
               {FEATURE_FLAGS.TREND_MARKET && (
                 <Route path="/trend-market" element={<TrendMarketScreen />} />

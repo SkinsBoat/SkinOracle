@@ -72,6 +72,7 @@ describe("DMarket OpenAPI Alignment Unit Tests", () => {
       "dmarket:delete-target",
       "dmarket:batch-delete-targets",
       "dmarket:update-target",
+      "dmarket:batch-update-targets",
       "dmarket:get-closed-targets",
       "dmarket:get-targets-by-title",
       "dmarket:get-offers",
@@ -335,6 +336,38 @@ describe("DMarket OpenAPI Alignment Unit Tests", () => {
       expect(callArgs.url).toContain("/marketplace-api/v1/user-targets/delete");
       const body = JSON.parse(callArgs.data);
       expect(body.Targets).toEqual([{ TargetID: "t-1" }, { TargetID: "t-2" }]);
+    });
+
+    it("should batch update targets and map confirmed newTargetIds", async () => {
+      const axios = (await import("axios")).default as any;
+      axios.mockResolvedValueOnce({
+        data: {
+          updated: [{ id: "t-1", newTargetId: "t-1-new" }],
+          failedTargets: [{ id: "t-2" }],
+        },
+      });
+
+      const handler = handlers["dmarket:batch-update-targets"];
+      const res = await handler(null, [
+        { targetId: "t-1", title: "Skin 1", newPriceUsd: 12.34, amount: 1 },
+        { targetId: "t-2", title: "Skin 2", newPriceUsd: 5, amount: 3 },
+      ]);
+
+      const callArgs = axios.mock.calls[0][0];
+      expect(callArgs.method).toBe("POST");
+      expect(callArgs.url).toContain("/exchange/v1/target/update");
+      const body = JSON.parse(callArgs.data);
+      expect(body.force).toBe(true);
+      expect(body.targets).toHaveLength(2);
+      expect(body.targets[0].id).toBe("t-1");
+      expect(body.targets[0].body.price.amount).toBe("1234");
+      expect(body.targets[0].body.price.currency).toBe("USD");
+      expect(body.targets[1].body.amount).toBe(3);
+
+      expect(res.updated).toEqual([
+        { targetId: "t-1", newTargetId: "t-1-new" },
+      ]);
+      expect(res.failed).toEqual(["t-2"]);
     });
   });
 

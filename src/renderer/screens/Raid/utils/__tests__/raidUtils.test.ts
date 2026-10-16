@@ -1,0 +1,412 @@
+import { describe, it, expect } from 'vitest';
+import {
+  auditStock,
+  filterRaidRows,
+  normalizeCsFloatStall,
+  normalizeDmarketStore,
+  normalizeSkinportShop,
+  parseStorefrontUrl,
+  sortRaidRows,
+} from '../raidUtils';
+import { DEFAULT_RAID_FILTERS } from '../../../../../shared/types/raid.types';
+import type {
+  SkinportShopApiItem,
+  SkinportShopApiResponse,
+} from '../../../../../shared/types/skinport.types';
+import type { RaidStockItem } from '../../../../../shared/types/raid.types';
+
+function makeSkinportItem(
+  overrides: Partial<SkinportShopApiItem> = {},
+): SkinportShopApiItem {
+  return {
+    saleId: 1,
+    shortId: 'ABC',
+    productId: 10,
+    assetId: 20,
+    itemId: 30,
+    url: 'sten-mp9-ruby-poison-dart-factory-new',
+    marketName: 'StatTrak™ MP9 | Ruby Poison Dart (Factory New)',
+    marketHashName: 'StatTrak™ MP9 | Ruby Poison Dart (Factory New)',
+    name: 'Ruby Poison Dart',
+    title: 'StatTrak™ MP9',
+    exterior: 'Factory New',
+    quality: 'StatTrak™',
+    rarity: 'Restricted',
+    rarityColor: '#8847ff',
+    collection: 'The Falchion Collection',
+    wear: 0.067,
+    souvenir: false,
+    stattrak: true,
+    suggestedPrice: 649,
+    referencePrice: 773,
+    salePrice: 691,
+    currency: 'USD',
+    image: 'img-hash',
+    link: 'steam://run/730//+csgo_econ_action_preview%20',
+    ...overrides,
+  };
+}
+
+describe('raidUtils', () => {
+  describe('parseStorefrontUrl', () => {
+    it('parses a full Skinport shop URL', () => {
+      const result = parseStorefrontUrl('https://skinport.com/shop/coolcool');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('skinport');
+      expect(result.ref.handle).toBe('coolcool');
+      expect(result.ref.scanSupported).toBe(true);
+    });
+
+    it('parses a scheme-less Skinport shop URL', () => {
+      const result = parseStorefrontUrl('skinport.com/shop/coolcool');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.handle).toBe('coolcool');
+    });
+
+    it('accepts a bare Skinport shop slug', () => {
+      const result = parseStorefrontUrl('coolcool');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('skinport');
+      expect(result.ref.handle).toBe('coolcool');
+    });
+
+    it('rejects a Skinport profile page with an actionable error', () => {
+      const result = parseStorefrontUrl(
+        'https://skinport.com/user/76561190000000002',
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toMatch(/shop link/i);
+    });
+
+    it('parses a CSFloat stall URL to a live SteamID64 ref', () => {
+      const result = parseStorefrontUrl(
+        'https://csfloat.com/stall/76561190000000001',
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('csfloat');
+      expect(result.ref.handle).toBe('76561190000000001');
+      expect(result.ref.scanSupported).toBe(true);
+    });
+
+    it('accepts a bare SteamID64 as a CSFloat stall', () => {
+      const result = parseStorefrontUrl('76561190000000001');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('csfloat');
+      expect(result.ref.handle).toBe('76561190000000001');
+    });
+
+    it('parses a DMarket store link via its saga address', () => {
+      const addr = '0xc232b9755d49d5d68804b306f0C16f5118f58A03';
+      const result = parseStorefrontUrl(
+        `https://dmarket.com/ingame-items/item-list/csgo-skins?user=${addr}`,
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('dmarket');
+      expect(result.ref.handle).toBe(addr);
+      expect(result.ref.scanSupported).toBe(true);
+    });
+
+    it('accepts a bare DMarket saga address', () => {
+      const addr = '0xc232b9755d49d5d68804b306f0C16f5118f58A03';
+      const result = parseStorefrontUrl(addr);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('dmarket');
+      expect(result.ref.handle).toBe(addr);
+    });
+
+    it('recognizes CS.MONEY as not-yet-scannable', () => {
+      const result = parseStorefrontUrl('https://cs.money/market/12345');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('csmoney');
+      expect(result.ref.scanSupported).toBe(false);
+    });
+
+    it('rejects a DMarket link without a seller address', () => {
+      const result = parseStorefrontUrl('https://dmarket.com/ingame-items/item-list/csgo-skins');
+      expect(result.ok).toBe(false);
+    });
+
+    it('rejects unknown hosts and empty input', () => {
+      expect(parseStorefrontUrl('https://example.com/shop/foo').ok).toBe(false);
+      expect(parseStorefrontUrl('   ').ok).toBe(false);
+    });
+  });
+
+  describe('normalizeSkinportShop', () => {
+    it('converts USD cents to dollars and builds seller identity', () => {
+      const res: SkinportShopApiResponse = {
+        success: true,
+        message: null,
+        shopName: 'Päle',
+        shopLink: 'coolcool',
+        shopSteamId: '76561190000000002',
+        filter: { total: 51 },
+        items: [
+          makeSkinportItem({ salePrice: 691, referencePrice: 773 }),
+          makeSkinportItem({
+            saleId: 2,
+            marketHashName: 'SCAR-20 | Cardiac (Minimal Wear)',
+            salePrice: 1096,
+            referencePrice: 1121,
+          }),
+        ],
+      };
+
+      const { seller, items } = normalizeSkinportShop(res);
+      expect(seller.name).toBe('Päle');
+      expect(seller.id).toBe('coolcool');
+      expect(seller.reportedTotal).toBe(51);
+      expect(items).toHaveLength(2);
+      expect(items[0].price).toBeCloseTo(6.91, 5);
+      expect(items[0].referencePrice).toBeCloseTo(7.73, 5);
+      // Item links are resolved by the shared market URL generator, not here.
+      expect(items[0].listingUrl).toBeUndefined();
+    });
+
+    it('drops items missing a market hash name or price', () => {
+      const res: SkinportShopApiResponse = {
+        success: true,
+        message: null,
+        items: [
+          makeSkinportItem({ salePrice: 0 }),
+          makeSkinportItem({ saleId: 3, marketHashName: '' }),
+          makeSkinportItem({ saleId: 4, salePrice: 500 }),
+        ],
+      };
+      const { items } = normalizeSkinportShop(res);
+      expect(items).toHaveLength(1);
+      expect(items[0].id).toBe('4');
+    });
+  });
+
+  describe('normalizeCsFloatStall', () => {
+    it('keeps buy-now listings, drops auctions, and carries the offer price', () => {
+      const { seller, items } = normalizeCsFloatStall({
+        data: [
+          {
+            id: '1030180712780795232',
+            price: 8256,
+            type: 'buy_now',
+            min_offer_price: 7596,
+            reference: { base_price: 372483, predicted_price: 383129, quantity: 16 },
+            seller: { steam_id: '76561190000000001', username: 'Test Seller' },
+            item: {
+              market_hash_name: '★ StatTrak™ Butterfly Knife | Doppler (Factory New)',
+              icon_url: 'img-hash',
+              float_value: 0.0083,
+              wear_name: 'Factory New',
+              rarity_name: 'Covert',
+              is_stattrak: true,
+              is_souvenir: false,
+            },
+          },
+          {
+            id: 'auction-1',
+            price: 127500,
+            type: 'auction',
+            item: { market_hash_name: 'M4A4 | Howl (Field-Tested)' },
+          },
+          {
+            id: 'skip-me',
+            price: 0,
+            type: 'buy_now',
+            item: { market_hash_name: 'Cheap Item' },
+          },
+        ],
+      });
+
+      expect(seller.steamId).toBe('76561190000000001');
+      expect(seller.name).toBe('Test Seller');
+      expect(seller.url).toBe('https://csfloat.com/stall/76561190000000001');
+      // Auction + zero-priced entries are excluded.
+      expect(items).toHaveLength(1);
+      expect(items[0].marketplace).toBe('csfloat');
+      expect(items[0].price).toBeCloseTo(82.56, 5);
+      expect(items[0].referencePrice).toBeCloseTo(3831.29, 5);
+      expect(items[0].minOfferPrice).toBeCloseTo(75.96, 5);
+      expect(items[0].imageUrl).toContain('/img-hash');
+      expect(items[0].stattrak).toBe(true);
+    });
+  });
+
+  describe('normalizeDmarketStore', () => {
+    it('converts priceCents to dollars and derives item flags', () => {
+      const addr = '0xc232b9755d49d5d68804b306f0C16f5118f58A03';
+      const { seller, items } = normalizeDmarketStore(
+        {
+          offers: [
+            {
+              offerId: 'o1',
+              priceCents: 200,
+              recommendedPrice: 83,
+              title: 'Glock-18 | Winterized (Factory New)',
+              image: 'https://cdn.example/img.png',
+              cs2: { exterior: 'factory new', quality: 'mil-spec grade', floatValue: '0.0372' },
+            },
+            {
+              offerId: 'o2',
+              priceCents: 1500,
+              title: 'StatTrak™ AK-47 | Redline (Field-Tested)',
+            },
+          ],
+          total: { items: 2 },
+        },
+        addr,
+      );
+
+      expect(seller.id).toBe(addr);
+      expect(seller.reportedTotal).toBe(2);
+      expect(items).toHaveLength(2);
+      expect(items[0].marketplace).toBe('dmarket');
+      expect(items[0].price).toBeCloseTo(2, 5);
+      expect(items[0].floatValue).toBeCloseTo(0.0372, 5);
+      expect(items[1].stattrak).toBe(true);
+      expect(items[1].price).toBeCloseTo(15, 5);
+    });
+  });
+
+  describe('auditStock', () => {
+    const items: RaidStockItem[] = [
+      {
+        id: 'a',
+        marketplace: 'skinport',
+        marketHashName: 'Item A',
+        price: 5,
+      },
+      {
+        id: 'b',
+        marketplace: 'skinport',
+        marketHashName: 'Item B',
+        price: 20,
+      },
+      {
+        id: 'c',
+        marketplace: 'skinport',
+        marketHashName: 'Item C',
+        price: 3,
+      },
+    ];
+    const ceilings = { 'Item A': 10, 'Item B': 15 };
+
+    it('classifies rows and computes the summary', () => {
+      const { rows, summary } = auditStock(items, ceilings);
+
+      const byId = Object.fromEntries(rows.map((r) => [r.item.id, r]));
+      expect(byId.a.status).toBe('raid');
+      expect(byId.a.spread).toBeCloseTo(5, 5);
+      expect(byId.a.profitPercent).toBeCloseTo(50, 5);
+      expect(byId.b.status).toBe('over-ceiling');
+      expect(byId.b.spread).toBeCloseTo(-5, 5);
+      expect(byId.c.status).toBe('no-ceiling');
+
+      expect(summary.totalItems).toBe(3);
+      expect(summary.valuedItems).toBe(2);
+      expect(summary.raidCount).toBe(1);
+      expect(summary.totalStockValue).toBeCloseTo(28, 5);
+      expect(summary.raidValue).toBeCloseTo(5, 5);
+      expect(summary.potentialProfit).toBeCloseTo(5, 5);
+    });
+
+    it('flags offer-eligible rows and counts accepted offers ≤ ceiling', () => {
+      const offerItems: RaidStockItem[] = [
+        // Offer 9.00 <= ceiling 10 → eligible.
+        { id: 'a', marketplace: 'csfloat', marketHashName: 'Item A', price: 12, minOfferPrice: 9 },
+        // Offer 9.00 > ceiling 5 → not eligible.
+        { id: 'b', marketplace: 'csfloat', marketHashName: 'Item B', price: 20, minOfferPrice: 9 },
+        // No published offer.
+        { id: 'c', marketplace: 'csfloat', marketHashName: 'Item C', price: 3 },
+      ];
+      const { rows, summary } = auditStock(offerItems, {
+        'Item A': 10,
+        'Item B': 5,
+      });
+
+      const byId = Object.fromEntries(rows.map((r) => [r.item.id, r]));
+      expect(byId.a.offerEligible).toBe(true);
+      expect(byId.b.offerEligible).toBe(false);
+      expect(byId.c.offerEligible).toBe(false);
+      // Only A accepts an offer at or below its ceiling.
+      expect(summary.offerCount).toBe(1);
+    });
+  });
+
+  describe('filterRaidRows', () => {
+    const { rows } = auditStock(
+      [
+        { id: 'a', marketplace: 'skinport', marketHashName: 'Item A', price: 5 },
+        {
+          id: 'b',
+          marketplace: 'skinport',
+          marketHashName: 'Item B',
+          price: 20,
+        },
+        { id: 'c', marketplace: 'skinport', marketHashName: 'Nova C', price: 3 },
+      ],
+      { 'Item A': 10, 'Item B': 15, 'Nova C': 3.5 },
+    );
+
+    it('shows the full stock under the default preset (raid zone off)', () => {
+      const filtered = filterRaidRows(rows, {
+        ...DEFAULT_RAID_FILTERS,
+      });
+      expect(filtered.map((r) => r.item.id).sort()).toEqual(['a', 'b', 'c']);
+    });
+
+    it('restricts to the raid zone when onlyRaids is on', () => {
+      const filtered = filterRaidRows(rows, {
+        ...DEFAULT_RAID_FILTERS,
+        onlyRaids: true,
+      });
+      expect(filtered.map((r) => r.item.id).sort()).toEqual(['a', 'c']);
+    });
+
+    it('applies search and minimum spread', () => {
+      const filtered = filterRaidRows(rows, {
+        onlyRaids: false,
+        minSpread: '1',
+        minProfitPercent: '',
+        searchQuery: 'item',
+      });
+      expect(filtered.map((r) => r.item.id)).toEqual(['a']);
+    });
+  });
+
+  describe('sortRaidRows', () => {
+    it('sorts by spread descending and sinks unknown rows', () => {
+      const { rows } = auditStock(
+        [
+          {
+            id: 'small',
+            marketplace: 'skinport',
+            marketHashName: 'A',
+            price: 8,
+          },
+          {
+            id: 'big',
+            marketplace: 'skinport',
+            marketHashName: 'B',
+            price: 2,
+          },
+          {
+            id: 'none',
+            marketplace: 'skinport',
+            marketHashName: 'C',
+            price: 9,
+          },
+        ],
+        { A: 10, B: 10 },
+      );
+      const sorted = sortRaidRows(rows, 'spread');
+      expect(sorted.map((r) => r.item.id)).toEqual(['big', 'small', 'none']);
+    });
+  });
+});

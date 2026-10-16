@@ -79,3 +79,66 @@ export interface ListingPriceInfo {
   averagePrice: number;
   trendMomentum14d?: number;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// RAID — Public seller stall (`GET /api/v1/users/{steamId}/stall`)
+//
+// Unauthenticated CSFloat endpoint used by the RAID seller auditor to
+// value a single trader's listed stock. `price` is USD cents.
+// ─────────────────────────────────────────────────────────────────
+
+export interface CsFloatStallReference {
+  /** USD cents. */
+  base_price?: number;
+  float_factor?: number;
+  /** USD cents. */
+  predicted_price?: number;
+  quantity?: number;
+  last_updated?: string;
+}
+
+export interface CsFloatStallItemDetails {
+  asset_id?: string;
+  market_hash_name?: string;
+  item_name?: string;
+  wear_name?: string;
+  float_value?: number;
+  /** Steam economy image hash (not a full URL). */
+  icon_url?: string;
+  is_stattrak?: boolean;
+  is_souvenir?: boolean;
+  rarity_name?: string;
+  type_name?: string;
+  phase?: string;
+  inspect_link?: string;
+  serialized_inspect?: string;
+  gs_sig?: string;
+}
+
+export interface CsFloatStallSeller {
+  steam_id?: string;
+  username?: string;
+  avatar?: string;
+  online?: boolean;
+  stall_public?: boolean;
+}
+
+export interface CsFloatStallApiItem {
+  id: string;
+  /** USD cents. */
+  price: number;
+  state?: string;
+  /** `buy_now` | `auction`. */
+  type?: string;
+  description?: string | null;
+  /** USD cents. */
+  min_offer_price?: number;
+  reference?: CsFloatStallReference;
+  item?: CsFloatStallItemDetails;
+  seller?: CsFloatStallSeller;
+}
+
+export interface CsFloatStallApiResponse {
+  data: CsFloatStallApiItem[];
+  cursor?: string | null;
+}

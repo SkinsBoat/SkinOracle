@@ -15,6 +15,10 @@ import {
 } from "../constants/apiUrls";
 import { snapCsFloatBuyOrderPriceCents } from "../../shared/csfloatUtils";
 import { getAppUserAgent } from "../constants/userAgent";
+import type {
+  CsFloatStallApiItem,
+  CsFloatStallApiResponse,
+} from "../../shared/types/csfloat.types";
 export { snapCsFloatBuyOrderPriceCents };
 
 let cachedSteamId: string | null = null;
@@ -662,6 +666,65 @@ ipcMain.handle(
             ? errorData
             : "Failed to fetch item buy orders"),
       );
+    }
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────
+// RAID — CSFloat public seller stall
+//
+// Unauthenticated read of any trader's public stall, reached directly from
+// the trader's machine. The SteamID64 is strictly validated before use.
+// ─────────────────────────────────────────────────────────────────
+
+const CSFLOAT_STEAM_ID = /^\d{17}$/;
+
+ipcMain.handle(
+  "csfloat:get-stall",
+  async (_, steamId: string): Promise<CsFloatStallApiResponse> => {
+    const id = typeof steamId === "string" ? steamId.trim() : "";
+    if (!CSFLOAT_STEAM_ID.test(id)) {
+      throw new Error(
+        "A valid 17-digit SteamID64 is required for a CSFloat stall.",
+      );
+    }
+
+    const all: CsFloatStallApiItem[] = [];
+    let cursor: string | undefined;
+    try {
+      for (let page = 0; page < 20; page += 1) {
+        const params: Record<string, any> = { limit: 100 };
+        if (cursor) params.cursor = cursor;
+
+        const res = await axios.get(CSFLOAT_USER_STALL(id), {
+          headers: {
+            Accept: "application/json",
+            "User-Agent": getAppUserAgent(),
+          },
+          params,
+        });
+
+        const batch: CsFloatStallApiItem[] = Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+        all.push(...batch);
+        cursor = res.data?.cursor || undefined;
+        if (!cursor || batch.length < 100) break;
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      return { data: all, cursor: cursor ?? null };
+    } catch (err: any) {
+      const status = err.response?.status;
+      const raw =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.response?.data ||
+        err.message;
+      const message =
+        typeof raw === "string"
+          ? raw.replace(/\s+/g, " ").trim().slice(0, 200)
+          : "Failed to fetch CSFloat stall.";
+      throw new Error(status ? `[${status}] ${message}` : message);
     }
   },
 );

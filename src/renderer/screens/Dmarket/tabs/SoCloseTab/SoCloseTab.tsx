@@ -283,37 +283,120 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
   };
 
   const executeBatchSoCloseCreate = async () => {
+    if (!hasKey) {
+      toast.error(
+        "DMarket API keys are not configured. Please set your keys in Settings first.",
+      );
+      return;
+    }
+
     const selectedNames = Object.keys(selectedSoCloseItems).filter(
       (name) => selectedSoCloseItems[name],
     );
     if (!selectedNames.length) return;
 
-    setBatchSoCloseProcessing(true);
-    const toastId = toast.loading(
-      `Executing batch target creation for ${selectedNames.length} items...`,
-    );
-    let createdCount = 0;
+    const itemsToCreate = selectedNames
+      .map((name) => soCloseResults.find((r) => r.name === name))
+      .filter(
+        (item): item is SoCloseResultItem =>
+          !!item && !item.hasExistingTarget,
+      );
 
-    for (const name of selectedNames) {
-      const item = soCloseResults.find((r) => r.name === name);
-      if (!item || item.hasExistingTarget) continue;
-
-      try {
-        await handleCreateSoCloseTarget(item);
-        setSelectedSoCloseItems((prev) => ({ ...prev, [name]: false }));
-        createdCount++;
-      } catch (err) {
-        console.error(`[So Close Batch Error for ${name}]:`, err);
-      }
-      // Pacing delay to guarantee safe rate limits
-      await new Promise((r) => setTimeout(r, 600));
+    if (!itemsToCreate.length) {
+      toast.error("No eligible opportunities selected for target creation");
+      return;
     }
 
-    setBatchSoCloseProcessing(false);
-    toast.success(`Completed batch target creation for ${createdCount} items`, {
-      id: toastId,
-    });
-    onTargetsUpdated();
+    setBatchSoCloseProcessing(true);
+    const toastId = toast.loading(
+      `Creating ${itemsToCreate.length} targets in batch...`,
+    );
+
+    // DMarket accepts many Targets per request; chunk to stay within limits.
+    const BATCH_SIZE = 100;
+    let createdCount = 0;
+    const createdNames: string[] = [];
+    const failed: { name: string; message: string }[] = [];
+
+    try {
+      for (let i = 0; i < itemsToCreate.length; i += BATCH_SIZE) {
+        const chunk = itemsToCreate.slice(i, i + BATCH_SIZE);
+        const requests = chunk.map((item) => ({
+          Title: item.name,
+          Amount: "1",
+          Price: {
+            Currency: "USD",
+            Amount: parseFloat(item.acceptedPrice.toFixed(2)),
+          },
+        }));
+
+        try {
+          const res =
+            await window.electronAPI.dmarket.batchCreateTargets(requests);
+          const results = Array.isArray(res?.Result) ? res.Result : [];
+          if (results.length === 0) {
+            throw new Error("DMarket returned no results for batch create");
+          }
+
+          chunk.forEach((item, idx) => {
+            const resultItem = results[idx];
+            if (resultItem && resultItem.Successful === false) {
+              failed.push({
+                name: item.name,
+                message:
+                  resultItem.Error?.Message || "Rejected by DMarket",
+              });
+            } else {
+              createdCount++;
+              createdNames.push(item.name);
+            }
+          });
+        } catch (err: any) {
+          chunk.forEach((item) =>
+            failed.push({
+              name: item.name,
+              message: err?.message || "Unknown error",
+            }),
+          );
+        }
+      }
+
+      if (createdNames.length) {
+        const createdSet = new Set(createdNames);
+        setSoCloseResults((prev) =>
+          prev.map((r) =>
+            createdSet.has(r.name) ? { ...r, hasExistingTarget: true } : r,
+          ),
+        );
+        setSelectedSoCloseItems((prev) => {
+          const next = { ...prev };
+          createdNames.forEach((name) => {
+            next[name] = false;
+          });
+          return next;
+        });
+      }
+
+      if (createdCount > 0 && failed.length === 0) {
+        toast.success(`Created ${createdCount} targets in a single batch`, {
+          id: toastId,
+        });
+      } else if (createdCount > 0) {
+        toast.success(
+          `Created ${createdCount} targets · ${failed.length} failed`,
+          { id: toastId },
+        );
+      } else {
+        toast.error(
+          `Batch target creation failed: ${failed[0]?.message || "Unknown error"}`,
+          { id: toastId },
+        );
+      }
+
+      onTargetsUpdated();
+    } finally {
+      setBatchSoCloseProcessing(false);
+    }
   };
 
   const selectAllSoCloseAvailable = () => {

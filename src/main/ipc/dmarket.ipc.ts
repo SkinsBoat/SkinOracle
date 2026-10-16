@@ -23,6 +23,7 @@ import {
   DMARKET_DEPOSIT_ASSETS,
   DMARKET_DEPOSIT_BLOCKED_TITLES,
   DMARKET_AGGREGATED_PRICES,
+  DMARKET_STORE_ITEMS,
 } from "../constants/apiUrls";
 import {
   getTargetHoldInfo,
@@ -1121,6 +1122,108 @@ if (ipcMain?.handle) {
         oldTargetId,
         updatedAt: new Date().toISOString(),
         result: createRes,
+      };
+    },
+  );
+
+  // 6b. Batch Update Targets (native POST /exchange/v1/target/update with targets[])
+  ipcMain.handle(
+    "dmarket:batch-update-targets",
+    async (
+      _,
+      requests: Array<{
+        targetId: string;
+        title: string;
+        newPriceUsd: number;
+        amount?: number;
+        attrs?: Record<string, any>;
+      }>,
+    ) => {
+      console.log(
+        `[DMarket IPC] Batch updating ${requests?.length || 0} target(s)...`,
+      );
+      if (!Array.isArray(requests) || requests.length === 0) {
+        throw new Error("Targets array is required for batch target update");
+      }
+
+      const validRequests = requests.filter((r) => r?.targetId);
+      if (validRequests.length === 0) {
+        throw new Error("No valid targets provided for batch update");
+      }
+
+      const targets = validRequests.map((r) => {
+        const attributes: Record<string, any> = {
+          gameId: DMARKET_CS2_GAME_ID,
+          title: r.title,
+        };
+        if (r.attrs && typeof r.attrs === "object") {
+          Object.assign(attributes, r.attrs);
+        }
+        return {
+          id: r.targetId,
+          body: {
+            amount: Math.max(1, Math.floor(Number(r.amount || 1))),
+            gameId: DMARKET_CS2_GAME_ID,
+            price: {
+              amount: String(Math.round(Number(r.newPriceUsd) * 100)),
+              currency: "USD",
+            },
+            attributes,
+          },
+        };
+      });
+
+      const res = await dmarketRequest(
+        "POST",
+        "/exchange/v1/target/update",
+        undefined,
+        { force: true, targets },
+      );
+
+      const updatedRaw = Array.isArray(res?.updated) ? res.updated : [];
+
+      // Map confirmed updates back to their old target id. Prefer an explicit
+      // id in the response; otherwise only trust index alignment when the
+      // response covers every requested target.
+      const updated: Array<{ targetId: string; newTargetId: string }> = [];
+      const byId = new Map<string, any>();
+      updatedRaw.forEach((u: any) => {
+        const id = u?.id || u?.oldTargetId || u?.targetId;
+        if (id) byId.set(String(id), u);
+      });
+
+      const hasIds = byId.size > 0;
+      const alignedByIndex =
+        !hasIds && updatedRaw.length === validRequests.length;
+
+      validRequests.forEach((r, idx) => {
+        const match = hasIds
+          ? byId.get(String(r.targetId))
+          : alignedByIndex
+            ? updatedRaw[idx]
+            : undefined;
+        if (match && match.newTargetId) {
+          updated.push({
+            targetId: r.targetId,
+            newTargetId: String(match.newTargetId),
+          });
+        }
+      });
+
+      const updatedIds = new Set(updated.map((u) => u.targetId));
+      const failed = validRequests
+        .filter((r) => !updatedIds.has(r.targetId))
+        .map((r) => r.targetId);
+
+      console.log(
+        `[DMarket IPC] ✅ Batch update complete: ${updated.length} updated, ${failed.length} failed`,
+      );
+
+      return {
+        updated,
+        failed,
+        failedTargets: res?.failedTargets ?? [],
+        raw: res,
       };
     },
   );
@@ -2721,4 +2824,72 @@ if (ipcMain?.handle) {
       return res;
     },
   );
+
+  // 25. RAID — public seller store listings by saga address (unauthenticated)
+  //
+  // This is the dmarket.com browser exchange endpoint, NOT part of the signed
+  // Trading API. It is filtered to a single seller by their saga address.
+  ipcMain.handle("dmarket:get-store", async (_, address: string) => {
+    const addr = typeof address === "string" ? address.trim() : "";
+    if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+      throw new Error(
+        "A valid DMarket seller address (0x…) is required for a storefront audit.",
+      );
+    }
+
+    const headers = {
+      Accept: "application/json",
+      "Accept-Language": "en-US,en;q=0.9",
+      "User-Agent": getAppUserAgent(),
+      Referer: "https://dmarket.com/",
+      Origin: "https://dmarket.com",
+    };
+
+    const offers: any[] = [];
+    let pageToken: string | undefined;
+    try {
+      for (let page = 0; page < 10; page += 1) {
+        const params: Record<string, any> = {
+          orderBy: "personal",
+          orderDir: "desc",
+          isLoggedIn: "true",
+          treeFilters: `sagaAddress[]=${addr}`,
+          gameId: DMARKET_CS2_GAME_ID,
+          pageSize: 100,
+          side: "market",
+          currency: "USD",
+          platform: "browser",
+        };
+        if (pageToken) params.pageToken = pageToken;
+
+        const res = await axios.get(DMARKET_STORE_ITEMS, { headers, params });
+        const batch: any[] = Array.isArray(res.data?.offers)
+          ? res.data.offers
+          : Array.isArray(res.data?.objects)
+            ? res.data.objects
+            : Array.isArray(res.data?.items)
+              ? res.data.items
+              : [];
+        offers.push(...batch);
+
+        pageToken =
+          res.data?.cursor ||
+          res.data?.nextPageToken ||
+          res.data?.pageToken ||
+          undefined;
+        if (!pageToken || batch.length < 100) break;
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      return { offers, total: { items: offers.length } };
+    } catch (err: any) {
+      const status = err.response?.status;
+      const raw =
+        err.response?.data?.message || err.response?.data || err.message;
+      const message =
+        typeof raw === "string"
+          ? raw.replace(/\s+/g, " ").trim().slice(0, 200)
+          : "Failed to fetch DMarket seller store.";
+      throw new Error(status ? `[${status}] ${message}` : message);
+    }
+  });
 }

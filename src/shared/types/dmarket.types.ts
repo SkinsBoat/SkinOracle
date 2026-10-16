@@ -527,3 +527,53 @@ export interface DmarketDepositBlockedTitlesResponse {
   cursor?: string;
   updatedAt?: string;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// RAID — Public seller store
+// (`GET /exchange/v1/market/items/v2?treeFilters=sagaAddress[]={addr}`)
+//
+// Unauthenticated dmarket.com browser endpoint used by the RAID seller
+// auditor to value a single trader's market listings. `priceCents` is USD
+// cents. This endpoint is NOT part of the signed Trading API OpenAPI spec.
+// ─────────────────────────────────────────────────────────────────
+
+export interface DmarketStoreOfferCs2 {
+  exterior?: string;
+  category?: string;
+  quality?: string;
+  floatValue?: string | number;
+  paintSeed?: number;
+}
+
+export interface DmarketStoreOffer {
+  offerId?: string;
+  assetId?: string;
+  /** USD cents. */
+  priceCents?: number;
+  /** USD cents. */
+  recommendedPrice?: number;
+  title: string;
+  name?: string;
+  image?: string;
+  slug?: string;
+  categoryPath?: string;
+  gameId?: string;
+  backgroundColor?: string;
+  owner?: string;
+  tradable?: boolean;
+  withdrawable?: boolean;
+  overpriced?: boolean;
+  overpricePercent?: number;
+  type?: string;
+  cs2?: DmarketStoreOfferCs2;
+}
+
+export interface DmarketStoreApiResponse {
+  offers?: DmarketStoreOffer[];
+  objects?: DmarketStoreOffer[];
+  items?: DmarketStoreOffer[];
+  total?: { items?: number } | number;
+  cursor?: string | null;
+  pageToken?: string | null;
+  nextPageToken?: string | null;
+}
