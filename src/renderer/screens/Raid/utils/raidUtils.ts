@@ -550,6 +550,7 @@ export function auditStock(
 export function isAnyRaidFilterActive(filters: RaidFilters): boolean {
   return (
     filters.onlyRaids !== DEFAULT_RAID_FILTERS.onlyRaids ||
+    filters.onlyCeiling !== DEFAULT_RAID_FILTERS.onlyCeiling ||
     filters.minSpread.trim() !== '' ||
     filters.minProfitPercent.trim() !== '' ||
     filters.searchQuery.trim() !== ''
@@ -569,6 +570,8 @@ export function filterRaidRows(
 
   return rows.filter((row) => {
     if (filters.onlyRaids && row.status !== 'raid') return false;
+    // Skip stock that never matched a local Buy Ceiling.
+    if (filters.onlyCeiling && row.status === 'no-ceiling') return false;
     if (query && !row.item.marketHashName.toLowerCase().includes(query)) {
       return false;
     }
@@ -598,9 +601,13 @@ export function sortRaidRows(
   sorted.sort((a, b) => {
     const av = sortValue(a, key);
     const bv = sortValue(b, key);
-    if (av === null && bv === null) return 0;
+    // Name is a stable tie-breaker so the same input always yields the same
+    // order, no matter which sort the trader switched from.
+    const byName = a.item.marketHashName.localeCompare(b.item.marketHashName);
+    if (av === null && bv === null) return byName;
     if (av === null) return 1;
     if (bv === null) return -1;
+    if (av === bv) return byName;
     // Price sorts ascending (cheapest first); margins sort descending (best first).
     return key === 'price' ? av - bv : bv - av;
   });

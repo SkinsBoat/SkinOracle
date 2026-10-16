@@ -372,11 +372,27 @@ describe('raidUtils', () => {
     it('applies search and minimum spread', () => {
       const filtered = filterRaidRows(rows, {
         onlyRaids: false,
+        onlyCeiling: false,
         minSpread: '1',
         minProfitPercent: '',
         searchQuery: 'item',
       });
       expect(filtered.map((r) => r.item.id)).toEqual(['a']);
+    });
+
+    it('drops unvalued stock when onlyCeiling is on', () => {
+      const { rows: stockRows } = auditStock(
+        [
+          { id: 'valued', marketplace: 'skinport', marketHashName: 'Valued', price: 5 },
+          { id: 'unvalued', marketplace: 'skinport', marketHashName: 'Unvalued', price: 4 },
+        ],
+        { Valued: 10 },
+      );
+      const filtered = filterRaidRows(stockRows, {
+        ...DEFAULT_RAID_FILTERS,
+        onlyCeiling: true,
+      });
+      expect(filtered.map((r) => r.item.id)).toEqual(['valued']);
     });
   });
 
@@ -407,6 +423,28 @@ describe('raidUtils', () => {
       );
       const sorted = sortRaidRows(rows, 'spread');
       expect(sorted.map((r) => r.item.id)).toEqual(['big', 'small', 'none']);
+    });
+
+    it('is deterministic (returning to a sort yields the same order)', () => {
+      const { rows } = auditStock(
+        [
+          { id: 'x', marketplace: 'skinport', marketHashName: 'Zeta', price: 5 },
+          { id: 'y', marketplace: 'skinport', marketHashName: 'Alpha', price: 5 },
+          { id: 'z', marketplace: 'skinport', marketHashName: 'Mid', price: 5 },
+        ],
+        { Zeta: 10, Alpha: 10, Mid: 10 },
+      );
+
+      const firstSpread = sortRaidRows(rows, 'spread').map((r) => r.item.id);
+      // Round-trip through another sort and back.
+      const backToSpread = sortRaidRows(
+        sortRaidRows(rows, 'price'),
+        'spread',
+      ).map((r) => r.item.id);
+
+      expect(backToSpread).toEqual(firstSpread);
+      // Ties fall back to market hash name order.
+      expect(firstSpread).toEqual(['y', 'z', 'x']);
     });
   });
 });

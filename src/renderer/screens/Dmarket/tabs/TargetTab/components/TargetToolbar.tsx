@@ -1,14 +1,13 @@
 import React from "react";
 import {
-  RotateCw,
   Loader2,
   RefreshCw,
   Sliders,
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   History,
   CheckSquare,
+  Wallet,
 } from "lucide-react";
 import { FilterAction } from "../types";
 
@@ -16,8 +15,10 @@ export interface TargetToolbarProps {
   targetSubTab: "active" | "history";
   setTargetSubTab: (tab: "active" | "history") => void;
   targetsCount: number;
-  matchedCount: number;
   actionRequiredCount: number;
+  overbidCount?: number;
+  underbidCount?: number;
+  safeCount?: number;
   exceedsBalanceCount?: number;
   userBalance?: number;
   holdCount?: number;
@@ -37,14 +38,14 @@ export interface TargetToolbarProps {
   hasAcceptedPricesMeta?: boolean;
 }
 
-const FILTER_PILLS: Array<{ id: FilterAction; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "action_required", label: "Action Req" },
-  { id: "overbid", label: "Overbid" },
-  { id: "underbid", label: "Underbid" },
-  { id: "safe", label: "Safe" },
-  { id: "hold", label: "Hold" },
-];
+type ChipType =
+  | "all"
+  | "action"
+  | "overbid"
+  | "underbid"
+  | "safe"
+  | "hold"
+  | "exceeds";
 
 const getFilterSelectLabel = (filter: FilterAction, count: number): string => {
   switch (filter) {
@@ -70,14 +71,16 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
   targetSubTab,
   setTargetSubTab,
   targetsCount,
-  matchedCount,
   actionRequiredCount,
+  overbidCount = 0,
+  underbidCount = 0,
+  safeCount = 0,
   exceedsBalanceCount = 0,
   userBalance,
   selectableFilteredCount,
   isAllFilteredSelected,
   onToggleSelectFiltered,
-  holdCount,
+  holdCount = 0,
   showExtraOptions,
   setShowExtraOptions,
   driftThresholdPercent,
@@ -86,13 +89,10 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
   setFilterAction,
   onSyncTargets,
   loadingTargets,
-  onLoadAcceptedPrices,
-  loadingPrices,
-  hasAcceptedPricesMeta,
 }) => {
   return (
     <div style={styles.container}>
-      {/* Left Controls: Sub-Tabs & Stats Pill */}
+      {/* Left Controls: Sub-Tabs, Options & Status Filter Chips */}
       <div style={styles.leftControls}>
         <div style={styles.subTabGroup}>
           <button
@@ -113,52 +113,6 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
             <History size={12} /> History
           </button>
         </div>
-
-        {targetSubTab === "active" && (
-          <div style={styles.statsPill}>
-            <span style={styles.statLabel}>
-              Targets:{" "}
-              <strong style={styles.statPrimaryValue}>{targetsCount}</strong>
-            </span>
-            <span style={styles.statLabel}>
-              Matched:{" "}
-              <strong style={styles.statMatchedValue}>{matchedCount}</strong>
-            </span>
-            {actionRequiredCount > 0 && (
-              <span style={styles.actionReqStatLabel}>
-                Action Req:{" "}
-                <strong style={styles.actionReqStatValue}>
-                  {actionRequiredCount}
-                </strong>
-              </span>
-            )}
-            {exceedsBalanceCount > 0 && (
-              <span
-                style={styles.exceedsStatLabel}
-                title={`${exceedsBalanceCount} target(s) priced above available wallet balance${typeof userBalance === "number" ? ` ($${userBalance.toFixed(2)})` : ""}`}
-              >
-                Exceeds Bal:{" "}
-                <strong style={styles.exceedsStatValue}>
-                  {exceedsBalanceCount}
-                </strong>
-              </span>
-            )}
-            {holdCount !== undefined && holdCount > 0 && (
-              <span
-                style={{
-                  ...styles.actionReqStatLabel,
-                  backgroundColor: "rgba(245, 158, 11, 0.15)",
-                  borderColor: "rgba(245, 158, 11, 0.35)",
-                  color: "#fbbf24",
-                }}
-                title={`${holdCount} target(s) currently under 11-minute hold`}
-              >
-                On Hold:{" "}
-                <strong style={{ color: "#fbbf24" }}>{holdCount}</strong>
-              </span>
-            )}
-          </div>
-        )}
 
         {targetSubTab === "active" && (
           <div style={styles.optionsWrapper}>
@@ -206,43 +160,107 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
           </div>
         )}
 
-        {/* Filter Action Buttons + Select Filtered (grouped together, left side) */}
+        {/* Status Filter Chips + Select Filtered (single grouped bar) */}
         {targetSubTab === "active" && (
-          <div style={styles.filterPillsRow}>
-            {(
-              exceedsBalanceCount > 0
-                ? [
-                    ...FILTER_PILLS,
-                    {
-                      id: "exceeds" as FilterAction,
-                      label: `Exceeds (${exceedsBalanceCount})`,
-                    },
-                  ]
-                : FILTER_PILLS
-            ).map((pill) => (
+          <div style={styles.statusChipsWrapper}>
+            <button
+              type="button"
+              onClick={() => setFilterAction("all")}
+              style={getFilterChipStyle(filterAction === "all", "all")}
+            >
+              All ({targetsCount})
+            </button>
+
+            {actionRequiredCount > 0 && (
               <button
-                key={pill.id}
-                onClick={() => setFilterAction(pill.id)}
-                style={getFilterPillStyle(
-                  filterAction === pill.id,
-                  pill.id === "exceeds" ? "exceeds" : "default",
-                )}
-                title={
-                  pill.id === "exceeds"
-                    ? `Filter targets whose bid exceeds wallet balance${typeof userBalance === "number" ? ` ($${userBalance.toFixed(2)})` : ""}`
-                    : undefined
+                type="button"
+                onClick={() =>
+                  setFilterAction(
+                    filterAction === "action_required" ? "all" : "action_required",
+                  )
                 }
+                style={getFilterChipStyle(
+                  filterAction === "action_required",
+                  "action",
+                )}
               >
-                {pill.label}
+                Action ({actionRequiredCount})
               </button>
-            ))}
+            )}
+
+            {overbidCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFilterAction(filterAction === "overbid" ? "all" : "overbid")
+                }
+                style={getFilterChipStyle(filterAction === "overbid", "overbid")}
+              >
+                Overbid ({overbidCount})
+              </button>
+            )}
+
+            {underbidCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFilterAction(
+                    filterAction === "underbid" ? "all" : "underbid",
+                  )
+                }
+                style={getFilterChipStyle(filterAction === "underbid", "underbid")}
+              >
+                Underbid ({underbidCount})
+              </button>
+            )}
+
+            {safeCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFilterAction(filterAction === "safe" ? "all" : "safe")
+                }
+                style={getFilterChipStyle(filterAction === "safe", "safe")}
+              >
+                Safe ({safeCount})
+              </button>
+            )}
+
+            {holdCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFilterAction(filterAction === "hold" ? "all" : "hold")
+                }
+                style={getFilterChipStyle(filterAction === "hold", "hold")}
+                title={`${holdCount} target(s) currently under 11-minute hold`}
+              >
+                Hold ({holdCount})
+              </button>
+            )}
+
+            {exceedsBalanceCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFilterAction(filterAction === "exceeds" ? "all" : "exceeds")
+                }
+                style={getFilterChipStyle(
+                  filterAction === "exceeds",
+                  "exceeds",
+                )}
+                title={`Filter targets whose bid exceeds wallet balance${typeof userBalance === "number" ? ` ($${userBalance.toFixed(2)})` : ""}`}
+              >
+                <Wallet size={10} /> Exceeds ({exceedsBalanceCount})
+              </button>
+            )}
 
             {selectableFilteredCount > 0 && (
               <button
                 type="button"
                 onClick={onToggleSelectFiltered}
                 className={`btn ${isAllFilteredSelected ? "btn-primary" : "btn-outline"} btn-sm`}
-                style={styles.actionRequiredButton}
+                style={styles.selectFilteredButton}
                 title={
                   isAllFilteredSelected
                     ? `Click to unselect ${getFilterSelectLabel(filterAction, selectableFilteredCount).toLowerCase()} targets`
@@ -321,57 +339,79 @@ const getOptionsCollapsibleStyle = (isOpen: boolean): React.CSSProperties => ({
   gap: "6px",
 });
 
-const getFilterPillStyle = (
-  isSelected: boolean,
-  variant: "default" | "exceeds" = "default",
+const getFilterChipStyle = (
+  active: boolean,
+  type: ChipType,
 ): React.CSSProperties => {
-  if (variant === "exceeds") {
-    return {
-      padding: "3px 8px",
-      fontSize: "11px",
-      borderRadius: "12px",
-      border: `1px solid ${isSelected ? "#ef4444" : "rgba(239, 68, 68, 0.4)"}`,
-      cursor: "pointer",
-      fontWeight: 800,
-      backgroundColor: isSelected
-        ? "rgba(239, 68, 68, 0.25)"
-        : "rgba(239, 68, 68, 0.08)",
-      color: "#f87171",
-      transition: "all 0.15s ease",
-    };
-  }
-  return {
-    padding: "3px 8px",
-    fontSize: "11px",
-    borderRadius: "12px",
-    border: "1px solid",
+  const base: React.CSSProperties = {
+    fontSize: "10.5px",
+    fontWeight: active ? 800 : 600,
+    padding: "2px 8px",
+    borderRadius: "3px",
     cursor: "pointer",
-    fontWeight: 700,
-    backgroundColor: isSelected ? "var(--so-primary)" : "transparent",
-    color: isSelected ? "#ffffff" : "var(--so-text-secondary)",
-    borderColor: isSelected ? "var(--so-primary)" : "var(--so-border-subtle)",
     transition: "all 0.15s ease",
   };
-};
 
-const getActionRequiredButtonStyle = (isSelected: boolean): React.CSSProperties => ({
-  backgroundColor: isSelected
-    ? "rgba(245, 158, 11, 0.18)"
-    : "rgba(245, 158, 11, 0.09)",
-  color: "var(--so-text-primary, #e2e8f0)",
-  border: `1px solid ${
-    isSelected ? "rgba(245, 158, 11, 0.45)" : "rgba(245, 158, 11, 0.28)"
-  }`,
-  padding: "4px 10px",
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  fontSize: "11.5px",
-  fontWeight: 600,
-  cursor: "pointer",
-  borderRadius: "var(--so-radius-sm)",
-  transition: "all 0.15s ease",
-});
+  switch (type) {
+    case "all":
+      return {
+        ...base,
+        border: "none",
+        backgroundColor: active ? "var(--so-primary)" : "transparent",
+        color: active ? "#ffffff" : "var(--so-text-muted)",
+      };
+    case "action":
+      return {
+        ...base,
+        border: `1px solid ${active ? "rgba(245, 158, 11, 0.5)" : "transparent"}`,
+        backgroundColor: active ? "rgba(245, 158, 11, 0.22)" : "transparent",
+        color: active ? "#fbbf24" : "var(--so-text-secondary)",
+      };
+    case "overbid":
+      return {
+        ...base,
+        border: `1px solid ${active ? "rgba(239, 68, 68, 0.5)" : "transparent"}`,
+        backgroundColor: active ? "rgba(239, 68, 68, 0.22)" : "transparent",
+        color: active ? "#f87171" : "var(--so-text-secondary)",
+      };
+    case "underbid":
+      return {
+        ...base,
+        border: `1px solid ${active ? "rgba(249, 115, 22, 0.5)" : "transparent"}`,
+        backgroundColor: active ? "rgba(249, 115, 22, 0.22)" : "transparent",
+        color: active ? "#fb923c" : "var(--so-text-secondary)",
+      };
+    case "safe":
+      return {
+        ...base,
+        border: `1px solid ${active ? "rgba(34, 197, 94, 0.5)" : "transparent"}`,
+        backgroundColor: active ? "rgba(34, 197, 94, 0.22)" : "transparent",
+        color: active ? "#4ade80" : "var(--so-text-secondary)",
+      };
+    case "hold":
+      return {
+        ...base,
+        border: `1px solid ${active ? "rgba(6, 182, 212, 0.5)" : "transparent"}`,
+        backgroundColor: active ? "rgba(6, 182, 212, 0.22)" : "transparent",
+        color: active ? "var(--so-accent-cyan)" : "var(--so-text-secondary)",
+      };
+    case "exceeds":
+      return {
+        ...base,
+        fontWeight: 800,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "3px",
+        border: `1px solid ${active ? "#ef4444" : "rgba(239, 68, 68, 0.35)"}`,
+        backgroundColor: active
+          ? "rgba(239, 68, 68, 0.25)"
+          : "rgba(239, 68, 68, 0.1)",
+        color: "#f87171",
+      };
+    default:
+      return base;
+  }
+};
 
 const styles = {
   container: {
@@ -408,50 +448,24 @@ const styles = {
     gap: "4px",
   } as React.CSSProperties,
 
-  statsPill: {
+  statusChipsWrapper: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "4px",
+    flexWrap: "wrap",
     backgroundColor: "var(--so-surface-panel)",
     border: "1px solid var(--so-border-medium)",
-    padding: "4px 10px",
+    padding: "3px 6px",
     borderRadius: "var(--so-radius-sm)",
+  } as React.CSSProperties,
+
+  selectFilteredButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
     fontSize: "11.5px",
     fontWeight: 700,
-  } as React.CSSProperties,
-
-  statLabel: {
-    color: "var(--so-text-muted)",
-  } as React.CSSProperties,
-
-  statPrimaryValue: {
-    color: "var(--so-text-primary)",
-  } as React.CSSProperties,
-
-  statMatchedValue: {
-    color: "var(--so-accent-cyan)",
-  } as React.CSSProperties,
-
-  actionReqStatLabel: {
-    color: "var(--so-text-muted)",
-    display: "flex",
-    alignItems: "center",
-    gap: "4px",
-  } as React.CSSProperties,
-
-  actionReqStatValue: {
-    color: "#f59e0b",
-  } as React.CSSProperties,
-
-  exceedsStatLabel: {
-    color: "var(--so-text-muted)",
-    display: "flex",
-    alignItems: "center",
-    gap: "4px",
-  } as React.CSSProperties,
-
-  exceedsStatValue: {
-    color: "#f87171",
+    padding: "3px 10px",
   } as React.CSSProperties,
 
   optionsWrapper: {
@@ -510,22 +524,6 @@ const styles = {
     alignItems: "center",
     gap: "8px",
     flexWrap: "wrap",
-  } as React.CSSProperties,
-
-  filterPillsRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "4px",
-    flexWrap: "wrap",
-  } as React.CSSProperties,
-
-  actionRequiredButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "5px",
-    fontSize: "11.5px",
-    fontWeight: 700,
-    padding: "5px 10px",
   } as React.CSSProperties,
 
   syncButton: {

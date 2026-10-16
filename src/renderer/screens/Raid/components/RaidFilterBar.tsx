@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpDown, ChevronDown, RotateCcw, Search, Sliders } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, RotateCcw, Search, ShieldCheck, Sliders } from 'lucide-react';
 import { RaidFilters } from '../../../../shared/types/raid.types';
 import { RaidSortKey } from '../utils/raidUtils';
 
@@ -39,6 +39,16 @@ export const RaidFilterBar: React.FC<RaidFilterBarProps> = ({
         >
           <Sliders size={13} />
           <span>RAID Zone Only</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onFilterChange('onlyCeiling', !filters.onlyCeiling)}
+          style={getToggleStyle(filters.onlyCeiling)}
+          title="Show only listings that matched a local Buy Ceiling"
+        >
+          <ShieldCheck size={13} />
+          <span>Ceiling Match</span>
         </button>
 
         <div style={styles.searchBox}>

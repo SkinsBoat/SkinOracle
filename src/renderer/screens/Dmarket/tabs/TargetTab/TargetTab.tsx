@@ -831,6 +831,25 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
   const actionRequiredCount = actionRequiredTargets.length;
 
+  const overbidCount = useMemo(
+    () => targets.filter((t) => getDrift(t)?.isOverbid).length,
+    [targets, targetAnalysis, driftThresholdPercent],
+  );
+
+  const underbidCount = useMemo(
+    () => targets.filter((t) => getDrift(t)?.isUnderbid).length,
+    [targets, targetAnalysis, driftThresholdPercent],
+  );
+
+  const safeCount = useMemo(
+    () =>
+      targets.filter((t) => {
+        const d = getDrift(t);
+        return !!d && !d.isActionRequired;
+      }).length,
+    [targets, targetAnalysis, driftThresholdPercent],
+  );
+
   const unmatchedSelectedCount = useMemo(() => {
     return targets.filter(
       (t) =>
@@ -949,8 +968,10 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         targetSubTab={targetSubTab}
         setTargetSubTab={setTargetSubTab}
         targetsCount={targets.length}
-        matchedCount={matchedCount}
         actionRequiredCount={actionRequiredCount}
+        overbidCount={overbidCount}
+        underbidCount={underbidCount}
+        safeCount={safeCount}
         exceedsBalanceCount={exceedsBalanceCount}
         userBalance={userBalance}
         selectableFilteredCount={selectableFilteredCount}

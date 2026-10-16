@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   AlertTriangle,
@@ -59,6 +59,9 @@ export const RaidScreen: React.FC = () => {
   const [seller, setSeller] = useState<RaidSeller | null>(null);
   const [items, setItems] = useState<RaidStockItem[]>([]);
   const [scannedAt, setScannedAt] = useState<number | null>(null);
+
+  // Monotonic token: only the newest scan may write results to state.
+  const scanSeq = useRef(0);
 
   const [filters, setFilters] =
     useState<RaidFilters>(DEFAULT_RAID_FILTERS);
@@ -143,8 +146,18 @@ export const RaidScreen: React.FC = () => {
       );
       return;
     }
+
+    // Every scan supersedes any in-flight one. Stale responses are dropped by
+    // comparing this token, so a slow earlier request can never overwrite the
+    // shop the trader scanned last.
+    const seq = ++scanSeq.current;
     setIsScanning(true);
     setError(null);
+    // Clear the previous shop immediately so its cards never linger.
+    setSeller(null);
+    setItems([]);
+    setScannedAt(null);
+
     try {
       const api = window.electronAPI;
       let normalized: { seller: RaidSeller; items: RaidStockItem[] };
@@ -162,11 +175,15 @@ export const RaidScreen: React.FC = () => {
           ref.handle,
         );
       } else {
-        setError(
-          `${getRaidMarketplaceName(ref.marketplace)} storefronts are not connected yet.`,
-        );
+        if (seq === scanSeq.current) {
+          setError(
+            `${getRaidMarketplaceName(ref.marketplace)} storefronts are not connected yet.`,
+          );
+        }
         return;
       }
+
+      if (seq !== scanSeq.current) return;
 
       setSeller(normalized.seller);
       setItems(normalized.items);
@@ -175,13 +192,14 @@ export const RaidScreen: React.FC = () => {
         `Scanned ${normalized.items.length} listings from ${normalized.seller.name}`,
       );
     } catch (err: any) {
+      if (seq !== scanSeq.current) return;
       setSeller(null);
       setItems([]);
       setScannedAt(null);
       setError(err?.message || 'Storefront scan failed.');
       toast.error(err?.message || 'Storefront scan failed.');
     } finally {
-      setIsScanning(false);
+      if (seq === scanSeq.current) setIsScanning(false);
     }
   };
 
@@ -317,8 +335,8 @@ export const RaidScreen: React.FC = () => {
         </div>
         <button
           type="submit"
-          disabled={isScanning || !input.trim()}
-          style={getScanBtnStyle(isScanning || !input.trim())}
+          disabled={!input.trim()}
+          style={getScanBtnStyle(!input.trim())}
         >
           <Search size={15} />
           <span>{isScanning ? 'Scanning…' : 'Scan Storefront'}</span>
