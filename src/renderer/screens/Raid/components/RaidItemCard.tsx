@@ -1,17 +1,20 @@
 import React from 'react';
 import {
   AlertTriangle,
+  CheckSquare,
   Crosshair,
   ExternalLink,
   Gavel,
   MinusCircle,
   ShieldCheck,
+  Square,
   TrendingUp,
 } from 'lucide-react';
 import { RaidAuditRow } from '../../../../shared/types/raid.types';
 import { SkinImage } from '../../../components/SkinImage';
 import { CopyMarketHashButton } from '../../../components/CopyMarketHashButton';
 import { MarketLogo } from '../../../components/MarketLogo';
+import TrendSparkline from '../../../components/TrendSparkline';
 import {
   formatPercent,
   formatSignedUsd,
@@ -25,12 +28,16 @@ import {
 
 export interface RaidItemCardProps {
   row: RaidAuditRow;
+  isSelected: boolean;
+  onToggleSelected: (row: RaidAuditRow) => void;
   onOpenListing: (row: RaidAuditRow) => void;
 }
 
 /** One audited seller listing, scored against the trader's Buy Ceiling. */
 export const RaidItemCard: React.FC<RaidItemCardProps> = ({
   row,
+  isSelected,
+  onToggleSelected,
   onOpenListing,
 }) => {
   const { item, ceiling, spread, profitPercent, status } = row;
@@ -38,11 +45,41 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
   const wearColors = getWearColors(parsed.shortWear);
   const isRaid = status === 'raid';
   const hasCeiling = typeof ceiling === 'number';
+  const isExcluded = hasCeiling && !isSelected;
+
+  const handleCardClick = () => {
+    if (hasCeiling) onToggleSelected(row);
+  };
 
   return (
-    <div style={getCardStyle(isRaid)}>
+    <div
+      style={getCardStyle(isRaid, isExcluded, hasCeiling)}
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (!hasCeiling) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggleSelected(row);
+        }
+      }}
+      role={hasCeiling ? 'button' : undefined}
+      tabIndex={hasCeiling ? 0 : -1}
+      aria-pressed={hasCeiling ? isSelected : undefined}
+      title={
+        hasCeiling
+          ? isSelected
+            ? 'Selected for the offer — click to exclude'
+            : 'Excluded from the offer — click to include'
+          : undefined
+      }
+    >
       <div style={styles.headerRow}>
         <div style={styles.headerLeft}>
+          {hasCeiling && (
+            <span style={getSelectBtnStyle(isSelected)} aria-hidden="true">
+              {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+            </span>
+          )}
           <div style={getStatusBadgeStyle(status)}>
             {status === 'raid' && <Crosshair size={11} />}
             {status === 'over-ceiling' && <AlertTriangle size={11} />}
@@ -65,7 +102,13 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
           {parsed.shortWear && (
             <span style={getWearBadgeStyle(wearColors)}>{parsed.shortWear}</span>
           )}
-          <CopyMarketHashButton name={item.marketHashName} />
+          <span
+            style={styles.noPropagation}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <CopyMarketHashButton name={item.marketHashName} />
+          </span>
         </div>
       </div>
 
@@ -112,6 +155,10 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
         </div>
       </div>
 
+      <div style={styles.trendRow}>
+        <TrendSparkline name={item.marketHashName} height={32} width="100%" />
+      </div>
+
       <div style={styles.pricingContainer}>
         <div style={styles.priceCol}>
           <span style={styles.colLabel}>Seller Price</span>
@@ -147,7 +194,10 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
 
         <button
           type="button"
-          onClick={() => onOpenListing(row)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenListing(row);
+          }}
           style={isRaid ? styles.buyBtn : styles.buyBtnMuted}
           title="Open this listing to purchase"
         >
@@ -190,6 +240,10 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
+  },
+  noPropagation: {
+    display: 'inline-flex',
+    alignItems: 'center',
   },
   heroShowcase: {
     position: 'relative',
@@ -286,6 +340,9 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+  },
+  trendRow: {
+    width: '100%',
   },
   pricingContainer: {
     display: 'flex',
@@ -398,20 +455,45 @@ const styles: Record<string, React.CSSProperties> = {
   },
 };
 
-function getCardStyle(isRaid: boolean): React.CSSProperties {
+function getCardStyle(
+  isRaid: boolean,
+  isExcluded: boolean,
+  selectable: boolean,
+): React.CSSProperties {
   return {
     backgroundColor: 'var(--so-surface-card, #131720)',
     borderRadius: '12px',
-    border: isRaid
-      ? '1px solid rgba(34, 197, 94, 0.4)'
-      : '1px solid var(--so-border-subtle, #1e2430)',
-    boxShadow: isRaid ? '0 2px 14px rgba(34, 197, 94, 0.12)' : 'none',
+    border: isExcluded
+      ? '1px dashed var(--so-border-subtle, #1e2430)'
+      : isRaid
+        ? '1px solid rgba(34, 197, 94, 0.4)'
+        : '1px solid var(--so-border-subtle, #1e2430)',
+    boxShadow: !isExcluded && isRaid ? '0 2px 14px rgba(34, 197, 94, 0.12)' : 'none',
+    opacity: isExcluded ? 0.55 : 1,
     padding: '12px',
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
     height: '100%',
     boxSizing: 'border-box',
+    cursor: selectable ? 'pointer' : 'default',
+    transition: 'opacity 0.15s ease, border-color 0.15s ease',
+  };
+}
+
+function getSelectBtnStyle(isSelected: boolean): React.CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '20px',
+    height: '20px',
+    padding: 0,
+    background: 'transparent',
+    border: 'none',
+    flexShrink: 0,
+    cursor: 'inherit',
+    color: isSelected ? '#4ade80' : 'var(--so-text-muted, #64748b)',
   };
 }
 

@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   AlertTriangle,
+  ClipboardPaste,
   Crosshair,
+  FileDown,
   Radar,
   Search,
   ShieldCheck,
@@ -17,13 +19,15 @@ import {
   RaidStorefrontRef,
 } from '../../../shared/types/raid.types';
 import { useDataFreshnessStore } from '../../store/useDataFreshnessStore';
+import { useTrendStore } from '../../store/useTrendStore';
 import { formatTimeAgo } from '../../utils/timeAgo';
 import { getFreshness } from '../../utils/dataFreshness';
 import { getMarketItemUrl } from '../../utils/marketUrls';
 import {
   auditStock,
-  buildRaidQuotePayload,
+  buildRaidOfferPayload,
   filterRaidRows,
+  formatUsd,
   getRaidMarketplaceName,
   isAnyRaidFilterActive,
   normalizeCsFloatStall,
@@ -54,13 +58,15 @@ import { RaidBookmarks } from './components/RaidBookmarks';
 export const RaidScreen: React.FC = () => {
   const [input, setInput] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [seller, setSeller] = useState<RaidSeller | null>(null);
   const [items, setItems] = useState<RaidStockItem[]>([]);
+  const [excludedKeys, setExcludedKeys] = useState<Set<string>>(new Set());
   const [scannedAt, setScannedAt] = useState<number | null>(null);
-  const [isExportingQuote, setIsExportingQuote] = useState(false);
+  const [isExportingOffer, setIsExportingOffer] = useState(false);
 
   // Monotonic token: only the newest scan may write results to state.
   const scanSeq = useRef(0);
@@ -128,6 +134,45 @@ export const RaidScreen: React.FC = () => {
     return sortRaidRows(filterRaidRows(audit.rows, filters), sortKey);
   }, [audit, filters, sortKey]);
 
+  // Matched rows the trader has not excluded from the purchase offer.
+  const selectedRows = useMemo(
+    () =>
+      audit.rows.filter(
+        (row) =>
+          typeof row.ceiling === 'number' &&
+          !excludedKeys.has(raidRowKey(row)),
+      ),
+    [audit, excludedKeys],
+  );
+
+  // Purchase offer built only from the trader's selected listings.
+  const offer = useMemo(
+    () => (seller ? buildRaidOfferPayload(seller, selectedRows) : null),
+    [seller, selectedRows],
+  );
+
+  const handleToggleSelected = (row: RaidAuditRow) => {
+    const key = raidRowKey(row);
+    setExcludedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => setExcludedKeys(new Set());
+
+  const handleClearAll = () => {
+    setExcludedKeys(
+      new Set(
+        audit.rows
+          .filter((row) => typeof row.ceiling === 'number')
+          .map(raidRowKey),
+      ),
+    );
+  };
+
   const isFilterActive = isAnyRaidFilterActive(filters);
 
   const activeBookmarkKey = seller ? `${seller.marketplace}:${seller.id}` : null;
@@ -159,6 +204,7 @@ export const RaidScreen: React.FC = () => {
     setSeller(null);
     setItems([]);
     setScannedAt(null);
+    setExcludedKeys(new Set());
 
     try {
       const api = window.electronAPI;
@@ -190,6 +236,16 @@ export const RaidScreen: React.FC = () => {
       setSeller(normalized.seller);
       setItems(normalized.items);
       setScannedAt(Date.now());
+
+      // Preload 14-day price history for the whole seller in one batch so each
+      // card's trend sparkline resolves immediately.
+      const trendNames = Array.from(
+        new Set(normalized.items.map((item) => item.marketHashName)),
+      );
+      if (trendNames.length > 0) {
+        useTrendStore.getState().fetchHistoryBatch(trendNames, 14);
+      }
+
       toast.success(
         `Scanned ${normalized.items.length} listings from ${normalized.seller.name}`,
       );
@@ -202,6 +258,23 @@ export const RaidScreen: React.FC = () => {
       toast.error(err?.message || 'Storefront scan failed.');
     } finally {
       if (seq === scanSeq.current) setIsScanning(false);
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+      // Main reads the clipboard and returns only a validated storefront ref —
+      // raw clipboard text (which may hold API keys) never reaches the renderer.
+      const result = await window.electronAPI.raid.pasteStorefront();
+      if (!result?.ok || !result.ref) {
+        toast(result?.error || 'Clipboard does not contain a storefront link.');
+        return;
+      }
+      setInput(result.ref.canonicalUrl);
+      setError(null);
+      inputRef.current?.focus();
+    } catch {
+      toast.error('Could not read the clipboard.');
     }
   };
 
@@ -227,22 +300,22 @@ export const RaidScreen: React.FC = () => {
     });
   };
 
-  const handleExportQuote = async () => {
-    if (!seller || audit.summary.raidCount === 0) return;
-    setIsExportingQuote(true);
+  const handleExportOffer = async () => {
+    if (!seller || selectedRows.length === 0) return;
+    setIsExportingOffer(true);
     try {
-      const payload = buildRaidQuotePayload(seller, audit.rows);
-      const result = await window.electronAPI.raid.exportQuote(payload);
+      const payload = buildRaidOfferPayload(seller, selectedRows);
+      const result = await window.electronAPI.raid.exportOffer(payload);
       if (result?.canceled) return;
       toast.success(
         result?.filePath
-          ? `Quote exported to ${result.filePath}`
-          : 'Quote exported',
+          ? `Offer exported to ${result.filePath}`
+          : 'Offer exported',
       );
     } catch (err: any) {
-      toast.error(err?.message || 'Quote export failed.');
+      toast.error(err?.message || 'Offer export failed.');
     } finally {
-      setIsExportingQuote(false);
+      setIsExportingOffer(false);
     }
   };
 
@@ -343,6 +416,7 @@ export const RaidScreen: React.FC = () => {
         <div style={getInputWrapperStyle(isSearchFocused)}>
           <Radar size={16} style={styles.inputIcon} />
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -354,6 +428,15 @@ export const RaidScreen: React.FC = () => {
             autoComplete="off"
           />
         </div>
+        <button
+          type="button"
+          onClick={handlePaste}
+          style={styles.pasteBtn}
+          title="Paste a storefront link from your clipboard (validated in the main process)"
+        >
+          <ClipboardPaste size={15} />
+          <span>Paste</span>
+        </button>
         <button
           type="submit"
           disabled={!input.trim()}
@@ -387,12 +470,9 @@ export const RaidScreen: React.FC = () => {
             loadedCount={items.length}
             isBookmarked={isSellerBookmarked}
             isScanning={isScanning}
-            canExportQuote={audit.summary.raidCount > 0}
-            isExportingQuote={isExportingQuote}
             onToggleBookmark={handleToggleBookmark}
             onRescan={handleRescan}
             onOpenStorefront={() => openExternal(seller.url)}
-            onExportQuote={handleExportQuote}
           />
 
           <RaidStatCards summary={audit.summary} />
@@ -407,6 +487,66 @@ export const RaidScreen: React.FC = () => {
             visibleCount={filteredRows.length}
             totalCount={audit.summary.totalItems}
           />
+
+          {/* Purchase Offer action — always visible so the export path is
+              discoverable; disabled with a reason when there is nothing to offer. */}
+          <div style={styles.offerBar}>
+            <span style={styles.offerInfo}>
+              {offer && offer.summary.itemCount > 0
+                ? `${offer.summary.itemCount} of ${audit.summary.valuedItems} matched selected · ${formatUsd(
+                    offer.summary.ceilingTotal,
+                  )} total offer.`
+                : audit.summary.valuedItems > 0
+                  ? 'All matched listings are excluded from the offer — re-select any you want to include.'
+                  : items.length === 0
+                    ? 'No auditable listings to offer on.'
+                    : 'No seller listings matched a local Buy Ceiling — recalculate accepted prices.'}
+            </span>
+            <div style={styles.offerActions}>
+              {audit.summary.valuedItems > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    style={styles.selectAllBtn}
+                    title="Include every matched listing in the offer"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    style={styles.selectAllBtn}
+                    title="Exclude every matched listing from the offer"
+                  >
+                    Clear
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={handleExportOffer}
+                disabled={
+                  isExportingOffer || !offer || offer.summary.itemCount === 0
+                }
+                style={getOfferBtnStyle(
+                  isExportingOffer || !offer || offer.summary.itemCount === 0,
+                )}
+                title="Export a PDF purchase offer for the selected listings"
+              >
+                <FileDown size={14} />
+                <span>
+                  {isExportingOffer
+                    ? 'Exporting…'
+                    : `Export Purchase Offer${
+                        offer && offer.summary.itemCount > 0
+                          ? ` (${offer.summary.itemCount})`
+                          : ''
+                      }`}
+                </span>
+              </button>
+            </div>
+          </div>
 
           {items.length === 0 ? (
             <div style={styles.emptyState}>
@@ -443,6 +583,8 @@ export const RaidScreen: React.FC = () => {
                 <RaidItemCard
                   key={`${row.item.marketplace}:${row.item.id}`}
                   row={row}
+                  isSelected={!excludedKeys.has(raidRowKey(row))}
+                  onToggleSelected={handleToggleSelected}
                   onOpenListing={handleOpenListing}
                 />
               ))}
@@ -603,6 +745,22 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '10px',
   },
+  pasteBtn: {
+    height: '42px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '0 14px',
+    borderRadius: '10px',
+    backgroundColor: 'var(--so-surface-card, #131720)',
+    border: '1px solid var(--so-border-subtle, #1e2430)',
+    color: 'var(--so-text-secondary, #94a3b8)',
+    fontSize: '13px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    boxSizing: 'border-box',
+  },
   inputWrapper: {
     flex: 1,
     display: 'flex',
@@ -646,8 +804,48 @@ const styles: Record<string, React.CSSProperties> = {
   errorIcon: { flexShrink: 0 },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+    width: '100%',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
     gap: '16px',
+    alignItems: 'start',
+  },
+  offerBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    flexWrap: 'wrap',
+    padding: '10px 12px',
+    borderRadius: '10px',
+    backgroundColor: 'var(--so-surface-card, #131720)',
+    border: '1px solid var(--so-border-subtle, #1e2430)',
+  },
+  offerInfo: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: 'var(--so-text-muted, #94a3b8)',
+    lineHeight: 1.4,
+    flex: 1,
+    minWidth: '220px',
+  },
+  offerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  selectAllBtn: {
+    height: '30px',
+    padding: '0 10px',
+    borderRadius: '7px',
+    backgroundColor: 'transparent',
+    border: '1px solid var(--so-border-subtle, #1e2430)',
+    color: 'var(--so-text-secondary, #94a3b8)',
+    fontSize: '11.5px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxSizing: 'border-box',
+    whiteSpace: 'nowrap',
   },
   emptyState: {
     display: 'flex',
@@ -754,6 +952,30 @@ function getInputWrapperStyle(isFocused: boolean): React.CSSProperties {
       ? 'var(--so-border-focus, #2563eb)'
       : 'var(--so-border-medium, #2a3342)',
     boxShadow: isFocused ? '0 0 0 2px rgba(37, 99, 235, 0.2)' : 'none',
+  };
+}
+
+function raidRowKey(row: RaidAuditRow): string {
+  return `${row.item.marketplace}:${row.item.id}`;
+}
+
+function getOfferBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    height: '34px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '7px',
+    padding: '0 14px',
+    borderRadius: '8px',
+    backgroundColor: disabled ? 'rgba(37, 99, 235, 0.35)' : '#2563eb',
+    border: 'none',
+    color: disabled ? 'rgba(255, 255, 255, 0.6)' : '#ffffff',
+    fontSize: '12.5px',
+    fontWeight: 800,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    whiteSpace: 'nowrap',
+    boxSizing: 'border-box',
+    boxShadow: disabled ? 'none' : '0 3px 10px rgba(37, 99, 235, 0.28)',
   };
 }
 

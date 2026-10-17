@@ -45,10 +45,10 @@ export const RaidFilterBar: React.FC<RaidFilterBarProps> = ({
           type="button"
           onClick={() => onFilterChange('onlyCeiling', !filters.onlyCeiling)}
           style={getToggleStyle(filters.onlyCeiling)}
-          title="Show only listings that matched a local Buy Ceiling"
+          title="Hide stock that has no local Buy Ceiling. Note: this still includes items priced ABOVE the ceiling — use RAID Zone Only to hide those."
         >
           <ShieldCheck size={13} />
-          <span>Ceiling Match</span>
+          <span>Has Ceiling</span>
         </button>
 
         <div style={styles.searchBox}>

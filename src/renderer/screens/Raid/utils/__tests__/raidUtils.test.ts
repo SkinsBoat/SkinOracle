@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   auditStock,
-  buildRaidQuotePayload,
+  buildRaidOfferPayload,
   filterRaidRows,
   normalizeCsFloatStall,
   normalizeDmarketStore,
@@ -51,27 +51,27 @@ function makeSkinportItem(
 describe('raidUtils', () => {
   describe('parseStorefrontUrl', () => {
     it('parses a full Skinport shop URL', () => {
-      const result = parseStorefrontUrl('https://skinport.com/shop/coolcool');
+      const result = parseStorefrontUrl('https://skinport.com/shop/example-shop');
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       expect(result.ref.marketplace).toBe('skinport');
-      expect(result.ref.handle).toBe('coolcool');
+      expect(result.ref.handle).toBe('example-shop');
       expect(result.ref.scanSupported).toBe(true);
     });
 
     it('parses a scheme-less Skinport shop URL', () => {
-      const result = parseStorefrontUrl('skinport.com/shop/coolcool');
+      const result = parseStorefrontUrl('skinport.com/shop/example-shop');
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.ref.handle).toBe('coolcool');
+      expect(result.ref.handle).toBe('example-shop');
     });
 
     it('accepts a bare Skinport shop slug', () => {
-      const result = parseStorefrontUrl('coolcool');
+      const result = parseStorefrontUrl('example-shop');
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       expect(result.ref.marketplace).toBe('skinport');
-      expect(result.ref.handle).toBe('coolcool');
+      expect(result.ref.handle).toBe('example-shop');
     });
 
     it('rejects a Skinport profile page with an actionable error', () => {
@@ -103,7 +103,7 @@ describe('raidUtils', () => {
     });
 
     it('parses a DMarket store link via its saga address', () => {
-      const addr = '0xc232b9755d49d5d68804b306f0C16f5118f58A03';
+      const addr = '0x1111111111111111111111111111111111111111';
       const result = parseStorefrontUrl(
         `https://dmarket.com/ingame-items/item-list/csgo-skins?user=${addr}`,
       );
@@ -115,7 +115,7 @@ describe('raidUtils', () => {
     });
 
     it('accepts a bare DMarket saga address', () => {
-      const addr = '0xc232b9755d49d5d68804b306f0C16f5118f58A03';
+      const addr = '0x1111111111111111111111111111111111111111';
       const result = parseStorefrontUrl(addr);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
@@ -147,8 +147,8 @@ describe('raidUtils', () => {
       const res: SkinportShopApiResponse = {
         success: true,
         message: null,
-        shopName: 'Päle',
-        shopLink: 'coolcool',
+        shopName: 'Test Shop',
+        shopLink: 'example-shop',
         shopSteamId: '76561190000000002',
         filter: { total: 51 },
         items: [
@@ -163,8 +163,8 @@ describe('raidUtils', () => {
       };
 
       const { seller, items } = normalizeSkinportShop(res);
-      expect(seller.name).toBe('Päle');
-      expect(seller.id).toBe('coolcool');
+      expect(seller.name).toBe('Test Shop');
+      expect(seller.id).toBe('example-shop');
       expect(seller.reportedTotal).toBe(51);
       expect(items).toHaveLength(2);
       expect(items[0].price).toBeCloseTo(6.91, 5);
@@ -241,7 +241,7 @@ describe('raidUtils', () => {
 
   describe('normalizeDmarketStore', () => {
     it('converts priceCents to dollars and derives item flags', () => {
-      const addr = '0xc232b9755d49d5d68804b306f0C16f5118f58A03';
+      const addr = '0x1111111111111111111111111111111111111111';
       const { seller, items } = normalizeDmarketStore(
         {
           offers: [
@@ -449,18 +449,19 @@ describe('raidUtils', () => {
     });
   });
 
-  describe('buildRaidQuotePayload', () => {
-    it('includes only raid rows, sorted by spread, with a computed summary', () => {
+  describe('buildRaidOfferPayload', () => {
+    it('offers the buy ceiling for all matched items, including above-ceiling ones', () => {
       const { rows } = auditStock(
         [
           { id: 'a', marketplace: 'skinport', marketHashName: 'A', price: 5 },
           { id: 'b', marketplace: 'skinport', marketHashName: 'B', price: 20 },
           { id: 'c', marketplace: 'skinport', marketHashName: 'C', price: 8 },
+          { id: 'd', marketplace: 'skinport', marketHashName: 'D', price: 3 },
         ],
         { A: 10, B: 15, C: 9 },
       );
 
-      const quote = buildRaidQuotePayload(
+      const offer = buildRaidOfferPayload(
         {
           marketplace: 'skinport',
           id: 'shop',
@@ -471,27 +472,36 @@ describe('raidUtils', () => {
         new Date('2026-10-17T00:00:00Z'),
       );
 
-      expect(quote.rows.map((r) => r.marketHashName)).toEqual(['A', 'C']);
-      expect(quote.summary.itemCount).toBe(2);
-      expect(quote.summary.purchaseTotal).toBeCloseTo(13, 5);
-      expect(quote.summary.ceilingTotal).toBeCloseTo(19, 5);
-      expect(quote.summary.potentialProfit).toBeCloseTo(6, 5);
-      expect(quote.generatedAt).toBe('2026-10-17T00:00:00.000Z');
-      expect(quote.seller.name).toBe('Seller');
+      // D has no ceiling and is excluded. A/C are below, B is above — all
+      // matched items are offerd, below-ceiling first.
+      expect(offer.rows.map((r) => r.marketHashName)).toEqual(['A', 'C', 'B']);
+
+      const b = offer.rows.find((r) => r.marketHashName === 'B')!;
+      expect(b.listingPrice).toBeCloseTo(20, 5);
+      expect(b.buyCeiling).toBeCloseTo(15, 5);
+      expect(b.difference).toBeCloseTo(-5, 5);
+      expect(b.belowCeiling).toBe(false);
+
+      expect(offer.summary.itemCount).toBe(3);
+      expect(offer.summary.ceilingTotal).toBeCloseTo(34, 5);
+      expect(offer.summary.listingTotal).toBeCloseTo(33, 5);
+      expect(offer.summary.belowCeilingCount).toBe(2);
+      expect(offer.generatedAt).toBe('2026-10-17T00:00:00.000Z');
+      expect(offer.seller.name).toBe('Seller');
     });
 
-    it('returns an empty quote when no listing is below the ceiling', () => {
+    it('returns an empty offer when nothing matched a ceiling', () => {
       const { rows } = auditStock(
         [{ id: 'b', marketplace: 'skinport', marketHashName: 'B', price: 20 }],
-        { B: 15 },
+        {},
       );
-      const quote = buildRaidQuotePayload(
+      const offer = buildRaidOfferPayload(
         { marketplace: 'skinport', id: 's', name: 'S', url: 'u' },
         rows,
       );
-      expect(quote.rows).toHaveLength(0);
-      expect(quote.summary.itemCount).toBe(0);
-      expect(quote.summary.purchaseTotal).toBe(0);
+      expect(offer.rows).toHaveLength(0);
+      expect(offer.summary.itemCount).toBe(0);
+      expect(offer.summary.ceilingTotal).toBe(0);
     });
   });
 });

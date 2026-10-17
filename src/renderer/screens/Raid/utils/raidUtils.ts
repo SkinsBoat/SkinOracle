@@ -15,8 +15,8 @@ import {
   RaidMarketplaceId,
   RaidParseResult,
   RaidProviderInfo,
-  RaidQuotePayload,
-  RaidQuoteRow,
+  RaidOfferPayload,
+  RaidOfferRow,
   RaidSeller,
   RaidStockItem,
 } from '../../../../shared/types/raid.types';
@@ -26,275 +26,16 @@ import {
 } from '../../../../shared/types/skinport.types';
 import { CsFloatStallApiResponse } from '../../../../shared/types/csfloat.types';
 import { DmarketStoreApiResponse, DmarketStoreOffer } from '../../../../shared/types/dmarket.types';
+import { SKINPORT_SITE } from '../../../../shared/raidStorefront';
 
-/** Skinport public website root (storefront + item links). */
-export const SKINPORT_SITE = 'https://skinport.com';
-
-/** Skinport shop slugs are lowercase alphanumerics with `_` / `-` separators. */
-const STOREFRONT_HANDLE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
-
-/**
- * Provider registry. `skinport` is fully wired for scanning; the remaining
- * platforms are recognized so pasted links resolve to the correct seller and
- * the UI can report them honestly instead of silently failing.
- */
-export const RAID_PROVIDERS: RaidProviderInfo[] = [
-  {
-    id: 'skinport',
-    name: 'Skinport',
-    hosts: ['skinport.com'],
-    storefrontPrefixes: ['shop'],
-    status: 'live',
-  },
-  {
-    id: 'csfloat',
-    name: 'CSFloat',
-    hosts: ['csfloat.com'],
-    storefrontPrefixes: ['stall', 'users'],
-    status: 'live',
-  },
-  {
-    id: 'dmarket',
-    name: 'DMarket',
-    hosts: ['dmarket.com'],
-    storefrontPrefixes: ['store', 'user'],
-    status: 'live',
-  },
-  {
-    id: 'csmoney',
-    name: 'CS.MONEY',
-    hosts: ['cs.money'],
-    storefrontPrefixes: ['market', 'user'],
-    status: 'soon',
-  },
-  {
-    id: 'steam',
-    name: 'Steam Inventory',
-    hosts: ['steamcommunity.com'],
-    storefrontPrefixes: ['inventory', 'profiles', 'id'],
-    status: 'soon',
-  },
-];
-
-const PROVIDER_MAP: Record<string, RaidProviderInfo> = RAID_PROVIDERS.reduce(
-  (acc, provider) => {
-    acc[provider.id] = provider;
-    return acc;
-  },
-  {} as Record<string, RaidProviderInfo>,
-);
-
-export function getRaidProvider(
-  id: RaidMarketplaceId,
-): RaidProviderInfo | undefined {
-  return PROVIDER_MAP[id];
-}
-
-export function getRaidMarketplaceName(id: RaidMarketplaceId): string {
-  return PROVIDER_MAP[id]?.name ?? id;
-}
-
-function matchProvider(hostname: string): RaidProviderInfo | undefined {
-  const host = hostname.toLowerCase();
-  return RAID_PROVIDERS.find((provider) =>
-    provider.hosts.some((h) => host === h || host.endsWith(`.${h}`)),
-  );
-}
-
-/** Extract a seller handle from path segments using the provider's prefixes. */
-function extractHandle(
-  segments: string[],
-  provider: RaidProviderInfo,
-): string {
-  const lower = segments.map((s) => s.toLowerCase());
-  for (const prefix of provider.storefrontPrefixes) {
-    const idx = lower.indexOf(prefix.toLowerCase());
-    if (idx >= 0 && segments[idx + 1]) {
-      return decodeURIComponent(segments[idx + 1]);
-    }
-  }
-  return segments.length > 0
-    ? decodeURIComponent(segments[segments.length - 1])
-    : '';
-}
-
-function buildSkinportRef(handle: string, originalUrl: string): RaidParseResult {
-  if (!STOREFRONT_HANDLE_RE.test(handle)) {
-    return {
-      ok: false,
-      error: 'That Skinport link does not contain a valid shop slug.',
-    };
-  }
-  return {
-    ok: true,
-    ref: {
-      marketplace: 'skinport',
-      handle,
-      originalUrl,
-      canonicalUrl: `${SKINPORT_SITE}/shop/${handle}`,
-      scanSupported: true,
-    },
-  };
-}
-
-/** CSFloat sellers are keyed by SteamID64 (17 digits). */
-const CSFLOAT_STEAM_ID_RE = /^\d{17}$/;
-
-/** DMarket sellers resolve to a 0x saga address on the public exchange. */
-const DMARKET_SAGA_ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
-
-function buildCsFloatRef(
-  steamId: string,
-  originalUrl: string,
-): RaidParseResult {
-  if (!CSFLOAT_STEAM_ID_RE.test(steamId)) {
-    return {
-      ok: false,
-      error: 'That CSFloat link does not contain a SteamID64.',
-    };
-  }
-  return {
-    ok: true,
-    ref: {
-      marketplace: 'csfloat',
-      handle: steamId,
-      originalUrl,
-      canonicalUrl: `https://csfloat.com/stall/${steamId}`,
-      scanSupported: true,
-    },
-  };
-}
-
-function buildDmarketRef(
-  address: string,
-  originalUrl: string,
-): RaidParseResult {
-  if (!DMARKET_SAGA_ADDR_RE.test(address)) {
-    return {
-      ok: false,
-      error:
-        'That DMarket link does not contain a valid seller address (0x…).',
-    };
-  }
-  return {
-    ok: true,
-    ref: {
-      marketplace: 'dmarket',
-      handle: address,
-      originalUrl,
-      canonicalUrl: `https://dmarket.com/ingame-items/item-list/csgo-skins?user=${address}`,
-      scanSupported: true,
-    },
-  };
-}
-
-/**
- * Resolves any pasted storefront text into a provider + seller handle.
- * Accepts full URLs (with or without scheme) and a bare Skinport shop slug.
- */
-export function parseStorefrontUrl(raw: string): RaidParseResult {
-  const input = (raw || '').trim();
-  if (!input) {
-    return { ok: false, error: 'Paste a seller storefront link to raid.' };
-  }
-
-  // Bare, unambiguous identifiers.
-  if (DMARKET_SAGA_ADDR_RE.test(input)) return buildDmarketRef(input, input);
-  if (CSFLOAT_STEAM_ID_RE.test(input)) return buildCsFloatRef(input, input);
-
-  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(input);
-  const candidate = hasScheme ? input : `https://${input}`;
-
-  let url: URL;
-  try {
-    url = new URL(candidate);
-  } catch {
-    return {
-      ok: false,
-      error: 'That does not look like a valid storefront link.',
-    };
-  }
-
-  // Accept a bare handle (e.g. the Skinport shop slug "coolcool").
-  if (!url.hostname.includes('.')) {
-    if (STOREFRONT_HANDLE_RE.test(input)) return buildSkinportRef(input, input);
-    return { ok: false, error: 'Enter a full storefront URL or shop slug.' };
-  }
-
-  const provider = matchProvider(url.hostname);
-  if (!provider) {
-    return {
-      ok: false,
-      error: `Unrecognized storefront host: ${url.hostname}. Supported: ${RAID_PROVIDERS.map((p) => p.name).join(', ')}.`,
-    };
-  }
-
-  const segments = url.pathname.split('/').filter(Boolean);
-  const handle = extractHandle(segments, provider);
-
-  if (provider.id === 'skinport') {
-    // Only `/shop/{slug}` maps to the public shop API. Reject `/user/...`
-    // (Steam-id profile pages) with a clear, actionable message.
-    const hasShopSegment = segments.some((s) => s.toLowerCase() === 'shop');
-    if (!hasShopSegment) {
-      return {
-        ok: false,
-        error:
-          'Paste the Skinport seller shop link (skinport.com/shop/…), not a profile page.',
-      };
-    }
-    return buildSkinportRef(handle, input);
-  }
-
-  if (provider.id === 'csfloat') {
-    const match = input.match(/\b(\d{17})\b/);
-    if (!match) {
-      return {
-        ok: false,
-        error:
-          'Paste the CSFloat seller stall link (csfloat.com/stall/…), which contains a SteamID64.',
-      };
-    }
-    return buildCsFloatRef(match[1], input);
-  }
-
-  if (provider.id === 'dmarket') {
-    const candidates = [
-      url.searchParams.get('user'),
-      url.searchParams.get('sagaAddress'),
-      url.searchParams.get('owner'),
-      handle,
-      (input.match(/0x[a-fA-F0-9]{40}/) || [])[0],
-    ].filter((c): c is string => Boolean(c));
-    const address = candidates.find((c) => DMARKET_SAGA_ADDR_RE.test(c));
-    if (!address) {
-      return {
-        ok: false,
-        error:
-          'Paste a DMarket seller store link that includes the seller address (0x…), or the address itself.',
-      };
-    }
-    return buildDmarketRef(address, input);
-  }
-
-  if (!handle) {
-    return {
-      ok: false,
-      error: `Could not read a seller handle from that ${provider.name} link.`,
-    };
-  }
-
-  return {
-    ok: true,
-    ref: {
-      marketplace: provider.id,
-      handle,
-      originalUrl: input,
-      canonicalUrl: hasScheme ? input : candidate,
-      scanSupported: provider.status === 'live',
-    },
-  };
-}
+// Storefront resolution is shared with the main process (clipboard paste).
+export {
+  RAID_PROVIDERS,
+  getRaidProvider,
+  getRaidMarketplaceName,
+  parseStorefrontUrl,
+  SKINPORT_SITE,
+} from '../../../../shared/raidStorefront';
 
 /** Converts a Skinport shop listing (USD cents) into the RAID shape (USD). */
 export function normalizeSkinportItem(
@@ -550,40 +291,43 @@ export function auditStock(
 }
 
 /**
- * Builds the acquisition-quote payload from the RAID-zone rows
- * (listings priced at or below the Buy Ceiling). Sorted by best spread.
+ * Builds the acquisition-offer payload: the buyer's Buy Ceiling for every
+ * seller listing that matched a local ceiling — including listings priced
+ * above the ceiling (they are still offerd at the buyer's ceiling).
  */
-export function buildRaidQuotePayload(
+export function buildRaidOfferPayload(
   seller: RaidSeller,
   rows: RaidAuditRow[],
   now: Date = new Date(),
-): RaidQuotePayload {
-  const quoteRows: RaidQuoteRow[] = rows
+): RaidOfferPayload {
+  const offerRows: RaidOfferRow[] = rows
     .filter(
-      (row) =>
-        row.status === 'raid' &&
-        typeof row.ceiling === 'number' &&
-        typeof row.spread === 'number',
+      (row) => typeof row.ceiling === 'number' && Number.isFinite(row.ceiling),
     )
-    .map((row) => ({
-      marketHashName: row.item.marketHashName,
-      marketplace: row.item.marketplace,
-      purchasePrice: row.item.price,
-      ceiling: row.ceiling as number,
-      spread: row.spread as number,
-      marginPercent: row.profitPercent ?? 0,
-      exterior: row.item.exterior,
-      floatValue: row.item.floatValue,
-    }))
-    .sort(
-      (a, b) =>
-        b.spread - a.spread ||
-        a.marketHashName.localeCompare(b.marketHashName),
-    );
+    .map((row) => {
+      const buyCeiling = row.ceiling as number;
+      const listingPrice = row.item.price;
+      return {
+        marketHashName: row.item.marketHashName,
+        marketplace: row.item.marketplace,
+        listingPrice,
+        buyCeiling,
+        difference: buyCeiling - listingPrice,
+        belowCeiling: listingPrice <= buyCeiling,
+        exterior: row.item.exterior,
+        floatValue: row.item.floatValue,
+      };
+    })
+    .sort((a, b) => {
+      // Currently actionable (below ceiling) first, then best difference.
+      if (a.belowCeiling !== b.belowCeiling) return a.belowCeiling ? -1 : 1;
+      if (a.difference !== b.difference) return b.difference - a.difference;
+      return a.marketHashName.localeCompare(b.marketHashName);
+    });
 
-  const purchaseTotal = quoteRows.reduce((sum, r) => sum + r.purchasePrice, 0);
-  const ceilingTotal = quoteRows.reduce((sum, r) => sum + r.ceiling, 0);
-  const potentialProfit = quoteRows.reduce((sum, r) => sum + r.spread, 0);
+  const ceilingTotal = offerRows.reduce((sum, r) => sum + r.buyCeiling, 0);
+  const listingTotal = offerRows.reduce((sum, r) => sum + r.listingPrice, 0);
+  const belowCeilingCount = offerRows.filter((r) => r.belowCeiling).length;
 
   return {
     seller: {
@@ -593,12 +337,12 @@ export function buildRaidQuotePayload(
       steamId: seller.steamId,
     },
     generatedAt: now.toISOString(),
-    rows: quoteRows,
+    rows: offerRows,
     summary: {
-      itemCount: quoteRows.length,
-      purchaseTotal,
+      itemCount: offerRows.length,
       ceilingTotal,
-      potentialProfit,
+      listingTotal,
+      belowCeilingCount,
     },
   };
 }

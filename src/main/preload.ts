@@ -16,7 +16,7 @@ import type {
   SkinportStreamStatus,
   SkinportShopApiResponse,
 } from "../shared/types/skinport.types";
-import type { RaidQuotePayload } from "../shared/types/raid.types";
+import type { RaidOfferPayload, RaidParseResult } from "../shared/types/raid.types";
 
 /**
  * Clean helper function to invoke IPC channels and strip Electron's wrapper noise.
@@ -299,8 +299,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // ── RAID Seller Auditor ─────────────────────────────────────────
   raid: {
-    exportQuote: (payload: RaidQuotePayload) =>
-      safeInvoke("raid:export-quote", payload),
+    exportOffer: (payload: RaidOfferPayload) =>
+      safeInvoke("raid:export-offer", payload),
+    // Reads the clipboard in main and returns only a validated storefront ref.
+    pasteStorefront: () =>
+      safeInvoke<RaidParseResult>("raid:paste-storefront"),
   },
 
   // ── App Helpers ────────────────────────────────────────────────

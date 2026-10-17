@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, FileDown, RefreshCw, Star, Store } from 'lucide-react';
+import { ExternalLink, RefreshCw, Star, Store } from 'lucide-react';
 import { RaidSeller } from '../../../../shared/types/raid.types';
 import { MarketLogo } from '../../../components/MarketLogo';
 import { formatTimeAgo } from '../../../utils/timeAgo';
@@ -11,12 +11,9 @@ export interface RaidSellerHeaderProps {
   loadedCount: number;
   isBookmarked: boolean;
   isScanning: boolean;
-  canExportQuote: boolean;
-  isExportingQuote: boolean;
   onToggleBookmark: () => void;
   onRescan: () => void;
   onOpenStorefront: () => void;
-  onExportQuote: () => void;
 }
 
 /** Seller identity strip for a resolved RAID storefront. */
@@ -26,12 +23,9 @@ export const RaidSellerHeader: React.FC<RaidSellerHeaderProps> = ({
   loadedCount,
   isBookmarked,
   isScanning,
-  canExportQuote,
-  isExportingQuote,
   onToggleBookmark,
   onRescan,
   onOpenStorefront,
-  onExportQuote,
 }) => {
   const marketplaceName = getRaidMarketplaceName(seller.marketplace);
   const listedTotal = seller.reportedTotal;
@@ -59,7 +53,7 @@ export const RaidSellerHeader: React.FC<RaidSellerHeaderProps> = ({
             )}
             {seller.steamId && (
               <span style={styles.metaText}>
-                • SteamID {seller.steamId.slice(0, 6)}…{seller.steamId.slice(-4)}
+                • SteamID {maskSteamId(seller.steamId)}
               </span>
             )}
           </div>
@@ -67,19 +61,6 @@ export const RaidSellerHeader: React.FC<RaidSellerHeaderProps> = ({
       </div>
 
       <div style={styles.actions}>
-        {canExportQuote && (
-          <button
-            type="button"
-            onClick={onExportQuote}
-            disabled={isExportingQuote}
-            style={getExportBtnStyle(isExportingQuote)}
-            title="Export a PDF acquisition quote for every listing below your Buy Ceiling"
-          >
-            <FileDown size={13} />
-            <span>{isExportingQuote ? 'Exporting…' : 'Export Quote'}</span>
-          </button>
-        )}
-
         <button
           type="button"
           onClick={onOpenStorefront}
@@ -203,30 +184,16 @@ const styles: Record<string, React.CSSProperties> = {
   },
 };
 
+/** Masks a SteamID, leaving only the last 5 characters visible. */
+function maskSteamId(value: string): string {
+  const visible = value.slice(-5);
+  return `${'*'.repeat(Math.max(0, value.length - visible.length))}${visible}`;
+}
+
 function getSpinStyle(isScanning: boolean): React.CSSProperties {
   return {
     animation: isScanning ? 'spin 1s linear infinite' : 'none',
     color: 'inherit',
-  };
-}
-
-function getExportBtnStyle(isExporting: boolean): React.CSSProperties {
-  return {
-    height: '34px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '0 13px',
-    borderRadius: '8px',
-    backgroundColor: isExporting ? 'rgba(37, 99, 235, 0.5)' : '#2563eb',
-    border: 'none',
-    color: '#ffffff',
-    fontSize: '12px',
-    fontWeight: 800,
-    cursor: isExporting ? 'not-allowed' : 'pointer',
-    boxSizing: 'border-box',
-    whiteSpace: 'nowrap',
-    boxShadow: isExporting ? 'none' : '0 3px 10px rgba(37, 99, 235, 0.28)',
   };
 }
 

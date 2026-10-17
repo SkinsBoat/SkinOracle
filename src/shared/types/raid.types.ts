@@ -170,41 +170,45 @@ export interface RaidBookmark {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// RAID — Acquisition Quote export (PDF)
+// RAID — Purchase Offer export (PDF)
 //
-// A quote covers every listing priced at or below the trader's Buy
-// Ceiling. Amounts are USD dollars.
+// The offer is the buyer's Buy Ceiling sheet for ALL seller listings that
+// matched a local ceiling — including those currently priced above it.
+// Amounts are USD dollars.
 // ─────────────────────────────────────────────────────────────────
 
-export interface RaidQuoteRow {
+export interface RaidOfferRow {
   marketHashName: string;
   marketplace: RaidMarketplaceId;
-  /** Purchase price (the seller's listing price). */
-  purchasePrice: number;
-  /** Oracle Buy Ceiling. */
-  ceiling: number;
-  /** ceiling - purchasePrice. */
-  spread: number;
-  /** (ceiling - purchasePrice) / ceiling * 100. */
-  marginPercent: number;
+  /** Seller's current listing price (reference). */
+  listingPrice: number;
+  /** Buyer's Oracle Buy Ceiling — the price offered for this item. */
+  buyCeiling: number;
+  /** buyCeiling - listingPrice (negative = seller is above the ceiling). */
+  difference: number;
+  /** True when the seller's listing is at or below the ceiling. */
+  belowCeiling: boolean;
   exterior?: string;
   floatValue?: number;
 }
 
-export interface RaidQuotePayload {
+export interface RaidOfferPayload {
   seller: {
     name: string;
     marketplace: RaidMarketplaceId;
     url: string;
     steamId?: string;
   };
-  /** ISO timestamp of the audit the quote was built from. */
+  /** ISO timestamp of the audit the offer was built from. */
   generatedAt: string;
-  rows: RaidQuoteRow[];
+  rows: RaidOfferRow[];
   summary: {
     itemCount: number;
-    purchaseTotal: number;
+    /** Sum of the buyer's ceilings — total acquisition budget for this offer. */
     ceilingTotal: number;
-    potentialProfit: number;
+    /** Sum of the seller's current listing prices (reference). */
+    listingTotal: number;
+    /** How many matched listings are currently at or below the ceiling. */
+    belowCeilingCount: number;
   };
 }
