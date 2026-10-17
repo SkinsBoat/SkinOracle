@@ -15,6 +15,8 @@ import {
   RaidMarketplaceId,
   RaidParseResult,
   RaidProviderInfo,
+  RaidQuotePayload,
+  RaidQuoteRow,
   RaidSeller,
   RaidStockItem,
 } from '../../../../shared/types/raid.types';
@@ -542,6 +544,60 @@ export function auditStock(
       offerCount,
       totalStockValue,
       raidValue,
+      potentialProfit,
+    },
+  };
+}
+
+/**
+ * Builds the acquisition-quote payload from the RAID-zone rows
+ * (listings priced at or below the Buy Ceiling). Sorted by best spread.
+ */
+export function buildRaidQuotePayload(
+  seller: RaidSeller,
+  rows: RaidAuditRow[],
+  now: Date = new Date(),
+): RaidQuotePayload {
+  const quoteRows: RaidQuoteRow[] = rows
+    .filter(
+      (row) =>
+        row.status === 'raid' &&
+        typeof row.ceiling === 'number' &&
+        typeof row.spread === 'number',
+    )
+    .map((row) => ({
+      marketHashName: row.item.marketHashName,
+      marketplace: row.item.marketplace,
+      purchasePrice: row.item.price,
+      ceiling: row.ceiling as number,
+      spread: row.spread as number,
+      marginPercent: row.profitPercent ?? 0,
+      exterior: row.item.exterior,
+      floatValue: row.item.floatValue,
+    }))
+    .sort(
+      (a, b) =>
+        b.spread - a.spread ||
+        a.marketHashName.localeCompare(b.marketHashName),
+    );
+
+  const purchaseTotal = quoteRows.reduce((sum, r) => sum + r.purchasePrice, 0);
+  const ceilingTotal = quoteRows.reduce((sum, r) => sum + r.ceiling, 0);
+  const potentialProfit = quoteRows.reduce((sum, r) => sum + r.spread, 0);
+
+  return {
+    seller: {
+      name: seller.name,
+      marketplace: seller.marketplace,
+      url: seller.url,
+      steamId: seller.steamId,
+    },
+    generatedAt: now.toISOString(),
+    rows: quoteRows,
+    summary: {
+      itemCount: quoteRows.length,
+      purchaseTotal,
+      ceilingTotal,
       potentialProfit,
     },
   };

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   auditStock,
+  buildRaidQuotePayload,
   filterRaidRows,
   normalizeCsFloatStall,
   normalizeDmarketStore,
@@ -445,6 +446,52 @@ describe('raidUtils', () => {
       expect(backToSpread).toEqual(firstSpread);
       // Ties fall back to market hash name order.
       expect(firstSpread).toEqual(['y', 'z', 'x']);
+    });
+  });
+
+  describe('buildRaidQuotePayload', () => {
+    it('includes only raid rows, sorted by spread, with a computed summary', () => {
+      const { rows } = auditStock(
+        [
+          { id: 'a', marketplace: 'skinport', marketHashName: 'A', price: 5 },
+          { id: 'b', marketplace: 'skinport', marketHashName: 'B', price: 20 },
+          { id: 'c', marketplace: 'skinport', marketHashName: 'C', price: 8 },
+        ],
+        { A: 10, B: 15, C: 9 },
+      );
+
+      const quote = buildRaidQuotePayload(
+        {
+          marketplace: 'skinport',
+          id: 'shop',
+          name: 'Seller',
+          url: 'https://skinport.com/shop/shop',
+        },
+        rows,
+        new Date('2026-10-17T00:00:00Z'),
+      );
+
+      expect(quote.rows.map((r) => r.marketHashName)).toEqual(['A', 'C']);
+      expect(quote.summary.itemCount).toBe(2);
+      expect(quote.summary.purchaseTotal).toBeCloseTo(13, 5);
+      expect(quote.summary.ceilingTotal).toBeCloseTo(19, 5);
+      expect(quote.summary.potentialProfit).toBeCloseTo(6, 5);
+      expect(quote.generatedAt).toBe('2026-10-17T00:00:00.000Z');
+      expect(quote.seller.name).toBe('Seller');
+    });
+
+    it('returns an empty quote when no listing is below the ceiling', () => {
+      const { rows } = auditStock(
+        [{ id: 'b', marketplace: 'skinport', marketHashName: 'B', price: 20 }],
+        { B: 15 },
+      );
+      const quote = buildRaidQuotePayload(
+        { marketplace: 'skinport', id: 's', name: 'S', url: 'u' },
+        rows,
+      );
+      expect(quote.rows).toHaveLength(0);
+      expect(quote.summary.itemCount).toBe(0);
+      expect(quote.summary.purchaseTotal).toBe(0);
     });
   });
 });

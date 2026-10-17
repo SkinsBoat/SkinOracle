@@ -16,6 +16,7 @@ import type {
   SkinportStreamStatus,
   SkinportShopApiResponse,
 } from "../shared/types/skinport.types";
+import type { RaidQuotePayload } from "../shared/types/raid.types";
 
 /**
  * Clean helper function to invoke IPC channels and strip Electron's wrapper noise.
@@ -294,6 +295,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
         gsSig,
         limit,
       ),
+  },
+
+  // ── RAID Seller Auditor ─────────────────────────────────────────
+  raid: {
+    exportQuote: (payload: RaidQuotePayload) =>
+      safeInvoke("raid:export-quote", payload),
   },
 
   // ── App Helpers ────────────────────────────────────────────────

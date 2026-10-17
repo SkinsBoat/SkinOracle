@@ -168,3 +168,43 @@ export interface RaidBookmark {
   url: string;
   savedAt: string;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// RAID — Acquisition Quote export (PDF)
+//
+// A quote covers every listing priced at or below the trader's Buy
+// Ceiling. Amounts are USD dollars.
+// ─────────────────────────────────────────────────────────────────
+
+export interface RaidQuoteRow {
+  marketHashName: string;
+  marketplace: RaidMarketplaceId;
+  /** Purchase price (the seller's listing price). */
+  purchasePrice: number;
+  /** Oracle Buy Ceiling. */
+  ceiling: number;
+  /** ceiling - purchasePrice. */
+  spread: number;
+  /** (ceiling - purchasePrice) / ceiling * 100. */
+  marginPercent: number;
+  exterior?: string;
+  floatValue?: number;
+}
+
+export interface RaidQuotePayload {
+  seller: {
+    name: string;
+    marketplace: RaidMarketplaceId;
+    url: string;
+    steamId?: string;
+  };
+  /** ISO timestamp of the audit the quote was built from. */
+  generatedAt: string;
+  rows: RaidQuoteRow[];
+  summary: {
+    itemCount: number;
+    purchaseTotal: number;
+    ceilingTotal: number;
+    potentialProfit: number;
+  };
+}

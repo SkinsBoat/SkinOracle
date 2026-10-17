@@ -22,6 +22,7 @@ import { getFreshness } from '../../utils/dataFreshness';
 import { getMarketItemUrl } from '../../utils/marketUrls';
 import {
   auditStock,
+  buildRaidQuotePayload,
   filterRaidRows,
   getRaidMarketplaceName,
   isAnyRaidFilterActive,
@@ -59,6 +60,7 @@ export const RaidScreen: React.FC = () => {
   const [seller, setSeller] = useState<RaidSeller | null>(null);
   const [items, setItems] = useState<RaidStockItem[]>([]);
   const [scannedAt, setScannedAt] = useState<number | null>(null);
+  const [isExportingQuote, setIsExportingQuote] = useState(false);
 
   // Monotonic token: only the newest scan may write results to state.
   const scanSeq = useRef(0);
@@ -225,6 +227,25 @@ export const RaidScreen: React.FC = () => {
     });
   };
 
+  const handleExportQuote = async () => {
+    if (!seller || audit.summary.raidCount === 0) return;
+    setIsExportingQuote(true);
+    try {
+      const payload = buildRaidQuotePayload(seller, audit.rows);
+      const result = await window.electronAPI.raid.exportQuote(payload);
+      if (result?.canceled) return;
+      toast.success(
+        result?.filePath
+          ? `Quote exported to ${result.filePath}`
+          : 'Quote exported',
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Quote export failed.');
+    } finally {
+      setIsExportingQuote(false);
+    }
+  };
+
   const handleToggleBookmark = () => {
     if (!seller) return;
     if (isSellerBookmarked) {
@@ -366,9 +387,12 @@ export const RaidScreen: React.FC = () => {
             loadedCount={items.length}
             isBookmarked={isSellerBookmarked}
             isScanning={isScanning}
+            canExportQuote={audit.summary.raidCount > 0}
+            isExportingQuote={isExportingQuote}
             onToggleBookmark={handleToggleBookmark}
             onRescan={handleRescan}
             onOpenStorefront={() => openExternal(seller.url)}
+            onExportQuote={handleExportQuote}
           />
 
           <RaidStatCards summary={audit.summary} />

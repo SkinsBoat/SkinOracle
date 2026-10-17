@@ -29,6 +29,7 @@ import {
   SkinportStreamStatus,
   SkinportShopApiResponse,
 } from "./skinport.types";
+import { RaidQuotePayload } from "./raid.types";
 import {
   DealMakerItem,
   DealMakerOffer,
@@ -263,6 +264,11 @@ export interface ElectronAPI {
   app: {
     openExternal: (url: string) => Promise<void>;
     getVersion: () => Promise<string>;
+  };
+  raid: {
+    exportQuote: (
+      payload: RaidQuotePayload,
+    ) => Promise<{ canceled: boolean; filePath?: string }>;
   };
   system: {
     getConfig: () => Promise<any>;
