@@ -16,8 +16,7 @@ export interface TargetToolbarProps {
   setTargetSubTab: (tab: "active" | "history") => void;
   targetsCount: number;
   actionRequiredCount: number;
-  overbidCount?: number;
-  underbidCount?: number;
+  driftCount?: number;
   safeCount?: number;
   exceedsBalanceCount?: number;
   userBalance?: number;
@@ -41,8 +40,7 @@ export interface TargetToolbarProps {
 type ChipType =
   | "all"
   | "action"
-  | "overbid"
-  | "underbid"
+  | "drift"
   | "safe"
   | "hold"
   | "exceeds";
@@ -51,10 +49,8 @@ const getFilterSelectLabel = (filter: FilterAction, count: number): string => {
   switch (filter) {
     case "action_required":
       return `Action ${count}`;
-    case "overbid":
-      return `Overbid ${count}`;
-    case "underbid":
-      return `Underbid ${count}`;
+    case "drift":
+      return `Drift ${count}`;
     case "safe":
       return `Safe ${count}`;
     case "hold":
@@ -72,8 +68,7 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
   setTargetSubTab,
   targetsCount,
   actionRequiredCount,
-  overbidCount = 0,
-  underbidCount = 0,
+  driftCount = 0,
   safeCount = 0,
   exceedsBalanceCount = 0,
   userBalance,
@@ -188,29 +183,16 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
               </button>
             )}
 
-            {overbidCount > 0 && (
+            {driftCount > 0 && (
               <button
                 type="button"
                 onClick={() =>
-                  setFilterAction(filterAction === "overbid" ? "all" : "overbid")
+                  setFilterAction(filterAction === "drift" ? "all" : "drift")
                 }
-                style={getFilterChipStyle(filterAction === "overbid", "overbid")}
+                style={getFilterChipStyle(filterAction === "drift", "drift")}
+                title={`${driftCount} target(s) drifting from Oracle Buy Ceiling`}
               >
-                Overbid ({overbidCount})
-              </button>
-            )}
-
-            {underbidCount > 0 && (
-              <button
-                type="button"
-                onClick={() =>
-                  setFilterAction(
-                    filterAction === "underbid" ? "all" : "underbid",
-                  )
-                }
-                style={getFilterChipStyle(filterAction === "underbid", "underbid")}
-              >
-                Underbid ({underbidCount})
+                Drift ({driftCount})
               </button>
             )}
 
@@ -367,19 +349,12 @@ const getFilterChipStyle = (
         backgroundColor: active ? "rgba(245, 158, 11, 0.22)" : "transparent",
         color: active ? "#fbbf24" : "var(--so-text-secondary)",
       };
-    case "overbid":
+    case "drift":
       return {
         ...base,
-        border: `1px solid ${active ? "rgba(239, 68, 68, 0.5)" : "transparent"}`,
-        backgroundColor: active ? "rgba(239, 68, 68, 0.22)" : "transparent",
-        color: active ? "#f87171" : "var(--so-text-secondary)",
-      };
-    case "underbid":
-      return {
-        ...base,
-        border: `1px solid ${active ? "rgba(249, 115, 22, 0.5)" : "transparent"}`,
-        backgroundColor: active ? "rgba(249, 115, 22, 0.22)" : "transparent",
-        color: active ? "#fb923c" : "var(--so-text-secondary)",
+        border: `1px solid ${active ? "rgba(6, 182, 212, 0.5)" : "transparent"}`,
+        backgroundColor: active ? "rgba(6, 182, 212, 0.22)" : "transparent",
+        color: active ? "var(--so-accent-cyan)" : "var(--so-text-secondary)",
       };
     case "safe":
       return {
@@ -391,9 +366,9 @@ const getFilterChipStyle = (
     case "hold":
       return {
         ...base,
-        border: `1px solid ${active ? "rgba(6, 182, 212, 0.5)" : "transparent"}`,
-        backgroundColor: active ? "rgba(6, 182, 212, 0.22)" : "transparent",
-        color: active ? "var(--so-accent-cyan)" : "var(--so-text-secondary)",
+        border: `1px solid ${active ? "rgba(168, 85, 247, 0.5)" : "transparent"}`,
+        backgroundColor: active ? "rgba(168, 85, 247, 0.22)" : "transparent",
+        color: active ? "#c084fc" : "var(--so-text-secondary)",
       };
     case "exceeds":
       return {

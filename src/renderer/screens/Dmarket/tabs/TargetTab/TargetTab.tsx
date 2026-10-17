@@ -771,10 +771,12 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         const driftDetails = getDrift(target);
         if (filterAction === "action_required") {
           if (!driftDetails || !driftDetails.isActionRequired) return false;
-        } else if (filterAction === "overbid") {
-          if (!driftDetails || !driftDetails.isOverbid) return false;
-        } else if (filterAction === "underbid") {
-          if (!driftDetails || !driftDetails.isUnderbid) return false;
+        } else if (filterAction === "drift") {
+          if (
+            !driftDetails ||
+            (!driftDetails.isOverbid && !driftDetails.isUnderbid)
+          )
+            return false;
         } else if (filterAction === "safe") {
           if (!driftDetails || driftDetails.isActionRequired) return false;
         } else if (filterAction === "hold") {
@@ -831,13 +833,12 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
   const actionRequiredCount = actionRequiredTargets.length;
 
-  const overbidCount = useMemo(
-    () => targets.filter((t) => getDrift(t)?.isOverbid).length,
-    [targets, targetAnalysis, driftThresholdPercent],
-  );
-
-  const underbidCount = useMemo(
-    () => targets.filter((t) => getDrift(t)?.isUnderbid).length,
+  const driftCount = useMemo(
+    () =>
+      targets.filter((t) => {
+        const d = getDrift(t);
+        return !!d && (d.isOverbid || d.isUnderbid);
+      }).length,
     [targets, targetAnalysis, driftThresholdPercent],
   );
 
@@ -969,8 +970,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         setTargetSubTab={setTargetSubTab}
         targetsCount={targets.length}
         actionRequiredCount={actionRequiredCount}
-        overbidCount={overbidCount}
-        underbidCount={underbidCount}
+        driftCount={driftCount}
         safeCount={safeCount}
         exceedsBalanceCount={exceedsBalanceCount}
         userBalance={userBalance}

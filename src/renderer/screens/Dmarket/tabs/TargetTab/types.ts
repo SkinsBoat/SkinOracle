@@ -1,7 +1,7 @@
 import React from "react";
 import { DmarketTargetItem, TargetAnalysis } from "../../../../../shared/types";
 
-export type FilterAction = "all" | "action_required" | "overbid" | "underbid" | "safe" | "hold" | "exceeds";
+export type FilterAction = "all" | "action_required" | "drift" | "safe" | "hold" | "exceeds";
 
 export interface TargetDriftDetails {
   acceptedPrice: number;

@@ -111,13 +111,13 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
       }}
       onClick={() => onToggleSelect(offer.id)}
     >
-      {/* Top Header Row */}
+      {/* Top Header Row: Action Icons */}
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-start",
           alignItems: "center",
-          height: "20px",
+          minHeight: "20px",
         }}
       >
         <div
@@ -214,8 +214,16 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
             <Handshake size={12} />
           </button>
         </div>
+      </div>
 
-        {/* Analysis Drift Badge */}
+      {/* Analysis Drift Badge (own row so it never overlaps the actions) */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-start",
+          alignItems: "center",
+        }}
+      >
         {analysis ? (
           analysis.isOverpriced ? (
             <span

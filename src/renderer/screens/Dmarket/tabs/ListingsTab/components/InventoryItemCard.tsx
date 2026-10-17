@@ -124,13 +124,13 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
       }}
       onClick={() => onToggleSelect(item.assetId)}
     >
-      {/* Header Row */}
+      {/* Header Row: Action Icons */}
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-start",
           alignItems: "center",
-          height: "22px",
+          minHeight: "22px",
         }}
       >
         <div
@@ -239,27 +239,27 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
             <Handshake size={12} />
           </button>
         </div>
+      </div>
 
-        <div
+      {/* Trade status badge (own row so it never overlaps the actions) */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-start",
+          alignItems: "center",
+        }}
+      >
+        <span
+          className={`badge ${item.tradable ? "badge-success" : "badge-warning"}`}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            flexShrink: 0,
+            fontSize: "8.5px",
+            padding: "1px 6px",
+            fontWeight: 800,
+            whiteSpace: "nowrap",
           }}
         >
-          <span
-            className={`badge ${item.tradable ? "badge-success" : "badge-warning"}`}
-            style={{
-              fontSize: "8.5px",
-              padding: "1px 6px",
-              fontWeight: 800,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {item.tradable ? "TRADABLE" : "LOCKED"}
-          </span>
-        </div>
+          {item.tradable ? "TRADABLE" : "LOCKED"}
+        </span>
       </div>
 
       {/* Image Showcase */}
