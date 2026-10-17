@@ -508,7 +508,10 @@ export const RaidScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleSelectAll}
-                    style={styles.selectAllBtn}
+                    disabled={selectedRows.length >= audit.summary.valuedItems}
+                    style={getBulkBtnStyle(
+                      selectedRows.length >= audit.summary.valuedItems,
+                    )}
                     title="Include every matched listing in the offer"
                   >
                     Select All
@@ -516,10 +519,11 @@ export const RaidScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleClearAll}
-                    style={styles.selectAllBtn}
-                    title="Exclude every matched listing from the offer"
+                    disabled={selectedRows.length === 0}
+                    style={getBulkBtnStyle(selectedRows.length === 0)}
+                    title="Unselect every matched listing, then click only the items you need"
                   >
-                    Clear
+                    Unselect All
                   </button>
                 </>
               )}
@@ -957,6 +961,14 @@ function getInputWrapperStyle(isFocused: boolean): React.CSSProperties {
 
 function raidRowKey(row: RaidAuditRow): string {
   return `${row.item.marketplace}:${row.item.id}`;
+}
+
+function getBulkBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    ...styles.selectAllBtn,
+    opacity: disabled ? 0.45 : 1,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+  };
 }
 
 function getOfferBtnStyle(disabled: boolean): React.CSSProperties {
