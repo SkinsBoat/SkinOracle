@@ -9,9 +9,50 @@ import {
 } from "lucide-react";
 import { useOracleStore } from "../../../../store/useOracleStore";
 import { useAutoRefreshStore } from "../../../../store/useAutoRefreshStore";
+import { safeGetItem, safeSetItem } from "../../../../utils/storage";
 import type { AutoRefreshStatus } from "../../../../../shared/types/autoRefresh.types";
 
 const PRESET_MINUTES = [15, 30, 60, 120];
+const INTERVAL_PREF_KEY = "so_auto_refresh_interval";
+
+type CustomUnit = "minutes" | "hours";
+
+interface IntervalPreference {
+  selectedMinutes: number | null;
+  customValue: number;
+  customUnit: CustomUnit;
+}
+
+function loadIntervalPreference(): IntervalPreference | null {
+  const raw = safeGetItem(INTERVAL_PREF_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<IntervalPreference>;
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const customValue =
+      typeof parsed.customValue === "number" &&
+      Number.isFinite(parsed.customValue)
+        ? Math.max(1, Math.round(parsed.customValue))
+        : 4;
+    const customUnit: CustomUnit =
+      parsed.customUnit === "minutes" ? "minutes" : "hours";
+    const selectedMinutes =
+      typeof parsed.selectedMinutes === "number" &&
+      Number.isFinite(parsed.selectedMinutes) &&
+      PRESET_MINUTES.includes(parsed.selectedMinutes)
+        ? parsed.selectedMinutes
+        : null;
+
+    return { selectedMinutes, customValue, customUnit };
+  } catch {
+    return null;
+  }
+}
+
+function saveIntervalPreference(preference: IntervalPreference): void {
+  safeSetItem(INTERVAL_PREF_KEY, JSON.stringify(preference));
+}
 
 export const formatInterval = (minutes: number): string => {
   if (minutes % 60 === 0 && minutes >= 60) {
@@ -34,12 +75,20 @@ export const AutoRefreshControl: React.FC = () => {
   const setAutoRefreshStatus = useAutoRefreshStore((s) => s.setStatus);
 
   const [status, setStatus] = useState<AutoRefreshStatus | null>(null);
-  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(30);
-  const [customValue, setCustomValue] = useState<number>(4);
-  const [customUnit, setCustomUnit] = useState<"minutes" | "hours">("hours");
+  const [initialPreference] = useState(loadIntervalPreference);
+  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(
+    initialPreference ? initialPreference.selectedMinutes : 30,
+  );
+  const [customValue, setCustomValue] = useState<number>(
+    initialPreference?.customValue ?? 4,
+  );
+  const [customUnit, setCustomUnit] = useState<CustomUnit>(
+    initialPreference?.customUnit ?? "hours",
+  );
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  // Collapsed by default; auto-refresh starts OFF on every app open.
+  // Collapsed by default; auto-refresh starts OFF on every app open, but the
+  // trader's interval selection is restored across restarts.
   const [isExpanded, setIsExpanded] = useState(false);
 
   const customMinutes = Math.max(
@@ -62,6 +111,27 @@ export const AutoRefreshControl: React.FC = () => {
     setAutoRefreshStatus(status);
   }, [status, setAutoRefreshStatus]);
 
+  const applyIntervalMinutes = useCallback((minutes: number) => {
+    const safeMinutes = Math.max(1, Math.round(minutes));
+    if (PRESET_MINUTES.includes(safeMinutes)) {
+      setSelectedMinutes(safeMinutes);
+      return;
+    }
+    setSelectedMinutes(null);
+    if (safeMinutes % 60 === 0) {
+      setCustomValue(safeMinutes / 60);
+      setCustomUnit("hours");
+    } else {
+      setCustomValue(safeMinutes);
+      setCustomUnit("minutes");
+    }
+  }, []);
+
+  // Remember the trader's interval selection across app restarts.
+  useEffect(() => {
+    saveIntervalPreference({ selectedMinutes, customValue, customUnit });
+  }, [selectedMinutes, customValue, customUnit]);
+
   // Restore scheduler state from the main process and subscribe to updates.
   useEffect(() => {
     if (!api) return;
@@ -72,17 +142,10 @@ export const AutoRefreshControl: React.FC = () => {
       .then((s) => {
         if (!mounted || !s) return;
         setStatus(s);
-        if (PRESET_MINUTES.includes(s.intervalMinutes)) {
-          setSelectedMinutes(s.intervalMinutes);
-        } else {
-          setSelectedMinutes(null);
-          if (s.intervalMinutes % 60 === 0) {
-            setCustomValue(s.intervalMinutes / 60);
-            setCustomUnit("hours");
-          } else {
-            setCustomValue(s.intervalMinutes);
-            setCustomUnit("minutes");
-          }
+        // A running scheduler is authoritative. When it is off, keep the
+        // persisted preference instead of the main-process default interval.
+        if (s.enabled || !initialPreference) {
+          applyIntervalMinutes(s.intervalMinutes);
         }
       })
       .catch(() => {});
@@ -95,7 +158,7 @@ export const AutoRefreshControl: React.FC = () => {
       mounted = false;
       unsubscribe?.();
     };
-  }, [api]);
+  }, [api, applyIntervalMinutes, initialPreference]);
 
   // 1s ticker for the live countdown.
   useEffect(() => {

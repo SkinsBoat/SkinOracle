@@ -17,6 +17,7 @@ export interface TargetToolbarProps {
   targetsCount: number;
   actionRequiredCount: number;
   driftCount?: number;
+  unmatchedCount?: number;
   safeCount?: number;
   exceedsBalanceCount?: number;
   userBalance?: number;
@@ -41,6 +42,7 @@ type ChipType =
   | "all"
   | "action"
   | "drift"
+  | "unmatched"
   | "safe"
   | "hold"
   | "exceeds";
@@ -51,6 +53,8 @@ const getFilterSelectLabel = (filter: FilterAction, count: number): string => {
       return `Action ${count}`;
     case "drift":
       return `Drift ${count}`;
+    case "unmatched":
+      return `Unmatched ${count}`;
     case "safe":
       return `Safe ${count}`;
     case "hold":
@@ -69,6 +73,7 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
   targetsCount,
   actionRequiredCount,
   driftCount = 0,
+  unmatchedCount = 0,
   safeCount = 0,
   exceedsBalanceCount = 0,
   userBalance,
@@ -193,6 +198,24 @@ export const TargetToolbar: React.FC<TargetToolbarProps> = ({
                 title={`${driftCount} target(s) drifting from Oracle Buy Ceiling`}
               >
                 Drift ({driftCount})
+              </button>
+            )}
+
+            {unmatchedCount > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFilterAction(
+                    filterAction === "unmatched" ? "all" : "unmatched",
+                  )
+                }
+                style={getFilterChipStyle(
+                  filterAction === "unmatched",
+                  "unmatched",
+                )}
+                title={`${unmatchedCount} target(s) have no matching Oracle Buy Ceiling`}
+              >
+                Unmatched ({unmatchedCount})
               </button>
             )}
 
@@ -355,6 +378,13 @@ const getFilterChipStyle = (
         border: `1px solid ${active ? "rgba(6, 182, 212, 0.5)" : "transparent"}`,
         backgroundColor: active ? "rgba(6, 182, 212, 0.22)" : "transparent",
         color: active ? "var(--so-accent-cyan)" : "var(--so-text-secondary)",
+      };
+    case "unmatched":
+      return {
+        ...base,
+        border: `1px solid ${active ? "rgba(148, 163, 184, 0.5)" : "transparent"}`,
+        backgroundColor: active ? "rgba(148, 163, 184, 0.2)" : "transparent",
+        color: active ? "#ffffff" : "var(--so-text-secondary)",
       };
     case "safe":
       return {

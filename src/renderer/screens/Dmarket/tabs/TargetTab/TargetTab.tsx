@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
-import { Loader2, Target } from "lucide-react";
+import { AlertTriangle, Loader2, Target } from "lucide-react";
 import { DmarketTargetItem, AcceptedPriceInfo } from "../../../../../shared/types";
 import { TargetAnalysis } from "../../dmarket-utils";
 import {
@@ -765,6 +765,12 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
   const clearSelection = () => setSelectedTargets({});
 
+  // Whether any Oracle accepted prices have been matched (gates "Unmatched")
+  const hasMatchedPrices = useMemo(
+    () => Object.values(targetAnalysis).some((a) => !!a?.acceptedPrice),
+    [targetAnalysis],
+  );
+
   const filteredTargets = useMemo(() => {
     return targets.filter((target) => {
       if (filterAction !== "all") {
@@ -775,6 +781,12 @@ export const TargetTab: React.FC<TargetTabProps> = ({
           if (
             !driftDetails ||
             (!driftDetails.isOverbid && !driftDetails.isUnderbid)
+          )
+            return false;
+        } else if (filterAction === "unmatched") {
+          if (
+            !hasMatchedPrices ||
+            !!targetAnalysis[target.targetId]?.acceptedPrice
           )
             return false;
         } else if (filterAction === "safe") {
@@ -813,6 +825,14 @@ export const TargetTab: React.FC<TargetTabProps> = ({
     return targets.filter((t) => !!targetAnalysis[t.targetId]?.acceptedPrice)
       .length;
   }, [targets, targetAnalysis]);
+
+  // Targets with no matching Oracle accepted price after prices were loaded
+  const unmatchedCount = useMemo(() => {
+    if (!hasMatchedPrices) return 0;
+    return targets.filter(
+      (t) => !targetAnalysis[t.targetId]?.acceptedPrice,
+    ).length;
+  }, [targets, targetAnalysis, hasMatchedPrices]);
 
   const actionRequiredTargets = useMemo(() => {
     return targets.filter((t) => {
@@ -971,6 +991,7 @@ export const TargetTab: React.FC<TargetTabProps> = ({
         targetsCount={targets.length}
         actionRequiredCount={actionRequiredCount}
         driftCount={driftCount}
+        unmatchedCount={unmatchedCount}
         safeCount={safeCount}
         exceedsBalanceCount={exceedsBalanceCount}
         userBalance={userBalance}
@@ -999,15 +1020,30 @@ export const TargetTab: React.FC<TargetTabProps> = ({
               <Loader2 size={32} className="spin" style={styles.loadingSpinner} />
               <div>Loading active targets from DMarket...</div>
             </div>
-          ) : filteredTargets.length === 0 ? (
+          ) : targets.length === 0 ? (
             <div className="card" style={styles.emptyCard}>
               <Target size={38} style={styles.emptyIcon} />
               <div style={styles.emptyTitle}>No targets found</div>
               <div style={styles.emptySubtitle}>
-                {filterAction !== "all"
-                  ? 'Try switching filter back to "All"'
-                  : "No active buy targets found on your DMarket account"}
+                No active targets found on your DMarket account
               </div>
+            </div>
+          ) : filteredTargets.length === 0 ? (
+            <div className="card" style={styles.filterNoMatchCard}>
+              <AlertTriangle size={28} style={styles.filterNoMatchIcon} />
+              <div style={styles.filterNoMatchTitle}>
+                No Targets Match Filter "{getFilterLabel(filterAction)}"
+              </div>
+              <div style={styles.emptySubtitle}>
+                There are no targets under this filter right now.
+              </div>
+              <button
+                className="btn btn-sm btn-outline"
+                style={styles.showAllBtn}
+                onClick={() => handleSetFilterAction("all")}
+              >
+                Show All Targets ({targets.length})
+              </button>
             </div>
           ) : (
             <div style={getCardsGridStyle(selectedCount > 0)}>
@@ -1074,6 +1110,19 @@ export const TargetTab: React.FC<TargetTabProps> = ({
 
 // ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
 
+const FILTER_LABELS: Record<FilterAction, string> = {
+  all: "All",
+  action_required: "Action Required",
+  drift: "Drift",
+  unmatched: "Unmatched",
+  safe: "Safe",
+  hold: "Hold",
+  exceeds: "Exceeds Balance",
+};
+
+const getFilterLabel = (filter: FilterAction): string =>
+  FILTER_LABELS[filter] ?? "All";
+
 const getCardsGridStyle = (hasSelectedTargets: boolean): React.CSSProperties => ({
   display: "grid",
   gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
@@ -1115,5 +1164,31 @@ const styles = {
   emptySubtitle: {
     fontSize: "12.5px",
     marginTop: "4px",
+  } as React.CSSProperties,
+
+  filterNoMatchCard: {
+    textAlign: "center",
+    padding: "40px 20px",
+    color: "var(--so-text-muted)",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-medium)",
+    borderRadius: "var(--so-radius-md)",
+  } as React.CSSProperties,
+
+  filterNoMatchIcon: {
+    margin: "0 auto 8px",
+    color: "var(--so-accent-cyan)",
+    opacity: 0.8,
+  } as React.CSSProperties,
+
+  filterNoMatchTitle: {
+    fontSize: "14px",
+    fontWeight: 700,
+    color: "var(--so-text-primary)",
+    marginBottom: "4px",
+  } as React.CSSProperties,
+
+  showAllBtn: {
+    marginTop: "10px",
   } as React.CSSProperties,
 };
