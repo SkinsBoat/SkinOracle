@@ -30,6 +30,7 @@ import {
   SkinportShopApiResponse,
 } from "./skinport.types";
 import { RaidOfferPayload, RaidParseResult } from "./raid.types";
+import { WebRtcSessionInitResult } from "./webrtc.types";
 import {
   DealMakerItem,
   DealMakerOffer,
@@ -471,6 +472,12 @@ export interface ElectronAPI {
       limit?: number,
       cursor?: string,
     ) => Promise<DmarketDepositBlockedTitlesResponse>;
+  };
+  webrtc: {
+    createSession: (
+      idempotencyKey?: string,
+      itemCount?: number,
+    ) => Promise<WebRtcSessionInitResult>;
   };
   balance: {
     getBalance: () => Promise<{

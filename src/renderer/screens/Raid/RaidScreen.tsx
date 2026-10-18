@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   AlertTriangle,
   ClipboardPaste,
   Crosshair,
   FileDown,
+  Handshake,
   Radar,
   Search,
   ShieldCheck,
@@ -47,6 +49,7 @@ import { RaidSellerHeader } from './components/RaidSellerHeader';
 import { RaidFilterBar } from './components/RaidFilterBar';
 import { RaidItemCard } from './components/RaidItemCard';
 import { RaidBookmarks } from './components/RaidBookmarks';
+import { RaidNegotiationModal } from './components/RaidNegotiationModal';
 
 /**
  * RAID — Targeted Seller Auditor.
@@ -67,6 +70,11 @@ export const RaidScreen: React.FC = () => {
   const [excludedKeys, setExcludedKeys] = useState<Set<string>>(new Set());
   const [scannedAt, setScannedAt] = useState<number | null>(null);
   const [isExportingOffer, setIsExportingOffer] = useState(false);
+  const [isNegotiationOpen, setIsNegotiationOpen] = useState(false);
+  const [sessionIdempotencyKey, setSessionIdempotencyKey] = useState<
+    string | null
+  >(null);
+  const navigate = useNavigate();
 
   // Monotonic token: only the newest scan may write results to state.
   const scanSeq = useRef(0);
@@ -205,6 +213,8 @@ export const RaidScreen: React.FC = () => {
     setItems([]);
     setScannedAt(null);
     setExcludedKeys(new Set());
+    setIsNegotiationOpen(false);
+    setSessionIdempotencyKey(null);
 
     try {
       const api = window.electronAPI;
@@ -298,6 +308,24 @@ export const RaidScreen: React.FC = () => {
       canonicalUrl: seller.url,
       scanSupported: true,
     });
+  };
+
+  const handleStartLiveRoom = () => {
+    if (!offer || offer.summary.itemCount === 0) return;
+    const confirmed = window.confirm(
+      'Starting a live session costs $0.20. Continue?',
+    );
+    if (!confirmed) return;
+
+    const cryptoApi = (globalThis as any)?.crypto;
+    const key =
+      typeof cryptoApi?.randomUUID === 'function'
+        ? String(cryptoApi.randomUUID())
+        : `${Date.now().toString(36)}-${Math.random()
+            .toString(36)
+            .slice(2, 12)}`;
+    setSessionIdempotencyKey(key);
+    setIsNegotiationOpen(true);
   };
 
   const handleExportOffer = async () => {
@@ -529,6 +557,18 @@ export const RaidScreen: React.FC = () => {
               )}
               <button
                 type="button"
+                onClick={handleStartLiveRoom}
+                disabled={!offer || offer.summary.itemCount === 0}
+                style={getLiveRoomBtnStyle(
+                  !offer || offer.summary.itemCount === 0,
+                )}
+                title="Host a live P2P negotiation table ($0.20 per session)"
+              >
+                <Handshake size={14} />
+                <span>Start Live Room</span>
+              </button>
+              <button
+                type="button"
                 onClick={handleExportOffer}
                 disabled={
                   isExportingOffer || !offer || offer.summary.itemCount === 0
@@ -621,6 +661,23 @@ export const RaidScreen: React.FC = () => {
             />
           </div>
         </div>
+      )}
+
+      {isNegotiationOpen && seller && sessionIdempotencyKey && (
+        <RaidNegotiationModal
+          seller={seller}
+          rows={selectedRows}
+          sessionIdempotencyKey={sessionIdempotencyKey}
+          onClose={() => {
+            setIsNegotiationOpen(false);
+            setSessionIdempotencyKey(null);
+          }}
+          onTopUp={() => {
+            setIsNegotiationOpen(false);
+            setSessionIdempotencyKey(null);
+            navigate('/balance');
+          }}
+        />
       )}
     </div>
   );
@@ -968,6 +1025,26 @@ function getBulkBtnStyle(disabled: boolean): React.CSSProperties {
     ...styles.selectAllBtn,
     opacity: disabled ? 0.45 : 1,
     cursor: disabled ? 'not-allowed' : 'pointer',
+  };
+}
+
+function getLiveRoomBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    height: '34px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '7px',
+    padding: '0 14px',
+    borderRadius: '8px',
+    backgroundColor: disabled ? 'rgba(22, 163, 74, 0.35)' : '#16a34a',
+    border: 'none',
+    color: disabled ? 'rgba(255, 255, 255, 0.6)' : '#ffffff',
+    fontSize: '12.5px',
+    fontWeight: 800,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    whiteSpace: 'nowrap',
+    boxSizing: 'border-box',
+    boxShadow: disabled ? 'none' : '0 3px 10px rgba(22, 163, 74, 0.28)',
   };
 }
 

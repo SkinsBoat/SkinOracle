@@ -17,6 +17,7 @@ import type {
   SkinportShopApiResponse,
 } from "../shared/types/skinport.types";
 import type { RaidOfferPayload, RaidParseResult } from "../shared/types/raid.types";
+import type { WebRtcSessionInitResult } from "../shared/types/webrtc.types";
 
 /**
  * Clean helper function to invoke IPC channels and strip Electron's wrapper noise.
@@ -475,6 +476,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke("balance:get-deposit-history", page, limit),
     syncDeposit: (depositId: string) =>
       safeInvoke("balance:sync-deposit", depositId),
+  },
+
+  // ── Live Negotiation Table billing / TURN ──────────────────────
+  webrtc: {
+    createSession: (idempotencyKey?: string, itemCount?: number) =>
+      safeInvoke<WebRtcSessionInitResult>(
+        "webrtc:create-session",
+        idempotencyKey,
+        itemCount,
+      ),
   },
 
   // ── 10-Minute Flash DealMaker Floor ────────────────────────────

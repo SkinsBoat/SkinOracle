@@ -27,6 +27,7 @@ import { setupNotificationIPC } from "./ipc/notification.ipc";
 import { setupTrendMarketIPC } from "./ipc/trendMarket.ipc";
 import { setupAutoRefreshIPC } from "./ipc/autoRefresh.ipc";
 import { setupMediaIPC } from "./ipc/media.ipc";
+import { setupWebRtcIPC } from "./ipc/webrtc.ipc";
 import "../storage/secure-store";
 import { autoUpdateService } from "./services/autoUpdater";
 import { setMainWindow, focusMainWindow } from "./windowManager";
@@ -49,6 +50,7 @@ setupNotificationIPC();
 setupTrendMarketIPC();
 setupAutoRefreshIPC();
 setupMediaIPC();
+setupWebRtcIPC();
 
 function createWindow() {
   const isDev = !!process.env.VITE_DEV_SERVER_URL;

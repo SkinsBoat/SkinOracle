@@ -49,6 +49,7 @@ export interface NormalizedApiErrorDetails {
   errorId?: string;
   help?: string;
   minVersion?: string;
+  details?: Record<string, any>;
   rawMessage: string;
   displayMessage: string;
 }
@@ -66,6 +67,7 @@ export function extractApiErrorDetails(err: any): NormalizedApiErrorDetails {
   const errorId: string | undefined = errorObj?.errorId;
   const help: string | undefined = errorObj?.help;
   const minVersion: string | undefined = errorObj?.minVersion || body?.minVersion;
+  const details: Record<string, any> | undefined = errorObj?.details;
 
   const rawMessage: string =
     errorObj?.message ||
@@ -93,6 +95,7 @@ export function extractApiErrorDetails(err: any): NormalizedApiErrorDetails {
     errorId,
     help,
     minVersion,
+    details,
     rawMessage,
     displayMessage,
   };
