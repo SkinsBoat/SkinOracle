@@ -2,7 +2,9 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import { RaidOfferPayload } from "../../shared/types/raid.types";
+import { DealExportPayload } from "../../shared/types/dealExport.types";
 import { buildOfferHtml } from "../../shared/offerHtml";
+import { buildDealHtml } from "../../shared/dealHtml";
 import { parseStorefrontClipboard } from "../../shared/raidStorefront";
 
 // ─────────────────────────────────────────────────────────────────
@@ -91,3 +93,69 @@ ipcMain.handle("raid:export-offer", async (event, payload: RaidOfferPayload) => 
     }
   }
 });
+
+
+ipcMain.handle(
+  "raid:export-negotiation-deal",
+  async (event, payload: DealExportPayload) => {
+    if (
+      !payload ||
+      !payload.roomId ||
+      !payload.dealLocked ||
+      !Array.isArray(payload.items)
+    ) {
+      throw new Error("Only a locked, valid negotiation deal can be exported.");
+    }
+
+    const parent = BrowserWindow.fromWebContents(event.sender);
+    const date = new Date().toISOString().slice(0, 10);
+    const roomSuffix = sanitizeFileName(payload.roomId).slice(0, 12);
+    const defaultPath = `skinsboat-deal-${roomSuffix}-${date}.pdf`;
+    const dialogOptions = {
+      title: "Export Locked Deal",
+      defaultPath,
+      filters: [{ name: "PDF", extensions: ["pdf"] }],
+    };
+
+    const result = parent
+      ? await dialog.showSaveDialog(parent, dialogOptions)
+      : await dialog.showSaveDialog(dialogOptions);
+
+    if (result.canceled || !result.filePath) {
+      return { canceled: true as const };
+    }
+
+    const html = buildDealHtml(payload);
+    const tmpHtml = path.join(
+      app.getPath("temp"),
+      `skinsboat-deal-${Date.now()}.html`,
+    );
+    fs.writeFileSync(tmpHtml, html, "utf8");
+
+    const win = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        sandbox: true,
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    try {
+      await win.loadFile(tmpHtml);
+      const pdf = await win.webContents.printToPDF({
+        printBackground: true,
+        preferCSSPageSize: true,
+      });
+      fs.writeFileSync(result.filePath, pdf);
+      return { canceled: false as const, filePath: result.filePath };
+    } finally {
+      win.destroy();
+      try {
+        fs.unlinkSync(tmpHtml);
+      } catch {
+        // Temp cleanup is best-effort.
+      }
+    }
+  },
+);

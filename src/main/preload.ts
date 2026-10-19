@@ -17,6 +17,7 @@ import type {
   SkinportShopApiResponse,
 } from "../shared/types/skinport.types";
 import type { RaidOfferPayload, RaidParseResult } from "../shared/types/raid.types";
+import type { DealExportPayload } from "../shared/types/dealExport.types";
 import type { WebRtcSessionInitResult } from "../shared/types/webrtc.types";
 
 /**
@@ -302,6 +303,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   raid: {
     exportOffer: (payload: RaidOfferPayload) =>
       safeInvoke("raid:export-offer", payload),
+    exportNegotiationDeal: (payload: DealExportPayload) =>
+      safeInvoke("raid:export-negotiation-deal", payload),
     // Reads the clipboard in main and returns only a validated storefront ref.
     pasteStorefront: () =>
       safeInvoke<RaidParseResult>("raid:paste-storefront"),

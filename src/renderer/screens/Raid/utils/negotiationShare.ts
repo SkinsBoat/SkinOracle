@@ -21,10 +21,8 @@ import type {
   NegotiationState,
 } from '../types/negotiation.types';
 import { NEGOTIATION_LIMITS } from '../types/negotiation.types';
-import {
-  NEGOTIATION_MARKETPLACES,
-  parseNegotiationState,
-} from './negotiationState';
+import { NEGOTIATION_MARKETPLACES } from './negotiationMath';
+import { parseNegotiationState } from './negotiationValidation';
 
 export const SHARE_PAYLOAD_VERSION = 2;
 export const LEGACY_SHARE_PAYLOAD_VERSION = 1;

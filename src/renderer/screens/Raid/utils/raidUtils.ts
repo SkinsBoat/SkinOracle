@@ -190,13 +190,17 @@ export function normalizeDmarketStore(
   const raw = extractDmarketOffers(res);
 
   const items: RaidStockItem[] = raw
-    .map((offer) => {
+    .map((offer, index) => {
       const name = offer.title;
       const price = toUsd(offer.priceCents);
       if (!name || !price) return null;
 
       return {
-        id: String(offer.offerId ?? offer.assetId ?? `${name}:${offer.priceCents}`),
+        id: String(
+          offer.offerId ??
+            offer.assetId ??
+            `${name}:${offer.priceCents}:${index}`,
+        ),
         marketplace: 'dmarket',
         marketHashName: name,
         price,
@@ -356,8 +360,6 @@ export function isAnyRaidFilterActive(filters: RaidFilters): boolean {
   return (
     filters.onlyRaids !== DEFAULT_RAID_FILTERS.onlyRaids ||
     filters.onlyCeiling !== DEFAULT_RAID_FILTERS.onlyCeiling ||
-    filters.minSpread.trim() !== '' ||
-    filters.minProfitPercent.trim() !== '' ||
     filters.searchQuery.trim() !== ''
   );
 }
@@ -368,10 +370,6 @@ export function filterRaidRows(
   filters: RaidFilters,
 ): RaidAuditRow[] {
   const query = filters.searchQuery.trim().toLowerCase();
-  const minSpread = parseFloat(filters.minSpread);
-  const hasMinSpread = !Number.isNaN(minSpread);
-  const minProfit = parseFloat(filters.minProfitPercent);
-  const hasMinProfit = !Number.isNaN(minProfit);
 
   return rows.filter((row) => {
     if (filters.onlyRaids && row.status !== 'raid') return false;
@@ -379,17 +377,6 @@ export function filterRaidRows(
     if (filters.onlyCeiling && row.status === 'no-ceiling') return false;
     if (query && !row.item.marketHashName.toLowerCase().includes(query)) {
       return false;
-    }
-    if (hasMinSpread) {
-      if (typeof row.spread !== 'number' || row.spread < minSpread) return false;
-    }
-    if (hasMinProfit) {
-      if (
-        typeof row.profitPercent !== 'number' ||
-        row.profitPercent < minProfit
-      ) {
-        return false;
-      }
     }
     return true;
   });

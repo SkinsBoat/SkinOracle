@@ -17,7 +17,7 @@ export interface RaidFilterBarProps {
   totalCount: number;
 }
 
-/** Trader-configured raid criteria: ceiling-only, search, spread/profit floors. */
+/** Trader-configured raid criteria: ceiling-only and skin search. */
 export const RaidFilterBar: React.FC<RaidFilterBarProps> = ({
   filters,
   onFilterChange,
@@ -58,28 +58,6 @@ export const RaidFilterBar: React.FC<RaidFilterBarProps> = ({
             onChange={(e) => onFilterChange('searchQuery', e.target.value)}
             placeholder="Filter by skin name…"
             style={styles.searchInput}
-          />
-        </div>
-
-        <div style={styles.numBox}>
-          <span style={styles.numLabel}>Min $</span>
-          <input
-            value={filters.minSpread}
-            onChange={(e) => onFilterChange('minSpread', e.target.value)}
-            inputMode="decimal"
-            placeholder="0"
-            style={styles.numInput}
-          />
-        </div>
-
-        <div style={styles.numBox}>
-          <span style={styles.numLabel}>Min %</span>
-          <input
-            value={filters.minProfitPercent}
-            onChange={(e) => onFilterChange('minProfitPercent', e.target.value)}
-            inputMode="decimal"
-            placeholder="0"
-            style={styles.numInput}
           />
         </div>
       </div>
@@ -163,31 +141,6 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none',
     color: 'var(--so-text-primary, #f8fafc)',
     fontSize: '12.5px',
-  },
-  numBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-    height: '32px',
-    padding: '0 9px',
-    borderRadius: '8px',
-    backgroundColor: 'var(--so-surface-input, #0d1117)',
-    border: '1px solid var(--so-border-subtle, #1e2430)',
-    boxSizing: 'border-box',
-  },
-  numLabel: {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'var(--so-text-muted, #64748b)',
-  },
-  numInput: {
-    width: '48px',
-    background: 'transparent',
-    border: 'none',
-    outline: 'none',
-    color: 'var(--so-text-primary, #f8fafc)',
-    fontSize: '12.5px',
-    fontWeight: 700,
   },
   sortBox: {
     display: 'flex',

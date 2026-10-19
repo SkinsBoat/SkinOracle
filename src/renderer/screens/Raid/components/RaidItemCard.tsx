@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   CheckSquare,
   Crosshair,
-  ExternalLink,
   Gavel,
   MinusCircle,
   ShieldCheck,
@@ -13,13 +12,11 @@ import {
 import { RaidAuditRow } from '../../../../shared/types/raid.types';
 import { SkinImage } from '../../../components/SkinImage';
 import { CopyMarketHashButton } from '../../../components/CopyMarketHashButton';
-import { MarketLogo } from '../../../components/MarketLogo';
 import TrendSparkline from '../../../components/TrendSparkline';
 import {
   formatPercent,
   formatSignedUsd,
   formatUsd,
-  getRaidMarketplaceName,
 } from '../utils/raidUtils';
 import {
   getWearColors,
@@ -30,7 +27,6 @@ export interface RaidItemCardProps {
   row: RaidAuditRow;
   isSelected: boolean;
   onToggleSelected: (row: RaidAuditRow) => void;
-  onOpenListing: (row: RaidAuditRow) => void;
 }
 
 /** One audited seller listing, scored against the trader's Buy Ceiling. */
@@ -38,7 +34,6 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
   row,
   isSelected,
   onToggleSelected,
-  onOpenListing,
 }) => {
   const { item, ceiling, spread, profitPercent, status } = row;
   const parsed = parseSkinHashName(item.marketHashName, item.exterior);
@@ -142,17 +137,13 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
         ) : (
           <span style={styles.patternPlaceholder}>&nbsp;</span>
         )}
-        <div style={styles.marketRow}>
-          <MarketLogo marketId={item.marketplace} size={12} showBackground={false} />
-          <span style={styles.marketText}>
-            {getRaidMarketplaceName(item.marketplace)}
-          </span>
-          {item.collection && (
+        {item.collection && (
+          <div style={styles.marketRow}>
             <span style={styles.collectionText} title={item.collection}>
-              • {item.collection}
+              {item.collection}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div style={styles.trendRow}>
@@ -191,19 +182,6 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
             No local Buy Ceiling — calculate accepted prices to score this item.
           </div>
         )}
-
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenListing(row);
-          }}
-          style={isRaid ? styles.buyBtn : styles.buyBtnMuted}
-          title="Open this listing to purchase"
-        >
-          <ExternalLink size={13} />
-          <span>{isRaid ? 'Buy Now' : 'Open Listing'}</span>
-        </button>
       </div>
     </div>
   );
@@ -329,11 +307,6 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '5px',
     marginTop: '2px',
   },
-  marketText: {
-    fontSize: '10.5px',
-    fontWeight: 700,
-    color: 'var(--so-text-muted, #64748b)',
-  },
   collectionText: {
     fontSize: '10.5px',
     color: 'var(--so-text-muted, #64748b)',
@@ -424,34 +397,6 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '4px',
     fontSize: '12.5px',
     fontWeight: 800,
-  },
-  buyBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '6px',
-    padding: '9px 14px',
-    borderRadius: '7px',
-    backgroundColor: '#16a34a',
-    border: 'none',
-    color: '#ffffff',
-    fontSize: '12.5px',
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-  buyBtnMuted: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '6px',
-    padding: '9px 14px',
-    borderRadius: '7px',
-    backgroundColor: 'var(--so-surface-panel, #181d27)',
-    border: '1px solid var(--so-border-subtle, #1e2430)',
-    color: 'var(--so-text-secondary, #94a3b8)',
-    fontSize: '12.5px',
-    fontWeight: 800,
-    cursor: 'pointer',
   },
 };
 

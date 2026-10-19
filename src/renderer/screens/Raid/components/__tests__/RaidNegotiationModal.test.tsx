@@ -90,7 +90,7 @@ function makeSession(
     shareUrl: `https://skinsboat.com/deal#room=${state.roomId}&token=guest-token`,
     guestToken: 'guest-token',
     remainingBalanceCents: 980,
-    sessionExpiresAt: new Date(Date.now() + 900_000).toISOString(),
+    sessionExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
     billingError: null,
     status: 'connected',
     transportMode: 'p2p',
@@ -493,6 +493,56 @@ describe('RaidNegotiationModal', () => {
     );
     fireEvent.click(screen.getByText('End Session'));
     expect(onEndSession).toHaveBeenCalled();
+  });
+
+  it('exports locked deal data to PDF without internal fields', async () => {
+    const exportNegotiationDeal = vi
+      .fn()
+      .mockResolvedValue({ canceled: false, filePath: '/tmp/deal.pdf' });
+    (window as any).electronAPI = {
+      raid: { exportNegotiationDeal },
+    };
+
+    const session = makeSession();
+    session.state = {
+      ...session.state,
+      dealLocked: true,
+      traderReady: true,
+      sellerReady: true,
+      items: session.state.items.map((item) => ({
+        ...item,
+        status: 'accepted',
+      })),
+    };
+    mockUseRaidPeerHost.mockReturnValue(session);
+
+    render(
+      <RaidNegotiationModal
+        seller={seller}
+        rows={auditRows()}
+        sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Export PDF'));
+
+    await waitFor(() => {
+      expect(exportNegotiationDeal).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = exportNegotiationDeal.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      roomId: session.state.roomId,
+      dealLocked: true,
+      traderReady: true,
+      sellerReady: true,
+    });
+    expect(payload.items).toHaveLength(2);
+    expect(JSON.stringify(payload)).not.toContain('ceiling');
+    expect(JSON.stringify(payload)).not.toContain('profitPercent');
   });
 
   it('closes on Escape', () => {

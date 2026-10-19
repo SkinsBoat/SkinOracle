@@ -144,19 +144,13 @@ export interface RaidFilters {
   onlyRaids: boolean;
   /** Restrict to items that matched a local Buy Ceiling (drop unvalued stock). */
   onlyCeiling: boolean;
-  /** Minimum USD spread required for a raid to be shown. */
-  minSpread: string;
-  /** Minimum profit percent required for a raid to be shown. */
-  minProfitPercent: string;
   /** Skin name search. */
   searchQuery: string;
 }
 
 export const DEFAULT_RAID_FILTERS: RaidFilters = {
   onlyRaids: false,
-  onlyCeiling: false,
-  minSpread: '',
-  minProfitPercent: '',
+  onlyCeiling: true,
   searchQuery: '',
 };
 

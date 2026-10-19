@@ -30,6 +30,7 @@ import {
   SkinportShopApiResponse,
 } from "./skinport.types";
 import { RaidOfferPayload, RaidParseResult } from "./raid.types";
+import { DealExportPayload } from "./dealExport.types";
 import { WebRtcSessionInitResult } from "./webrtc.types";
 import {
   DealMakerItem,
@@ -269,6 +270,9 @@ export interface ElectronAPI {
   raid: {
     exportOffer: (
       payload: RaidOfferPayload,
+    ) => Promise<{ canceled: boolean; filePath?: string }>;
+    exportNegotiationDeal: (
+      payload: DealExportPayload,
     ) => Promise<{ canceled: boolean; filePath?: string }>;
     pasteStorefront: () => Promise<RaidParseResult>;
   };

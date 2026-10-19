@@ -273,6 +273,28 @@ describe('raidUtils', () => {
       expect(items[1].stattrak).toBe(true);
       expect(items[1].price).toBeCloseTo(15, 5);
     });
+
+    it('keeps duplicate DMarket listings with distinct fallback ids', () => {
+      const { items } = normalizeDmarketStore(
+        {
+          offers: [
+            {
+              priceCents: 500,
+              title: 'AK-47 | Redline (Field-Tested)',
+            },
+            {
+              priceCents: 500,
+              title: 'AK-47 | Redline (Field-Tested)',
+            },
+          ],
+        },
+        '0x2222222222222222222222222222222222222222',
+      );
+
+      expect(items).toHaveLength(2);
+      expect(items[0].id).not.toBe(items[1].id);
+      expect(items[0].marketHashName).toBe(items[1].marketHashName);
+    });
   });
 
   describe('auditStock', () => {
@@ -370,18 +392,15 @@ describe('raidUtils', () => {
       expect(filtered.map((r) => r.item.id).sort()).toEqual(['a', 'c']);
     });
 
-    it('applies search and minimum spread', () => {
+    it('applies skin-name search', () => {
       const filtered = filterRaidRows(rows, {
-        onlyRaids: false,
-        onlyCeiling: false,
-        minSpread: '1',
-        minProfitPercent: '',
+        ...DEFAULT_RAID_FILTERS,
         searchQuery: 'item',
       });
-      expect(filtered.map((r) => r.item.id)).toEqual(['a']);
+      expect(filtered.map((r) => r.item.id)).toEqual(['a', 'b']);
     });
 
-    it('drops unvalued stock when onlyCeiling is on', () => {
+    it('drops unvalued stock under the default preset', () => {
       const { rows: stockRows } = auditStock(
         [
           { id: 'valued', marketplace: 'skinport', marketHashName: 'Valued', price: 5 },
@@ -389,10 +408,7 @@ describe('raidUtils', () => {
         ],
         { Valued: 10 },
       );
-      const filtered = filterRaidRows(stockRows, {
-        ...DEFAULT_RAID_FILTERS,
-        onlyCeiling: true,
-      });
+      const filtered = filterRaidRows(stockRows, DEFAULT_RAID_FILTERS);
       expect(filtered.map((r) => r.item.id)).toEqual(['valued']);
     });
   });
