@@ -22,6 +22,9 @@ const STOREFRONT_HANDLE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 /** CSFloat sellers are keyed by SteamID64 (17 digits). */
 const CSFLOAT_STEAM_ID_RE = /^\d{17}$/;
 
+/** Steam inventories are addressed by SteamID64 (17 digits). */
+const STEAM_ID64_RE = /^\d{17}$/;
+
 /** DMarket sellers resolve to a 0x saga address on the public exchange. */
 const DMARKET_SAGA_ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 
@@ -29,8 +32,9 @@ const DMARKET_SAGA_ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 const CLIPBOARD_MAX_LENGTH = 2048;
 
 /**
- * Provider registry. `skinport`, `csfloat` and `dmarket` are fully wired for
- * scanning; the others are recognized so pasted links resolve honestly.
+ * Provider registry. `skinport`, `csfloat`, `dmarket` and `steam` are fully
+ * wired for scanning; the others are recognized so pasted links resolve
+ * honestly.
  */
 export const RAID_PROVIDERS: RaidProviderInfo[] = [
   {
@@ -66,7 +70,7 @@ export const RAID_PROVIDERS: RaidProviderInfo[] = [
     name: "Steam Inventory",
     hosts: ["steamcommunity.com"],
     storefrontPrefixes: ["inventory", "profiles", "id"],
-    status: "soon",
+    status: "live",
   },
 ];
 
@@ -175,6 +179,28 @@ function buildDmarketRef(
   };
 }
 
+function buildSteamRef(
+  steamId: string,
+  originalUrl: string,
+): RaidParseResult {
+  if (!STEAM_ID64_RE.test(steamId)) {
+    return {
+      ok: false,
+      error: "A valid 17-digit SteamID64 is required for a Steam inventory.",
+    };
+  }
+  return {
+    ok: true,
+    ref: {
+      marketplace: "steam",
+      handle: steamId,
+      originalUrl,
+      canonicalUrl: `https://steamcommunity.com/profiles/${steamId}/inventory`,
+      scanSupported: true,
+    },
+  };
+}
+
 /**
  * Resolves pasted storefront text into a provider + seller handle.
  * Accepts full URLs (with or without scheme) and a bare Skinport shop slug.
@@ -185,9 +211,24 @@ export function parseStorefrontUrl(raw: string): RaidParseResult {
     return { ok: false, error: "Paste a seller storefront link to raid." };
   }
 
-  // Bare, unambiguous identifiers.
+  // Explicit Steam prefix (`steam:7656119…`) disambiguates the shared
+  // SteamID64 format from a bare CSFloat stall id.
+  const steamPrefixed = input.match(/^steam(?:id)?:(.+)$/i);
+  if (steamPrefixed) {
+    const id = (steamPrefixed[1].match(/\b(\d{17})\b/) || [])[1];
+    return id
+      ? buildSteamRef(id, input)
+      : {
+          ok: false,
+          error:
+            "Include a 17-digit SteamID64 after `steam:` (for example steam:76561199097176449).",
+        };
+  }
+
+  // Bare, unambiguous identifiers. A bare SteamID64 defaults to a Steam
+  // inventory; CSFloat stalls remain addressable by their canonical URL.
   if (DMARKET_SAGA_ADDR_RE.test(input)) return buildDmarketRef(input, input);
-  if (CSFLOAT_STEAM_ID_RE.test(input)) return buildCsFloatRef(input, input);
+  if (STEAM_ID64_RE.test(input)) return buildSteamRef(input, input);
 
   const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(input);
   const candidate = hasScheme ? input : `https://${input}`;
@@ -263,6 +304,20 @@ export function parseStorefrontUrl(raw: string): RaidParseResult {
     return buildDmarketRef(address, input);
   }
 
+  if (provider.id === "steam") {
+    // Steam vanity URLs are not resolvable without a profile request. Require
+    // the 17-digit SteamID64 (the public inventory URL contains it).
+    const match = input.match(/\b(\d{17})\b/);
+    if (!match) {
+      return {
+        ok: false,
+        error:
+          "Paste the Steam inventory URL containing a SteamID64, or enter steam:<SteamID64>.",
+      };
+    }
+    return buildSteamRef(match[1], input);
+  }
+
   if (!handle) {
     return {
       ok: false,
@@ -318,8 +373,8 @@ export function parseStorefrontClipboard(raw: string): RaidParseResult {
   if (DMARKET_SAGA_ADDR_RE.test(text)) {
     return toSanitizedResult(buildDmarketRef(text, text));
   }
-  if (CSFLOAT_STEAM_ID_RE.test(text)) {
-    return toSanitizedResult(buildCsFloatRef(text, text));
+  if (STEAM_ID64_RE.test(text)) {
+    return toSanitizedResult(buildSteamRef(text, text));
   }
 
   if (!/^https?:\/\//i.test(text)) {

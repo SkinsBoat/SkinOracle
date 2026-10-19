@@ -51,6 +51,13 @@ export const SKINPORT_SITE = "https://skinport.com";
 export const SKINPORT_SHOP = (shopLink: string) =>
   `${SKINPORT_SITE}/api/shop/${encodeURIComponent(shopLink)}`;
 
+// ── Steam Community Endpoints ─────────────────────────────────────
+// Public CS2 inventory (no auth). RAID reads a seller's tradable inventory
+// directly from the trader's machine.
+export const STEAM_COMMUNITY_SITE = "https://steamcommunity.com";
+export const STEAM_INVENTORY = (steamId: string) =>
+  `${STEAM_COMMUNITY_SITE}/inventory/${steamId}/730/2`;
+
 // ── Skinsnipe Endpoints ───────────────────────────────────────────
 export const SKINSNIPE_LOWEST_PRICES = `${SKINSNIPE_API}/lowest-prices`;
 

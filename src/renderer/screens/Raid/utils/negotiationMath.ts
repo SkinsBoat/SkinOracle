@@ -19,13 +19,17 @@ export const NEGOTIATION_MARKETPLACES: NegotiationMarketplace[] = [
   'skinport',
   'csfloat',
   'dmarket',
+  'steam',
 ];
 
 export function isNegotiationMarketplace(
   value: unknown,
 ): value is NegotiationMarketplace {
   return (
-    value === 'skinport' || value === 'csfloat' || value === 'dmarket'
+    value === 'skinport' ||
+    value === 'csfloat' ||
+    value === 'dmarket' ||
+    value === 'steam'
   );
 }
 

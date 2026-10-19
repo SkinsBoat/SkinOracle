@@ -16,6 +16,24 @@ import {
   roundUsd,
 } from './negotiationMath';
 
+function withDealChange(
+  state: NegotiationState,
+  patch: Partial<NegotiationState>,
+  role: NegotiationRole,
+  now: number,
+): NegotiationState {
+  return {
+    ...state,
+    ...patch,
+    // Any material change invalidates both confirmations. The seller must
+    // re-approve the final terms before the buyer can lock.
+    traderReady: false,
+    sellerReady: false,
+    lastUpdatedBy: role,
+    updatedAt: now,
+  };
+}
+
 function withUpdate(
   state: NegotiationState,
   patch: Partial<NegotiationState>,
@@ -73,7 +91,7 @@ export function applyPeerMessage(
         return { ...item, selected: message.selected };
       });
       if (!changed) return state;
-      return withUpdate(state, { items }, fromRole, now);
+      return withDealChange(state, { items }, fromRole, now);
     }
 
     case 'TOGGLE_ITEM': {
@@ -85,14 +103,14 @@ export function applyPeerMessage(
           ? { ...item, selected: message.selected }
           : item,
       );
-      return withUpdate(state, { items }, fromRole, now);
+      return withDealChange(state, { items }, fromRole, now);
     }
 
     case 'SET_GLOBAL_DISCOUNT': {
       if (state.dealLocked) return state;
       const globalDiscountPct = clampGlobalDiscountPct(message.discountPct);
       if (globalDiscountPct === state.globalDiscountPct) return state;
-      return withUpdate(state, { globalDiscountPct }, fromRole, now);
+      return withDealChange(state, { globalDiscountPct }, fromRole, now);
     }
 
     case 'SET_ITEM_COUNTER': {
@@ -121,7 +139,7 @@ export function applyPeerMessage(
             }
           : item,
       );
-      return withUpdate(state, { items }, fromRole, now);
+      return withDealChange(state, { items }, fromRole, now);
     }
 
     case 'SET_ITEM_COUNTERS': {
@@ -151,7 +169,7 @@ export function applyPeerMessage(
         };
       });
       if (!changed) return state;
-      return withUpdate(state, { items }, fromRole, now);
+      return withDealChange(state, { items }, fromRole, now);
     }
 
     case 'ACCEPT_COUNTERS': {
@@ -172,7 +190,7 @@ export function applyPeerMessage(
         };
       });
       if (!changed) return state;
-      return withUpdate(state, { items }, fromRole, now);
+      return withDealChange(state, { items }, fromRole, now);
     }
 
     case 'DECLINE_COUNTERS': {
@@ -191,7 +209,7 @@ export function applyPeerMessage(
         };
       });
       if (!changed) return state;
-      return withUpdate(state, { items }, fromRole, now);
+      return withDealChange(state, { items }, fromRole, now);
     }
 
     case 'ACCEPT_COUNTER': {
@@ -209,7 +227,7 @@ export function applyPeerMessage(
             }
           : item,
       );
-      return withUpdate(state, { items }, fromRole, now);
+      return withDealChange(state, { items }, fromRole, now);
     }
 
     case 'DECLINE_COUNTER': {
@@ -222,7 +240,7 @@ export function applyPeerMessage(
           ? { ...removeCounter(item), status: 'pending' as const }
           : item,
       );
-      return withUpdate(state, { items }, fromRole, now);
+      return withDealChange(state, { items }, fromRole, now);
     }
 
     case 'SET_READY': {

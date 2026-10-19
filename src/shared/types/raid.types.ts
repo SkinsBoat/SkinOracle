@@ -76,8 +76,13 @@ export interface RaidStockItem {
   id: string;
   marketplace: RaidMarketplaceId;
   marketHashName: string;
-  /** USD dollars. */
+  /** USD dollars. `0` when the provider has no seller asking price. */
   price: number;
+  /**
+   * True when the marketplace exposes inventory but no seller asking price
+   * (Steam inventory). The trader can still offer at their Buy Ceiling.
+   */
+  priceUnavailable?: boolean;
   /** Provider reference/market price in USD dollars, if supplied. */
   referencePrice?: number;
   /** Provider suggested price in USD dollars, if supplied. */
@@ -103,7 +108,11 @@ export interface RaidStockItem {
   souvenir?: boolean;
 }
 
-export type RaidAuditStatus = "raid" | "over-ceiling" | "no-ceiling";
+export type RaidAuditStatus =
+  | "raid"
+  | "over-ceiling"
+  | "inventory"
+  | "no-ceiling";
 
 export interface RaidAuditRow {
   item: RaidStockItem;
@@ -126,6 +135,8 @@ export interface RaidAuditSummary {
   raidCount: number;
   /** Listings whose accepted offer price is at or below the Buy Ceiling. */
   offerCount: number;
+  /** Tradable inventory items with a ceiling but no seller asking price. */
+  inventoryCount: number;
   /** Total USD value of the seller's entire listed stock. */
   totalStockValue: number;
   /** Total USD value of the Raid Zone listings. */

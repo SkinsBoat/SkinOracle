@@ -466,6 +466,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       safeInvoke("dmarket:get-deposit-blocked-titles", gameId, limit, cursor),
   },
 
+  // ── Steam Community (public CS2 inventory for RAID) ─────────────
+  steam: {
+    getInventory: (steamId: string) =>
+      safeInvoke("steam:get-inventory", steamId),
+  },
+
   // ── Balance (user balance & transaction ledger) ──
   balance: {
     getBalance: () => safeInvoke("balance:get-balance"),

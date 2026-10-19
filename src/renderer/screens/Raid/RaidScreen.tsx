@@ -22,10 +22,12 @@ import {
   buildRaidOfferPayload,
   filterRaidRows,
   getRaidMarketplaceName,
+  getRaidProvider,
   isAnyRaidFilterActive,
   normalizeCsFloatStall,
   normalizeDmarketStore,
   normalizeSkinportShop,
+  normalizeSteamInventory,
   parseStorefrontUrl,
   sortRaidRows,
   RaidSortKey,
@@ -191,7 +193,7 @@ export const RaidScreen: React.FC = () => {
   const runScan = async (ref: RaidStorefrontRef) => {
     if (!ref.scanSupported) {
       setError(
-        `${getRaidMarketplaceName(ref.marketplace)} storefronts are not connected yet — Skinport, CSFloat and DMarket are live.`,
+        `${getRaidMarketplaceName(ref.marketplace)} storefronts are not connected yet — Skinport, CSFloat, DMarket and Steam are live.`,
       );
       return;
     }
@@ -224,6 +226,11 @@ export const RaidScreen: React.FC = () => {
       } else if (ref.marketplace === 'dmarket') {
         normalized = normalizeDmarketStore(
           await api.dmarket.getStore(ref.handle),
+          ref.handle,
+        );
+      } else if (ref.marketplace === 'steam') {
+        normalized = normalizeSteamInventory(
+          await api.steam.getInventory(ref.handle),
           ref.handle,
         );
       } else {
@@ -312,14 +319,15 @@ export const RaidScreen: React.FC = () => {
       return;
     }
 
-    const cryptoApi = (globalThis as any)?.crypto;
-    const key =
-      typeof cryptoApi?.randomUUID === 'function'
-        ? String(cryptoApi.randomUUID())
-        : `${Date.now().toString(36)}-${Math.random()
-            .toString(36)
-            .slice(2, 12)}`;
-    setSessionIdempotencyKey(key);
+    const cryptoApi = globalThis.crypto;
+    if (!cryptoApi?.getRandomValues) {
+      toast.error(
+        'Secure randomness is unavailable — cannot create a billing-safe session key.',
+      );
+      return;
+    }
+
+    setSessionIdempotencyKey(createSessionIdempotencyKey(cryptoApi));
     setIsNegotiationOpen(true);
   };
 
@@ -368,7 +376,7 @@ export const RaidScreen: React.FC = () => {
       handle: bookmark.handle,
       originalUrl: bookmark.url,
       canonicalUrl: bookmark.url,
-      scanSupported: bookmark.marketplace === 'skinport',
+      scanSupported: getRaidProvider(bookmark.marketplace)?.status === 'live',
     });
   };
 
@@ -457,7 +465,9 @@ export const RaidScreen: React.FC = () => {
               <p style={styles.emptySubtitle}>
                 {seller.marketplace === 'csfloat'
                   ? 'This CSFloat stall has no buy-now listings. Auction listings are excluded from the audit because their price is a live bid, not the seller\u2019s asking price.'
-                  : 'This seller has no listings to audit right now.'}
+                  : seller.marketplace === 'steam'
+                    ? 'This Steam inventory has no tradable CS2 items. Private inventories and trade-locked items are excluded from the audit.'
+                    : 'This seller has no listings to audit right now.'}
               </p>
             </div>
           ) : filteredRows.length === 0 ? (
@@ -591,6 +601,23 @@ const styles: Record<string, React.CSSProperties> = {
 
 function raidRowKey(row: RaidAuditRow): string {
   return `${row.item.marketplace}:${row.item.id}`;
+}
+
+/**
+ * Billing idempotency keys must be unpredictable so a third party cannot
+ * guess or replay a session key. Prefer `randomUUID`; otherwise derive a
+ * 128-bit key from the platform CSPRNG. Never fall back to Math.random.
+ */
+function createSessionIdempotencyKey(cryptoApi: Crypto): string {
+  if (typeof cryptoApi.randomUUID === 'function') {
+    return cryptoApi.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+  cryptoApi.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(
+    '',
+  );
 }
 
 export default RaidScreen;

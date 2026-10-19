@@ -19,6 +19,7 @@ import "./ipc/cs2cap.ipc";
 import "./ipc/csfloat.ipc";
 import "./ipc/skinport.ipc";
 import "./ipc/dmarket.ipc";
+import "./ipc/steam.ipc";
 import "./ipc/raid.ipc";
 import "./ipc/updater.ipc";
 import { setupBalanceIPC } from "./ipc/balance.ipc";

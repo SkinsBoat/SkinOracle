@@ -30,6 +30,7 @@ import {
   SkinportShopApiResponse,
 } from "./skinport.types";
 import { RaidOfferPayload, RaidParseResult } from "./raid.types";
+import { SteamInventoryResponse } from "./steam.types";
 import { DealExportPayload } from "./dealExport.types";
 import { WebRtcSessionInitResult } from "./webrtc.types";
 import {
@@ -476,6 +477,9 @@ export interface ElectronAPI {
       limit?: number,
       cursor?: string,
     ) => Promise<DmarketDepositBlockedTitlesResponse>;
+  };
+  steam: {
+    getInventory: (steamId: string) => Promise<SteamInventoryResponse>;
   };
   webrtc: {
     createSession: (

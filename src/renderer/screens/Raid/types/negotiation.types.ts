@@ -11,7 +11,11 @@
  */
 
 /** Marketplace the seller storefront was scanned from. */
-export type NegotiationMarketplace = 'skinport' | 'csfloat' | 'dmarket';
+export type NegotiationMarketplace =
+  | 'skinport'
+  | 'csfloat'
+  | 'dmarket'
+  | 'steam';
 
 export type NegotiationRole = 'trader' | 'seller';
 

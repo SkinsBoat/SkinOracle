@@ -26,6 +26,10 @@ import {
 } from '../../../../shared/types/skinport.types';
 import { CsFloatStallApiResponse } from '../../../../shared/types/csfloat.types';
 import { DmarketStoreApiResponse, DmarketStoreOffer } from '../../../../shared/types/dmarket.types';
+import type {
+  SteamInventoryDescription,
+  SteamInventoryResponse,
+} from '../../../../shared/types/steam.types';
 import { SKINPORT_SITE } from '../../../../shared/raidStorefront';
 
 // Storefront resolution is shared with the main process (clipboard paste).
@@ -239,6 +243,115 @@ export function normalizeDmarketStore(
 }
 
 /**
+ * Normalizes a public Steam Community CS2 inventory into RAID stock.
+ *
+ * The inventory response contains assets plus shared descriptions keyed by
+ * classid/instanceid. Non-tradable entries are dropped because RAID can only
+ * make offers on items the seller can actually trade. Steam does not expose a
+ * seller asking price, so items are marked `priceUnavailable` and audited as
+ * inventory offers at the trader's Buy Ceiling.
+ */
+export function normalizeSteamInventory(
+  res: SteamInventoryResponse,
+  steamId: string,
+): NormalizedStorefront {
+  const descriptions = new Map<string, SteamInventoryDescription>();
+  for (const description of res?.descriptions ?? []) {
+    descriptions.set(
+      `${description.classid}_${description.instanceid}`,
+      description,
+    );
+  }
+
+  const properties = new Map<
+    string,
+    NonNullable<SteamInventoryResponse['asset_properties']>[number]
+  >();
+  for (const entry of res?.asset_properties ?? []) {
+    properties.set(entry.assetid, entry);
+  }
+
+  const items: RaidStockItem[] = [];
+  for (const asset of res?.assets ?? []) {
+    const description =
+      descriptions.get(`${asset.classid}_${asset.instanceid}`) ??
+      descriptions.get(`${asset.classid}_0`);
+    if (!description) continue;
+
+    // RAID is a tradable-inventory audit: trade-locked items cannot be bought.
+    if (description.tradable !== 1) continue;
+
+    const name =
+      description.market_hash_name ||
+      description.market_name ||
+      description.name;
+    if (!name) continue;
+
+    const tags = description.tags ?? [];
+    const tag = (category: string) =>
+      tags.find((entry) => entry.category === category);
+
+    const exteriorTag = tag('Exterior')?.localized_tag_name;
+    const rarityTag = tag('Rarity');
+    const collection =
+      tag('ItemSet')?.localized_tag_name ??
+      tag('Collection')?.localized_tag_name;
+    const quality = description.type;
+
+    const wearProperty = (properties.get(asset.assetid)?.asset_properties ?? []).find(
+      (property) =>
+        property.propertyid === 2 || property.name === 'Wear Rating',
+    );
+    const floatValue = toFloat(wearProperty?.float_value);
+
+    const inspectUrl = [
+      ...(description.actions ?? []),
+      ...(description.market_actions ?? []),
+    ].find((action) => action.link?.startsWith('steam://'))?.link;
+
+    const exterior =
+      exteriorTag ||
+      name.match(
+        /\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)\s*$/i,
+      )?.[1];
+
+    items.push({
+      id: asset.assetid,
+      marketplace: 'steam',
+      marketHashName: name,
+      price: 0,
+      priceUnavailable: true,
+      imageUrl: steamImageUrl(description.icon_url, name),
+      inspectUrl,
+      exterior,
+      quality,
+      rarity: rarityTag?.localized_tag_name,
+      rarityColor: rarityTag?.color
+        ? `#${String(rarityTag.color).replace(/^#/, '')}`
+        : description.name_color
+          ? `#${String(description.name_color).replace(/^#/, '')}`
+          : undefined,
+      collection,
+      floatValue,
+      stattrak: /^StatTrak/i.test(name),
+      souvenir: /^Souvenir/i.test(name),
+    });
+  }
+
+  return {
+    seller: {
+      marketplace: 'steam',
+      id: steamId,
+      name: 'Steam Inventory',
+      url: `https://steamcommunity.com/profiles/${steamId}/inventory`,
+      steamId,
+      reportedTotal: res?.total_inventory_count ?? items.length,
+    },
+    items,
+  };
+}
+
+/**
  * Audits a seller's listed stock against the trader's locally calculated
  * Oracle Buy Ceilings (Accepted Prices keyed by market hash name).
  */
@@ -262,6 +375,19 @@ export function auditStock(
       return { item, offerEligible, status: 'no-ceiling' };
     }
 
+    // Steam exposes inventory but no asking price. Treat it as an offer at the
+    // trader's ceiling rather than pretending the spread is the full ceiling.
+    if (item.priceUnavailable || !(item.price > 0)) {
+      return {
+        item,
+        ceiling,
+        spread: 0,
+        profitPercent: 0,
+        offerEligible: false,
+        status: 'inventory',
+      };
+    }
+
     const spread = ceiling - item.price;
     const profitPercent = (spread / ceiling) * 100;
     return {
@@ -278,6 +404,7 @@ export function auditStock(
   const raidRows = rows.filter((r) => r.status === 'raid');
   // Informational only: how many listings accept an offer at or below ceiling.
   const offerCount = rows.filter((r) => r.offerEligible === true).length;
+  const inventoryCount = rows.filter((r) => r.status === 'inventory').length;
   const totalStockValue = items.reduce((acc, item) => acc + item.price, 0);
   const raidValue = raidRows.reduce((acc, row) => acc + row.item.price, 0);
   const potentialProfit = raidRows.reduce(
@@ -292,6 +419,7 @@ export function auditStock(
       valuedItems,
       raidCount: raidRows.length,
       offerCount,
+      inventoryCount,
       totalStockValue,
       raidValue,
       potentialProfit,
@@ -315,7 +443,10 @@ export function buildRaidOfferPayload(
     )
     .map((row) => {
       const buyCeiling = row.ceiling as number;
-      const listingPrice = row.item.price;
+      // Inventory items have no seller ask; the offer itself is the ceiling.
+      const listingPrice = row.item.priceUnavailable
+        ? buyCeiling
+        : row.item.price;
       return {
         marketHashName: row.item.marketHashName,
         marketplace: row.item.marketplace,
@@ -372,7 +503,13 @@ export function filterRaidRows(
   const query = filters.searchQuery.trim().toLowerCase();
 
   return rows.filter((row) => {
-    if (filters.onlyRaids && row.status !== 'raid') return false;
+    if (
+      filters.onlyRaids &&
+      row.status !== 'raid' &&
+      row.status !== 'inventory'
+    ) {
+      return false;
+    }
     // Skip stock that never matched a local Buy Ceiling.
     if (filters.onlyCeiling && row.status === 'no-ceiling') return false;
     if (query && !row.item.marketHashName.toLowerCase().includes(query)) {
@@ -407,6 +544,9 @@ export function sortRaidRows(
 }
 
 function sortValue(row: RaidAuditRow, key: RaidSortKey): number | null {
+  // Unpriced Steam inventory is offerable but has no seller ask, so margin
+  // sorts should leave it below genuinely priced rows.
+  if (row.status === 'inventory' && key !== 'ceiling') return null;
   switch (key) {
     case 'price':
       return row.item.price;
@@ -444,6 +584,8 @@ export function getRaidStatusLabel(status: RaidAuditRow['status']): string {
       return 'RAID';
     case 'over-ceiling':
       return 'OVER CEILING';
+    case 'inventory':
+      return 'INVENTORY';
     case 'no-ceiling':
     default:
       return 'NO CEILING';

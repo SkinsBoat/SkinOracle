@@ -49,10 +49,17 @@ export function buildNegotiationItems(rows: RaidAuditRow[]): NegotiationItem[] {
     if (!item) continue;
     if (!isNegotiationMarketplace(item.marketplace)) continue;
 
-    const listingPrice = Number(item.price);
+    const rawListingPrice = Number(item.price);
     const buyCeiling = Number(ceiling);
-    if (!Number.isFinite(listingPrice) || listingPrice <= 0) continue;
     if (!Number.isFinite(buyCeiling) || buyCeiling <= 0) continue;
+
+    // Steam inventory has no seller asking price; negotiate from the ceiling.
+    const listingPrice =
+      item.priceUnavailable ||
+      !Number.isFinite(rawListingPrice) ||
+      rawListingPrice <= 0
+        ? buyCeiling
+        : rawListingPrice;
 
     const rawId = String(item.id ?? '')
       .trim()

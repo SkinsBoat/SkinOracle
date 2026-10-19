@@ -6,6 +6,7 @@ import {
   normalizeCsFloatStall,
   normalizeDmarketStore,
   normalizeSkinportShop,
+  normalizeSteamInventory,
   parseStorefrontUrl,
   sortRaidRows,
 } from '../raidUtils';
@@ -15,6 +16,7 @@ import type {
   SkinportShopApiResponse,
 } from '../../../../../shared/types/skinport.types';
 import type { RaidStockItem } from '../../../../../shared/types/raid.types';
+import type { SteamInventoryResponse } from '../../../../../shared/types/steam.types';
 
 function makeSkinportItem(
   overrides: Partial<SkinportShopApiItem> = {},
@@ -94,16 +96,35 @@ describe('raidUtils', () => {
       expect(result.ref.scanSupported).toBe(true);
     });
 
-    it('accepts a bare SteamID64 as a CSFloat stall', () => {
+    it('accepts a bare SteamID64 as a Steam inventory', () => {
       const result = parseStorefrontUrl('76561190000000001');
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.ref.marketplace).toBe('csfloat');
+      expect(result.ref.marketplace).toBe('steam');
       expect(result.ref.handle).toBe('76561190000000001');
+      expect(result.ref.scanSupported).toBe(true);
     });
 
-    it('parses a DMarket store link via its saga address', () => {
-      const addr = '0x1111111111111111111111111111111111111111';
+    it('parses a Steam inventory URL to a live SteamID64 ref', () => {
+      const result = parseStorefrontUrl(
+        'https://steamcommunity.com/inventory/76561199097176449/730/2',
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('steam');
+      expect(result.ref.handle).toBe('76561199097176449');
+      expect(result.ref.scanSupported).toBe(true);
+    });
+
+    it('accepts an explicit steam: SteamID64 prefix', () => {
+      const result = parseStorefrontUrl('steam:76561199097176449');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.ref.marketplace).toBe('steam');
+      expect(result.ref.handle).toBe('76561199097176449');
+    });
+
+    it('parses a DMarket store link via its saga address', () => {      const addr = '0x1111111111111111111111111111111111111111';
       const result = parseStorefrontUrl(
         `https://dmarket.com/ingame-items/item-list/csgo-skins?user=${addr}`,
       );
@@ -297,6 +318,109 @@ describe('raidUtils', () => {
     });
   });
 
+  describe('normalizeSteamInventory', () => {
+    const steamId = '76561199097176449';
+    const response: SteamInventoryResponse = {
+      success: 1,
+      total_inventory_count: 3,
+      assets: [
+        {
+          appid: 730,
+          contextid: '2',
+          assetid: 'a1',
+          classid: 'c1',
+          instanceid: '0',
+          amount: '1',
+        },
+        {
+          appid: 730,
+          contextid: '2',
+          assetid: 'a2',
+          classid: 'c2',
+          instanceid: '0',
+          amount: '1',
+        },
+        {
+          appid: 730,
+          contextid: '2',
+          assetid: 'a3',
+          classid: 'c1',
+          instanceid: '0',
+          amount: '1',
+        },
+      ],
+      descriptions: [
+        {
+          appid: 730,
+          classid: 'c1',
+          instanceid: '0',
+          icon_url: 'icon1',
+          market_hash_name: 'AK-47 | Redline (Field-Tested)',
+          type: 'Mil-Spec Grade Rifle',
+          name_color: '4b69ff',
+          tradable: 1,
+          tags: [
+            {
+              category: 'Exterior',
+              internal_name: 'WearCategory2',
+              localized_category_name: 'Exterior',
+              localized_tag_name: 'Field-Tested',
+            },
+            {
+              category: 'Rarity',
+              internal_name: 'Rarity_Rare_Weapon',
+              localized_category_name: 'Quality',
+              localized_tag_name: 'Mil-Spec Grade',
+              color: '4b69ff',
+            },
+            {
+              category: 'ItemSet',
+              internal_name: 'set_community_32',
+              localized_category_name: 'Collection',
+              localized_tag_name: 'The Revolution Collection',
+            },
+          ],
+          actions: [{ link: 'steam://inspect', name: 'Inspect in Game...' }],
+        },
+        {
+          appid: 730,
+          classid: 'c2',
+          instanceid: '0',
+          icon_url: 'icon2',
+          market_hash_name: 'Non Tradable Item',
+          tradable: 0,
+        },
+      ],
+      asset_properties: [
+        {
+          appid: 730,
+          contextid: '2',
+          assetid: 'a1',
+          asset_properties: [
+            { propertyid: 2, float_value: '0.1234', name: 'Wear Rating' },
+          ],
+        },
+      ],
+    };
+
+    it('joins assets to descriptions, filters non-tradables, and reads wear', () => {
+      const { seller, items } = normalizeSteamInventory(response, steamId);
+
+      expect(seller.marketplace).toBe('steam');
+      expect(seller.id).toBe(steamId);
+      expect(items).toHaveLength(2);
+      expect(items.every((item) => item.marketplace === 'steam')).toBe(true);
+      expect(items.every((item) => item.priceUnavailable === true)).toBe(true);
+      expect(items.every((item) => item.price === 0)).toBe(true);
+      expect(items[0].exterior).toBe('Field-Tested');
+      expect(items[0].collection).toBe('The Revolution Collection');
+      expect(items[0].rarity).toBe('Mil-Spec Grade');
+      expect(items[0].floatValue).toBeCloseTo(0.1234, 6);
+      expect(items[0].inspectUrl).toBe('steam://inspect');
+      expect(items[0].imageUrl).toContain('/icon1');
+    });
+  });
+
   describe('auditStock', () => {
     const items: RaidStockItem[] = [
       {
@@ -337,6 +461,37 @@ describe('raidUtils', () => {
       expect(summary.totalStockValue).toBeCloseTo(28, 5);
       expect(summary.raidValue).toBeCloseTo(5, 5);
       expect(summary.potentialProfit).toBeCloseTo(5, 5);
+    });
+
+    it('treats unpriced Steam inventory as an offer at the ceiling', () => {
+      const inventory: RaidStockItem[] = [
+        {
+          id: 'steam:a1',
+          marketplace: 'steam',
+          marketHashName: 'Item A',
+          price: 0,
+          priceUnavailable: true,
+        },
+      ];
+      const { rows, summary } = auditStock(inventory, { 'Item A': 10 });
+
+      expect(rows[0].status).toBe('inventory');
+      expect(rows[0].spread).toBe(0);
+      expect(summary.inventoryCount).toBe(1);
+      expect(summary.valuedItems).toBe(1);
+      expect(summary.raidCount).toBe(0);
+
+      const offer = buildRaidOfferPayload(
+        {
+          marketplace: 'steam',
+          id: '76561199097176449',
+          name: 'Steam Inventory',
+          url: 'https://steamcommunity.com/profiles/76561199097176449/inventory',
+        },
+        rows,
+      );
+      expect(offer.rows[0].listingPrice).toBe(10);
+      expect(offer.rows[0].difference).toBe(0);
     });
 
     it('flags offer-eligible rows and counts accepted offers ≤ ceiling', () => {

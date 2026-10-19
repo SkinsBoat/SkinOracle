@@ -423,20 +423,14 @@ export function useRaidPeerHost({
 
         const existing = connRef.current;
         if (existing && existing !== conn) {
-          if (existing.open) {
-            // One seller per table: reject additional guests.
-            try {
-              conn.close();
-            } catch {
-              // Ignore.
-            }
-            return;
-          }
+          // One seller per table. Reject even a second connection that is
+          // still handshaking, otherwise a leaked link could race the seller.
           try {
-            existing.close();
+            conn.close();
           } catch {
-            // Already closed.
+            // Ignore.
           }
+          return;
         }
 
         connRef.current = conn;

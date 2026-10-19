@@ -14,7 +14,7 @@ export const RaidIntroState: React.FC = () => (
       <Step
         index={1}
         title="Paste the storefront"
-        text="Skinport shops, CSFloat stalls and DMarket stores are live. CS.MONEY and Steam inventory links are recognized next."
+        text="Skinport shops, CSFloat stalls, DMarket stores and Steam inventories are live. CS.MONEY links are recognized next."
       />
       <Step
         index={2}

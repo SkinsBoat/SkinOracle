@@ -84,12 +84,29 @@ describe('buildNegotiationItems', () => {
       auditRow({ ceiling: Number.NaN }),
       auditRow({ ceiling: 0 }),
       auditRow({
-        item: stockItem({ marketplace: 'steam' }),
+        item: stockItem({ marketplace: 'csmoney' }),
         ceiling: 100,
       }),
     ]);
 
     expect(items).toHaveLength(0);
+  });
+
+  it('offers Steam inventory at the ceiling when no asking price exists', () => {
+    const items = buildNegotiationItems([
+      auditRow({
+        item: stockItem({
+          marketplace: 'steam',
+          price: 0,
+          priceUnavailable: true,
+        }),
+        ceiling: 100,
+      }),
+    ]);
+
+    expect(items).toHaveLength(1);
+    expect(items[0].listingPrice).toBe(100);
+    expect(items[0].proposedPrice).toBe(100);
   });
 
   it('keeps duplicate listings even when the marketplace reuses an id', () => {
@@ -270,6 +287,31 @@ describe('applyPeerMessage', () => {
       'seller',
     );
     expect(afterLock).toBe(locked);
+  });
+
+  it('resets both confirmations after any material deal change', () => {
+    const state = base();
+    const bothReady = applyPeerMessage(
+      applyPeerMessage(
+        state,
+        { type: 'SET_READY', role: 'seller', ready: true },
+        'seller',
+      ),
+      { type: 'SET_READY', role: 'trader', ready: true },
+      'trader',
+    );
+
+    const changed = applyPeerMessage(
+      bothReady,
+      { type: 'SET_GLOBAL_DISCOUNT', discountPct: -5 },
+      'trader',
+    );
+
+    expect(changed.sellerReady).toBe(false);
+    expect(changed.traderReady).toBe(false);
+    expect(applyPeerMessage(changed, { type: 'LOCK_DEAL' }, 'trader')).toBe(
+      changed,
+    );
   });
 
   it('marks de-selected items rejected when the deal locks', () => {

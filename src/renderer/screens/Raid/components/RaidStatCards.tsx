@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crosshair, Gavel, Layers, Package, TrendingUp } from 'lucide-react';
+import { Crosshair, Gavel, Handshake, Layers, Package, TrendingUp } from 'lucide-react';
 import { RaidAuditSummary } from '../../../../shared/types/raid.types';
 import { formatUsd } from '../utils/raidUtils';
 
@@ -39,6 +39,13 @@ export const RaidStatCards: React.FC<RaidStatCardsProps> = ({
         value={formatUsd(summary.totalStockValue)}
         label="Stock Value"
       />
+      {summary.inventoryCount > 0 && (
+        <StatTile
+          icon={<Handshake size={14} style={styles.offerIcon} />}
+          value={String(summary.inventoryCount)}
+          label="Inventory Offers"
+        />
+      )}
       {summary.offerCount > 0 && (
         <StatTile
           icon={<Gavel size={14} style={styles.offerIcon} />}

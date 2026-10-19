@@ -5,6 +5,7 @@ import {
   Crosshair,
   Gavel,
   MinusCircle,
+  Package,
   ShieldCheck,
   Square,
   TrendingUp,
@@ -39,6 +40,7 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
   const parsed = parseSkinHashName(item.marketHashName, item.exterior);
   const wearColors = getWearColors(parsed.shortWear);
   const isRaid = status === 'raid';
+  const isInventory = status === 'inventory';
   const hasCeiling = typeof ceiling === 'number';
   const isExcluded = hasCeiling && !isSelected;
 
@@ -48,7 +50,7 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
 
   return (
     <div
-      style={getCardStyle(isRaid, isExcluded, hasCeiling)}
+      style={getCardStyle(isRaid, isInventory, isExcluded, hasCeiling)}
       onClick={handleCardClick}
       onKeyDown={(e) => {
         if (!hasCeiling) return;
@@ -78,8 +80,17 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
           <div style={getStatusBadgeStyle(status)}>
             {status === 'raid' && <Crosshair size={11} />}
             {status === 'over-ceiling' && <AlertTriangle size={11} />}
+            {status === 'inventory' && <Package size={11} />}
             {status === 'no-ceiling' && <MinusCircle size={11} />}
-            <span>{isRaid ? 'RAID' : status === 'over-ceiling' ? 'OVER' : 'NO CEILING'}</span>
+            <span>
+              {isRaid
+                ? 'RAID'
+                : status === 'inventory'
+                  ? 'INVENTORY'
+                  : status === 'over-ceiling'
+                    ? 'OVER'
+                    : 'NO CEILING'}
+            </span>
           </div>
 
           {row.offerEligible && (
@@ -153,7 +164,9 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
       <div style={styles.pricingContainer}>
         <div style={styles.priceCol}>
           <span style={styles.colLabel}>Seller Price</span>
-          <span style={styles.priceAmount}>{formatUsd(item.price)}</span>
+          <span style={styles.priceAmount}>
+            {item.priceUnavailable ? 'Not listed' : formatUsd(item.price)}
+          </span>
         </div>
         <div style={styles.ceilingCol}>
           <span style={styles.ceilingLabel}>
@@ -167,7 +180,14 @@ export const RaidItemCard: React.FC<RaidItemCardProps> = ({
       </div>
 
       <div style={styles.actionZone}>
-        {hasCeiling ? (
+        {isInventory ? (
+          <div style={styles.inventoryRow}>
+            <span style={styles.spreadLabel}>Inventory offer</span>
+            <span style={styles.inventoryValue}>
+              Offer at {formatUsd(ceiling)}
+            </span>
+          </div>
+        ) : hasCeiling ? (
           <div style={getSpreadRowStyle(isRaid)}>
             <span style={styles.spreadLabel}>
               {isRaid ? 'Below Ceiling' : 'Above Ceiling'}
@@ -384,6 +404,24 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid rgba(148, 163, 184, 0.15)',
     lineHeight: 1.35,
   },
+  inventoryRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    padding: '6px 9px',
+    borderRadius: '6px',
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    border: '1px solid rgba(56, 189, 248, 0.28)',
+    color: '#38bdf8',
+  },
+  inventoryValue: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '12.5px',
+    fontWeight: 800,
+  },
   spreadLabel: {
     fontSize: '10px',
     fontWeight: 800,
@@ -402,6 +440,7 @@ const styles: Record<string, React.CSSProperties> = {
 
 function getCardStyle(
   isRaid: boolean,
+  isInventory: boolean,
   isExcluded: boolean,
   selectable: boolean,
 ): React.CSSProperties {
@@ -412,8 +451,15 @@ function getCardStyle(
       ? '1px dashed var(--so-border-subtle, #1e2430)'
       : isRaid
         ? '1px solid rgba(34, 197, 94, 0.4)'
-        : '1px solid var(--so-border-subtle, #1e2430)',
-    boxShadow: !isExcluded && isRaid ? '0 2px 14px rgba(34, 197, 94, 0.12)' : 'none',
+        : isInventory
+          ? '1px solid rgba(56, 189, 248, 0.38)'
+          : '1px solid var(--so-border-subtle, #1e2430)',
+    boxShadow:
+      !isExcluded && isRaid
+        ? '0 2px 14px rgba(34, 197, 94, 0.12)'
+        : !isExcluded && isInventory
+          ? '0 2px 14px rgba(56, 189, 248, 0.1)'
+          : 'none',
     opacity: isExcluded ? 0.55 : 1,
     padding: '12px',
     display: 'flex',
@@ -470,6 +516,14 @@ function getStatusBadgeStyle(
       backgroundColor: 'rgba(239, 68, 68, 0.12)',
       border: '1px solid rgba(239, 68, 68, 0.35)',
       color: '#f87171',
+    };
+  }
+  if (status === 'inventory') {
+    return {
+      ...base,
+      backgroundColor: 'rgba(56, 189, 248, 0.12)',
+      border: '1px solid rgba(56, 189, 248, 0.4)',
+      color: '#38bdf8',
     };
   }
   return {

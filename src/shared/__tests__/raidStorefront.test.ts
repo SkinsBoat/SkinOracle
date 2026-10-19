@@ -6,13 +6,13 @@ const STEAM_ID = "76561190000000001";
 const DMARKET_ADDR = "0x1111111111111111111111111111111111111111";
 
 describe("parseStorefrontClipboard", () => {
-  it("parses a bare SteamID64 as a CSFloat stall", () => {
+  it("parses a bare SteamID64 as a Steam inventory", () => {
     const result = parseStorefrontClipboard(`  ${STEAM_ID}  `);
     expect(result.ok).toBe(true);
-    expect(result.ref?.marketplace).toBe("csfloat");
+    expect(result.ref?.marketplace).toBe("steam");
     expect(result.ref?.handle).toBe(STEAM_ID);
     expect(result.ref?.canonicalUrl).toBe(
-      `https://csfloat.com/stall/${STEAM_ID}`,
+      `https://steamcommunity.com/profiles/${STEAM_ID}/inventory`,
     );
   });
 

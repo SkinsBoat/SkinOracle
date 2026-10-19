@@ -28,7 +28,7 @@ export const RaidStorefrontSearch: React.FC<
           onChange={(event) => onChange(event.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder="Paste a seller storefront link — Skinport shop, CSFloat stall, or DMarket store"
+          placeholder="Paste a storefront link or SteamID64 — Skinport, CSFloat, DMarket, or Steam inventory"
           style={styles.input}
           spellCheck={false}
           autoComplete="off"
