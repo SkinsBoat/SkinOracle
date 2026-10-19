@@ -79,7 +79,6 @@ export const NegotiationBundleSection: React.FC<
             <span>{stackDuplicates ? 'Stacked' : 'Stack'}</span>
           </button>
         )}
-        <span style={styles.readOnlyBadge}>PUBLIC PRICING ONLY</span>
       </div>
     </div>
 
@@ -164,17 +163,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '7px',
     flexWrap: 'wrap',
-  },
-  readOnlyBadge: {
-    fontSize: '9px',
-    fontWeight: 800,
-    letterSpacing: '0.5px',
-    padding: '3px 7px',
-    borderRadius: '4px',
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    border: '1px solid rgba(56, 189, 248, 0.28)',
-    color: '#38bdf8',
-    flexShrink: 0,
   },
   itemList: {
     display: 'flex',
