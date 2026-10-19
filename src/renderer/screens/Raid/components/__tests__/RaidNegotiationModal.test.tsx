@@ -105,10 +105,14 @@ function makeSession(
     stop: vi.fn(),
     resync: vi.fn(),
     toggleItem: vi.fn(),
+    setItemsSelected: vi.fn(),
     setGlobalDiscount: vi.fn(),
     setItemCounter: vi.fn(),
+    setItemCounters: vi.fn(),
     acceptCounter: vi.fn(),
+    acceptCounters: vi.fn(),
     declineCounter: vi.fn(),
+    declineCounters: vi.fn(),
     setReady: vi.fn(),
     lockDeal: vi.fn(),
     sendChat: vi.fn(),
@@ -139,6 +143,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -170,6 +176,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -179,10 +187,10 @@ describe('RaidNegotiationModal', () => {
     );
     expect(session.toggleItem).toHaveBeenCalledWith('skinport:a', false);
 
-    fireEvent.change(screen.getByLabelText('Global bundle discount'), {
+    fireEvent.change(screen.getByLabelText('Bundle price adjustment'), {
       target: { value: '10' },
     });
-    expect(session.setGlobalDiscount).toHaveBeenCalledWith(-10);
+    expect(session.setGlobalDiscount).toHaveBeenCalledWith(10);
   });
 
   it('accepts and declines seller counter-offers', () => {
@@ -204,6 +212,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -235,6 +245,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -264,6 +276,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -294,6 +308,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -316,6 +332,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -354,6 +372,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={vi.fn()}
         onTopUp={onTopUp}
       />,
@@ -366,6 +386,115 @@ describe('RaidNegotiationModal', () => {
     expect(onTopUp).toHaveBeenCalled();
   });
 
+  it('stacks identical listings and applies the group checkbox to all', () => {
+    const session = makeSession();
+    const sharedName = session.state.items[0].marketHashName;
+    session.state = {
+      ...session.state,
+      items: session.state.items.map((item, index) =>
+        index === 1 ? { ...item, marketHashName: sharedName } : item,
+      ),
+    };
+    mockUseRaidPeerHost.mockReturnValue(session);
+
+    render(
+      <RaidNegotiationModal
+        seller={seller}
+        rows={auditRows()}
+        sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('×2')).toBeTruthy();
+    expect(screen.getByText('2 listings')).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText(`Include all ${sharedName}`));
+    expect(session.setItemsSelected).toHaveBeenCalledWith(
+      ['skinport:a', 'skinport:b'],
+      false,
+    );
+  });
+
+  it('accepts every counter in a stack with one action', () => {
+    const session = makeSession();
+    const sharedName = session.state.items[0].marketHashName;
+    session.state = {
+      ...session.state,
+      items: session.state.items.map((item) => ({
+        ...item,
+        marketHashName: sharedName,
+        counterPrice: 75,
+      })),
+    };
+    mockUseRaidPeerHost.mockReturnValue(session);
+
+    render(
+      <RaidNegotiationModal
+        seller={seller}
+        rows={auditRows()}
+        sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Accept all'));
+    expect(session.acceptCounters).toHaveBeenCalledWith([
+      'skinport:a',
+      'skinport:b',
+    ]);
+  });
+
+  it('hides without unmounting the live session and can end explicitly', () => {
+    const onEndSession = vi.fn();
+    const session = makeSession();
+    mockUseRaidPeerHost.mockReturnValue(session);
+
+    const { rerender } = render(
+      <RaidNegotiationModal
+        seller={seller}
+        rows={auditRows()}
+        sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={onEndSession}
+        onClose={vi.fn()}
+      />,
+    );
+
+    rerender(
+      <RaidNegotiationModal
+        seller={seller}
+        rows={auditRows()}
+        sessionIdempotencyKey="test-session-key"
+        isOpen={false}
+        onEndSession={onEndSession}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('heading', { name: 'Live Negotiation Table' }),
+    ).toBeNull();
+    expect(mockUseRaidPeerHost).toHaveBeenCalled();
+
+    rerender(
+      <RaidNegotiationModal
+        seller={seller}
+        rows={auditRows()}
+        sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={onEndSession}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText('End Session'));
+    expect(onEndSession).toHaveBeenCalled();
+  });
+
   it('closes on Escape', () => {
     const onClose = vi.fn();
     mockUseRaidPeerHost.mockReturnValue(makeSession());
@@ -375,6 +504,8 @@ describe('RaidNegotiationModal', () => {
         seller={seller}
         rows={auditRows()}
         sessionIdempotencyKey="test-session-key"
+        isOpen
+        onEndSession={vi.fn()}
         onClose={onClose}
       />,
     );

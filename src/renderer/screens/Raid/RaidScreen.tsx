@@ -312,10 +312,11 @@ export const RaidScreen: React.FC = () => {
 
   const handleStartLiveRoom = () => {
     if (!offer || offer.summary.itemCount === 0) return;
-    const confirmed = window.confirm(
-      'Starting a live session costs $0.20. Continue?',
-    );
-    if (!confirmed) return;
+
+    if (sessionIdempotencyKey) {
+      setIsNegotiationOpen(true);
+      return;
+    }
 
     const cryptoApi = (globalThis as any)?.crypto;
     const key =
@@ -558,14 +559,26 @@ export const RaidScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={handleStartLiveRoom}
-                disabled={!offer || offer.summary.itemCount === 0}
+                disabled={
+                  !sessionIdempotencyKey &&
+                  (!offer || offer.summary.itemCount === 0)
+                }
                 style={getLiveRoomBtnStyle(
-                  !offer || offer.summary.itemCount === 0,
+                  !sessionIdempotencyKey &&
+                    (!offer || offer.summary.itemCount === 0),
                 )}
-                title="Host a live P2P negotiation table ($0.20 per session)"
+                title={
+                  sessionIdempotencyKey
+                    ? 'Reopen the active live room without another charge'
+                    : 'Host a live P2P negotiation table ($0.20 per session)'
+                }
               >
                 <Handshake size={14} />
-                <span>Start Live Room</span>
+                <span>
+                  {sessionIdempotencyKey
+                    ? 'Resume Live Room'
+                    : 'Start Live Room · $0.20'}
+                </span>
               </button>
               <button
                 type="button"
@@ -663,12 +676,14 @@ export const RaidScreen: React.FC = () => {
         </div>
       )}
 
-      {isNegotiationOpen && seller && sessionIdempotencyKey && (
+      {seller && sessionIdempotencyKey && (
         <RaidNegotiationModal
           seller={seller}
           rows={selectedRows}
           sessionIdempotencyKey={sessionIdempotencyKey}
-          onClose={() => {
+          isOpen={isNegotiationOpen}
+          onClose={() => setIsNegotiationOpen(false)}
+          onEndSession={() => {
             setIsNegotiationOpen(false);
             setSessionIdempotencyKey(null);
           }}

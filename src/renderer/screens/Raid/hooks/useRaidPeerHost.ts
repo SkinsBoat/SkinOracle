@@ -105,10 +105,14 @@ export interface UseRaidPeerHostReturn {
   stop: () => void;
   resync: () => void;
   toggleItem: (itemId: string, selected: boolean) => void;
+  setItemsSelected: (itemIds: string[], selected: boolean) => void;
   setGlobalDiscount: (discountPct: number) => void;
   setItemCounter: (itemId: string, counterPrice: number) => void;
+  setItemCounters: (itemIds: string[], counterPrice: number) => void;
   acceptCounter: (itemId: string) => void;
+  acceptCounters: (itemIds: string[]) => void;
   declineCounter: (itemId: string) => void;
+  declineCounters: (itemIds: string[]) => void;
   setReady: (ready: boolean) => void;
   lockDeal: () => void;
   sendChat: (text: string) => void;
@@ -645,6 +649,14 @@ export function useRaidPeerHost({
     [applyLocal],
   );
 
+  const setItemsSelected = useCallback(
+    (itemIds: string[], selected: boolean) => {
+      if (itemIds.length === 0) return;
+      applyLocal({ type: 'TOGGLE_ITEMS', itemIds, selected });
+    },
+    [applyLocal],
+  );
+
   const setGlobalDiscount = useCallback(
     (discountPct: number) => {
       applyLocal({
@@ -662,6 +674,14 @@ export function useRaidPeerHost({
     [applyLocal],
   );
 
+  const setItemCounters = useCallback(
+    (itemIds: string[], counterPrice: number) => {
+      if (itemIds.length === 0) return;
+      applyLocal({ type: 'SET_ITEM_COUNTERS', itemIds, counterPrice });
+    },
+    [applyLocal],
+  );
+
   const acceptCounter = useCallback(
     (itemId: string) => {
       applyLocal({ type: 'ACCEPT_COUNTER', itemId });
@@ -669,9 +689,25 @@ export function useRaidPeerHost({
     [applyLocal],
   );
 
+  const acceptCounters = useCallback(
+    (itemIds: string[]) => {
+      if (itemIds.length === 0) return;
+      applyLocal({ type: 'ACCEPT_COUNTERS', itemIds });
+    },
+    [applyLocal],
+  );
+
   const declineCounter = useCallback(
     (itemId: string) => {
       applyLocal({ type: 'DECLINE_COUNTER', itemId });
+    },
+    [applyLocal],
+  );
+
+  const declineCounters = useCallback(
+    (itemIds: string[]) => {
+      if (itemIds.length === 0) return;
+      applyLocal({ type: 'DECLINE_COUNTERS', itemIds });
     },
     [applyLocal],
   );
@@ -750,10 +786,14 @@ export function useRaidPeerHost({
     stop,
     resync,
     toggleItem,
+    setItemsSelected,
     setGlobalDiscount,
     setItemCounter,
+    setItemCounters,
     acceptCounter,
+    acceptCounters,
     declineCounter,
+    declineCounters,
     setReady,
     lockDeal,
     sendChat,

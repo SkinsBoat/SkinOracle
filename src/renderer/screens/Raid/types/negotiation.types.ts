@@ -30,6 +30,8 @@ export interface NegotiationItem {
   proposedPrice: number;
   /** Seller's counter-offer, USD dollars, when supplied. */
   counterPrice?: number;
+  /** Host receive time of the latest counter, used to triage actionable items. */
+  counterUpdatedAt?: number;
   /** Included in the current deal bundle. */
   selected: boolean;
   status: NegotiationItemStatus;
@@ -40,7 +42,10 @@ export interface NegotiationState {
   marketplace: NegotiationMarketplace;
   sellerHandle: string;
   items: NegotiationItem[];
-  /** Bundle-wide adjustment, e.g. -5 for a 5% reduction. Range [-25, 0]. */
+  /**
+   * Bundle-wide price adjustment. Negative = seller discount, positive =
+   * buyer premium. Range [-25, 25].
+   */
   globalDiscountPct: number;
   traderReady: boolean;
   sellerReady: boolean;
@@ -57,8 +62,12 @@ export type PeerMessage =
   | { type: 'INIT_DEAL_STATE'; state: NegotiationState }
   | { type: 'SYNC_STATE'; state: NegotiationState }
   | { type: 'TOGGLE_ITEM'; itemId: string; selected: boolean }
+  | { type: 'TOGGLE_ITEMS'; itemIds: string[]; selected: boolean }
   | { type: 'SET_GLOBAL_DISCOUNT'; discountPct: number }
   | { type: 'SET_ITEM_COUNTER'; itemId: string; counterPrice: number }
+  | { type: 'SET_ITEM_COUNTERS'; itemIds: string[]; counterPrice: number }
+  | { type: 'ACCEPT_COUNTERS'; itemIds: string[] }
+  | { type: 'DECLINE_COUNTERS'; itemIds: string[] }
   | { type: 'ACCEPT_COUNTER'; itemId: string }
   | { type: 'DECLINE_COUNTER'; itemId: string }
   | { type: 'SET_READY'; role: NegotiationRole; ready: boolean }
@@ -101,7 +110,7 @@ export type RaidPeerStatus =
 export type NegotiationTransportMode = 'connecting' | 'p2p' | 'offline';
 
 export const NEGOTIATION_DISCOUNT_MIN = -25;
-export const NEGOTIATION_DISCOUNT_MAX = 0;
+export const NEGOTIATION_DISCOUNT_MAX = 25;
 
 export const NEGOTIATION_LIMITS = {
   /** Highest number of line items the host will publish. */

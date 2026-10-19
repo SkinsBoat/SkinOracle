@@ -3,8 +3,11 @@ import toast from 'react-hot-toast';
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
+  ChevronRight,
   Copy,
   Handshake,
+  Layers,
   Lock,
   MessageSquare,
   Send,
@@ -27,6 +30,9 @@ import { useRaidPeerHost } from '../hooks/useRaidPeerHost';
 import {
   getEffectiveOfferPrice,
   getNegotiationTotals,
+  groupNegotiationItems,
+  NegotiationItemGroup,
+  sortNegotiationItemsByAction,
 } from '../utils/negotiationState';
 import { formatUsd } from '../utils/raidUtils';
 
@@ -35,7 +41,9 @@ interface RaidNegotiationModalProps {
   rows: RaidAuditRow[];
   /** Stable retry key for the paid session request. */
   sessionIdempotencyKey: string;
+  isOpen: boolean;
   onClose: () => void;
+  onEndSession: () => void;
   onTopUp?: () => void;
 }
 
@@ -64,7 +72,9 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
   seller,
   rows,
   sessionIdempotencyKey,
+  isOpen,
   onClose,
+  onEndSession,
   onTopUp,
 }) => {
   const initSession = useCallback(
@@ -103,6 +113,10 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
     initSession,
   });
   const [chatInput, setChatInput] = useState('');
+  const [stackDuplicates, setStackDuplicates] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    new Set(),
+  );
   const autoCopiedRef = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -111,6 +125,31 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
     () => (state ? getNegotiationTotals(state) : null),
     [state],
   );
+  const orderedItems = useMemo(
+    () => (state ? sortNegotiationItemsByAction(state.items) : []),
+    [state?.items],
+  );
+  const groups = useMemo(
+    () => groupNegotiationItems(orderedItems),
+    [orderedItems],
+  );
+  const actionableCount = state
+    ? state.items.filter(
+        (item) => typeof item.counterPrice === 'number',
+      ).length
+    : 0;
+  const hasDuplicates = groups.some((group) => group.count > 1);
+  const stacked = stackDuplicates && hasDuplicates;
+
+  const toggleGroupExpanded = (key: string) => {
+    setExpandedGroups((previous) => {
+      const next = new Set(previous);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   const statusMeta = getStatusMeta(
     session.status,
     session.transportMode,
@@ -158,16 +197,19 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
   }, [copyShareLink, session.linkReady, session.shareUrl]);
 
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ block: 'nearest' });
   }, [session.chat.length]);
+
+  if (!isOpen) return null;
 
   const handleSendChat = (event: React.FormEvent) => {
     event.preventDefault();
@@ -243,7 +285,8 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close negotiation table"
+              aria-label="Hide live negotiation table"
+              title="Hide the room. The paid session stays active until you end it."
               style={styles.closeBtn}
             >
               <X size={16} />
@@ -321,9 +364,27 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
                 <p style={styles.sectionSubtitle}>
                   {state?.items.length ?? 0} audited listings ·{' '}
                   {totals?.itemCount ?? 0} included
+                  {actionableCount > 0 && (
+                    <span style={styles.actionCount}>
+                      {' '}· {actionableCount} awaiting action
+                    </span>
+                  )}
                 </p>
               </div>
-              <span style={styles.readOnlyBadge}>PUBLIC PRICING ONLY</span>
+              <div style={styles.sectionHeaderActions}>
+                {hasDuplicates && (
+                  <button
+                    type="button"
+                    onClick={() => setStackDuplicates((value) => !value)}
+                    style={getStackToggleStyle(stackDuplicates)}
+                    title="Link identical listings so one action applies to the whole stack"
+                  >
+                    <Layers size={12} />
+                    <span>{stackDuplicates ? 'Stacked' : 'Stack'}</span>
+                  </button>
+                )}
+                <span style={styles.readOnlyBadge}>PUBLIC PRICING ONLY</span>
+              </div>
             </div>
 
             <div style={styles.itemList}>
@@ -336,8 +397,48 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
                     before hosting a live deal.
                   </p>
                 </div>
+              ) : stacked ? (
+                groups.map((group) => (
+                  <StackedItemCard
+                    key={group.key}
+                    group={group}
+                    discountPct={state.globalDiscountPct}
+                    locked={locked}
+                    expanded={expandedGroups.has(group.key)}
+                    onToggleExpand={() => toggleGroupExpanded(group.key)}
+                    onSelectAll={() =>
+                      session.setItemsSelected(
+                        group.items.map((item) => item.id),
+                        !group.allSelected,
+                      )
+                    }
+                    onAcceptAllCounters={() => {
+                      session.acceptCounters(
+                        group.items.map((item) => item.id),
+                      );
+                      toast.success('Stack counter-offers accepted.');
+                    }}
+                    onDeclineAllCounters={() => {
+                      session.declineCounters(
+                        group.items.map((item) => item.id),
+                      );
+                      toast('Stack counter-offers declined.');
+                    }}
+                    onToggleItem={(itemId, selected) =>
+                      session.toggleItem(itemId, selected)
+                    }
+                    onAcceptCounter={(itemId) => {
+                      session.acceptCounter(itemId);
+                      toast.success('Counter-offer accepted.');
+                    }}
+                    onDeclineCounter={(itemId) => {
+                      session.declineCounter(itemId);
+                      toast('Counter-offer declined.');
+                    }}
+                  />
+                ))
               ) : (
-                state.items.map((item) => (
+                orderedItems.map((item) => (
                   <NegotiationItemRow
                     key={item.id}
                     item={item}
@@ -390,27 +491,35 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
 
             <section style={styles.card}>
               <div style={styles.cardHeader}>
-                <span style={styles.cardTitle}>Global Discount</span>
-                <span style={styles.discountValue}>
-                  {state ? `${state.globalDiscountPct}%` : '0%'}
+                <span style={styles.cardTitle}>Bundle Adjustment</span>
+                <span
+                  style={getAdjustmentValueStyle(
+                    state?.globalDiscountPct ?? 0,
+                  )}
+                >
+                  {formatAdjustmentPct(state?.globalDiscountPct ?? 0)}
                 </span>
               </div>
               <input
                 type="range"
-                min={0}
+                min={-25}
                 max={25}
                 step={1}
-                value={Math.abs(state?.globalDiscountPct ?? 0)}
+                value={state?.globalDiscountPct ?? 0}
                 disabled={!state || locked}
                 onChange={(event) =>
-                  session.setGlobalDiscount(-Math.abs(Number(event.target.value)))
+                  session.setGlobalDiscount(Number(event.target.value))
                 }
-                aria-label="Global bundle discount"
+                aria-label="Bundle price adjustment"
                 style={getRangeStyle(!state || locked)}
               />
               <div style={styles.rangeLabels}>
-                <span>0%</span>
                 <span>−25%</span>
+                <span>0%</span>
+                <span>+25%</span>
+              </div>
+              <div style={styles.rangeHint}>
+                Seller discount · neutral · buyer premium
               </div>
             </section>
 
@@ -557,6 +666,14 @@ export const RaidNegotiationModal: React.FC<RaidNegotiationModalProps> = ({
             </span>
             <span>· zero server storage · ceilings never transmitted</span>
           </div>
+          <button
+            type="button"
+            onClick={onEndSession}
+            style={styles.endSessionBtn}
+            title="End the paid session and disconnect the seller"
+          >
+            End Session
+          </button>
         </footer>
       </div>
     </div>
@@ -567,6 +684,7 @@ const NegotiationItemRow: React.FC<{
   item: NegotiationItem;
   discountPct: number;
   locked: boolean;
+  nested?: boolean;
   onToggle: () => void;
   onAcceptCounter: () => void;
   onDeclineCounter: () => void;
@@ -574,6 +692,7 @@ const NegotiationItemRow: React.FC<{
   item,
   discountPct,
   locked,
+  nested = false,
   onToggle,
   onAcceptCounter,
   onDeclineCounter,
@@ -582,7 +701,7 @@ const NegotiationItemRow: React.FC<{
   const hasCounter = typeof item.counterPrice === 'number';
 
   return (
-    <div style={getItemRowStyle(item.selected, locked)}>
+    <div style={getItemRowStyle(item.selected, locked, nested)}>
       <input
         type="checkbox"
         checked={item.selected}
@@ -613,6 +732,12 @@ const NegotiationItemRow: React.FC<{
           )}
           {item.status === 'rejected' && (
             <span style={styles.itemStatusRejected}>EXCLUDED</span>
+          )}
+          {hasCounter && (
+            <span style={styles.itemStatusAction}>
+              <AlertTriangle size={9} />
+              ACTION
+            </span>
           )}
         </div>
         <div style={styles.itemMeta}>
@@ -656,6 +781,192 @@ const NegotiationItemRow: React.FC<{
             <XCircle size={12} />
             <span>Decline</span>
           </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const StackedItemCard: React.FC<{
+  group: NegotiationItemGroup;
+  discountPct: number;
+  locked: boolean;
+  expanded: boolean;
+  onToggleExpand: () => void;
+  onSelectAll: () => void;
+  onAcceptAllCounters: () => void;
+  onDeclineAllCounters: () => void;
+  onToggleItem: (itemId: string, selected: boolean) => void;
+  onAcceptCounter: (itemId: string) => void;
+  onDeclineCounter: (itemId: string) => void;
+}> = ({
+  group,
+  discountPct,
+  locked,
+  expanded,
+  onToggleExpand,
+  onSelectAll,
+  onAcceptAllCounters,
+  onDeclineAllCounters,
+  onToggleItem,
+  onAcceptCounter,
+  onDeclineCounter,
+}) => {
+  const first = group.items[0];
+  const effectiveTotal = Math.round(
+    group.items.reduce(
+      (sum, item) => sum + getEffectiveOfferPrice(item, discountPct),
+      0,
+    ) * 100,
+  ) / 100;
+  const acceptedCount = group.items.filter(
+    (item) => item.status === 'accepted',
+  ).length;
+
+  return (
+    <div style={getStackCardStyle(group.someSelected)}>
+      <div style={styles.stackHeader}>
+        <input
+          type="checkbox"
+          checked={group.allSelected}
+          ref={(element) => {
+            if (element) {
+              element.indeterminate = group.someSelected;
+            }
+          }}
+          onChange={onSelectAll}
+          disabled={locked}
+          aria-label={`Include all ${group.name}`}
+          style={styles.itemCheckbox}
+        />
+
+        <div style={styles.stackThumb}>
+          {first?.imageUrl ? (
+            <img
+              src={first.imageUrl}
+              alt=""
+              style={styles.stackImage}
+              loading="lazy"
+            />
+          ) : (
+            <div style={styles.itemImageFallback}>
+              <Handshake size={16} style={styles.itemImageFallbackIcon} />
+            </div>
+          )}
+          <span style={styles.stackCount}>×{group.count}</span>
+        </div>
+
+        <div
+          style={styles.stackMain}
+          onClick={onSelectAll}
+          role="button"
+          title="Select or unselect every listing in this stack"
+        >
+          <div style={styles.itemNameRow}>
+            <span style={styles.itemName}>{group.name}</span>
+            <span style={styles.stackBadge}>
+              <Layers size={9} /> STACK
+            </span>
+            {acceptedCount > 0 && (
+              <span style={styles.itemStatusAccepted}>
+                {acceptedCount === group.count
+                  ? 'ACCEPTED'
+                  : `${acceptedCount}/${group.count} ACCEPTED`}
+              </span>
+            )}
+            {!group.allSelected && !group.someSelected && (
+              <span style={styles.itemStatusRejected}>EXCLUDED</span>
+            )}
+            {group.counterCount > 0 && (
+              <span style={styles.itemStatusAction}>
+                <AlertTriangle size={9} />
+                ACTION
+              </span>
+            )}
+          </div>
+          <div style={styles.itemMeta}>
+            {group.exterior && <span>{group.exterior}</span>}
+            {group.floatMin !== undefined && (
+              <span>
+                Float{' '}
+                {group.floatMin === group.floatMax
+                  ? group.floatMin.toFixed(6)
+                  : `${group.floatMin.toFixed(4)}–${(
+                      group.floatMax ?? group.floatMin
+                    ).toFixed(4)}`}
+              </span>
+            )}
+            <span>{group.selectedCount}/{group.count} linked</span>
+          </div>
+          <div style={styles.itemPrices}>
+            <span style={styles.itemPriceBase}>
+              Base {formatUsd(group.totalListing)}
+            </span>
+            <span style={styles.itemPriceOffer}>
+              Offer {formatUsd(effectiveTotal)}
+            </span>
+            {group.counterCount > 0 && (
+              <span style={styles.itemPriceCounter}>
+                {group.counterCount} counter
+                {group.counterCount === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div style={styles.stackActions}>
+          {group.counterCount > 0 && !locked && (
+            <div style={styles.counterActions}>
+              <button
+                type="button"
+                onClick={onAcceptAllCounters}
+                style={styles.counterAcceptBtn}
+                title="Accept every counter in this stack"
+              >
+                <Check size={12} />
+                <span>Accept all</span>
+              </button>
+              <button
+                type="button"
+                onClick={onDeclineAllCounters}
+                style={styles.counterDeclineBtn}
+                title="Decline every counter in this stack"
+              >
+                <XCircle size={12} />
+                <span>Decline all</span>
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            style={styles.stackExpandBtn}
+            aria-expanded={expanded}
+          >
+            {expanded ? (
+              <ChevronDown size={13} />
+            ) : (
+              <ChevronRight size={13} />
+            )}
+            <span>{group.count} listings</span>
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div style={styles.stackChildren}>
+          {group.items.map((item) => (
+            <NegotiationItemRow
+              key={item.id}
+              item={item}
+              discountPct={discountPct}
+              locked={locked}
+              nested
+              onToggle={() => onToggleItem(item.id, !item.selected)}
+              onAcceptCounter={() => onAcceptCounter(item.id)}
+              onDeclineCounter={() => onDeclineCounter(item.id)}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -950,6 +1261,106 @@ const styles: Record<string, React.CSSProperties> = {
     overflowY: 'auto',
     paddingRight: '2px',
   },
+  sectionHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '7px',
+    flexWrap: 'wrap',
+  },
+  stackCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0px',
+    padding: '9px',
+    borderRadius: '10px',
+    backgroundColor: '#131720',
+    border: '1px solid #1e2430',
+  },
+  stackHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '9px',
+    minWidth: 0,
+  },
+  stackThumb: {
+    position: 'relative',
+    width: '48px',
+    height: '36px',
+    flexShrink: 0,
+  },
+  stackImage: {
+    width: '48px',
+    height: '36px',
+    objectFit: 'contain',
+    borderRadius: '6px',
+    backgroundColor: '#0d1117',
+  },
+  stackCount: {
+    position: 'absolute',
+    right: '-5px',
+    bottom: '-5px',
+    minWidth: '19px',
+    height: '17px',
+    padding: '0 4px',
+    borderRadius: '9px',
+    backgroundColor: '#2563eb',
+    border: '1px solid #0b0f14',
+    color: '#ffffff',
+    fontSize: '9px',
+    fontWeight: 900,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stackBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '3px',
+    fontSize: '8px',
+    fontWeight: 900,
+    letterSpacing: '0.3px',
+    padding: '2px 5px',
+    borderRadius: '3px',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    border: '1px solid rgba(56, 189, 248, 0.32)',
+    color: '#38bdf8',
+  },
+  stackActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: '5px',
+    flexShrink: 0,
+  },
+  stackExpandBtn: {
+    height: '24px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '0 7px',
+    borderRadius: '6px',
+    backgroundColor: '#0d1117',
+    border: '1px solid #2a3342',
+    color: '#94a3b8',
+    fontSize: '9.5px',
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+  stackChildren: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    marginTop: '8px',
+    paddingTop: '8px',
+    paddingLeft: '9px',
+    borderTop: '1px solid #1e2430',
+    borderLeft: '1px solid #1e2430',
+  },
+  itemRowNested: {
+    padding: '7px',
+    backgroundColor: '#0f141c',
+    borderRadius: '8px',
+  },
   itemRow: {
     display: 'flex',
     alignItems: 'center',
@@ -987,6 +1398,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   itemImageFallbackIcon: { color: '#475569' },
   itemMain: { flex: 1, minWidth: 0 },
+  stackMain: {
+    flex: 1,
+    minWidth: 0,
+    cursor: 'pointer',
+  },
   itemNameRow: {
     display: 'flex',
     alignItems: 'center',
@@ -1009,6 +1425,23 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'rgba(34, 197, 94, 0.16)',
     border: '1px solid rgba(34, 197, 94, 0.4)',
     color: '#4ade80',
+  },
+  itemStatusAction: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '3px',
+    fontSize: '8px',
+    fontWeight: 900,
+    letterSpacing: '0.4px',
+    padding: '2px 5px',
+    borderRadius: '3px',
+    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+    border: '1px solid rgba(245, 158, 11, 0.45)',
+    color: '#fbbf24',
+  },
+  actionCount: {
+    color: '#fbbf24',
+    fontWeight: 800,
   },
   itemStatusRejected: {
     fontSize: '8px',
@@ -1166,6 +1599,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '9.5px',
     fontWeight: 700,
     color: '#64748b',
+  },
+  rangeHint: {
+    textAlign: 'center',
+    fontSize: '9px',
+    fontWeight: 700,
+    letterSpacing: '0.2px',
+    color: '#475569',
   },
   readyGrid: {
     display: 'grid',
@@ -1332,7 +1772,31 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   footerIcon: { color: '#38bdf8', flexShrink: 0 },
+  endSessionBtn: {
+    height: '30px',
+    padding: '0 11px',
+    borderRadius: '7px',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    border: '1px solid rgba(239, 68, 68, 0.34)',
+    color: '#f87171',
+    fontSize: '10px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
 };
+
+function formatAdjustmentPct(value: number): string {
+  if (value === 0) return '0%';
+  return `${value > 0 ? '+' : '−'}${Math.abs(value)}%`;
+}
+
+function getAdjustmentValueStyle(value: number): React.CSSProperties {
+  return {
+    ...styles.discountValue,
+    color: value > 0 ? '#fbbf24' : value < 0 ? '#38bdf8' : '#e2e8f0',
+  };
+}
 
 function getStatusMeta(
   status: RaidPeerStatus,
@@ -1418,12 +1882,42 @@ function getCopyBtnStyle(disabled: boolean): React.CSSProperties {
 function getItemRowStyle(
   selected: boolean,
   locked: boolean,
+  nested: boolean = false,
 ): React.CSSProperties {
   return {
     ...styles.itemRow,
+    ...(nested ? styles.itemRowNested : {}),
     opacity: selected ? 1 : 0.52,
     borderColor: selected ? '#243044' : '#1e2430',
     cursor: 'default',
+  };
+}
+
+function getStackCardStyle(partial: boolean): React.CSSProperties {
+  return {
+    ...styles.stackCard,
+    borderColor: partial ? 'rgba(245, 158, 11, 0.4)' : '#1e2430',
+  };
+}
+
+function getStackToggleStyle(active: boolean): React.CSSProperties {
+  return {
+    height: '24px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '0 8px',
+    borderRadius: '6px',
+    backgroundColor: active
+      ? 'rgba(56, 189, 248, 0.14)'
+      : 'transparent',
+    border: active
+      ? '1px solid rgba(56, 189, 248, 0.4)'
+      : '1px solid #2a3342',
+    color: active ? '#38bdf8' : '#94a3b8',
+    fontSize: '9.5px',
+    fontWeight: 800,
+    cursor: 'pointer',
   };
 }
 

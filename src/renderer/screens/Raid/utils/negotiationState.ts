@@ -90,8 +90,14 @@ export function buildNegotiationItems(rows: RaidAuditRow[]): NegotiationItem[] {
       .trim()
       .slice(0, NEGOTIATION_LIMITS.maxIdLength);
     if (!rawId) continue;
-    const id = `${item.marketplace}:${rawId}`;
-    if (seen.has(id)) continue;
+    let id = `${item.marketplace}:${rawId}`;
+    if (seen.has(id)) {
+      // Never drop a second listing just because a marketplace reused or
+      // omitted its listing id. A unique suffix keeps both negotiable.
+      let suffix = 2;
+      while (seen.has(`${id}#${suffix}`)) suffix += 1;
+      id = `${id}#${suffix}`;
+    }
     seen.add(id);
 
     const proposedPrice = roundUsd(Math.min(listingPrice, buyCeiling));
@@ -151,6 +157,111 @@ export function createNegotiationState({
     lastUpdatedBy: 'trader',
     updatedAt: now,
   };
+}
+
+export interface NegotiationItemGroup {
+  key: string;
+  name: string;
+  items: NegotiationItem[];
+  count: number;
+  selectedCount: number;
+  allSelected: boolean;
+  someSelected: boolean;
+  totalListing: number;
+  totalProposed: number;
+  counterCount: number;
+  exterior?: string;
+  floatMin?: number;
+  floatMax?: number;
+}
+
+/**
+ * Counter-offers awaiting trader action are pulled to the top, oldest first,
+ * so the trader can work through the queue without searching the bundle.
+ */
+export function sortNegotiationItemsByAction(
+  items: NegotiationItem[],
+): NegotiationItem[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const aAction = typeof a.item.counterPrice === 'number' ? 1 : 0;
+      const bAction = typeof b.item.counterPrice === 'number' ? 1 : 0;
+      if (aAction !== bAction) return bAction - aAction;
+      if (aAction === 1) {
+        const aTime = a.item.counterUpdatedAt ?? 0;
+        const bTime = b.item.counterUpdatedAt ?? 0;
+        if (aTime !== bTime) return aTime - bTime;
+      }
+      return a.index - b.index;
+    })
+    .map(({ item }) => item);
+}
+
+/**
+ * Groups identical skins (same market hash name) into one stacked card.
+ * Order follows the first occurrence in the bundle.
+ */
+function normalizeGroupName(name: string): string {
+  return name
+    .replace(/[\u2122\u00ae\u2120]/gi, '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function groupNegotiationItems(
+  items: NegotiationItem[],
+): NegotiationItemGroup[] {
+  const groups = new Map<string, NegotiationItemGroup>();
+
+  for (const item of items) {
+    const key =
+      normalizeGroupName(item.marketHashName) || item.id.toLowerCase();
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        key,
+        name: item.marketHashName,
+        items: [],
+        count: 0,
+        selectedCount: 0,
+        allSelected: false,
+        someSelected: false,
+        totalListing: 0,
+        totalProposed: 0,
+        counterCount: 0,
+      };
+      groups.set(key, group);
+    }
+
+    group.items.push(item);
+    group.count += 1;
+    if (item.selected) group.selectedCount += 1;
+    group.totalListing += item.listingPrice;
+    group.totalProposed += item.proposedPrice;
+    if (typeof item.counterPrice === 'number') group.counterCount += 1;
+    if (!group.exterior && item.exterior) group.exterior = item.exterior;
+    if (typeof item.floatValue === 'number') {
+      group.floatMin =
+        group.floatMin === undefined
+          ? item.floatValue
+          : Math.min(group.floatMin, item.floatValue);
+      group.floatMax =
+        group.floatMax === undefined
+          ? item.floatValue
+          : Math.max(group.floatMax, item.floatValue);
+    }
+  }
+
+  return Array.from(groups.values()).map((group) => ({
+    ...group,
+    totalListing: roundUsd(group.totalListing),
+    totalProposed: roundUsd(group.totalProposed),
+    allSelected: group.count > 0 && group.selectedCount === group.count,
+    someSelected: group.selectedCount > 0 && group.selectedCount < group.count,
+  }));
 }
 
 /** Applies the bundle discount to the trader's proposed bid. */
@@ -234,6 +345,21 @@ export function applyPeerMessage(
     case 'SYNC_STATE':
       return state;
 
+    case 'TOGGLE_ITEMS': {
+      if (state.dealLocked) return state;
+      const ids = new Set(message.itemIds);
+      let changed = false;
+      const items = state.items.map((item) => {
+        if (!ids.has(item.id) || item.selected === message.selected) {
+          return item;
+        }
+        changed = true;
+        return { ...item, selected: message.selected };
+      });
+      if (!changed) return state;
+      return withUpdate(state, { items }, fromRole, now);
+    }
+
     case 'TOGGLE_ITEM': {
       if (state.dealLocked) return state;
       const current = state.items.find((item) => item.id === message.itemId);
@@ -273,6 +399,7 @@ export function applyPeerMessage(
           ? {
               ...item,
               counterPrice,
+              counterUpdatedAt: now,
               selected: true,
               status: 'pending' as const,
             }
@@ -281,13 +408,92 @@ export function applyPeerMessage(
       return withUpdate(state, { items }, fromRole, now);
     }
 
+    case 'SET_ITEM_COUNTERS': {
+      if (state.dealLocked) return state;
+      if (!Number.isFinite(message.counterPrice) || message.counterPrice <= 0) {
+        return state;
+      }
+      const ids = new Set(message.itemIds);
+      const counterPrice = roundUsd(message.counterPrice);
+      let changed = false;
+      const items = state.items.map((item) => {
+        if (!ids.has(item.id)) return item;
+        if (
+          item.counterPrice === counterPrice &&
+          item.selected &&
+          item.status === 'pending'
+        ) {
+          return item;
+        }
+        changed = true;
+        return {
+          ...item,
+          counterPrice,
+          counterUpdatedAt: now,
+          selected: true,
+          status: 'pending' as const,
+        };
+      });
+      if (!changed) return state;
+      return withUpdate(state, { items }, fromRole, now);
+    }
+
+    case 'ACCEPT_COUNTERS': {
+      if (fromRole !== 'trader') return state;
+      if (state.dealLocked) return state;
+      const ids = new Set(message.itemIds);
+      let changed = false;
+      const items = state.items.map((item) => {
+        if (
+          !ids.has(item.id) ||
+          typeof item.counterPrice !== 'number'
+        ) {
+          return item;
+        }
+        changed = true;
+        const { counterPrice, counterUpdatedAt, ...rest } = item;
+        void counterUpdatedAt;
+        return {
+          ...rest,
+          proposedPrice: counterPrice,
+          selected: true,
+          status: 'accepted' as const,
+        };
+      });
+      if (!changed) return state;
+      return withUpdate(state, { items }, fromRole, now);
+    }
+
+    case 'DECLINE_COUNTERS': {
+      if (fromRole !== 'trader') return state;
+      if (state.dealLocked) return state;
+      const ids = new Set(message.itemIds);
+      let changed = false;
+      const items = state.items.map((item) => {
+        if (
+          !ids.has(item.id) ||
+          typeof item.counterPrice !== 'number'
+        ) {
+          return item;
+        }
+        changed = true;
+        const { counterPrice, counterUpdatedAt, ...rest } = item;
+        void counterUpdatedAt;
+        return { ...rest, status: 'pending' as const };
+      });
+      if (!changed) return state;
+      return withUpdate(state, { items }, fromRole, now);
+    }
+
     case 'ACCEPT_COUNTER': {
+      if (fromRole !== 'trader') return state;
       if (state.dealLocked) return state;
       const current = state.items.find((item) => item.id === message.itemId);
       if (!current || typeof current.counterPrice !== 'number') return state;
       const items = state.items.map((item) => {
         if (item.id !== message.itemId) return item;
-        const { counterPrice: _accepted, ...rest } = item;
+        const { counterPrice: _accepted, counterUpdatedAt, ...rest } = item;
+        void counterUpdatedAt;
         return {
           ...rest,
           proposedPrice: current.counterPrice as number,
@@ -299,12 +505,14 @@ export function applyPeerMessage(
     }
 
     case 'DECLINE_COUNTER': {
+      if (fromRole !== 'trader') return state;
       if (state.dealLocked) return state;
       const current = state.items.find((item) => item.id === message.itemId);
       if (!current || typeof current.counterPrice !== 'number') return state;
       const items = state.items.map((item) => {
         if (item.id !== message.itemId) return item;
-        const { counterPrice: _declined, ...rest } = item;
+        const { counterPrice: _declined, counterUpdatedAt, ...rest } = item;
+        void counterUpdatedAt;
         return { ...rest, status: 'pending' as const };
       });
       return withUpdate(state, { items }, fromRole, now);
@@ -406,6 +614,7 @@ function parseNegotiationItem(
   }
 
   const counterPrice = toFiniteNumber(raw.counterPrice);
+  const counterUpdatedAt = toFiniteNumber(raw.counterUpdatedAt);
   const floatValue = toFiniteNumber(raw.floatValue);
 
   return {
@@ -421,6 +630,7 @@ function parseNegotiationItem(
     ...(counterPrice !== null && counterPrice > 0
       ? { counterPrice: roundUsd(counterPrice) }
       : {}),
+    ...(counterUpdatedAt !== null ? { counterUpdatedAt } : {}),
     selected: raw.selected,
     status: raw.status as NegotiationItemStatus,
   };
@@ -468,6 +678,20 @@ export function parseNegotiationState(
   };
 }
 
+function parseItemIds(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of value.slice(0, NEGOTIATION_LIMITS.maxItems)) {
+    if (typeof entry !== 'string') continue;
+    const id = entry.trim().slice(0, NEGOTIATION_LIMITS.maxIdLength);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids.length > 0 ? ids : null;
+}
+
 /**
  * Validates and normalizes an untrusted DataChannel payload.
  * Returns null for malformed, oversized, or unknown messages.
@@ -486,6 +710,29 @@ export function parsePeerMessage(raw: unknown): PeerWireMessage | null {
       const itemId = safeString(raw.itemId, NEGOTIATION_LIMITS.maxIdLength);
       if (!itemId || typeof raw.selected !== 'boolean') return null;
       return { type: 'TOGGLE_ITEM', itemId, selected: raw.selected };
+    }
+
+    case 'TOGGLE_ITEMS': {
+      const itemIds = parseItemIds(raw.itemIds);
+      if (!itemIds || typeof raw.selected !== 'boolean') return null;
+      return { type: 'TOGGLE_ITEMS', itemIds, selected: raw.selected };
+    }
+
+    case 'SET_ITEM_COUNTERS': {
+      const itemIds = parseItemIds(raw.itemIds);
+      const counterPrice = toFiniteNumber(raw.counterPrice);
+      if (!itemIds || counterPrice === null || counterPrice <= 0) return null;
+      return {
+        type: 'SET_ITEM_COUNTERS',
+        itemIds,
+        counterPrice: roundUsd(counterPrice),
+      };
+    }
+
+    case 'ACCEPT_COUNTERS':
+    case 'DECLINE_COUNTERS': {
+      const itemIds = parseItemIds(raw.itemIds);
+      return itemIds ? { type: raw.type, itemIds } : null;
     }
 
     case 'SET_GLOBAL_DISCOUNT': {

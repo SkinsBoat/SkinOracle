@@ -40,12 +40,17 @@ export {
 /** Converts a Skinport shop listing (USD cents) into the RAID shape (USD). */
 export function normalizeSkinportItem(
   item: SkinportShopApiItem,
+  index = 0,
 ): RaidStockItem {
   const toUsd = (cents: number | undefined): number | undefined =>
     typeof cents === 'number' && Number.isFinite(cents) ? cents / 100 : undefined;
 
   return {
-    id: String(item.saleId ?? item.shortId ?? item.marketHashName),
+    id: String(
+      item.saleId ??
+        item.shortId ??
+        `${item.marketHashName}:${index}`,
+    ),
     marketplace: 'skinport',
     marketHashName: item.marketHashName,
     price: toUsd(item.salePrice) ?? 0,
@@ -77,7 +82,7 @@ export function normalizeSkinportShop(
   res: SkinportShopApiResponse,
 ): NormalizedStorefront {
   const items = (res.items || [])
-    .map(normalizeSkinportItem)
+    .map((item, index) => normalizeSkinportItem(item, index))
     .filter((item) => item.marketHashName && item.price > 0);
 
   const handle = res.shopLink || '';

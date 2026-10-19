@@ -10,7 +10,9 @@ import {
   createNegotiationState,
   getEffectiveOfferPrice,
   getNegotiationTotals,
+  groupNegotiationItems,
   parsePeerMessage,
+  sortNegotiationItemsByAction,
   parseNegotiationState,
 } from '../negotiationState';
 import { buildDealShareUrl } from '../negotiationRoom';
@@ -90,14 +92,17 @@ describe('buildNegotiationItems', () => {
     expect(items).toHaveLength(0);
   });
 
-  it('deduplicates marketplace-prefixed ids and caps the bundle', () => {
+  it('keeps duplicate listings even when the marketplace reuses an id', () => {
     const items = buildNegotiationItems([
       auditRow({ item: stockItem({ id: 'same' }) }),
       auditRow({ item: stockItem({ id: 'same' }) }),
     ]);
 
-    expect(items).toHaveLength(1);
-    expect(items[0].id).toBe('skinport:same');
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => item.id)).toEqual([
+      'skinport:same',
+      'skinport:same#2',
+    ]);
   });
 
   it('drops non-HTTPS image URLs', () => {
@@ -171,7 +176,7 @@ describe('applyPeerMessage', () => {
     expect(next).toBe(state);
   });
 
-  it('clamps the bundle discount to [-25, 0]', () => {
+  it('allows both seller discounts and buyer premiums', () => {
     const state = base();
     const deep = applyPeerMessage(
       state,
@@ -180,12 +185,12 @@ describe('applyPeerMessage', () => {
     );
     expect(deep.globalDiscountPct).toBe(-25);
 
-    const zero = applyPeerMessage(
+    const premium = applyPeerMessage(
       state,
       { type: 'SET_GLOBAL_DISCOUNT', discountPct: 99 },
       'trader',
     );
-    expect(zero.globalDiscountPct).toBe(0);
+    expect(premium.globalDiscountPct).toBe(25);
   });
 
   it('accepts a counter at cents precision and re-includes the item', () => {
@@ -305,6 +310,214 @@ describe('applyPeerMessage', () => {
   });
 });
 
+describe('stacked item groups', () => {
+  const state = () =>
+    createNegotiationState({
+      roomId: '8f3a9b1c-1111-4222-8333-444455556666',
+      marketplace: 'skinport',
+      sellerHandle: 'Seller',
+      rows: [
+        auditRow({
+          item: stockItem({ id: 'a', marketHashName: 'AK-47 | Redline (FT)' }),
+          ceiling: 80,
+        }),
+        auditRow({
+          item: stockItem({ id: 'b', marketHashName: 'AK-47 | Redline (FT)' }),
+          ceiling: 70,
+        }),
+        auditRow({
+          item: stockItem({ id: 'c', marketHashName: 'AWP | Asiimov (FT)' }),
+          ceiling: 60,
+        }),
+      ],
+      now: 1000,
+    });
+
+  it('groups identical market hash names and preserves order', () => {
+    const groups = groupNegotiationItems(state().items);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0].name).toContain('AK-47');
+    expect(groups[0].count).toBe(2);
+    expect(groups[0].items.map((item) => item.id)).toEqual([
+      'skinport:a',
+      'skinport:b',
+    ]);
+    expect(groups[0].totalListing).toBe(200);
+    expect(groups[0].totalProposed).toBe(150);
+    expect(groups[0].allSelected).toBe(true);
+    expect(groups[0].someSelected).toBe(false);
+    expect(groups[1].count).toBe(1);
+  });
+
+  it('normalizes trademark symbols and whitespace before grouping', () => {
+    const state = createNegotiationState({
+      roomId: '8f3a9b1c-1111-4222-8333-444455556666',
+      marketplace: 'skinport',
+      sellerHandle: 'Seller',
+      rows: [
+        auditRow({
+          item: stockItem({
+            id: 'st-1',
+            marketHashName: 'StatTrak\u2122 AK-47 | Redline (FT)',
+          }),
+        }),
+        auditRow({
+          item: stockItem({
+            id: 'st-2',
+            marketHashName: '  stattrak ak-47 | redline (ft) ',
+          }),
+        }),
+      ],
+      now: 1000,
+    });
+
+    const groups = groupNegotiationItems(state.items);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].count).toBe(2);
+  });
+
+  it('marks partial selection and counter counts', () => {
+    const base = state();
+    const countered = applyPeerMessage(
+      base,
+      {
+        type: 'SET_ITEM_COUNTERS',
+        itemIds: ['skinport:a', 'skinport:b'],
+        counterPrice: 75,
+      },
+      'seller',
+    );
+    const partial = applyPeerMessage(
+      countered,
+      { type: 'TOGGLE_ITEMS', itemIds: ['skinport:a'], selected: false },
+      'seller',
+    );
+
+    const group = groupNegotiationItems(partial.items)[0];
+    expect(group.someSelected).toBe(true);
+    expect(group.allSelected).toBe(false);
+    expect(group.selectedCount).toBe(1);
+    expect(group.counterCount).toBe(2);
+  });
+
+  it('applies bulk accept and decline to every linked item', () => {
+    const base = state();
+    const countered = applyPeerMessage(
+      base,
+      {
+        type: 'SET_ITEM_COUNTERS',
+        itemIds: ['skinport:a', 'skinport:b'],
+        counterPrice: 75,
+      },
+      'seller',
+    );
+
+    const sellerAccepted = applyPeerMessage(
+      countered,
+      { type: 'ACCEPT_COUNTER', itemId: 'skinport:a' },
+      'seller',
+    );
+    expect(sellerAccepted).toBe(countered);
+
+    const accepted = applyPeerMessage(
+      countered,
+      { type: 'ACCEPT_COUNTERS', itemIds: ['skinport:a', 'skinport:b'] },
+      'trader',
+    );
+    expect(accepted.items[0].proposedPrice).toBe(75);
+    expect(accepted.items[1].proposedPrice).toBe(75);
+    expect(accepted.items[0].counterPrice).toBeUndefined();
+    expect(accepted.items[1].status).toBe('accepted');
+
+    const declined = applyPeerMessage(
+      countered,
+      { type: 'DECLINE_COUNTERS', itemIds: ['skinport:a', 'skinport:b'] },
+      'trader',
+    );
+    expect(declined.items[0].counterPrice).toBeUndefined();
+    expect(declined.items[1].counterPrice).toBeUndefined();
+    expect(declined.items[0].status).toBe('pending');
+  });
+});
+
+describe('action triage order', () => {
+  it('moves counters to the top, oldest first, preserving the rest', () => {
+    const base = createNegotiationState({
+      roomId: '8f3a9b1c-1111-4222-8333-444455556666',
+      marketplace: 'skinport',
+      sellerHandle: 'Seller',
+      rows: [
+        auditRow({ item: stockItem({ id: 'a', marketHashName: 'A' }) }),
+        auditRow({ item: stockItem({ id: 'b', marketHashName: 'B' }) }),
+        auditRow({ item: stockItem({ id: 'c', marketHashName: 'C' }) }),
+      ],
+      now: 1000,
+    });
+
+    const withCounters = applyPeerMessage(
+      applyPeerMessage(
+        base,
+        {
+          type: 'SET_ITEM_COUNTER',
+          itemId: 'skinport:b',
+          counterPrice: 70,
+        },
+        'seller',
+        2000,
+      ),
+      {
+        type: 'SET_ITEM_COUNTER',
+        itemId: 'skinport:c',
+        counterPrice: 60,
+      },
+      'seller',
+      1500,
+    );
+
+    expect(
+      sortNegotiationItemsByAction(withCounters.items).map((item) => item.id),
+    ).toEqual(['skinport:c', 'skinport:b', 'skinport:a']);
+  });
+
+  it('removes the action timestamp when a counter is accepted or declined', () => {
+    const base = createNegotiationState({
+      roomId: '8f3a9b1c-1111-4222-8333-444455556666',
+      marketplace: 'skinport',
+      sellerHandle: 'Seller',
+      rows: [auditRow()],
+      now: 1000,
+    });
+    const countered = applyPeerMessage(
+      base,
+      {
+        type: 'SET_ITEM_COUNTER',
+        itemId: base.items[0].id,
+        counterPrice: 70,
+      },
+      'seller',
+      2000,
+    );
+    expect(countered.items[0].counterUpdatedAt).toBe(2000);
+
+    const accepted = applyPeerMessage(
+      countered,
+      { type: 'ACCEPT_COUNTER', itemId: base.items[0].id },
+      'trader',
+      3000,
+    );
+    expect(accepted.items[0].counterUpdatedAt).toBeUndefined();
+
+    const declined = applyPeerMessage(
+      countered,
+      { type: 'DECLINE_COUNTER', itemId: base.items[0].id },
+      'trader',
+      3000,
+    );
+    expect(declined.items[0].counterUpdatedAt).toBeUndefined();
+  });
+});
+
 describe('parsePeerMessage', () => {
   it('rejects malformed and unknown payloads', () => {
     expect(parsePeerMessage(null)).toBeNull();
@@ -333,6 +546,41 @@ describe('parsePeerMessage', () => {
     ).toBeNull();
     expect(parsePeerMessage({ type: 'SET_READY', role: 'guest', ready: true }))
       .toBeNull();
+  });
+
+  it('accepts and sanitizes bulk item actions', () => {
+    expect(
+      parsePeerMessage({
+        type: 'TOGGLE_ITEMS',
+        itemIds: ['a', 'a', 'b'],
+        selected: false,
+      }),
+    ).toEqual({
+      type: 'TOGGLE_ITEMS',
+      itemIds: ['a', 'b'],
+      selected: false,
+    });
+
+    expect(
+      parsePeerMessage({
+        type: 'SET_ITEM_COUNTERS',
+        itemIds: ['a', 'b'],
+        counterPrice: 12.345,
+      }),
+    ).toEqual({
+      type: 'SET_ITEM_COUNTERS',
+      itemIds: ['a', 'b'],
+      counterPrice: 12.35,
+    });
+
+    expect(parsePeerMessage({ type: 'TOGGLE_ITEMS', itemIds: [], selected: true }))
+      .toBeNull();
+    expect(
+      parsePeerMessage({
+        type: 'ACCEPT_COUNTERS',
+        itemIds: ['a'],
+      }),
+    ).toEqual({ type: 'ACCEPT_COUNTERS', itemIds: ['a'] });
   });
 
   it('accepts INIT_DEAL_STATE as a full initial snapshot', () => {
@@ -474,11 +722,15 @@ describe('bundle totals', () => {
     expect(
       getEffectiveOfferPrice(withSecondExcluded.items[0], -10),
     ).toBe(72);
+    expect(
+      getEffectiveOfferPrice(withSecondExcluded.items[0], 10),
+    ).toBe(88);
   });
 
   it('clamps out-of-range discounts', () => {
     expect(clampGlobalDiscountPct(-40)).toBe(-25);
-    expect(clampGlobalDiscountPct(5)).toBe(0);
+    expect(clampGlobalDiscountPct(40)).toBe(25);
+    expect(clampGlobalDiscountPct(5)).toBe(5);
     expect(clampGlobalDiscountPct(Number.NaN)).toBe(0);
   });
 });
