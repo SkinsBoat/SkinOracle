@@ -116,7 +116,8 @@ export const DEFAULT_SELECTED_MARKETS: SkinsnipeMarketId[] = [
   "exeskins",
   "tradeitgg_store",
   "shadowpay",
-  "skinland",
+  // SkinLand is temporarily unavailable on Skinsnipe.
+  // "skinland",
   "skinswap",
   "waxpeer",
   "skinflow",
@@ -454,7 +455,7 @@ export const useOracleStore = create<OracleStoreState>()(
     }),
     {
       name: "oracle_dashboard_store",
-      version: 8,
+      version: 9,
       migrate: (persistedState: any, version: number) => {
         if (!persistedState || typeof persistedState !== "object") {
           return persistedState;
@@ -546,6 +547,26 @@ export const useOracleStore = create<OracleStoreState>()(
         // v8: advanced Profit Override section is opt-in (hidden by default).
         if (typeof persistedState.showProfitOverride !== "boolean") {
           persistedState.showProfitOverride = false;
+        }
+
+        // v9: SkinLand retired from the Skinsnipe catalog until its feed is restored.
+        const retiredSkinsnipeMarkets = new Set(["skinland"]);
+        const stripRetiredSkinsnipeMarkets = (markets: unknown) =>
+          Array.isArray(markets)
+            ? markets.filter((m) => !retiredSkinsnipeMarkets.has(m))
+            : markets;
+
+        persistedState.selectedMarkets = stripRetiredSkinsnipeMarkets(
+          persistedState.selectedMarkets,
+        );
+        if (persistedState.skinsnipeScopes) {
+          persistedState.skinsnipeScopes.baseline =
+            stripRetiredSkinsnipeMarkets(
+              persistedState.skinsnipeScopes.baseline,
+            );
+          persistedState.skinsnipeScopes.snipe = stripRetiredSkinsnipeMarkets(
+            persistedState.skinsnipeScopes.snipe,
+          );
         }
         return persistedState;
       },

@@ -25,7 +25,8 @@ export const SKINSNIPE_AVAILABLE_MARKETS: {
   { id: "shadowpay", name: "ShadowPay" },
   { id: "skinbaron", name: "SkinBaron" },
   { id: "skinflow", name: "SkinFlow" },
-  { id: "skinland", name: "SkinLand" },
+  // SkinLand is temporarily unavailable on Skinsnipe — re-enable once the feed works again.
+  // { id: "skinland", name: "SkinLand" },
   { id: "skinport", name: "Skinport" },
   { id: "skinsmonkey", name: "SkinsMonkey (Trade)" },
   { id: "skinsmonkey_market", name: "SkinsMonkey (Market)" },

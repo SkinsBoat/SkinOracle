@@ -29,7 +29,8 @@ const DEFAULT_MARKETS = [
   "exeskins",
   "tradeitgg_store",
   "shadowpay",
-  "skinland",
+  // SkinLand is temporarily unavailable on Skinsnipe.
+  // "skinland",
   "skinswap",
   "waxpeer",
   "skinflow",
