@@ -150,6 +150,11 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
   { id: "skinout", name: "SkinOut", aliases: ["skinout", "skin_out"] },
   { id: "skinplace", name: "SkinPlace", aliases: ["skinplace", "skin_place"] },
   {
+    id: "skinsmonkey_market",
+    name: "SkinsMonkey (Market)",
+    aliases: ["skinsmonkey_market", "skinsmonkey_m"],
+  },
+  {
     id: "skinsmonkey",
     name: "SkinsMonkey",
     aliases: ["skinsmonkey", "skins_monkey"],

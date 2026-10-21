@@ -185,6 +185,8 @@ export const MARKET_LOGOS: Record<string, string> = {
 
   // SkinsMonkey
   skinsmonkey: skinsMonkeyLogo,
+  skinsmonkey_market: skinsMonkeyLogo,
+  skinsmonkey_m: skinsMonkeyLogo,
   skins_monkey: skinsMonkeyLogo,
 
   // Skinvault

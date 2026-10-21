@@ -21,6 +21,7 @@ export type SkinsnipeMarketId =
   | "skinland"
   | "skinport"
   | "skinsmonkey"
+  | "skinsmonkey_market"
   | "skinswap"
   | "tradeitgg"
   | "tradeitgg_store"

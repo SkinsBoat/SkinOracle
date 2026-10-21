@@ -7,7 +7,7 @@ import { formatCsfloatItemName } from "./csfloatUrls";
  * ─────────────────────────────────────────────────────────────────────────────
  * Provides accurate, market-specific URL formatters for all supported CS2 platforms.
  * Reuses established domain rules (CSFloat, DMarket category filters, Waxpeer slugging,
- * LisSkins, AvanMarket, BitSkins, SkinOut, AimMarket, CS.MONEY, etc.).
+ * LisSkins, AvanMarket, SkinOut, AimMarket, CS.MONEY, etc.).
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -104,14 +104,6 @@ export function handleLisSkinsReferenceLink(
     .replace(/-+/g, "-");
 
   return `https://lis-skins.com/market/csgo/${starSegment}${slug}/`;
-}
-
-export function handleBitSkinsReferenceLink(
-  name: string | undefined | null,
-): string {
-  if (!name) return "https://bitskins.com/market/cs2";
-  const encodedSkinName = encodeURIComponent(name).replace(/%20/g, "+");
-  return `https://bitskins.com/market/cs2?search={"strict_search":1,"where":{"skin_name":"${encodedSkinName}"}}`;
 }
 
 export function handleSkinflowReferenceLink(
@@ -291,6 +283,18 @@ export function handleSkinSwapReferenceLink(
 ): string {
   if (!name) return "https://skinswap.com/buy";
   return `https://skinswap.com/buy?search=${encodeURIComponent(name)}`;
+}
+
+export function handleSkinsMonkeyReferenceLink(
+  name: string | undefined | null,
+): string {
+  if (!name) return "https://skinsmonkey.com/market?appId=730";
+  // SkinsMonkey indexes knives/gloves without the Steam "★" prefix.
+  const searchName = name.replace(/★/g, "").trim();
+  const encodedName = encodeURIComponent(searchName)
+    .replace(/\(/g, "%28")
+    .replace(/\)/g, "%29");
+  return `https://skinsmonkey.com/market?appId=730&q=${encodedName}`;
 }
 
 export function handleSkinsComReferenceLink(
@@ -504,6 +508,12 @@ export function getMarketItemUrl(
     case "skinswap_t":
       return handleSkinSwapReferenceLink(itemName);
 
+    case "skinsmonkey":
+    case "skinsmonkey_market":
+    case "skinsmonkey_m":
+    case "skins_monkey":
+      return handleSkinsMonkeyReferenceLink(itemName);
+
     case "skinbaron":
     case "skin_baron":
       return handleSkinBaronReferenceLink(itemName);
@@ -535,10 +545,6 @@ export function getMarketItemUrl(
     case "manncostore":
     case "mannco_store":
       return handleManncoReferenceLink(itemName);
-
-    case "bitskins":
-    case "bit-skins":
-      return handleBitSkinsReferenceLink(itemName);
 
     case "skinflow":
     case "skin_flow":

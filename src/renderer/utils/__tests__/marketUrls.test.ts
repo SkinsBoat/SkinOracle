@@ -17,6 +17,7 @@ import {
   handleSkinsComReferenceLink,
   handleSkinBaronReferenceLink,
   handleSkinportReferenceLink,
+  handleSkinsMonkeyReferenceLink,
 } from "../marketUrls";
 
 describe("Market Link Generators", () => {
@@ -264,6 +265,32 @@ describe("Market Link Generators", () => {
     );
   });
 
+  it("handleSkinsMonkeyReferenceLink builds market search URLs", () => {
+    expect(handleSkinsMonkeyReferenceLink("AK-47 | Slate (Factory New)")).toBe(
+      "https://skinsmonkey.com/market?appId=730&q=AK-47%20%7C%20Slate%20%28Factory%20New%29",
+    );
+    expect(
+      handleSkinsMonkeyReferenceLink(
+        "StatTrak™ AK-47 | Slate (Factory New)",
+      ),
+    ).toBe(
+      "https://skinsmonkey.com/market?appId=730&q=StatTrak%E2%84%A2%20AK-47%20%7C%20Slate%20%28Factory%20New%29",
+    );
+    expect(
+      handleSkinsMonkeyReferenceLink("★ Nomad Knife | Stained (Factory New)"),
+    ).toBe(
+      "https://skinsmonkey.com/market?appId=730&q=Nomad%20Knife%20%7C%20Stained%20%28Factory%20New%29",
+    );
+    expect(
+      handleSkinsMonkeyReferenceLink("Sport Gloves | Nocts (Field-Tested)"),
+    ).toBe(
+      "https://skinsmonkey.com/market?appId=730&q=Sport%20Gloves%20%7C%20Nocts%20%28Field-Tested%29",
+    );
+    expect(handleSkinsMonkeyReferenceLink(null)).toBe(
+      "https://skinsmonkey.com/market?appId=730",
+    );
+  });
+
   it("getMarketItemUrl dispatches properly and resolves all supported platform aliases", () => {    expect(getMarketItemUrl("dmarket", "AK-47 | Redline")).toContain(
       "dmarket.com",
     );
@@ -291,6 +318,12 @@ describe("Market Link Generators", () => {
     expect(getMarketItemUrl("skinswap_trade", "AK-47 | Redline")).toContain(
       "skinswap.com",
     );
+    expect(
+      getMarketItemUrl("skinsmonkey", "Glock-18 | Shinobu (Factory New)"),
+    ).toContain("skinsmonkey.com");
+    expect(
+      getMarketItemUrl("skinsmonkey_market", "Glock-18 | Shinobu (Factory New)"),
+    ).toContain("skinsmonkey.com");
     expect(getMarketItemUrl("whitemarket", "AK-47 | Redline")).toContain(
       "white.market",
     );
