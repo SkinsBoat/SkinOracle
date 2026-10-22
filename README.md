@@ -373,7 +373,7 @@ SkinOracle is distributed through the Microsoft Store and the project's GitHub R
 
 **Recommended for most Windows users.**
 
-[Install SkinOracle from the Microsoft Store](https://apps.microsoft.com/detail/9N9V96813XD)
+[Install SkinOracle from the Microsoft Store](https://apps.microsoft.com/detail/9n9v96813xd5)
 
 1. Open the official Microsoft Store listing.
 2. Select the installation option.
