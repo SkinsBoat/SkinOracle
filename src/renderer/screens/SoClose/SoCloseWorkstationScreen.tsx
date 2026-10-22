@@ -754,7 +754,7 @@ export default function SoCloseWorkstationScreen() {
             onSelectAll={handleSelectAllMarkets}
             onResetOrDeselect={handleDeselectAllMarkets}
             resetLabel="Deselect All"
-            accentColor="var(--so-primary)"
+            accentColor="var(--so-accent-cyan)"
             badgeClassName="badge-cyan"
             badgeTextColor="#38bdf8"
             badgeBorderColor="rgba(56, 189, 248, 0.4)"
@@ -797,7 +797,8 @@ export default function SoCloseWorkstationScreen() {
                       isTrade={isTradeMarket(marketId)}
                       marketCount={count}
                       missingQtyCount={0}
-                      accentColor="var(--so-primary)"
+                      accentColor="var(--so-accent-cyan)"
+                      variant="soclose"
                     />
                   );
                 })}

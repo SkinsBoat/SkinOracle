@@ -131,6 +131,13 @@ export interface MarketSelectionChipProps {
   marketCount: number;
   missingQtyCount: number;
   accentColor: string;
+  /**
+   * Visual identity of the chip.
+   * "default"  — Oracle Step 1 market grid.
+   * "soclose"  — SoClose radar chips: pill shape, cyan dashed idle state so the
+   *              workstation is instantly distinguishable from Step 1.
+   */
+  variant?: "default" | "soclose";
 }
 
 export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
@@ -143,6 +150,7 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
   marketCount,
   missingQtyCount,
   accentColor,
+  variant = "default",
 }) => {
   const isCyan =
     accentColor === "#06b6d4" ||
@@ -161,9 +169,17 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
           ? "Trade-bot / Steam market (prices may reflect marked-up credit or Steam fees) | Click to toggle | Right-click to solo"
           : "Click to toggle | Right-click to solo"
       }
-      style={getMarketChipStyle(isSelected, isTrade, isCyan, accentColor)}
+      style={getMarketChipStyle(isSelected, isTrade, isCyan, accentColor, variant)}
     >
-      <div style={getMarketChipCheckboxStyle(isSelected, isTrade, isCyan, accentColor)}>
+      <div
+        style={getMarketChipCheckboxStyle(
+          isSelected,
+          isTrade,
+          isCyan,
+          accentColor,
+          variant,
+        )}
+      >
         {isSelected && <Check size={10} style={styles.checkIconWhiteSmall} />}
       </div>
 
@@ -194,7 +210,15 @@ export const MarketSelectionChip: React.FC<MarketSelectionChipProps> = ({
       )}
 
       {marketCount > 0 && (
-        <span style={getMarketChipCountBadgeStyle(isSelected, isTrade, isCyan, missingQtyCount)}>
+        <span
+          style={getMarketChipCountBadgeStyle(
+            isSelected,
+            isTrade,
+            isCyan,
+            missingQtyCount,
+            variant,
+          )}
+        >
           {marketCount.toLocaleString()}
         </span>
       )}
@@ -425,7 +449,43 @@ function getMarketChipStyle(
   isTrade: boolean,
   isCyan: boolean,
   accentColor: string,
+  variant: "default" | "soclose" = "default",
 ): React.CSSProperties {
+  if (variant === "soclose") {
+    return {
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "5px 11px",
+      borderRadius: "999px",
+      fontSize: "12px",
+      fontWeight: 600,
+      cursor: "pointer",
+      userSelect: "none",
+      transition: "all 0.15s ease",
+      backgroundColor: isSelected
+        ? isTrade
+          ? "rgba(245, 158, 11, 0.14)"
+          : "rgba(2, 132, 199, 0.18)"
+        : isTrade
+          ? "rgba(245, 158, 11, 0.05)"
+          : "rgba(2, 132, 199, 0.04)",
+      border: isSelected
+        ? isTrade
+          ? "1px solid rgba(245, 158, 11, 0.65)"
+          : "1px solid #38bdf8"
+        : isTrade
+          ? "1px dashed rgba(245, 158, 11, 0.35)"
+          : "1px dashed rgba(56, 189, 248, 0.32)",
+      color: isSelected ? "var(--so-text-primary)" : "var(--so-text-secondary)",
+      boxShadow: isSelected
+        ? isTrade
+          ? "0 0 0 1px rgba(245, 158, 11, 0.18)"
+          : "0 0 0 1px rgba(56, 189, 248, 0.20), 0 1px 4px rgba(0, 0, 0, 0.30)"
+        : "none",
+    };
+  }
+
   return {
     display: "flex",
     alignItems: "center",
@@ -465,7 +525,30 @@ function getMarketChipCheckboxStyle(
   isTrade: boolean,
   isCyan: boolean,
   accentColor: string,
+  variant: "default" | "soclose" = "default",
 ): React.CSSProperties {
+  if (variant === "soclose") {
+    return {
+      width: 13,
+      height: 13,
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: isSelected
+        ? isTrade
+          ? "#f59e0b"
+          : "#0ea5e9"
+        : "transparent",
+      border: isSelected
+        ? "none"
+        : isTrade
+          ? "1px solid rgba(245, 158, 11, 0.55)"
+          : "1px solid rgba(56, 189, 248, 0.55)",
+      flexShrink: 0,
+    };
+  }
+
   return {
     width: 14,
     height: 14,
@@ -494,7 +577,35 @@ function getMarketChipCountBadgeStyle(
   isTrade: boolean,
   isCyan: boolean,
   missingQtyCount: number,
+  variant: "default" | "soclose" = "default",
 ): React.CSSProperties {
+  if (variant === "soclose") {
+    return {
+      fontSize: "10.5px",
+      fontWeight: 700,
+      padding: "1px 7px",
+      borderRadius: "999px",
+      backgroundColor: isSelected
+        ? isTrade
+          ? "rgba(245, 158, 11, 0.18)"
+          : "rgba(56, 189, 248, 0.20)"
+        : "rgba(2, 132, 199, 0.10)",
+      color: isSelected
+        ? isTrade
+          ? "#f59e0b"
+          : "#7dd3fc"
+        : "var(--so-text-muted)",
+      border: isSelected
+        ? isTrade
+          ? "1px solid rgba(245, 158, 11, 0.40)"
+          : "1px solid rgba(56, 189, 248, 0.45)"
+        : "1px dashed rgba(56, 189, 248, 0.25)",
+      marginLeft: missingQtyCount > 0 ? "0" : "auto",
+      fontFamily: "monospace",
+      flexShrink: 0,
+    };
+  }
+
   return {
     fontSize: "10.5px",
     fontWeight: 700,
