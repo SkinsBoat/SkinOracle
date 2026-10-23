@@ -31,7 +31,7 @@ import OracleDashboard from "./screens/Oracle/OracleDashboard";
 import CSFloatWorkstation from "./screens/CSFloat/CSFloatWorkstation";
 import DmarketWorkstation from "./screens/Dmarket/DmarketWorkstation";
 import SoCloseWorkstationScreen from "./screens/SoClose/SoCloseWorkstationScreen";
-import { DealMakerFloorScreen } from "./screens/DealMaker/DealMakerFloorScreen";
+// import { DealMakerFloorScreen } from "./screens/DealMaker/DealMakerFloorScreen";
 import { RaidScreen } from "./screens/Raid/RaidScreen";
 import SkinportWorkstation from "./screens/Skinport/SkinportWorkstation";
 import BalanceDashboard from "./screens/Balance/BalanceDashboard";
@@ -357,6 +357,8 @@ export default function App() {
                   )}
                 </NavLink>
 
+                {/* Deal Maker tab disabled */}
+                {/*
                 <NavLink
                   to="/dealmaker"
                   title={!isSidebarExpanded ? "Deal Maker" : undefined}
@@ -377,6 +379,7 @@ export default function App() {
                     </>
                   )}
                 </NavLink>
+                */}
 
                 <NavLink
                   to="/raid"
@@ -615,8 +618,11 @@ export default function App() {
               <Route path="/csfloat" element={<CSFloatWorkstation />} />
               <Route path="/dmarket" element={<DmarketWorkstation />} />
               <Route path="/soclose" element={<SoCloseWorkstationScreen />} />
+              {/* Deal Maker routes disabled */}
+              {/*
               <Route path="/dealmaker" element={<DealMakerFloorScreen />} />
               <Route path="/auctions" element={<DealMakerFloorScreen />} />
+              */}
               <Route path="/raid" element={<RaidScreen />} />
               <Route path="/skinport" element={<SkinportWorkstation />} />
               {FEATURE_FLAGS.TREND_MARKET && (
