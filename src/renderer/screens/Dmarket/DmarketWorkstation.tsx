@@ -412,12 +412,16 @@ export default function DmarketWorkstation() {
     }
   };
 
-  const runMarketGapScan = async () => {
+  const runMarketGapScan = async (overrides?: {
+    buyCeilingOnly?: boolean;
+  }) => {
     if (isMarketGapRunning) return;
 
     setIsMarketGapRunning(true);
     setSelectedMarketGapItems({});
     setMarketGapTargetPrices({});
+    const effectiveBuyCeilingOnly =
+      overrides?.buyCeilingOnly ?? marketGapBuyCeilingOnly;
     const toastId = toast.loading(
       "Scanning cached markets for DMarket listing gaps...",
     );
@@ -473,7 +477,7 @@ export default function DmarketWorkstation() {
         maxPrice,
         allowedWears: marketGapAllowedWears,
         acceptedPrices: acceptedMap,
-        buyCeilingOnly: marketGapBuyCeilingOnly,
+        buyCeilingOnly: effectiveBuyCeilingOnly,
         minSssScore: marketGapMinSssScore,
         isActiveOrder: (name) =>
           activeTargetNames.has(normalizeSkinName(name)),
@@ -489,7 +493,7 @@ export default function DmarketWorkstation() {
         return;
       }
 
-      if (marketGapBuyCeilingOnly && Object.keys(acceptedMap).length === 0) {
+      if (effectiveBuyCeilingOnly && Object.keys(acceptedMap).length === 0) {
         toast.error(
           "Buy Ceiling Only is active, but no accepted prices are loaded. Calculate Accepted Prices (Buy Ceilings) in Oracle Dashboard Step 2 or disable the filter.",
           { id: toastId },
@@ -563,6 +567,7 @@ export default function DmarketWorkstation() {
             : result,
         ),
       );
+      setSelectedMarketGapItems((prev) => ({ ...prev, [item.name]: false }));
       toast.success(
         `Target created for ${item.name} at $${targetPriceDollar.toFixed(2)}`,
         { id: toastId },

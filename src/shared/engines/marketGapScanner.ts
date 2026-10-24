@@ -194,8 +194,12 @@ export const scanMarketGaps = (
         ? roundedAcceptedPrice
         : undefined;
 
-    const itemSss = acceptedEntry?.supplyStabilityScore ?? 0;
-    if (itemSss < minimumSss) continue;
+    // SSS only exists for items with an accepted-price (Buy Ceiling) entry.
+    // Items without a ceiling are governed by buyCeilingOnly instead.
+    if (minimumSss > 0 && acceptedEntry !== undefined) {
+      const itemSss = acceptedEntry.supplyStabilityScore ?? 0;
+      if (itemSss < minimumSss) continue;
+    }
     if (buyCeilingOnly && !acceptedPrice) continue;
 
     results.push({

@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import {
   AlertTriangle,
   CheckSquare,
+  EyeOff,
   Gauge,
   Globe2,
-  Info,
   Loader2,
   PlusCircle,
   Search,
@@ -28,7 +28,7 @@ type AllowedWears = {
 export interface MarketGapTabProps {
   results: MarketGapResultItem[];
   isRunning: boolean;
-  runScan: () => Promise<void>;
+  runScan: (overrides?: { buyCeilingOnly?: boolean }) => Promise<void>;
   minOtherMarkets: number;
   setMinOtherMarkets: (val: number) => void;
   minPrice: string;
@@ -130,19 +130,41 @@ export const MarketGapTab: React.FC<MarketGapTabProps> = ({
 }) => {
   const [showNameWarning, setShowNameWarning] = useState(false);
   const [sssText, setSssText] = useState(() => String(minSssScore));
+  const [hidePlaced, setHidePlaced] = useState(false);
   const selectedCount = Object.values(selectedItems).filter(Boolean).length;
+  const visibleResults = hidePlaced
+    ? results.filter((item) => !item.hasExistingOrder)
+    : results;
+  const allPlacedHidden =
+    hidePlaced && results.length > 0 && visibleResults.length === 0;
   const projectedTotalValue = activeOrdersTotal + selectedTotal;
   const isLimitExceeded =
     maxLimitValue > 0 && projectedTotalValue > maxLimitValue;
 
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
-    results.forEach((item) => {
+    visibleResults.forEach((item) => {
       if (!item.hasExistingOrder && item.acceptedPrice) {
         next[item.name] = true;
       }
     });
     setSelectedItems(next);
+  };
+
+  const handleToggleHidePlaced = () => {
+    setHidePlaced((prev) => {
+      const next = !prev;
+      if (next) {
+        setSelectedItems((prevSelected) => {
+          const copy = { ...prevSelected };
+          results.forEach((item) => {
+            if (item.hasExistingOrder) copy[item.name] = false;
+          });
+          return copy;
+        });
+      }
+      return next;
+    });
   };
 
   const handleDeselectAll = () => {
@@ -241,12 +263,27 @@ export const MarketGapTab: React.FC<MarketGapTabProps> = ({
           {/* Buy Ceiling Only Toggle */}
           <button
             type="button"
-            onClick={() => setBuyCeilingOnly(!buyCeilingOnly)}
+            onClick={() => {
+              const next = !buyCeilingOnly;
+              setBuyCeilingOnly(next);
+              void runScan({ buyCeilingOnly: next });
+            }}
             className={`btn ${buyCeilingOnly ? "btn-primary" : "btn-outline"} btn-sm`}
             style={styles.ceilingToggle}
             title="Only show items that have an Oracle Buy Ceiling available"
           >
             <Gauge size={12} /> Buy Ceiling Only
+          </button>
+
+          {/* Hide Already Placed Orders/Targets */}
+          <button
+            type="button"
+            onClick={handleToggleHidePlaced}
+            className={`btn ${hidePlaced ? "btn-primary" : "btn-outline"} btn-sm`}
+            style={styles.ceilingToggle}
+            title="Hide items that already have an existing buy order or target"
+          >
+            <EyeOff size={12} /> Hide Placed
           </button>
 
           {/* Minimum SSS Filter */}
@@ -339,11 +376,11 @@ export const MarketGapTab: React.FC<MarketGapTabProps> = ({
 
         {/* Right Status & Scan Action */}
         <div style={styles.rightActionsGroup}>
-          {results.length > 0 && (
-            <span style={styles.resultCount}>{results.length} gaps</span>
+          {visibleResults.length > 0 && (
+            <span style={styles.resultCount}>{visibleResults.length} gaps</span>
           )}
           <button
-            onClick={runScan}
+            onClick={() => void runScan()}
             disabled={isRunning}
             className="btn btn-primary btn-sm"
             style={styles.scanButton}
@@ -454,12 +491,21 @@ export const MarketGapTab: React.FC<MarketGapTabProps> = ({
 
       {/* Market Gap Grid View */}
       <div style={getGridScrollViewStyle(selectedCount > 0)}>
-        {results.length === 0 ? (
+        {visibleResults.length === 0 ? (
           <div className="card" style={styles.emptyCard}>
             {isRunning ? (
               <div>
                 Scanning cached market availability for {targetMarketName}{" "}
                 listing gaps...
+              </div>
+            ) : allPlacedHidden ? (
+              <div>
+                <EyeOff size={32} style={styles.emptyIcon} />
+                <div style={styles.emptyTitle}>All Gaps Already Placed</div>
+                <div style={styles.emptySubtitle}>
+                  Every scanned gap already has an existing order or target.
+                  Turn off Hide Placed or rescan to review them.
+                </div>
               </div>
             ) : (
               <div>
@@ -475,7 +521,7 @@ export const MarketGapTab: React.FC<MarketGapTabProps> = ({
           </div>
         ) : (
           <div style={styles.cardsGrid}>
-            {results.map((item) => {
+            {visibleResults.map((item) => {
               const match = item.name.match(/^(.+?)\s*\(([^)]+)\)$/);
               const wearText = match ? match[2] : "";
               const wearShortcut = getWearShortcut(wearText);

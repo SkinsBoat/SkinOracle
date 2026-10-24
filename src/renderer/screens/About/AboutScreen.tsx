@@ -651,7 +651,7 @@ export default function AboutScreen() {
               <h3 style={styles.archCardTitle}>Zero-Trust Local Key Storage</h3>
             </div>
             <p style={styles.archCardText}>
-              All marketplace credentials (CSFloat API Keys, DMarket Keypairs, Skins.com tokens) are encrypted locally
+              All marketplace credentials (CSFloat API Keys, DMarket Keypairs, tokens) are encrypted locally
               using your operating system's native hardware keychain (Windows DPAPI, macOS Keychain, Linux Secret Service).
               No third-party trading keys ever touch the SkinsBoat cloud.
             </p>

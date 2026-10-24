@@ -237,6 +237,38 @@ describe("scanMarketGaps", () => {
     expect(summary.results.map((r) => r.name)).toEqual(["Strong SSS Item"]);
   });
 
+  it("does not apply the SSS filter to items without a Buy Ceiling", () => {
+    const priceCache = {
+      ...COVERAGE_ANCHOR,
+      "No Ceiling Item": marketItem({
+        buff163: 10,
+        buffmarket: 11,
+        skinport: 12,
+      }),
+    };
+
+    const ceilingOnly = scanMarketGaps({
+      ...baseOptions,
+      minSssScore: 1.2,
+      priceCache,
+      acceptedPrices: {},
+    });
+
+    expect(ceilingOnly.results).toHaveLength(0);
+
+    const includingNoCeiling = scanMarketGaps({
+      ...baseOptions,
+      buyCeilingOnly: false,
+      minSssScore: 1.2,
+      priceCache,
+      acceptedPrices: {},
+    });
+
+    expect(includingNoCeiling.results.map((r) => r.name)).toEqual([
+      "No Ceiling Item",
+    ]);
+  });
+
   it("reports active orders via the workstation callback", () => {
     const summary = scanMarketGaps({
       ...baseOptions,
