@@ -117,22 +117,24 @@ export interface ElectronAPI {
     onFetchProgress: (
       callback: (progress: SkinsnipeFetchProgress) => void,
     ) => () => void;
-    getCache: () => Promise<SkinsnipePriceCache>;
+  };
+  marketCache: {
+    get: () => Promise<SkinsnipePriceCache>;
     getItem: (itemName: string) => Promise<{
       n: string;
       l: { m: string; p: number; q?: number }[];
     } | null>;
-    getCacheStatus: () => Promise<{
+    getStatus: () => Promise<{
       itemCount: number;
       isFetching: boolean;
       lastFetchedAt: string | null;
       marketCounts?: Record<string, number>;
     }>;
-    loadCacheJson: (jsonContent: string) => Promise<SkinsnipeFetchResult>;
-    loadDemoCache: (options?: {
+    loadJson: (jsonContent: string) => Promise<SkinsnipeFetchResult>;
+    loadDemo: (options?: {
       forceRefresh?: boolean;
     }) => Promise<SkinsnipeFetchResult>;
-    onCacheStatusUpdated?: (
+    onStatusUpdated?: (
       callback: (status: {
         itemCount: number;
         isFetching: boolean;

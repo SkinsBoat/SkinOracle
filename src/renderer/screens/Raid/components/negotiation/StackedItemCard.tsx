@@ -11,6 +11,7 @@ import {
 import type { NegotiationItemGroup } from '../../utils/negotiationMath';
 import { getEffectiveOfferPrice } from '../../utils/negotiationMath';
 import { formatUsd } from '../../utils/raidUtils';
+import { buildSteamApisImageUrl } from '../../../../../shared/utils/itemImageUrl';
 import { NegotiationItemRow } from './NegotiationItemRow';
 
 interface StackedItemCardProps {
@@ -79,6 +80,15 @@ export const StackedItemCard: React.FC<StackedItemCardProps> = ({
               alt=""
               style={styles.stackImage}
               loading="lazy"
+              onError={(e) => {
+                const img = e.currentTarget;
+                const fallback = buildSteamApisImageUrl(first.marketHashName);
+                if (img.src !== fallback) {
+                  img.src = fallback;
+                } else {
+                  img.style.opacity = '0.3';
+                }
+              }}
             />
           ) : (
             <div style={styles.itemImageFallback}>

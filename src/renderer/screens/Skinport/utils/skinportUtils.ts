@@ -2,6 +2,10 @@ import type {
   SkinportMarketItem,
   SkinportSale,
 } from "../../../../shared/types/skinport.types";
+import {
+  buildSteamApisImageUrl,
+  buildSteamEconomyImageUrl,
+} from "../../../../shared/utils/itemImageUrl";
 import type { WearKey } from "../constants";
 
 /**
@@ -9,19 +13,14 @@ import type { WearKey } from "../constants";
  * sale-feed prices are USD cents (integers).
  */
 
-const STEAM_ECONOMY_IMAGE_PREFIX =
-  "https://community.cloudflare.steamstatic.com/economy/image/";
-
 /** CS2 item image for the public items feed (which carries no image hash). */
 export function buildSkinportItemImageUrl(name: string): string {
-  return `https://api.steamapis.com/image/item/730/${encodeURIComponent(name)}`;
+  return buildSteamApisImageUrl(name);
 }
 
 /** Image for a sale-feed entry, which carries a Steam economy image hash. */
 export function buildSkinportSaleImageUrl(image?: string | null): string {
-  if (!image) return "";
-  if (/^https?:\/\//i.test(image)) return image;
-  return `${STEAM_ECONOMY_IMAGE_PREFIX}${image}`;
+  return buildSteamEconomyImageUrl(image);
 }
 
 /** Format USD cents as `$X.XX`. */

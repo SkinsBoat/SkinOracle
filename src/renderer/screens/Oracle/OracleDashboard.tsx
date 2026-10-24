@@ -157,8 +157,8 @@ export default function OracleDashboard() {
 
   const loadCacheKeys = async () => {
     try {
-      if (!window.electronAPI?.skinsnipe) return;
-      const fullCacheData: any = await window.electronAPI.skinsnipe.getCache();
+      if (!window.electronAPI?.marketCache) return;
+      const fullCacheData: any = await window.electronAPI.marketCache.get();
       setFullCache(fullCacheData);
       const keys = Object.keys(fullCacheData || {});
       setCachedItemNames(keys);
@@ -168,9 +168,9 @@ export default function OracleDashboard() {
   };
 
   useEffect(() => {
-    if (window.electronAPI?.skinsnipe) {
-      window.electronAPI.skinsnipe
-        .getCacheStatus()
+    if (window.electronAPI?.marketCache) {
+      window.electronAPI.marketCache
+        .getStatus()
         .then((status: any) => {
           if (!status) return;
           setCacheStatus(status);
@@ -269,7 +269,7 @@ export default function OracleDashboard() {
     );
 
     const unsubCacheStatus =
-      window.electronAPI?.skinsnipe?.onCacheStatusUpdated?.((status) => {
+      window.electronAPI?.marketCache?.onStatusUpdated?.((status) => {
         if (status) {
           setCacheStatus((prev) => ({ ...prev, ...status }));
           if (status.marketCounts) {
@@ -475,7 +475,7 @@ export default function OracleDashboard() {
     const acceptedPriceMap: Record<string, AcceptedPriceInfo> = {};
 
     try {
-      const fullCache: any = await window.electronAPI.skinsnipe.getCache();
+      const fullCache: any = await window.electronAPI.marketCache.get();
       const allItemNames = Object.keys(fullCache || {});
 
       if (allItemNames.length === 0) {
@@ -768,7 +768,7 @@ export default function OracleDashboard() {
     );
 
     try {
-      const fullCache: any = await window.electronAPI.skinsnipe.getCache();
+      const fullCache: any = await window.electronAPI.marketCache.get();
       const allItemNames = Object.keys(fullCache || {});
 
       // Apply Smart Pre-Filters + Blocked Skins
@@ -924,7 +924,7 @@ export default function OracleDashboard() {
     reader.onload = async (event) => {
       try {
         const content = event.target?.result as string;
-        const res = await (window.electronAPI.skinsnipe as any).loadCacheJson(
+        const res = await (window.electronAPI.marketCache as any).loadJson(
           content,
         );
         setIsDemoCache(false);
@@ -953,7 +953,7 @@ export default function OracleDashboard() {
       : "Loading demo price cache (checking local cache & cloud)...";
     const toastId = toast.loading(loadingMessage);
     try {
-      const res = await window.electronAPI.skinsnipe.loadDemoCache({
+      const res = await window.electronAPI.marketCache.loadDemo({
         forceRefresh,
       });
       setIsDemoCache(true);
@@ -999,12 +999,12 @@ export default function OracleDashboard() {
       let cachedItem: any = null;
       let exactName = hashName;
 
-      if (window.electronAPI.skinsnipe.getItem) {
-        cachedItem = await window.electronAPI.skinsnipe.getItem(hashName);
+      if (window.electronAPI.marketCache.getItem) {
+        cachedItem = await window.electronAPI.marketCache.getItem(hashName);
       }
 
       if (!cachedItem) {
-        const fullCache: any = await window.electronAPI.skinsnipe.getCache();
+        const fullCache: any = await window.electronAPI.marketCache.get();
         cachedItem = fullCache?.[hashName];
         if (!cachedItem) {
           const lower = hashName.toLowerCase();

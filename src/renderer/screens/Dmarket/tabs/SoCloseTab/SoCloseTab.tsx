@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { getWearShortcut, SoCloseResultItem } from "../../dmarket-utils";
 import { isMarketMatch } from "../../../../../shared/canonicalMarkets";
+import { resolveItemImageUrl } from "../../../../../shared/utils/itemImageUrl";
 import TrendSparkline from "../../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../../components/CopyMarketHashButton";
 import { SkinImage } from "../../../../components/SkinImage";
@@ -149,7 +150,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
       }
 
       const priceCache: Record<string, any> =
-        await window.electronAPI.skinsnipe.getCache();
+        await window.electronAPI.marketCache.get();
 
       const minP = Math.max(0, parseFloat(soCloseMinPrice) || 0);
       const maxP = Math.max(0, parseFloat(soCloseMaxPrice) || 9999);
@@ -980,9 +981,7 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
             const wearText = match ? match[2] : "";
             const wearShortcut = getWearShortcut(wearText);
 
-            const imageUrl = item.iconUrl
-              ? `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`
-              : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
+            const imageUrl = resolveItemImageUrl(item.name, item.iconUrl);
 
             const cardBorderColor = isSelected
               ? "var(--so-primary)"
@@ -1212,7 +1211,11 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 </div>
 
                 {/* Image Showcase */}
-                <SkinImage src={imageUrl} alt={cleanTitle} />
+                <SkinImage
+                  src={imageUrl}
+                  alt={cleanTitle}
+                  fallbackItemName={item.name}
+                />
 
                 {/* Title & Wear */}
                 <div

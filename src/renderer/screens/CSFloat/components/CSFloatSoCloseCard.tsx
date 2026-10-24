@@ -13,6 +13,7 @@ import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 import { SkinImage } from "../../../components/SkinImage";
 
 import { SoCloseResultItem } from "../../../../shared/types";
+import { resolveItemImageUrl } from "../../../../shared/utils/itemImageUrl";
 export type { SoCloseResultItem };
 
 interface CSFloatSoCloseCardProps {
@@ -44,9 +45,7 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
   const match = item.name.match(/^(.+?)\s*\(([^)]+)\)$/);
   const cleanTitle = match ? match[1] : item.name;
 
-  const imageUrl = item.iconUrl
-    ? `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`
-    : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
+  const imageUrl = resolveItemImageUrl(item.name, item.iconUrl);
 
   const cardBorderColor = isSelected
     ? "var(--so-primary)"
@@ -137,7 +136,7 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
       </div>
 
       {/* Image Showcase */}
-      <SkinImage src={imageUrl} alt={cleanTitle} />
+      <SkinImage src={imageUrl} alt={cleanTitle} fallbackItemName={item.name} />
 
       {/* Title & Wear */}
       <div style={styles.titleWearContainer}>

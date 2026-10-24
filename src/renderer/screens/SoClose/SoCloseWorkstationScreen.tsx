@@ -33,6 +33,7 @@ import { TrendSparkline } from "../../components/TrendSparkline";
 import { SkinImage } from "../../components/SkinImage";
 import { WorkstationDataStatusCards } from "../../components/WorkstationDataStatusCards";
 import { getMarketItemUrl } from "../../utils/marketUrls";
+import { resolveItemImageUrl } from "../../../shared/utils/itemImageUrl";
 import { exportNodeAsPng } from "../Oracle/utils/lookupImageExport";
 import { SKINSNIPE_AVAILABLE_MARKETS } from "../Oracle/components/Step1MarketCache";
 import {
@@ -143,8 +144,8 @@ export default function SoCloseWorkstationScreen() {
   ) => {
     setLookupModalItem({ name, acceptedPrice, marketPrice, iconUrl, market });
     try {
-      if (window.electronAPI?.skinsnipe?.getCache) {
-        const cache = await window.electronAPI.skinsnipe.getCache();
+      if (window.electronAPI?.marketCache?.get) {
+        const cache = await window.electronAPI.marketCache.get();
         const cacheItem = cache ? cache[name] || cache[name.trim()] : null;
         if (cacheItem) {
           setLookupModalItem((prev) =>
@@ -353,9 +354,9 @@ export default function SoCloseWorkstationScreen() {
 
   // Refresh status from main process
   const refreshStatuses = async () => {
-    if (window.electronAPI?.skinsnipe) {
+    if (window.electronAPI?.marketCache) {
       try {
-        const status: any = await window.electronAPI.skinsnipe.getCacheStatus();
+        const status: any = await window.electronAPI.marketCache.getStatus();
         if (status) {
           setCacheStatus((prev) => ({
             ...prev,
@@ -402,7 +403,7 @@ export default function SoCloseWorkstationScreen() {
     }, 10000);
 
     // Live subscription to cache status broadcast updates
-    const unsub = window.electronAPI?.skinsnipe?.onCacheStatusUpdated?.(
+    const unsub = window.electronAPI?.marketCache?.onStatusUpdated?.(
       (status) => {
         if (status) {
           setCacheStatus((prev) => ({
@@ -436,14 +437,14 @@ export default function SoCloseWorkstationScreen() {
         setIsLoadingMarkets(true);
       }
       try {
-        if (!window.electronAPI?.skinsnipe?.getCache) {
+        if (!window.electronAPI?.marketCache?.get) {
           if (isMounted) {
             setCachedMarkets([]);
             setIsLoadingMarkets(false);
           }
           return;
         }
-        const cache = await window.electronAPI.skinsnipe.getCache();
+        const cache = await window.electronAPI.marketCache.get();
         if (!cache || typeof cache !== "object" || Object.keys(cache).length === 0) {
           if (isMounted) {
             setCachedMarkets([]);
@@ -515,7 +516,7 @@ export default function SoCloseWorkstationScreen() {
       }
 
       const priceCache: Record<string, any> =
-        await window.electronAPI.skinsnipe.getCache();
+        await window.electronAPI.marketCache.get();
 
       if (!priceCache || Object.keys(priceCache).length === 0) {
         toast.error(
@@ -995,12 +996,7 @@ export default function SoCloseWorkstationScreen() {
               const cleanTitle = match ? match[1] : item.name;
               const wearShortcut = match ? match[2] : "";
 
-              const imageUrl = item.iconUrl
-                ? item.iconUrl.startsWith("http://") ||
-                  item.iconUrl.startsWith("https://")
-                  ? item.iconUrl
-                  : `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`
-                : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
+              const imageUrl = resolveItemImageUrl(item.name, item.iconUrl);
 
               return (
                 <div

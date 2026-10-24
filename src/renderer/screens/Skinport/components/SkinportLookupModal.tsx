@@ -5,6 +5,7 @@ import {
   isMarketMatch,
 } from "../../../../shared/canonicalMarkets";
 import { isSteamApisImage } from "../../../../shared/utils/urlSecurity";
+import { buildSteamApisImageUrl, resolveItemImageUrl } from "../../../../shared/utils/itemImageUrl";
 import TrendDetailedChart from "../../../components/TrendDetailedChart";
 
 export interface SkinportLookupItem {
@@ -39,7 +40,7 @@ export const SkinportLookupModal: React.FC<SkinportLookupModalProps> = ({
     let isMounted = true;
     const fetchCache = async () => {
       try {
-        const cache = await window.electronAPI?.skinsnipe?.getCache?.();
+        const cache = await window.electronAPI?.marketCache?.get?.();
         if (isMounted && cache) {
           setCacheItem(cache[item.name] || cache[item.name.trim()] || null);
         }
@@ -75,18 +76,12 @@ export const SkinportLookupModal: React.FC<SkinportLookupModalProps> = ({
         <div style={styles.header}>
           <div style={styles.headerLeft}>
             <img
-              src={
-                item.iconUrl
-                  ? item.iconUrl.startsWith("http")
-                    ? item.iconUrl
-                    : `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`
-                  : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`
-              }
+              src={resolveItemImageUrl(item.name, item.iconUrl)}
               alt={item.name}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 if (!isSteamApisImage(target.src)) {
-                  target.src = `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
+                  target.src = buildSteamApisImageUrl(item.name);
                 }
               }}
               style={styles.headerImage}

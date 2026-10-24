@@ -36,8 +36,8 @@ export const WorkstationOracleAction: React.FC<
   useEffect(() => {
     let mounted = true;
 
-    window.electronAPI?.skinsnipe
-      ?.getCacheStatus()
+    window.electronAPI?.marketCache
+      ?.getStatus()
       .then((status) => {
         if (!mounted || !status) return;
         setCacheStatus({
@@ -48,7 +48,7 @@ export const WorkstationOracleAction: React.FC<
       })
       .catch(() => {});
 
-    const unsubscribe = window.electronAPI?.skinsnipe?.onCacheStatusUpdated?.(
+    const unsubscribe = window.electronAPI?.marketCache?.onStatusUpdated?.(
       (status) => {
         if (!mounted || !status) return;
         setCacheStatus({

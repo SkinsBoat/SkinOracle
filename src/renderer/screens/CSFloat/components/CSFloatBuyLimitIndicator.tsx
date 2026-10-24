@@ -6,7 +6,7 @@ interface CSFloatBuyLimitIndicatorProps {
   balanceLoading?: boolean;
   orders: any[];
   ordersLoading: boolean;
-  activeTab: "buy_orders" | "soclose" | "listings";
+  activeTab: "buy_orders" | "soclose" | "gap" | "listings";
   selectedSoCloseTotal: number;
   selectedSoCloseCount: number;
   selectedOrdersTotal: number;

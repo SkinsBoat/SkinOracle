@@ -1,5 +1,6 @@
 import React from "react";
 import { History, RotateCw, Loader2 } from "lucide-react";
+import { buildSteamApisImageUrl } from "../../../../../../shared/utils/itemImageUrl";
 
 export interface SalesHistoryViewProps {
   closedOffers: any[];
@@ -130,7 +131,7 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                       }}
                     >
                       <img
-                        src={trade.imageUrl}
+                        src={trade.imageUrl || buildSteamApisImageUrl(trade.title)}
                         alt={trade.title}
                         style={{
                           width: "32px",
@@ -138,7 +139,13 @@ export const SalesHistoryView: React.FC<SalesHistoryViewProps> = ({
                           objectFit: "contain",
                         }}
                         onError={(e) => {
-                          (e.target as HTMLElement).style.opacity = "0.3";
+                          const img = e.currentTarget;
+                          const fallback = buildSteamApisImageUrl(trade.title);
+                          if (img.src !== fallback) {
+                            img.src = fallback;
+                          } else {
+                            img.style.opacity = "0.3";
+                          }
                         }}
                       />
                       <span

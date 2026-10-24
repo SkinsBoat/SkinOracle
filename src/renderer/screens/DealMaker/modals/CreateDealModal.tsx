@@ -22,6 +22,7 @@ import {
 } from '../../../utils/marketHashValidation';
 import { MarketLogo } from '../../../components/MarketLogo';
 import { getMarketDisplayName } from '../../../../shared/canonicalMarkets';
+import { buildSteamApisImageUrl } from '../../../../shared/utils/itemImageUrl';
 import {
   DEALMAKER_MARKETS,
   normalizeDealMakerMarketId,
@@ -85,8 +86,8 @@ export const CreateDealModal: React.FC<CreateDealModalProps> = ({
       try {
         const names = new Set<string>();
 
-        if (window.electronAPI?.skinsnipe?.getCache) {
-          const cache: any = await window.electronAPI.skinsnipe.getCache();
+        if (window.electronAPI?.marketCache?.get) {
+          const cache: any = await window.electronAPI.marketCache.get();
           if (cache && typeof cache === 'object') {
             Object.keys(cache).forEach((k) => names.add(k));
           }
@@ -299,7 +300,7 @@ export const CreateDealModal: React.FC<CreateDealModalProps> = ({
   const previewImageSrc =
     imageUrl.trim() ||
     (marketHashName.trim()
-      ? `https://api.steamapis.com/image/item/730/${encodeURIComponent(marketHashName.trim())}`
+      ? buildSteamApisImageUrl(marketHashName.trim())
       : undefined);
 
   return (

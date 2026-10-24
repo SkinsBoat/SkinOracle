@@ -17,6 +17,7 @@ import {
   getItemListingPriceWithMap,
 } from "../dmarket-utils";
 import { steamLogo } from "../../../utils/marketLogos";
+import { buildSteamApisImageUrl } from "../../../../shared/utils/itemImageUrl";
 import toast from "react-hot-toast";
 
 interface CreateListingModalProps {
@@ -141,13 +142,13 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
             src={
               item.imageUrl ||
               (item.title
-                ? `https://api.steamapis.com/image/item/730/${encodeURIComponent(tradeTitle)}`
+                ? buildSteamApisImageUrl(tradeTitle)
                 : "")
             }
             alt={item.title}
             onError={(e) => {
               const imgEl = e.target as HTMLImageElement;
-              const fallback = `https://api.steamapis.com/image/item/730/${encodeURIComponent(tradeTitle)}`;
+              const fallback = buildSteamApisImageUrl(tradeTitle);
               if (imgEl.src !== fallback) {
                 imgEl.src = fallback;
               } else {

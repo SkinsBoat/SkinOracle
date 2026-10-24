@@ -94,21 +94,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
         ipcRenderer.removeListener("skinsnipe:fetch-progress", subscription);
       };
     },
-    getCache: () => safeInvoke("skinsnipe:get-cache"),
-    getItem: (itemName: string) => safeInvoke("skinsnipe:get-item", itemName),
-    getCacheStatus: () => safeInvoke("skinsnipe:get-cache-status"),
-    loadCacheJson: (jsonContent: string) =>
-      safeInvoke("skinsnipe:load-cache-json", jsonContent),
-    loadDemoCache: (options?: { forceRefresh?: boolean }) =>
-      safeInvoke("skinsnipe:load-demo-cache", options),
-    onCacheStatusUpdated: (callback: any) => {
+  },
+
+  // ── Global Market Price Cache (populated by any pricing provider) ──
+  marketCache: {
+    get: () => safeInvoke("market-cache:get"),
+    getItem: (itemName: string) =>
+      safeInvoke("market-cache:get-item", itemName),
+    getStatus: () => safeInvoke("market-cache:get-status"),
+    loadJson: (jsonContent: string) =>
+      safeInvoke("market-cache:load-json", jsonContent),
+    loadDemo: (options?: { forceRefresh?: boolean }) =>
+      safeInvoke("market-cache:load-demo", options),
+    onStatusUpdated: (callback: any) => {
       const subscription = (_event: any, data: any) => callback(data);
-      ipcRenderer.on("skinsnipe:cache-status-updated", subscription);
+      ipcRenderer.on("market-cache:status-updated", subscription);
       return () => {
-        ipcRenderer.removeListener(
-          "skinsnipe:cache-status-updated",
-          subscription,
-        );
+        ipcRenderer.removeListener("market-cache:status-updated", subscription);
       };
     },
   },

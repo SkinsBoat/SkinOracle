@@ -26,8 +26,9 @@ function compressPayload(payload: any): {
   };
 }
 
-// In-memory merged price cache (from Skinsnipe fetch)
-// This is the same shape as SkinOracle priceCache: Record<name, { n, l[] }>
+// In-memory unified price cache. Populated by every pricing provider
+// (Skinsnipe, CS2Cap, uploaded cache JSON) via setPriceCache.
+// Shape: Record<name, { n, l[] }>
 let priceCache: Record<
   string,
   { n: string; l: { m: string; p: number; q?: number }[] }

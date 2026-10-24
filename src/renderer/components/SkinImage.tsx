@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { isSteamApisImage } from "../../shared/utils/urlSecurity";
+import { buildSteamApisImageUrl } from "../../shared/utils/itemImageUrl";
 
 export interface SkinImageProps {
   src?: string;
@@ -47,9 +48,7 @@ export const SkinImage: React.FC<SkinImageProps> = ({
       !isSteamApisImage(target.src)
     ) {
       setHasFallbackTried(true);
-      target.src = `https://api.steamapis.com/image/item/730/${encodeURIComponent(
-        fallbackItemName,
-      )}`;
+      target.src = buildSteamApisImageUrl(fallbackItemName);
     } else {
       target.style.opacity = "0.3";
     }

@@ -15,6 +15,7 @@ import {
 import TrendSparkline from "../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 import { SkinImage } from "../../../components/SkinImage";
+import { buildSteamApisImageUrl } from "../../../../shared/utils/itemImageUrl";
 
 export interface OrderDriftDetails {
   acceptedPrice: number;
@@ -118,7 +119,7 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
   const match = order.market_hash_name.match(/^(.+?)\s*\(([^)]+)\)$/);
   const cleanTitle = match ? match[1] : order.market_hash_name;
   const wear = match ? match[2] : "";
-  const imageUrl = `https://api.steamapis.com/image/item/730/${encodeURIComponent(order.market_hash_name)}`;
+  const imageUrl = buildSteamApisImageUrl(order.market_hash_name);
 
   const isFullDeleteBtn =
     !driftDetails?.acceptedPrice ||
@@ -232,7 +233,11 @@ export const CSFloatOrderCard: React.FC<CSFloatOrderCardProps> = ({
       </div>
 
       {/* Skin Image Showcase */}
-      <SkinImage src={imageUrl} alt={cleanTitle} />
+      <SkinImage
+        src={imageUrl}
+        alt={cleanTitle}
+        fallbackItemName={order.market_hash_name}
+      />
 
       {/* Title & Wear */}
       <div style={styles.titleWearContainer}>

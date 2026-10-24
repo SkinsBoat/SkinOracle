@@ -31,6 +31,7 @@ import type {
   SteamInventoryResponse,
 } from '../../../../shared/types/steam.types';
 import { SKINPORT_SITE } from '../../../../shared/raidStorefront';
+import { resolveItemImageUrl } from '../../../../shared/utils/itemImageUrl';
 
 // Storefront resolution is shared with the main process (clipboard paste).
 export {
@@ -60,9 +61,7 @@ export function normalizeSkinportItem(
     price: toUsd(item.salePrice) ?? 0,
     referencePrice: toUsd(item.referencePrice),
     suggestedPrice: toUsd(item.suggestedPrice),
-    imageUrl: item.image
-      ? `https://community.cloudflare.steamstatic.com/economy/image/${item.image}`
-      : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.marketHashName)}`,
+    imageUrl: resolveItemImageUrl(item.marketHashName, item.image),
     // No direct listing URL is built here: Skinport item links are opened via
     // the shared market URL generator (marketUrls.ts) which stays authoritative.
     exterior: item.exterior,
@@ -103,13 +102,8 @@ export function normalizeSkinportShop(
   };
 }
 
-const STEAM_IMAGE_CDN =
-  'https://community.cloudflare.steamstatic.com/economy/image';
-
 function steamImageUrl(hash: string | undefined, marketHashName: string): string {
-  return hash
-    ? `${STEAM_IMAGE_CDN}/${hash}`
-    : `https://api.steamapis.com/image/item/730/${encodeURIComponent(marketHashName)}`;
+  return resolveItemImageUrl(marketHashName, hash);
 }
 
 const toUsd = (cents: number | undefined): number | undefined =>
@@ -209,7 +203,7 @@ export function normalizeDmarketStore(
         marketHashName: name,
         price,
         referencePrice: toUsd(offer.recommendedPrice),
-        imageUrl: offer.image || steamImageUrl(undefined, name),
+        imageUrl: offer.image || resolveItemImageUrl(name),
         exterior: offer.cs2?.exterior,
         quality: offer.cs2?.quality,
         rarity: offer.cs2?.quality,

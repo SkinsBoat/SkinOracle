@@ -28,6 +28,7 @@ import TrendSparkline from "../../../../../components/TrendSparkline";
 import { useDealMakerStore } from "../../../../../store/useDealMakerStore";
 import { extractWearFromName } from "../../../../../utils/storage";
 import { SkinImage } from "../../../../../components/SkinImage";
+import { buildSteamApisImageUrl } from "../../../../../../shared/utils/itemImageUrl";
 import { steamLogo, dmarketLogo } from "../../../../../utils/marketLogos";
 
 export interface InventoryItemCardProps {
@@ -93,7 +94,7 @@ export const InventoryItemCard: React.FC<InventoryItemCardProps> = ({
   const itemImageUrl =
     item.imageUrl ||
     (title && title !== "CS2 Item"
-      ? `https://api.steamapis.com/image/item/730/${encodeURIComponent(title)}`
+      ? buildSteamApisImageUrl(title)
       : "");
 
   const cardBorderColor = isSelected

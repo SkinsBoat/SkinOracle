@@ -5,6 +5,7 @@ import {
   getMarketDisplayName,
 } from "../../../../shared/canonicalMarkets";
 import { isSteamApisImage } from "../../../../shared/utils/urlSecurity";
+import { buildSteamApisImageUrl, resolveItemImageUrl } from "../../../../shared/utils/itemImageUrl";
 import TrendDetailedChart from "../../../components/TrendDetailedChart";
 
 export interface LookupModalItemData {
@@ -43,8 +44,8 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
     let isMounted = true;
     const fetchCache = async () => {
       try {
-        if (window.electronAPI?.skinsnipe?.getCache) {
-          const cache = await window.electronAPI.skinsnipe.getCache();
+        if (window.electronAPI?.marketCache?.get) {
+          const cache = await window.electronAPI.marketCache.get();
           if (isMounted && cache) {
             const found = cache[item.name] || cache[item.name.trim()];
             if (found) {
@@ -128,21 +129,15 @@ export const CSFloatLookupModal: React.FC<CSFloatLookupModalProps> = ({
         >
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <img
-              src={
-                item.iconUrl
-                  ? item.iconUrl.startsWith("http://") ||
-                    item.iconUrl.startsWith("https://")
-                    ? item.iconUrl
-                    : `https://community.cloudflare.steamstatic.com/economy/image/${item.iconUrl}`
-                  : activeCache?.icon_url
-                    ? `https://community.cloudflare.steamstatic.com/economy/image/${activeCache.icon_url}`
-                    : `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`
-              }
+              src={resolveItemImageUrl(
+                item.name,
+                item.iconUrl || activeCache?.icon_url,
+              )}
               alt={item.name}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 if (!isSteamApisImage(target.src)) {
-                  target.src = `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`;
+                  target.src = buildSteamApisImageUrl(item.name);
                 }
               }}
               style={{

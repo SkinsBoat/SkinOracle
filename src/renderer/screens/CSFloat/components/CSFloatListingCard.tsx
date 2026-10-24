@@ -25,6 +25,7 @@ import {
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../components/TrendSparkline";
 import { SkinImage } from "../../../components/SkinImage";
+import { resolveItemImageUrl } from "../../../../shared/utils/itemImageUrl";
 import { useDealMakerStore } from "../../../store/useDealMakerStore";
 import { extractWearFromName } from "../../../utils/storage";
 
@@ -77,9 +78,7 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
   const match = name.match(/^(.+?)\s*\(([^)]+)\)$/);
   const cleanTitle = match ? match[1] : name;
 
-  const imageUrl = item.icon_url
-    ? `https://community.cloudflare.steamstatic.com/economy/image/${item.icon_url}`
-    : `https://api.steamapis.com/image/item/730/${encodeURIComponent(name)}`;
+  const imageUrl = resolveItemImageUrl(name, item.icon_url);
 
   const floatVal =
     item.float_value !== undefined && item.float_value !== null
@@ -283,7 +282,7 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
       </div>
 
       {/* Skin Image Showcase */}
-      <SkinImage src={imageUrl} alt={cleanTitle} />
+      <SkinImage src={imageUrl} alt={cleanTitle} fallbackItemName={name} />
 
       {/* Title & Float */}
       <div style={styles.titleWearContainer}>

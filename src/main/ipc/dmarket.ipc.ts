@@ -30,6 +30,7 @@ import {
   parseTargetTimestamp,
 } from "../../shared/targetHoldUtils";
 import { buildDmarketSpendableBalance } from "../../shared/dmarketUtils";
+import { buildSteamApisImageUrl } from "../../shared/utils/itemImageUrl";
 import { getAppUserAgent } from "../constants/userAgent";
 
 // ─────────────────────────────────────────────────────────────────
@@ -389,7 +390,7 @@ export function resolveDmarketImageUrl(
 
   const titleForImg = resolvedTitle || (item ? resolveDmarketTitle(item) : "");
   if (titleForImg && titleForImg !== "CS2 Item") {
-    return `https://api.steamapis.com/image/item/730/${encodeURIComponent(titleForImg)}`;
+    return buildSteamApisImageUrl(titleForImg);
   }
 
   return "";

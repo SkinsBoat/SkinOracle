@@ -23,6 +23,7 @@ import TrendSparkline from "../../../../../components/TrendSparkline";
 import { useDealMakerStore } from "../../../../../store/useDealMakerStore";
 import { extractWearFromName } from "../../../../../utils/storage";
 import { SkinImage } from "../../../../../components/SkinImage";
+import { buildSteamApisImageUrl } from "../../../../../../shared/utils/itemImageUrl";
 import toast from "react-hot-toast";
 import { steamLogo, dmarketLogo } from "../../../../../utils/marketLogos";
 
@@ -295,7 +296,11 @@ export const ActiveOfferCard: React.FC<ActiveOfferCardProps> = ({
 
       {/* Image Showcase */}
       <div style={{ position: "relative" }}>
-        <SkinImage src={offer.imageUrl} alt={cleanTitle} />
+        <SkinImage
+          src={offer.imageUrl || buildSteamApisImageUrl(offer.title)}
+          alt={cleanTitle}
+          fallbackItemName={offer.title}
+        />
 
         {/* Active Cooldown Timer Badge */}
         {isLocked && (

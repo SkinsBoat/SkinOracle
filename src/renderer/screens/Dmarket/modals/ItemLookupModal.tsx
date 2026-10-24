@@ -2,6 +2,7 @@ import React from "react";
 import { X, ExternalLink } from "lucide-react";
 import { getHumanMarketName } from "../dmarket-utils";
 import { isMarketMatch } from "../../../../shared/canonicalMarkets";
+import { resolveItemImageUrl } from "../../../../shared/utils/itemImageUrl";
 import TrendDetailedChart from "../../../components/TrendDetailedChart";
 
 interface ItemLookupModalProps {
@@ -85,10 +86,7 @@ export const ItemLookupModal: React.FC<ItemLookupModalProps> = ({
         >
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <img
-              src={
-                item.iconUrl ||
-                `https://api.steamapis.com/image/item/730/${encodeURIComponent(item.name)}`
-              }
+              src={resolveItemImageUrl(item.name, item.iconUrl)}
               alt={item.name}
               style={{
                 width: 56,

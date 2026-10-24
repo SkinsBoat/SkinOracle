@@ -8,6 +8,7 @@ import {
 import type { NegotiationItem } from '../../types/negotiation.types';
 import { getEffectiveOfferPrice } from '../../utils/negotiationMath';
 import { formatUsd } from '../../utils/raidUtils';
+import { buildSteamApisImageUrl } from '../../../../../shared/utils/itemImageUrl';
 
 interface NegotiationItemRowProps {
   item: NegotiationItem;
@@ -49,6 +50,15 @@ export const NegotiationItemRow: React.FC<NegotiationItemRowProps> = ({
           alt=""
           style={styles.itemImage}
           loading="lazy"
+          onError={(e) => {
+            const img = e.currentTarget;
+            const fallback = buildSteamApisImageUrl(item.marketHashName);
+            if (img.src !== fallback) {
+              img.src = fallback;
+            } else {
+              img.style.opacity = '0.3';
+            }
+          }}
         />
       ) : (
         <div style={styles.itemImageFallback}>

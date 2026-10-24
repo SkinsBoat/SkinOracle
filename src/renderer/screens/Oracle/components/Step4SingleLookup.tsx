@@ -21,6 +21,7 @@ import { TrendDetailedChart } from "../../../components/TrendDetailedChart";
 import { TrendSparkline } from "../../../components/TrendSparkline";
 import { MarketLogo } from "../../../components/MarketLogo";
 import { MarketBreakdownGrid } from "./step4/MarketBreakdownGrid";
+import { buildSteamApisImageUrl } from "../../../../shared/utils/itemImageUrl";
 
 interface Step4SingleLookupProps {
   isOpen: boolean;
@@ -173,7 +174,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
                     const match = r.name.match(/^(.+?)\s*\(([^)]+)\)$/);
                     const cleanTitle = match ? match[1] : r.name;
                     const wear = match ? match[2] : "";
-                    const imageUrl = `https://api.steamapis.com/image/item/730/${encodeURIComponent(r.name)}`;
+                    const imageUrl = buildSteamApisImageUrl(r.name);
 
                     const oracle = r.oracle;
                     const listings: {

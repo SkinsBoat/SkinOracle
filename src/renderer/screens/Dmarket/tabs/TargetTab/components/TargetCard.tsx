@@ -17,6 +17,7 @@ import { DmarketTargetItem, TargetAnalysis } from "../../../../../../shared/type
 import TrendSparkline from "../../../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../../../components/CopyMarketHashButton";
 import { SkinImage } from "../../../../../components/SkinImage";
+import { resolveItemImageUrl } from "../../../../../../shared/utils/itemImageUrl";
 import { getWearShortcut } from "../../../dmarket-utils";
 import { TargetDriftDetails, isAdvancedTarget, getTargetHoldInfo } from "../types";
 
@@ -92,9 +93,10 @@ export const TargetCard: React.FC<TargetCardProps> = ({
     target.attributes?.cs2?.category === "CATEGORY_STATTRACK";
   const phase = target.attributes?.cs2?.phase;
 
-  const imageUrl =
-    target.attributes?.image ||
-    `https://api.steamapis.com/image/item/730/${encodeURIComponent(target.title)}`;
+  const imageUrl = resolveItemImageUrl(
+    target.title,
+    target.attributes?.image,
+  );
 
   return (
     <div
@@ -218,7 +220,11 @@ export const TargetCard: React.FC<TargetCardProps> = ({
       </div>
 
       {/* Image Showcase */}
-      <SkinImage src={imageUrl} alt={cleanTitle} />
+      <SkinImage
+        src={imageUrl}
+        alt={cleanTitle}
+        fallbackItemName={target.title}
+      />
 
       {/* Title & Wear Tags */}
       <div style={styles.titleWearContainer}>

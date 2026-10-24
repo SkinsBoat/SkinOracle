@@ -75,14 +75,7 @@ export interface AcceptedPriceInfo {
 
 /** Wear buckets used by the front-end profit override policy. */
 export type ProfitWearBucket =
-  | "fn"
-  | "mw"
-  | "ft"
-  | "ww"
-  | "bs"
-  | "vanilla"
-  | "stattrak"
-  | "souvenir";
+  "fn" | "mw" | "ft" | "ww" | "bs" | "vanilla" | "stattrak" | "souvenir";
 
 /**
  * Supply-stability (SSS) buckets. SSS is NOT a liquidity metric; it measures
@@ -92,11 +85,7 @@ export type ProfitWearBucket =
 export type ProfitSssBucket = "prime" | "solid" | "moderate" | "thin";
 
 export type ProfitOverrideMode =
-  | "off"
-  | "flat"
-  | "wear"
-  | "stability"
-  | "combined";
+  "off" | "flat" | "wear" | "stability" | "combined";
 
 /**
  * Front-end-only bid override policy.
@@ -146,6 +135,29 @@ export interface SoCloseResultItem {
   market?: string;
   hasExistingOrder?: boolean;
   hasExistingTarget?: boolean;
+  iconUrl?: string;
+  trendMomentum14d?: number;
+  supplyStabilityScore?: number;
+}
+
+export interface MarketGapMarketEntry {
+  market: string;
+  price: number;
+}
+
+/**
+ * Cross-market availability gap: an item that is listed on other marketplaces
+ * but has no active CSFloat listing.
+ */
+export interface MarketGapResultItem {
+  name: string;
+  otherMarkets: MarketGapMarketEntry[];
+  marketCount: number;
+  lowestPrice: number;
+  lowestMarket: string;
+  highestPrice: number;
+  hasExistingOrder?: boolean;
+  acceptedPrice?: number;
   iconUrl?: string;
   trendMomentum14d?: number;
   supplyStabilityScore?: number;

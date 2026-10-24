@@ -59,7 +59,7 @@ export function broadcastCacheStatus() {
     };
     BrowserWindow.getAllWindows().forEach((win) => {
       if (!win.isDestroyed()) {
-        win.webContents.send("skinsnipe:cache-status-updated", status);
+        win.webContents.send("market-cache:status-updated", status);
       }
     });
   } catch (err) {
@@ -481,16 +481,16 @@ ipcMain.handle("skinsnipe:cancel-fetch", () => {
   return { success: false, message: "No fetch currently in progress." };
 });
 
-// ── IPC: Get cached prices (already fetched) ───────────────────────
-ipcMain.handle("skinsnipe:get-cache", () => getActivePriceCache());
+// ── IPC: Global market price cache (populated by any provider) ─────
+ipcMain.handle("market-cache:get", () => getActivePriceCache());
 
-ipcMain.handle("skinsnipe:get-item", (_, itemName: string) => {
+ipcMain.handle("market-cache:get-item", (_, itemName: string) => {
   const active = getActivePriceCache();
   if (!itemName || !active) return null;
   return active[itemName] || active[itemName.trim()] || null;
 });
 
-ipcMain.handle("skinsnipe:get-cache-status", () => {
+ipcMain.handle("market-cache:get-status", () => {
   const active = getActivePriceCache();
   return {
     itemCount: Object.keys(active).length,
@@ -500,8 +500,8 @@ ipcMain.handle("skinsnipe:get-cache-status", () => {
   };
 });
 
-// ── IPC: Load pricing JSON file directly into local priceCache ─────
-ipcMain.handle("skinsnipe:load-cache-json", async (_, jsonContent: string) => {
+// ── IPC: Load pricing JSON file directly into the global cache ────
+ipcMain.handle("market-cache:load-json", async (_, jsonContent: string) => {
   try {
     const parsed = JSON.parse(jsonContent);
     let cacheData =
@@ -572,7 +572,7 @@ ipcMain.handle("skinsnipe:load-cache-json", async (_, jsonContent: string) => {
 
 // ── IPC: Load demo price cache (offline persistent disk cache with cloud delivery) ──
 ipcMain.handle(
-  "skinsnipe:load-demo-cache",
+  "market-cache:load-demo",
   async (_event: IpcMainInvokeEvent, options?: { forceRefresh?: boolean }) => {
     try {
       const localCachePath = path.join(

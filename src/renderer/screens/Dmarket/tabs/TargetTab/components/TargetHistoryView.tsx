@@ -7,6 +7,10 @@ import {
   getTradeAmount,
   getTradeDate,
 } from "../../../dmarket-utils";
+import {
+  buildSteamApisImageUrl,
+  resolveItemImageUrl,
+} from "../../../../../../shared/utils/itemImageUrl";
 
 export interface TargetHistoryViewProps {
   closedTrades: any[];
@@ -86,10 +90,10 @@ export const TargetHistoryView: React.FC<TargetHistoryViewProps> = ({
                     (match ? match[2] : ""),
                 );
                 const isStattrak = title.includes("StatTrak™");
-                const imageUrl =
-                  trade.attributes?.image ||
-                  trade.image ||
-                  `https://api.steamapis.com/image/item/730/${encodeURIComponent(title)}`;
+                const imageUrl = resolveItemImageUrl(
+                  title,
+                  trade.attributes?.image || trade.image,
+                );
 
                 return (
                   <tr
@@ -108,7 +112,13 @@ export const TargetHistoryView: React.FC<TargetHistoryViewProps> = ({
                           src={imageUrl}
                           alt={cleanTitle}
                           onError={(e) => {
-                            (e.target as HTMLElement).style.opacity = "0.3";
+                            const img = e.currentTarget;
+                            const fallback = buildSteamApisImageUrl(title);
+                            if (img.src !== fallback) {
+                              img.src = fallback;
+                            } else {
+                              img.style.opacity = "0.3";
+                            }
                           }}
                           style={styles.thumbnail}
                         />

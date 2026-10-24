@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Edit3, X, Loader2, CheckCircle2 } from "lucide-react";
 import { DmarketOfferItem } from "../../../../shared/types";
+import { buildSteamApisImageUrl } from "../../../../shared/utils/itemImageUrl";
 import toast from "react-hot-toast";
 
 interface EditOfferModalProps {
@@ -131,9 +132,18 @@ export const EditOfferModal: React.FC<EditOfferModalProps> = ({
           }}
         >
           <img
-            src={offer.imageUrl}
+            src={offer.imageUrl || buildSteamApisImageUrl(offer.title)}
             alt={offer.title}
             style={{ width: "45px", height: "45px", objectFit: "contain" }}
+            onError={(e) => {
+              const img = e.currentTarget;
+              const fallback = buildSteamApisImageUrl(offer.title);
+              if (img.src !== fallback) {
+                img.src = fallback;
+              } else {
+                img.style.opacity = "0.3";
+              }
+            }}
           />
           <div>
             <div

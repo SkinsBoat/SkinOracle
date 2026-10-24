@@ -20,6 +20,7 @@ import { getMarketItemUrl } from '../../../utils/marketUrls';
 import { getCsfloatSearchUrl } from '../../../utils/csfloatUrls';
 import { MarketLogo } from '../../../components/MarketLogo';
 import { getMarketDisplayName } from '../../../../shared/canonicalMarkets';
+import { buildSteamApisImageUrl } from '../../../../shared/utils/itemImageUrl';
 import {
   CSFloatLookupModal,
   LookupModalItemData,
@@ -174,7 +175,7 @@ export const DealItemCard: React.FC<DealItemCardProps> = ({
 
   const itemImageUrl =
     auction.imageUrl ||
-    `https://api.steamapis.com/image/item/730/${encodeURIComponent(auction.marketHashName)}`;
+    buildSteamApisImageUrl(auction.marketHashName);
 
   const marketDisplayName = getMarketDisplayName(auction.marketplace);
   const listingButtonLabel = postedLink

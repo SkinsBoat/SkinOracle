@@ -25,6 +25,7 @@ import { CopyMarketHashButton } from '../../../components/CopyMarketHashButton';
 import { getMarketItemUrl } from '../../../utils/marketUrls';
 import { getCsfloatSearchUrl } from '../../../utils/csfloatUrls';
 import { MarketLogo } from '../../../components/MarketLogo';
+import { buildSteamApisImageUrl } from '../../../../shared/utils/itemImageUrl';
 import {
   getMarketDisplayName,
   toCanonicalMarketId,
@@ -182,7 +183,7 @@ export const SellerActiveDealCard: React.FC<SellerActiveDealCardProps> = ({
 
   const itemImageUrl =
     auction.imageUrl ||
-    `https://api.steamapis.com/image/item/730/${encodeURIComponent(auction.marketHashName)}`;
+    buildSteamApisImageUrl(auction.marketHashName);
 
   const parsed = useMemo(() => {
     return parseSkinHashName(auction.marketHashName, auction.wear);
