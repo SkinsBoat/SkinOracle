@@ -15,7 +15,6 @@ import {
   Square,
   Zap,
   RotateCw,
-  Handshake,
 } from "lucide-react";
 import {
   ListingAnalysis,
@@ -26,8 +25,6 @@ import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 import TrendSparkline from "../../../components/TrendSparkline";
 import { SkinImage } from "../../../components/SkinImage";
 import { resolveItemImageUrl } from "../../../../shared/utils/itemImageUrl";
-import { useDealMakerStore } from "../../../store/useDealMakerStore";
-import { extractWearFromName } from "../../../utils/storage";
 
 export type { ListingAnalysis, CsFloatInventoryItem, CsFloatItemBuyOrder };
 
@@ -190,27 +187,6 @@ export const CSFloatListingCard: React.FC<CSFloatListingCardProps> = ({
             <Eye size={13} />
           </button>
           <CopyMarketHashButton name={name} />
-          {!item.is_sold && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                useDealMakerStore.getState().openCreateModal({
-                  marketHashName: name,
-                  wear: wearShortcut || extractWearFromName(name),
-                  floatValue: floatVal || undefined,
-                  inspectUrl: item.serialized_inspect || item.inspect_link || undefined,
-                  imageUrl: imageUrl,
-                  marketplace: 'csfloat',
-                  startingPrice: currentListedPriceDollar || analysis?.targetListingPrice || undefined,
-                });
-              }}
-              className="btn btn-sm"
-              style={styles.dealBtn || styles.auctionBtn}
-              title="Broadcast to DealMaker ($0.40 fee)"
-            >
-              <Handshake size={12} />
-            </button>
-          )}
         </div>
 
         {/* Selection Checkbox Indicator (Hidden for sold items) */}
@@ -621,32 +597,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-  } as React.CSSProperties,
-
-  dealBtn: {
-    padding: "3px 6px",
-    background: "rgba(56, 189, 248, 0.12)",
-    border: "1px solid rgba(56, 189, 248, 0.3)",
-    borderRadius: "4px",
-    color: "#38bdf8",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  } as React.CSSProperties,
-
-  auctionBtn: {
-    padding: "3px 6px",
-    background: "rgba(56, 189, 248, 0.12)",
-    border: "1px solid rgba(56, 189, 248, 0.3)",
-    borderRadius: "4px",
-    color: "#38bdf8",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "all 0.15s ease",
   } as React.CSSProperties,
 
   badgesRow: {
