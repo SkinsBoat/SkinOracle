@@ -140,29 +140,6 @@ export interface SoCloseResultItem {
   supplyStabilityScore?: number;
 }
 
-export interface MarketGapMarketEntry {
-  market: string;
-  price: number;
-}
-
-/**
- * Cross-market availability gap: an item that is listed on other marketplaces
- * but has no active CSFloat listing.
- */
-export interface MarketGapResultItem {
-  name: string;
-  otherMarkets: MarketGapMarketEntry[];
-  marketCount: number;
-  lowestPrice: number;
-  lowestMarket: string;
-  highestPrice: number;
-  hasExistingOrder?: boolean;
-  acceptedPrice?: number;
-  iconUrl?: string;
-  trendMomentum14d?: number;
-  supplyStabilityScore?: number;
-}
-
 export interface OracleBatchStartResult {
   batchId: string;
   totalItems: number;

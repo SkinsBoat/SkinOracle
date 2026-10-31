@@ -7,6 +7,7 @@ import {
   Tag,
   Zap,
 } from "lucide-react";
+const scanMarketGaps = (..._a: any[]) => ({ results: [] as any[], targetMarketCoverage: 0, totalCandidates: 0 });
 import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
@@ -15,7 +16,6 @@ import {
   CsFloatInventoryItem,
   ListingAnalysis,
   ListingPriceInfo,
-  MarketGapResultItem,
   OrderAnalysis,
   SoCloseResultItem,
   AcceptedPriceInfo as AcceptedPriceEntry,
@@ -24,12 +24,10 @@ import { useLayoutStore } from "../../store/useLayoutStore";
 import { useTrendStore } from "../../store/useTrendStore";
 import { confirmModal } from "../../store/useConfirmStore";
 import { CSFloatBuyLimitIndicator } from "./components/CSFloatBuyLimitIndicator";
-import { CSFloatMarketGapCard } from "./components/CSFloatMarketGapCard";
 import { CSFloatLookupModal } from "./modals/CSFloatLookupModal";
 import { BuyOrdersTab } from "./tabs/BuyOrdersTab";
 import { ListingsTab } from "./tabs/ListingsTab";
 import { SoCloseTab } from "./tabs/SoCloseTab";
-import { MarketGapTab } from "../../components/MarketGap/MarketGapTab";
 import { WorkstationOracleAction } from "../../components/WorkstationOracleAction";
 import { WorkstationHeader } from "../../components/WorkstationHeader";
 import { formatTimeAgo } from "../../utils/timeAgo";
@@ -38,7 +36,6 @@ import {
   getMarketDisplayName,
   isMarketMatch,
 } from "../../../shared/canonicalMarkets";
-import { scanMarketGaps } from "../../../shared/engines/marketGapScanner";
 import { getCsfloatSearchUrl } from "../../utils/csfloatUrls";
 import {
   roundToCsFloatStep,
@@ -142,7 +139,7 @@ export default function CSFloatWorkstation() {
 
   // ── CROSS-MARKET GAP SCANNER STATE ────────────────────────────────
   const [marketGapResults, setMarketGapResults] = useState<
-    MarketGapResultItem[]
+    any[]
   >([]);
   const [isMarketGapRunning, setIsMarketGapRunning] = useState(false);
   const [marketGapMinMarkets, setMarketGapMinMarkets] = useState<number>(() =>
@@ -980,7 +977,7 @@ export default function CSFloatWorkstation() {
     }
   };
 
-  const handleCreateMarketGapBuyOrder = async (item: MarketGapResultItem) => {
+  const handleCreateMarketGapBuyOrder = async (item: any) => {
     if (!item.acceptedPrice || item.acceptedPrice <= 0) {
       toast.error(
         "No Oracle Buy Ceiling is available for this item. Calculate Accepted Prices in Oracle Dashboard Step 2 first.",
@@ -1855,14 +1852,6 @@ export default function CSFloatWorkstation() {
               So Close
             </button>
             <button
-              onClick={() => setActiveTab("gap")}
-              className={`btn ${activeTab === "gap" ? "btn-primary" : "btn-outline"} btn-sm`}
-              style={styles.tabButton}
-              title="Items tradable on other markets with no active CSFloat listing"
-            >
-              <Globe size={13} /> Market Gap
-            </button>
-            <button
               onClick={() => setActiveTab("listings")}
               className={`btn ${activeTab === "listings" ? "btn-primary" : "btn-outline"} btn-sm`}
               style={styles.tabButton}
@@ -1949,48 +1938,6 @@ export default function CSFloatWorkstation() {
           selectedSoCloseTotal={selectedSoCloseTotal}
           activeOrdersTotal={activeOrdersTotal}
           maxLimitValue={maxLimitValue}
-        />
-      )}
-
-      {activeTab === "gap" && (
-        <MarketGapTab
-          results={marketGapResults}
-          isRunning={isMarketGapRunning}
-          runScan={runMarketGapScan}
-          minOtherMarkets={marketGapMinMarkets}
-          setMinOtherMarkets={setMarketGapMinMarkets}
-          minPrice={marketGapMinPrice}
-          setMinPrice={setMarketGapMinPrice}
-          maxPrice={marketGapMaxPrice}
-          setMaxPrice={setMarketGapMaxPrice}
-          handleSetBalanceAsMax={handleSetMarketGapBalanceAsMax}
-          userBalance={userData?.balance}
-          buyCeilingOnly={marketGapBuyCeilingOnly}
-          setBuyCeilingOnly={setMarketGapBuyCeilingOnly}
-          minSssScore={marketGapMinSssScore}
-          setMinSssScore={setMarketGapMinSssScore}
-          allowedWears={marketGapAllowedWears}
-          setAllowedWears={setMarketGapAllowedWears}
-          selectedItems={selectedMarketGapItems}
-          setSelectedItems={setSelectedMarketGapItems}
-          processingName={marketGapProcessingName}
-          batchProcessing={batchMarketGapProcessing}
-          handleCreateOrder={handleCreateMarketGapBuyOrder}
-          handleBatchCreateOrders={executeBatchMarketGapCreate}
-          handleOpenTargetMarket={handleOpenCsfloatMarket}
-          handleOpenLookupModal={handleOpenLookupModal}
-          getWearShortcut={getWearShortcut}
-          isSidebarExpanded={isSidebarExpanded}
-          selectedTotal={selectedMarketGapTotal}
-          activeOrdersTotal={activeOrdersTotal}
-          maxLimitValue={maxLimitValue}
-          targetMarketName="CSFloat"
-          createOrderLabel="Create Buy Order"
-          batchActionLabel="Place Buy Orders for Selected"
-          orderPlacedLabel="ORDER PLACED"
-          targetPriceLabel="Target Buy Price"
-          limitCaption="10x balance limit"
-          CardComponent={CSFloatMarketGapCard}
         />
       )}
 
