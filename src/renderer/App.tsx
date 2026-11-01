@@ -315,9 +315,11 @@ export default function App() {
 
               {/* Navigation Items */}
               <nav style={styles.navContainer}>
+                {/* ORACLE ENGINE */}
+                {isSidebarExpanded && <span style={styles.navGroupLabel}>ORACLE ENGINE</span>}
                 <NavLink
                   to="/"
-                  title={!isSidebarExpanded ? "Pricing Central" : undefined}
+                  title={!isSidebarExpanded ? "Pricing Central (⌘1)" : undefined}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
@@ -338,7 +340,7 @@ export default function App() {
 
                 <NavLink
                   to="/soclose"
-                  title={!isSidebarExpanded ? "So Close Scanner" : undefined}
+                  title={!isSidebarExpanded ? "SoClose Scanner (⌘2)" : undefined}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
@@ -352,7 +354,7 @@ export default function App() {
                         size={18}
                         style={getNavIconStyle(isActive, "accent")}
                       />
-                      {isSidebarExpanded && <span>So Close</span>}
+                      {isSidebarExpanded && <span>SoClose Scanner</span>}
                     </>
                   )}
                 </NavLink>
@@ -383,7 +385,7 @@ export default function App() {
 
                 <NavLink
                   to="/raid"
-                  title={!isSidebarExpanded ? "RAID Seller Auditor" : undefined}
+                  title={!isSidebarExpanded ? "RAID Auditor (⌘3)" : undefined}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
@@ -397,14 +399,16 @@ export default function App() {
                         size={18}
                         style={getNavIconStyle(isActive, "accent")}
                       />
-                      {isSidebarExpanded && <span>RAID</span>}
+                      {isSidebarExpanded && <span>RAID Auditor</span>}
                     </>
                   )}
                 </NavLink>
 
+                {/* MARKETPLACES */}
+                {isSidebarExpanded && <span style={styles.navGroupLabel}>MARKETPLACES</span>}
                 <NavLink
                   to="/dmarket"
-                  title={!isSidebarExpanded ? "DMarket Workstation" : undefined}
+                  title={!isSidebarExpanded ? "DMarket (⌘4)" : undefined}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
@@ -421,11 +425,11 @@ export default function App() {
                 </NavLink>
 
                 {(import.meta.env.DEV ||
-                  FEATURE_FLAGS.SKINPORT_WORKSTATION) && (
+                  FEATURE_FLAGS.SKINPORT_WORKSTATION) ? (
                   <NavLink
                     to="/skinport"
                     title={
-                      !isSidebarExpanded ? "Skinport Workstation" : undefined
+                      !isSidebarExpanded ? "Skinport" : undefined
                     }
                     className={({ isActive }) =>
                       `sidebar-nav-item ${isActive ? "active" : ""}`
@@ -441,11 +445,25 @@ export default function App() {
                     />
                     {isSidebarExpanded && <span>Skinport</span>}
                   </NavLink>
+                ) : (
+                  <div
+                    className="nav-item-disabled"
+                    title="Skinport — Coming Soon"
+                    style={getNavLinkStyle(false, isSidebarExpanded)}
+                  >
+                    <img src={skinportLogo} alt="Skinport" style={{ ...styles.marketIcon, opacity: 0.4 }} />
+                    {isSidebarExpanded && (
+                      <>
+                        <span style={{ opacity: 0.4 }}>Skinport</span>
+                        <span style={styles.badgeGhost}>SOON</span>
+                      </>
+                    )}
+                  </div>
                 )}
 
                 <NavLink
                   to="/csfloat"
-                  title={!isSidebarExpanded ? "CSFloat Workstation" : undefined}
+                  title={!isSidebarExpanded ? "CSFloat (⌘4)" : undefined}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
@@ -461,12 +479,14 @@ export default function App() {
                   {isSidebarExpanded && <span>CSFloat</span>}
                 </NavLink>
 
-                {FEATURE_FLAGS.TREND_MARKET && (
+                {/* INTELLIGENCE */}
+                {isSidebarExpanded && <span style={styles.navGroupLabel}>INTELLIGENCE</span>}
+                {FEATURE_FLAGS.TREND_MARKET ? (
                   <NavLink
                     to="/trend-market"
                     title={
                       !isSidebarExpanded
-                        ? "Community Trend Marketplace"
+                        ? "Trend Market"
                         : undefined
                     }
                     className={({ isActive }) =>
@@ -486,8 +506,45 @@ export default function App() {
                       </>
                     )}
                   </NavLink>
+                ) : (
+                  <div
+                    className="nav-item-disabled"
+                    title="Trend Market — Coming Soon"
+                    style={getNavLinkStyle(false, isSidebarExpanded)}
+                  >
+                    <Globe size={18} style={{ color: "#cbd5e1", opacity: 0.4 }} />
+                    {isSidebarExpanded && (
+                      <>
+                        <span style={{ opacity: 0.4 }}>Trend Market</span>
+                        <span style={styles.badgeGhost}>SOON</span>
+                      </>
+                    )}
+                  </div>
                 )}
 
+                <NavLink
+                  to="/playbook"
+                  title={!isSidebarExpanded ? "Playbook" : undefined}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                  }
+                  style={({ isActive }) =>
+                    getNavLinkStyle(isActive, isSidebarExpanded)
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <BookOpen
+                        size={18}
+                        style={getNavIconStyle(isActive, "accent")}
+                      />
+                      {isSidebarExpanded && <span>Playbook</span>}
+                    </>
+                  )}
+                </NavLink>
+
+                {/* ACCOUNT */}
+                {isSidebarExpanded && <span style={styles.navGroupLabel}>ACCOUNT</span>}
                 <NavLink
                   to="/balance"
                   title={
@@ -509,7 +566,7 @@ export default function App() {
                           size={18}
                           style={getNavIconStyle(isActive, "accent")}
                         />
-                        {isSidebarExpanded && <span>Balance</span>}
+                        {isSidebarExpanded && <span>Balance & Ledger</span>}
                       </div>
                       {isSidebarExpanded && userBalance && (
                         <span style={getBalanceBadgeStyle(isActive)}>
@@ -522,7 +579,7 @@ export default function App() {
 
                 <NavLink
                   to="/settings"
-                  title={!isSidebarExpanded ? "Settings" : undefined}
+                  title={!isSidebarExpanded ? "Settings (⌘,)" : undefined}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? "active" : ""}`
                   }
@@ -932,7 +989,7 @@ const styles = {
   navContainer: {
     display: "flex",
     flexDirection: "column",
-    gap: "6px",
+    gap: "4px",
   } as React.CSSProperties,
 
   navIcon: {
@@ -970,12 +1027,22 @@ const styles = {
     opacity: 0.7,
   } as React.CSSProperties,
 
-  mainContent: {
-    flex: 1,
-    overflowY: "auto",
-    padding: "24px 28px",
-    backgroundColor: "var(--so-bg)",
-    boxSizing: "border-box",
-    height: "100vh",
+  navGroupLabel: {
+    fontSize: "10px",
+    fontWeight: 700,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.6px",
+    color: "var(--so-text-muted)",
+    padding: "16px 8px 6px 8px",
+    marginTop: "4px",
   } as React.CSSProperties,
-};
+  badgeGhost: {
+    fontSize: "9px",
+    fontWeight: 700,
+    padding: "1px 4px",
+    borderRadius: "4px",
+    backgroundColor: "rgba(148, 163, 184, 0.15)",
+    color: "var(--so-text-muted)",
+    border: "1px solid rgba(148, 163, 184, 0.25)",
+    marginLeft: "auto",
+  } as React.CSSProperties,
