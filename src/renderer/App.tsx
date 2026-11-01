@@ -47,9 +47,10 @@ import { VersionGateState } from "../shared/types";
 import { FEATURE_FLAGS } from "../shared/featureFlags";
 import { safeGetItem, safeSetItem } from "./utils/storage";
 import { useLayoutStore } from "./store/useLayoutStore";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import "./App.css";
 
-export default function App() {
+function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [isSplashVisible, setIsSplashVisible] = useState<boolean>(true);
   const [systemConfig, setSystemConfig] = useState<any>(null);
@@ -60,9 +61,14 @@ export default function App() {
   const [encryptionWarningDismissed, setEncryptionWarningDismissed] =
     useState<boolean>(() => safeGetItem("so_enc_warn_dismissed") === "true");
   const { isSidebarExpanded, toggleSidebar } = useLayoutStore();
+  useGlobalShortcuts();
 
-  // Hold the branded splash just long enough for the logo asset to paint,
-  // so the brand mark is always visible before the workstation mounts.
+  useEffect(() => {
+    const handleToggleSidebar = () => toggleSidebar();
+    window.addEventListener("toggleSidebar", handleToggleSidebar);
+    return () => window.removeEventListener("toggleSidebar", handleToggleSidebar);
+  }, [toggleSidebar]);
+
   useEffect(() => {
     const timer = setTimeout(() => setIsSplashVisible(false), 900);
     return () => clearTimeout(timer);
@@ -706,6 +712,14 @@ export default function App() {
           <Route path="*" element={<Navigate to="/register" />} />
         </Routes>
       )}
+    </HashRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <HashRouter>
+      <AppContent />
     </HashRouter>
   );
 }
