@@ -65,9 +65,9 @@ export default function OracleDashboard() {
   const [isLookupOpen, setIsLookupOpen] = useState(false);
 
   const [openSteps, setOpenSteps] = useState({
-    step1: true,
-    step2: true,
-    step3: true,
+    step1: false,
+    step2: false,
+    step3: false,
   });
 
   const allStepsOpen =
