@@ -665,11 +665,24 @@ function AppContent() {
               </button>
 
               {isSidebarExpanded && (
-                <div style={styles.disclaimer}>
-                  Skin Oracle is an independent tool not affiliated with Valve,
-                  CSFloat, DMarket, or any listed marketplace. All trademarks
-                  belong to their respective owners.
-                </div>
+                <>
+                  <a
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.electronAPI?.app?.openExternal?.("https://github.com/SkinsBoat/SkinOracle");
+                    }}
+                    className="source-badge"
+                    title="View source code on GitHub"
+                    style={styles.sourceBadge}
+                  >
+                    <ShieldAlert size={12} /> Source-Available
+                  </a>
+                  <div style={styles.disclaimer}>
+                    Skin Oracle is an independent tool not affiliated with Valve,
+                    CSFloat, DMarket, or any listed marketplace. All trademarks
+                    belong to their respective owners.
+                  </div>
+                </>
               )}
             </div>
           </aside>
@@ -1031,6 +1044,17 @@ const styles = {
     width: "100%",
   } as React.CSSProperties,
 
+  sourceBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "11px",
+    color: "var(--so-text-muted)",
+    padding: "6px 8px",
+    cursor: "pointer",
+    textDecoration: "none",
+    justifyContent: "center",
+  } as React.CSSProperties,
   disclaimer: {
     fontSize: "10px",
     lineHeight: 1.35,
