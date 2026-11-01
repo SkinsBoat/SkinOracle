@@ -127,7 +127,7 @@ function getScanBtnStyle(disabled: boolean): React.CSSProperties {
     gap: '7px',
     padding: '0 18px',
     borderRadius: '10px',
-    backgroundColor: disabled ? 'rgba(22, 163, 74, 0.4)' : '#16a34a',
+    backgroundColor: disabled ? 'rgba(37, 99, 235, 0.4)' : 'var(--so-primary)',
     border: 'none',
     color: '#ffffff',
     fontSize: '13px',
@@ -135,6 +135,6 @@ function getScanBtnStyle(disabled: boolean): React.CSSProperties {
     cursor: disabled ? 'not-allowed' : 'pointer',
     whiteSpace: 'nowrap',
     boxSizing: 'border-box',
-    boxShadow: disabled ? 'none' : '0 4px 14px rgba(22, 163, 74, 0.28)',
+    boxShadow: disabled ? 'none' : '0 4px 14px rgba(37, 99, 235, 0.28)',
   };
 }

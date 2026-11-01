@@ -127,8 +127,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '7px',
     height: '7px',
     borderRadius: '50%',
-    backgroundColor: '#22c55e',
-    boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.16)',
+    backgroundColor: 'var(--so-primary)',
+    boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.16)',
   },
   chatFeed: {
     display: 'flex',

@@ -53,6 +53,8 @@ export interface SkinsnipeProviderPanelProps {
   setHideTradeMarkets: (hide: boolean) => void;
   activeScope: MarketScope;
   onSelectScope: (scope: MarketScope) => void;
+  onSnipeShortcut?: () => void;
+  onBaselineShortcut?: () => void;
   skinsnipeScopes?: MarketScopePresets<SkinsnipeMarketId>;
   getMarketCount: (marketId: string) => number;
   getMissingQtyForMarket: (marketId: string) => number;
@@ -77,6 +79,8 @@ export const SkinsnipeProviderPanel: React.FC<SkinsnipeProviderPanelProps> = ({
   setHideTradeMarkets,
   activeScope,
   onSelectScope,
+  onSnipeShortcut,
+  onBaselineShortcut,
   skinsnipeScopes,
   getMarketCount,
   getMissingQtyForMarket,
@@ -99,6 +103,10 @@ export const SkinsnipeProviderPanel: React.FC<SkinsnipeProviderPanelProps> = ({
   };
 
   const estimatedFetchSeconds = Math.max(0, (selectedMarkets.length - 1) * 32);
+
+  const visibleMarkets = hideTradeMarkets
+    ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id))
+    : SKINSNIPE_AVAILABLE_MARKETS;
 
   return (
     <div>
@@ -134,6 +142,8 @@ export const SkinsnipeProviderPanel: React.FC<SkinsnipeProviderPanelProps> = ({
         <MarketScopeToggle
           activeScope={activeScope}
           onSelectScope={onSelectScope}
+          onSnipeShortcut={onSnipeShortcut}
+          onBaselineShortcut={onBaselineShortcut}
           baselineCount={skinsnipeScopes?.baseline?.length ?? 0}
           snipeCount={skinsnipeScopes?.snipe?.length ?? 0}
           accentColor="var(--so-primary)"
@@ -163,10 +173,7 @@ export const SkinsnipeProviderPanel: React.FC<SkinsnipeProviderPanelProps> = ({
 
         {/* Interactive Market Chips Grid */}
         <div style={step1Styles.marketChipsGrid}>
-          {(hideTradeMarkets
-            ? SKINSNIPE_AVAILABLE_MARKETS.filter((m) => !isTradeMarket(m.id))
-            : SKINSNIPE_AVAILABLE_MARKETS
-          ).map((market) => (
+          {visibleMarkets.map((market) => (
             <MarketSelectionChip
               key={market.id}
               id={market.id}

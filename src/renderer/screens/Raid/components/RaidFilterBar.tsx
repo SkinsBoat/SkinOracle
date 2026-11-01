@@ -210,11 +210,11 @@ function getToggleStyle(active: boolean): React.CSSProperties {
     gap: '6px',
     padding: '0 12px',
     borderRadius: '8px',
-    backgroundColor: active ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+    backgroundColor: active ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
     border: active
-      ? '1px solid rgba(34, 197, 94, 0.4)'
+      ? '1px solid rgba(37, 99, 235, 0.4)'
       : '1px solid var(--so-border-subtle, #1e2430)',
-    color: active ? '#4ade80' : 'var(--so-text-secondary, #94a3b8)',
+    color: active ? 'var(--so-primary-light)' : 'var(--so-text-secondary, #94a3b8)',
     fontSize: '12px',
     fontWeight: 700,
     cursor: 'pointer',

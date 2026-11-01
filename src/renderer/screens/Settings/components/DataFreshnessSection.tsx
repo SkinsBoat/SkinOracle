@@ -62,9 +62,6 @@ const ExpiryField: React.FC<ExpiryFieldProps> = ({
         <span style={styles.controlDesc}>{description}</span>
       </div>
       <div style={styles.fieldRight}>
-        <span style={styles.ttlSummary}>
-          Expires after {formatTtlLabel(value)}
-        </span>
         <div style={styles.chipGroup}>
           {PRESETS.map((preset) => (
             <button
@@ -406,14 +403,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "flex-end",
     gap: "6px",
     flexShrink: 0,
-  },
-  ttlSummary: {
-    fontSize: "11px",
-    fontWeight: 700,
-    color: "var(--so-primary)",
-    backgroundColor: "rgba(59, 130, 246, 0.12)",
-    padding: "1px 8px",
-    borderRadius: "4px",
   },
   chipGroup: {
     display: "flex",

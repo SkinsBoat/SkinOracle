@@ -168,7 +168,7 @@ function getLiveRoomBtnStyle(disabled: boolean): React.CSSProperties {
     gap: '7px',
     padding: '0 14px',
     borderRadius: '8px',
-    backgroundColor: disabled ? 'rgba(22, 163, 74, 0.35)' : '#16a34a',
+    backgroundColor: disabled ? 'rgba(37, 99, 235, 0.35)' : 'var(--so-primary)',
     border: 'none',
     color: disabled ? 'rgba(255, 255, 255, 0.6)' : '#ffffff',
     fontSize: '12.5px',
@@ -176,7 +176,7 @@ function getLiveRoomBtnStyle(disabled: boolean): React.CSSProperties {
     cursor: disabled ? 'not-allowed' : 'pointer',
     whiteSpace: 'nowrap',
     boxSizing: 'border-box',
-    boxShadow: disabled ? 'none' : '0 3px 10px rgba(22, 163, 74, 0.28)',
+    boxShadow: disabled ? 'none' : '0 3px 10px rgba(37, 99, 235, 0.28)',
   };
 }
 

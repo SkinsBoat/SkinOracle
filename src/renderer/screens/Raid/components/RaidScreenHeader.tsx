@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Crosshair, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, Store } from 'lucide-react';
 import { formatTimeAgo } from '../../../utils/timeAgo';
 
 interface RaidScreenHeaderProps {
@@ -18,7 +18,7 @@ export const RaidScreenHeader: React.FC<RaidScreenHeaderProps> = ({
     <div style={styles.header}>
       <div style={styles.titleRow}>
         <div style={styles.iconBox}>
-          <Crosshair size={20} style={styles.headerIcon} />
+          <Store size={20} style={styles.headerIcon} />
         </div>
         <div>
           <div style={styles.titleLine}>
@@ -80,14 +80,14 @@ const styles: Record<string, React.CSSProperties> = {
     width: '40px',
     height: '40px',
     borderRadius: '10px',
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-    border: '1px solid rgba(34, 197, 94, 0.3)',
+    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    border: '1px solid rgba(37, 99, 235, 0.3)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-  headerIcon: { color: '#4ade80' },
+  headerIcon: { color: 'var(--so-primary-light)' },
   titleLine: {
     display: 'flex',
     alignItems: 'center',

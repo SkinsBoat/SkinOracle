@@ -89,6 +89,6 @@ const styles: Record<string, React.CSSProperties> = {
   summarySavings: {
     fontSize: '12px',
     fontWeight: 800,
-    color: '#4ade80',
+    color: 'var(--so-primary-light)',
   },
 };

@@ -35,7 +35,7 @@ export const DmarketHeader: React.FC<DmarketHeaderProps> = ({
       <WorkstationHeader
         logo={dmarketLogo}
         logoAlt="DMarket"
-        title="DMarket Workstation"
+        title="DMarket Workstation — Targets"
         badge="Direct Device IPC"
         subtitle={
           <>

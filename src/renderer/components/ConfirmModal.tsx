@@ -5,9 +5,16 @@ import { useConfirmStore, ConfirmVariant } from "../store/useConfirmStore";
 export const ConfirmModal: React.FC = () => {
   const { isOpen, options, handleConfirm, handleCancel } = useConfirmStore();
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
 
     // Focus confirm or cancel button for quick keyboard navigation
     const timer = setTimeout(() => {
@@ -18,6 +25,24 @@ export const ConfirmModal: React.FC = () => {
       if (e.key === "Escape") {
         e.preventDefault();
         handleCancel();
+        return;
+      }
+
+      // Trap focus inside the dialog while it is open.
+      if (e.key === "Tab") {
+        const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (!focusable || focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
 
@@ -25,6 +50,9 @@ export const ConfirmModal: React.FC = () => {
     return () => {
       clearTimeout(timer);
       window.removeEventListener("keydown", handleKeyDown);
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
     };
   }, [isOpen, handleCancel]);
 
@@ -40,6 +68,7 @@ export const ConfirmModal: React.FC = () => {
   return (
     <div style={styles.backdrop} onClick={handleCancel}>
       <div
+        ref={modalRef}
         style={styles.modalCard}
         onClick={(e) => e.stopPropagation()}
         role="dialog"

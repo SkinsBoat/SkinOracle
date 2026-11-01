@@ -22,7 +22,7 @@ export function getAccordionHeaderStyle(isOpen: boolean): React.CSSProperties {
       : "var(--so-surface-card)",
     borderBottom: "1px solid",
     borderBottomColor: isOpen ? "var(--so-border-subtle)" : "transparent",
-    cursor: "pointer",
+    cursor: "default",
     userSelect: "none",
     transition: "background-color 0.25s ease, border-color 0.25s ease",
   };
@@ -58,17 +58,18 @@ export function getChevronStyle(isOpen: boolean): React.CSSProperties {
 }
 
 export function getHeaderActionContainerStyle(
-  isOpen: boolean,
+  _isOpen: boolean,
 ): React.CSSProperties {
+  // Steps now render permanently open, so header actions stay visible instead
+  // of collapsing away when the accordion body is expanded.
   return {
     display: "inline-flex",
     alignItems: "center",
-    opacity: isOpen ? 0 : 1,
-    maxWidth: isOpen ? 0 : 160,
+    opacity: 1,
+    maxWidth: 180,
     overflow: "hidden",
-    pointerEvents: isOpen ? "none" : "auto",
-    transition:
-      "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+    pointerEvents: "auto",
+    transition: "opacity var(--so-duration-fast) var(--so-ease-out)",
     whiteSpace: "nowrap",
   };
 }

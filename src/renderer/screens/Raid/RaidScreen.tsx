@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   AlertTriangle,
+  Copy,
   Crosshair,
 } from 'lucide-react';
 import {
@@ -430,6 +431,36 @@ export const RaidScreen: React.FC = () => {
             onOpenStorefront={() => openExternal(seller.url)}
           />
 
+          <div style={styles.reportBar}>
+            <span style={styles.reportHint}>
+              Share a plain-text summary of this audit with your desk.
+            </span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={styles.reportBtn}
+              onClick={() => {
+                const summary = audit.summary;
+                const report = [
+                  'SkinOracle RAID Audit Report',
+                  `Seller: ${seller.name || seller.id || seller.url}`,
+                  `Marketplace: ${getRaidMarketplaceName(seller.marketplace)}`,
+                  `Scanned: ${scannedAt || new Date().toISOString()}`,
+                  `Listings scanned: ${summary.totalItems}`,
+                  `Valued against ceilings: ${summary.valuedItems}`,
+                  `In RAID zone: ${summary.raidCount}`,
+                  `Potential profit: $${summary.potentialProfit.toFixed(2)}`,
+                  `Total stock value: $${summary.totalStockValue.toFixed(2)}`,
+                ].join('\n');
+                navigator.clipboard.writeText(report);
+                toast.success('RAID audit report copied to clipboard');
+              }}
+              title="Copy a formatted plain-text audit summary"
+            >
+              <Copy size={13} /> Copy Report
+            </button>
+          </div>
+
           <RaidStatCards summary={audit.summary} />
 
           <RaidFilterBar
@@ -536,7 +567,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
-    maxWidth: '1380px',
+    maxWidth: 'var(--so-screen-max-width)',
     margin: '0 auto',
     paddingBottom: '40px',
   },
@@ -553,6 +584,26 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   errorIcon: { flexShrink: 0 },
+  reportBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    flexWrap: 'wrap',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    backgroundColor: 'var(--so-surface-panel)',
+    border: '1px solid var(--so-border-subtle)',
+  },
+  reportHint: {
+    fontSize: '11.5px',
+    color: 'var(--so-text-muted)',
+  },
+  reportBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
   grid: {
     display: 'grid',
     width: '100%',

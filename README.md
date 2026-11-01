@@ -3,7 +3,7 @@
 **SkinOracle** is a desktop trading workstation for Counter-Strike 2 (CS2) skin traders, combining algorithmic pricing and valuation with market-analysis tools, opportunity scanning, and buy-order management workflows. It helps traders turn market data into actionable buying thresholds, evaluate listings against their own pricing criteria, and manage trading operations across supported third-party marketplaces.
 
 [![Latest Release](https://img.shields.io/github/v/release/SkinsBoat/SkinOracle?label=release)](https://github.com/SkinsBoat/SkinOracle/releases)
-[![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-Windows-0078D4)](https://apps.microsoft.com/detail/9N9V96813XD)
+[![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-Windows-0078D4)](https://apps.microsoft.com/detail/9n9v96813xd5)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-informational)](https://github.com/SkinsBoat/SkinOracle/releases)
 [![License](https://img.shields.io/badge/license-Source--Available-orange)](./LICENSE)
 [![Security](https://img.shields.io/badge/security-policy-blue)](./SECURITY.md)

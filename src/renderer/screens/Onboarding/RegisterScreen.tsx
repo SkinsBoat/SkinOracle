@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Zap, Mail } from "lucide-react";
+import { Zap, Mail, Cpu, ShieldCheck, TrendingUp } from "lucide-react";
 import { oracleLogo, skinsBoatLogo } from "../../../../assets/images";
 
 interface Props {
@@ -44,116 +44,148 @@ export default function RegisterScreen({ onSuccess }: Props) {
 
   return (
     <div className="auth-screen">
-      <div className="auth-card">
-        <div className="auth-logo-badge" style={{ background: "transparent" }}>
+      <div className="auth-layout">
+        {/* Marketing column — visible on wide windows */}
+        <div className="auth-marketing">
           <img
             src={oracleLogo}
             alt="Skin Oracle"
-            style={{
-              width: 56,
-              height: 56,
-              objectFit: "contain",
-              filter: "drop-shadow(0 4px 10px rgba(37, 99, 235, 0.4))",
-            }}
+            style={{ width: 52, height: 52, objectFit: "contain" }}
           />
-        </div>
-        <h1 className="auth-title">Skin Oracle</h1>
-        <p className="auth-subtitle">
-          Enter your trader email to authenticate workstation access
-        </p>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div>
-            <label
-              style={{ display: "flex", alignItems: "center", gap: "6px" }}
-            >
-              <Mail size={14} /> Trader Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="trader@domain.com"
-              required
-            />
+          <h2 className="auth-marketing-title">Institutional CS2 Skin Trading Intelligence</h2>
+          <p className="auth-marketing-tagline">
+            One workstation for price-cache building, buy ceilings, sell
+            targets, and multi-market snipe scanning.
+          </p>
+          <div className="auth-feature-list">
+            <div className="auth-feature-item">
+              <Cpu size={14} className="auth-feature-icon" />
+              <span>Algorithmic buy ceilings across 25+ markets</span>
+            </div>
+            <div className="auth-feature-item">
+              <TrendingUp size={14} className="auth-feature-icon" />
+              <span>Live SoClose opportunity radar and RAID audits</span>
+            </div>
+            <div className="auth-feature-item">
+              <ShieldCheck size={14} className="auth-feature-icon" />
+              <span>Keys stay local — encrypted on your device</span>
+            </div>
           </div>
+        </div>
 
-          {error && <p className="auth-error">{error}</p>}
+        <div className="auth-form-column">
+          <div className="auth-card">
+            <div className="auth-logo-badge" style={{ background: "transparent" }}>
+              <img
+                src={oracleLogo}
+                alt="Skin Oracle"
+                style={{
+                  width: 56,
+                  height: 56,
+                  objectFit: "contain",
+                  filter: "drop-shadow(0 4px 10px rgba(37, 99, 235, 0.4))",
+                }}
+              />
+            </div>
+            <h1 className="auth-title">Skin Oracle</h1>
+            <p className="auth-subtitle">
+              Enter your trader email to authenticate workstation access
+            </p>
 
-          <button type="submit" disabled={loading} className="auth-btn">
-            {loading
-              ? "Sending Verification Code..."
-              : "Send Verification Code"}
-          </button>
+            <form onSubmit={handleSubmit} className="auth-form">
+              <div>
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Mail size={14} /> Trader Email Address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="trader@domain.com"
+                  required
+                />
+              </div>
 
-          {import.meta.env.DEV && (
+              {error && <p className="auth-error">{error}</p>}
+
+              <button type="submit" disabled={loading} className="auth-btn">
+                {loading
+                  ? "Sending Verification Code..."
+                  : "Send Verification Code"}
+              </button>
+
+              {import.meta.env.DEV && (
+                <div
+                  style={{
+                    marginTop: "14px",
+                    paddingTop: "14px",
+                    borderTop: "1px solid var(--so-border-subtle)",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn btn-cyan"
+                    style={{ width: "100%" }}
+                    onClick={async () => {
+                      const devEmail = email.trim() || "dev@trader.com";
+                      setLoading(true);
+                      try {
+                        await window.electronAPI.auth.register(devEmail);
+                      } catch (e) {
+                        // ignore errors if register endpoint has issue
+                      } finally {
+                        setLoading(false);
+                      }
+                      toast.success("Bypassed dev login (Code: 111111)");
+                      navigate("/verify", {
+                        state: { email: devEmail, autoFillCode: "111111" },
+                      });
+                    }}
+                  >
+                    <Zap size={14} /> Quick Dev Bypass (Code: 111111)
+                  </button>
+                </div>
+              )}
+            </form>
+
             <div
               style={{
-                marginTop: "14px",
-                paddingTop: "14px",
-                borderTop: "1px solid var(--so-border-subtle)",
+                marginTop: "22px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                fontSize: "11px",
+                color: "var(--so-text-muted)",
               }}
             >
-              <button
-                type="button"
-                className="btn btn-cyan"
-                style={{ width: "100%" }}
-                onClick={async () => {
-                  const devEmail = email.trim() || "dev@trader.com";
-                  setLoading(true);
-                  try {
-                    await window.electronAPI.auth.register(devEmail);
-                  } catch (e) {
-                    // ignore errors if register endpoint has issue
-                  } finally {
-                    setLoading(false);
-                  }
-                  toast.success("Bypassed dev login (Code: 111111)");
-                  navigate("/verify", {
-                    state: { email: devEmail, autoFillCode: "111111" },
-                  });
+              <span>A product of</span>
+              <div
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "4px",
+                  backgroundColor: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  padding: "1px",
                 }}
               >
-                <Zap size={14} /> Quick Dev Bypass (Code: 111111)
-              </button>
+                <img
+                  src={skinsBoatLogo}
+                  alt="SkinsBoat"
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+              </div>
+              <span style={{ fontWeight: 700, color: "var(--so-text-secondary)" }}>
+                SkinsBoat
+              </span>
             </div>
-          )}
-        </form>
-
-        <div
-          style={{
-            marginTop: "22px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            fontSize: "11px",
-            color: "var(--so-text-muted)",
-          }}
-        >
-          <span>A product of</span>
-          <div
-            style={{
-              width: "18px",
-              height: "18px",
-              borderRadius: "4px",
-              backgroundColor: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              padding: "1px",
-            }}
-          >
-            <img
-              src={skinsBoatLogo}
-              alt="SkinsBoat"
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
           </div>
-          <span style={{ fontWeight: 700, color: "var(--so-text-secondary)" }}>
-            SkinsBoat
-          </span>
         </div>
       </div>
     </div>

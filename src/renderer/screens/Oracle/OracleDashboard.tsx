@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
-import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Cpu, ChevronDown, ChevronUp } from "lucide-react";
 import {
   useOracleStore,
   DEFAULT_SELECTED_MARKETS,
@@ -23,7 +23,8 @@ import {
 import { applyProfitOverride } from "./utils/profitOverride";
 import { Step2AcceptedPrices } from "./components/Step2AcceptedPrices";
 import { Step3ListingPrices } from "./components/Step3ListingPrices";
-import { Step4SingleLookup } from "./components/Step4SingleLookup";
+import { OracleStepper } from "./components/OracleStepper";
+import { OracleLookupDrawer } from "./components/OracleLookupDrawer";
 
 export default function OracleDashboard() {
   const [cacheStatus, setCacheStatus] = useState<{
@@ -57,31 +58,35 @@ export default function OracleDashboard() {
     return auditCacheQuantityIntegrity(fullCache);
   }, [fullCache]);
 
-  // Accordion Step Collapsed/Expanded State
-  const [openSteps, setOpenSteps] = useState<{ [key: string]: boolean }>({
-    step1: true, // Step 1: Market Cache
-    step2: false, // Step 2: Buy Ceiling Engine
-    step3: false, // Step 3: Listing Price Engine
-    step4: false, // Step 4: Single Item Search
+  // Workflow stepper navigation (steps render always; the stepper scrolls to them)
+  const step1Ref = useRef<HTMLDivElement>(null);
+  const step2Ref = useRef<HTMLDivElement>(null);
+  const step3Ref = useRef<HTMLDivElement>(null);
+  const [isLookupOpen, setIsLookupOpen] = useState(false);
+
+  const [openSteps, setOpenSteps] = useState({
+    step1: true,
+    step2: true,
+    step3: true,
   });
 
-  const toggleStep = (stepKey: string) => {
+  const allStepsOpen =
+    openSteps.step1 && openSteps.step2 && openSteps.step3;
+
+  const toggleStep = (stepKey: "step1" | "step2" | "step3") => {
     setOpenSteps((prev) => ({ ...prev, [stepKey]: !prev[stepKey] }));
   };
 
-  const allStepsOpen = useMemo(
-    () => Object.values(openSteps).every(Boolean),
-    [openSteps],
-  );
-
   const toggleAllSteps = () => {
-    const nextState = !allStepsOpen;
-    setOpenSteps({
-      step1: nextState,
-      step2: nextState,
-      step3: nextState,
-      step4: nextState,
-    });
+    const next = !allStepsOpen;
+    setOpenSteps({ step1: next, step2: next, step3: next });
+  };
+
+  const scrollToStep = (step: 1 | 2 | 3) => {
+    const target =
+      step === 1 ? step1Ref : step === 2 ? step2Ref : step3Ref;
+    setOpenSteps((prev) => ({ ...prev, [`step${step}`]: true }));
+    target.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // Persistent Oracle Dashboard State powered by Zustand
@@ -301,14 +306,18 @@ export default function OracleDashboard() {
 
   const handleStreamCs2cap = async () => {
     if (isCs2capStreaming) return;
+    const latest = useOracleStore.getState();
+    const providersToStream =
+      latest.selectedCs2capProviders ?? selectedCs2capProviders;
+    const scopeToStream = latest.activeScope ?? activeScope;
     setIsCs2capStreaming(true);
     setCs2capProgress(null);
     setCacheStatus((prev) => ({ ...prev, isFetching: true }));
     const toastId = toast.loading("Connecting to CS2Cap prices stream...");
     try {
       const res = await window.electronAPI.cs2cap.fetchPrices({
-        providers: selectedCs2capProviders,
-        scope: activeScope,
+        providers: providersToStream,
+        scope: scopeToStream,
       });
       if (res.success) {
         setIsDemoCache(false);
@@ -857,7 +866,13 @@ export default function OracleDashboard() {
   };
 
   const handleFetchPrices = async () => {
-    const activeSelected = selectedMarkets.filter((id) =>
+    // Read the latest store values so scope shortcuts (which switch markets
+    // immediately before scanning) use the newly applied market set.
+    const latest = useOracleStore.getState();
+    const latestMarkets = latest.selectedMarkets ?? selectedMarkets;
+    const latestScope = latest.activeScope ?? activeScope;
+
+    const activeSelected = latestMarkets.filter((id) =>
       SKINSNIPE_AVAILABLE_MARKETS.some((m) => m.id === id),
     );
 
@@ -876,7 +891,7 @@ export default function OracleDashboard() {
     try {
       const result = await window.electronAPI.skinsnipe.fetchPrices(
         activeSelected,
-        activeScope,
+        latestScope,
       );
       setIsDemoCache(false);
       setCacheStatus({
@@ -1101,7 +1116,7 @@ export default function OracleDashboard() {
       <div style={styles.headerBanner}>
         <div>
           <h1 style={styles.headerTitle}>
-            <Sparkles size={24} style={styles.headerSparkles} /> Oracle Pricing
+            <Cpu size={24} style={styles.headerSparkles} /> Oracle Pricing
             Central
             <span style={styles.betaBadge}>BETA</span>
           </h1>
@@ -1117,7 +1132,11 @@ export default function OracleDashboard() {
             className="btn btn-secondary btn-sm"
             onClick={toggleAllSteps}
             style={styles.expandAllBtn}
-            title={allStepsOpen ? "Collapse all 4 steps" : "Expand all 4 steps"}
+            title={
+              allStepsOpen
+                ? "Collapse all Oracle step containers"
+                : "Expand all Oracle step containers"
+            }
           >
             {allStepsOpen ? (
               <>
@@ -1132,88 +1151,104 @@ export default function OracleDashboard() {
         </div>
       </div>
 
-      {/* Step 1: Market Price Cache Engine & Data Sources */}
-      <Step1MarketCache
-        isOpen={openSteps.step1}
-        onToggle={() => toggleStep("step1")}
-        cacheStatus={cacheStatus}
-        hasApiKey={hasApiKey}
-        hasCs2capKey={hasCs2capKey}
-        pricingProvider={pricingProvider}
-        onChangePricingProvider={setPricingProvider}
-        isCs2capStreaming={isCs2capStreaming}
-        cs2capProgress={cs2capProgress}
-        onStreamCs2cap={handleStreamCs2cap}
-        onCancelCs2capStream={handleCancelCs2capStream}
-        selectedCs2capProviders={selectedCs2capProviders}
-        onToggleCs2capProvider={toggleCs2capProvider}
-        onSoloCs2capProvider={soloCs2capProvider}
-        onSelectAllCs2capProviders={selectAllCs2capProviders}
-        onResetDefaultCs2capProviders={resetDefaultCs2capProviders}
-        selectedMarkets={selectedMarkets}
-        marketCounts={marketCounts}
-        quantityAudit={quantityAudit}
-        fetchProgress={fetchProgress}
-        isBatchEvaluating={
-          evaluatedSummary.isBatchEvaluating || listingSummary.isBatchEvaluating
-        }
-        isDemoCache={isDemoCache}
-        onToggleMarket={toggleMarket}
-        onSoloMarket={soloMarket}
-        onSelectAllMarkets={selectAllMarkets}
-        onDeselectAllMarkets={deselectAllMarkets}
-        onFetchPrices={handleFetchPrices}
-        onUploadJsonCache={handleUploadJsonCache}
-        onLoadDemoCache={handleLoadDemoCache}
-        onCancelFetch={handleCancelFetch}
-        hideTradeMarkets={hideTradeMarkets}
-        onToggleHideTrade={setHideTradeMarkets}
+      {/* Progress stepper — navigation only, never collapses a step */}
+      <OracleStepper
+        cacheCount={cacheStatus.itemCount}
+        acceptedCount={evaluatedSummary.totalEvaluated}
+        listingCount={listingSummary.totalEvaluated}
+        onNavigate={scrollToStep}
+        onOpenLookup={() => setIsLookupOpen(true)}
       />
 
-      {/* Step 2: Calculate Accepted Prices (Buy Ceilings) */}
-      <Step2AcceptedPrices
-        isOpen={openSteps.step2}
-        onToggle={() => toggleStep("step2")}
-        evaluatedSummary={evaluatedSummary}
-        cacheStatus={cacheStatus}
-        passingFilterCount={passingFilterCount}
-        preFilters={preFilters}
-        setPreFilters={setPreFilters}
-        toggleWear={toggleWear}
-        resetPreFilters={storeResetPreFilters}
-        blockedSkins={blockedSkins}
-        blockSkin={blockSkin}
-        unblockSkin={unblockSkin}
-        clearBlockedSkins={clearBlockedSkins}
-        selectedEngine={selectedEngine}
-        setSelectedEngine={setSelectedEngine}
-        strategyProfile={strategyProfile}
-        setStrategyProfile={setStrategyProfile}
-        nexusProfile={nexusProfile}
-        setNexusProfile={setNexusProfile}
-        profitOverride={profitOverride}
-        setProfitOverride={setProfitOverride}
-        showProfitOverride={showProfitOverride}
-        onReapplyProfitOverride={reapplyProfitOverride}
-        onBuildAcceptedPrices={buildAcceptedPrices}
-        canBuild={canBuild}
-      />
+      <div ref={step1Ref} style={styles.stepAnchor}>
+        {/* Step 1: Market Data Collection & Price Sources */}
+        <Step1MarketCache
+          isOpen={openSteps.step1}
+          onToggle={() => toggleStep("step1")}
+          cacheStatus={cacheStatus}
+          hasApiKey={hasApiKey}
+          hasCs2capKey={hasCs2capKey}
+          pricingProvider={pricingProvider}
+          onChangePricingProvider={setPricingProvider}
+          isCs2capStreaming={isCs2capStreaming}
+          cs2capProgress={cs2capProgress}
+          onStreamCs2cap={handleStreamCs2cap}
+          onCancelCs2capStream={handleCancelCs2capStream}
+          selectedCs2capProviders={selectedCs2capProviders}
+          onToggleCs2capProvider={toggleCs2capProvider}
+          onSoloCs2capProvider={soloCs2capProvider}
+          onSelectAllCs2capProviders={selectAllCs2capProviders}
+          onResetDefaultCs2capProviders={resetDefaultCs2capProviders}
+          selectedMarkets={selectedMarkets}
+          marketCounts={marketCounts}
+          quantityAudit={quantityAudit}
+          fetchProgress={fetchProgress}
+          isBatchEvaluating={
+            evaluatedSummary.isBatchEvaluating ||
+            listingSummary.isBatchEvaluating
+          }
+          isDemoCache={isDemoCache}
+          onToggleMarket={toggleMarket}
+          onSoloMarket={soloMarket}
+          onSelectAllMarkets={selectAllMarkets}
+          onDeselectAllMarkets={deselectAllMarkets}
+          onFetchPrices={handleFetchPrices}
+          onUploadJsonCache={handleUploadJsonCache}
+          onLoadDemoCache={handleLoadDemoCache}
+          onCancelFetch={handleCancelFetch}
+          hideTradeMarkets={hideTradeMarkets}
+          onToggleHideTrade={setHideTradeMarkets}
+        />
+      </div>
 
-      {/* Step 3: Inventory Selling & Listing Price Engine */}
-      <Step3ListingPrices
-        isOpen={openSteps.step3}
-        onToggle={() => toggleStep("step3")}
-        listingSummary={listingSummary}
-        cacheStatus={cacheStatus}
-        listingStrategy={listingStrategy}
-        setListingStrategy={setListingStrategy}
-        onBuildListingPrices={buildListingPrices}
-      />
+      <div ref={step2Ref} style={styles.stepAnchor}>
+        {/* Step 2: Calculate Accepted Prices (Buy Ceilings) */}
+        <Step2AcceptedPrices
+          isOpen={openSteps.step2}
+          onToggle={() => toggleStep("step2")}
+          evaluatedSummary={evaluatedSummary}
+          cacheStatus={cacheStatus}
+          passingFilterCount={passingFilterCount}
+          preFilters={preFilters}
+          setPreFilters={setPreFilters}
+          toggleWear={toggleWear}
+          resetPreFilters={storeResetPreFilters}
+          blockedSkins={blockedSkins}
+          blockSkin={blockSkin}
+          unblockSkin={unblockSkin}
+          clearBlockedSkins={clearBlockedSkins}
+          selectedEngine={selectedEngine}
+          setSelectedEngine={setSelectedEngine}
+          strategyProfile={strategyProfile}
+          setStrategyProfile={setStrategyProfile}
+          nexusProfile={nexusProfile}
+          setNexusProfile={setNexusProfile}
+          profitOverride={profitOverride}
+          setProfitOverride={setProfitOverride}
+          showProfitOverride={showProfitOverride}
+          onReapplyProfitOverride={reapplyProfitOverride}
+          onBuildAcceptedPrices={buildAcceptedPrices}
+          canBuild={canBuild}
+        />
+      </div>
 
-      {/* Step 4: Single Item Price Lookup & Live Analysis */}
-      <Step4SingleLookup
-        isOpen={openSteps.step4}
-        onToggle={() => toggleStep("step4")}
+      <div ref={step3Ref} style={styles.stepAnchor}>
+        {/* Step 3: Inventory Selling & Listing Price Engine */}
+        <Step3ListingPrices
+          isOpen={openSteps.step3}
+          onToggle={() => toggleStep("step3")}
+          listingSummary={listingSummary}
+          cacheStatus={cacheStatus}
+          listingStrategy={listingStrategy}
+          setListingStrategy={setListingStrategy}
+          onBuildListingPrices={buildListingPrices}
+        />
+      </div>
+
+      {/* Step 4 lives in a slide-in drawer, outside the batch flow */}
+      <OracleLookupDrawer
+        isOpen={isLookupOpen}
+        onClose={() => setIsLookupOpen(false)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         evaluating={evaluating}
@@ -1232,6 +1267,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: "20px",
+    width: "100%",
+    maxWidth: "var(--so-screen-max-width)",
+    margin: "0 auto",
   },
   headerBanner: {
     display: "flex",
@@ -1270,6 +1308,81 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "10px",
   },
+  lookupBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    fontWeight: 700,
+    fontSize: "12px",
+    padding: "6px 14px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    transition:
+      "background-color var(--so-duration-fast) var(--so-ease-out), color var(--so-duration-fast) var(--so-ease-out)",
+  },
+  stepAnchor: {
+    scrollMarginTop: "16px",
+  },
+  stepLockWrap: {
+    position: "relative",
+  },
+  lockOverlay: {
+    position: "absolute",
+    inset: 0,
+    zIndex: 5,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "16px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "rgba(9, 13, 22, 0.72)",
+    backdropFilter: "blur(2px)",
+  },
+  lockCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    flexWrap: "wrap",
+    maxWidth: "620px",
+    padding: "14px 18px",
+    borderRadius: "var(--so-radius-md)",
+    backgroundColor: "var(--so-surface-card)",
+    border: "1px solid var(--so-border-2)",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
+  },
+  lockIconWrap: {
+    width: "34px",
+    height: "34px",
+    borderRadius: "50%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "var(--so-warning)",
+    backgroundColor: "rgba(245, 158, 11, 0.12)",
+    border: "1px solid rgba(245, 158, 11, 0.35)",
+    flexShrink: 0,
+  },
+  lockText: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    flex: 1,
+    minWidth: "200px",
+  },
+  lockTitle: {
+    fontSize: "13.5px",
+    fontWeight: 800,
+    color: "var(--so-text-primary)",
+  },
+  lockDesc: {
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+  },
+  lockBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+  },
   expandAllBtn: {
     display: "inline-flex",
     alignItems: "center",
@@ -1279,6 +1392,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 14px",
     borderRadius: "6px",
     cursor: "pointer",
-    transition: "all 0.15s ease",
+    transition:
+      "background-color var(--so-duration-fast) var(--so-ease-out), color var(--so-duration-fast) var(--so-ease-out)",
   },
 };
