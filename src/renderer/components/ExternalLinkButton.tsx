@@ -21,6 +21,16 @@ export interface ExternalLinkButtonProps {
 
 const LONG_PRESS_MS = 550;
 
+const isSafeExternalUrl = (value?: string | null): boolean => {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Reusable external-link control for item cards.
  *
@@ -43,7 +53,7 @@ export const ExternalLinkButton: React.FC<ExternalLinkButtonProps> = ({
   const longPressFired = useRef(false);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const hasUrl = Boolean(url);
+  const hasUrl = isSafeExternalUrl(url);
 
   const clearLongPress = () => {
     if (longPressTimer.current) {
@@ -68,7 +78,7 @@ export const ExternalLinkButton: React.FC<ExternalLinkButtonProps> = ({
   );
 
   const copyUrl = async () => {
-    if (!url) return;
+    if (!hasUrl || !url) return;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -81,7 +91,7 @@ export const ExternalLinkButton: React.FC<ExternalLinkButtonProps> = ({
   };
 
   const startLongPress = () => {
-    if (!copyOnLongPress || !url) return;
+    if (!copyOnLongPress || !hasUrl || !url) return;
     clearLongPress();
     longPressFired.current = false;
     longPressTimer.current = setTimeout(() => {
