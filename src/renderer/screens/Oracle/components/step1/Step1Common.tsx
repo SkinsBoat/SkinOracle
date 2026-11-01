@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Check,
   AlertTriangle,
@@ -232,6 +232,10 @@ export interface MarketScopeToggleProps {
   baselineCount: number;
   snipeCount: number;
   accentColor: string;
+  /** Right-click on the Snipe tab: apply scope and enable auto-refresh. */
+  onSnipeShortcut?: () => void;
+  /** Long-press on the Baseline tab: apply scope and run a scan. */
+  onBaselineShortcut?: () => void;
 }
 
 /**
@@ -241,6 +245,9 @@ export interface MarketScopeToggleProps {
  * prices. Snipe (Narrow) is the small execution set used for live refresh.
  * Switching applies the saved set instantly; chip edits auto-save into the
  * active scope.
+ *
+ * Shortcuts: right-click Snipe to enable auto-refresh, long-press Baseline to
+ * immediately run the active provider's scan.
  */
 export const MarketScopeToggle: React.FC<MarketScopeToggleProps> = ({
   activeScope,
@@ -248,9 +255,44 @@ export const MarketScopeToggle: React.FC<MarketScopeToggleProps> = ({
   baselineCount,
   snipeCount,
   accentColor,
+  onSnipeShortcut,
+  onBaselineShortcut,
 }) => {
   const isBaseline = activeScope === "baseline";
   const isSnipe = activeScope === "snipe";
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+
+  const clearLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  useEffect(() => clearLongPress, []);
+
+  const startBaselineLongPress = () => {
+    clearLongPress();
+    longPressFired.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      longPressTimer.current = null;
+      if (onBaselineShortcut) {
+        onBaselineShortcut();
+      } else {
+        onSelectScope("baseline");
+      }
+    }, 650);
+  };
+
+  const handleBaselineClick = () => {
+    if (longPressFired.current) {
+      longPressFired.current = false;
+      return;
+    }
+    onSelectScope("baseline");
+  };
 
   return (
     <div style={styles.scopeContainer}>
@@ -268,17 +310,30 @@ export const MarketScopeToggle: React.FC<MarketScopeToggleProps> = ({
       <div style={styles.scopeSegmented}>
         <button
           type="button"
-          onClick={() => onSelectScope("baseline")}
+          onClick={handleBaselineClick}
+          onPointerDown={startBaselineLongPress}
+          onPointerUp={clearLongPress}
+          onPointerLeave={clearLongPress}
+          onPointerCancel={clearLongPress}
+          onContextMenu={(e) => e.preventDefault()}
           style={getScopeButtonStyle(isBaseline, accentColor)}
-          title="Apply the wide Baseline market set (used to calculate accepted prices)"
+          title="Apply the wide Baseline market set. Long-press to apply it, turn auto-refresh off, and run a scan immediately."
         >
           <Target size={13} /> Baseline (Wide) · {baselineCount}
         </button>
         <button
           type="button"
           onClick={() => onSelectScope("snipe")}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (onSnipeShortcut) {
+              onSnipeShortcut();
+            } else {
+              onSelectScope("snipe");
+            }
+          }}
           style={getScopeButtonStyle(isSnipe, accentColor)}
-          title="Apply the narrow Snipe market set (used for live refresh / deal sniping)"
+          title="Apply the narrow Snipe market set. Right-click to apply it and enable auto-refresh."
         >
           <Crosshair size={13} /> Snipe (Narrow) · {snipeCount}
         </button>

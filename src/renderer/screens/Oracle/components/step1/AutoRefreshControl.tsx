@@ -98,12 +98,23 @@ export const AutoRefreshControl: React.FC = () => {
   const effectiveMinutes = selectedMinutes ?? customMinutes;
 
   const stateRef = useRef({ enabled: false, minutes: effectiveMinutes });
+  // While a shortcut-triggered stop is in flight, suppress the "sync scheduler
+  // to latest provider/scope" effect so it cannot re-enable the scheduler.
+  const suppressReenableRef = useRef(false);
   useEffect(() => {
     stateRef.current = {
       enabled: !!status?.enabled,
       minutes: effectiveMinutes,
     };
   }, [status?.enabled, effectiveMinutes]);
+
+  // Once the scheduler is confirmed off, allow future scope/provider edits to
+  // sync normally again.
+  useEffect(() => {
+    if (!status?.enabled) {
+      suppressReenableRef.current = false;
+    }
+  }, [status?.enabled]);
 
   // Mirror scheduler state into the shared store so collapsed surfaces
   // (e.g. the Step 1 header badge) can reflect the live timer.
@@ -196,7 +207,8 @@ export const AutoRefreshControl: React.FC = () => {
 
   // Keep the main-process scheduler pointed at the latest provider selection.
   useEffect(() => {
-    if (!api || !stateRef.current.enabled) return;
+    if (!api || !stateRef.current.enabled || suppressReenableRef.current)
+      return;
     void pushConfig(true);
   }, [
     api,
@@ -206,6 +218,52 @@ export const AutoRefreshControl: React.FC = () => {
     selectedMarkets,
     selectedCs2capProviders,
   ]);
+
+  // Shortcut entry point from the Step 1 market-scope toggle (right-click on
+  // Snipe). Reads the store directly so the newly applied scope is used even
+  // though the event fires in the same tick as the scope switch.
+  useEffect(() => {
+    if (!api) return;
+    const handleEnable = async () => {
+      suppressReenableRef.current = false;
+      const state = useOracleStore.getState();
+      try {
+        const next = await api.setConfig({
+          enabled: true,
+          intervalMinutes: effectiveMinutes,
+          provider: state.pricingProvider,
+          scope: state.activeScope,
+          markets: state.selectedMarkets,
+          providers: state.selectedCs2capProviders,
+        });
+        if (next) setStatus(next);
+      } catch {
+        /* Scheduler errors are surfaced through status broadcasts. */
+      }
+    };
+    window.addEventListener("oracle:auto-refresh-enable", handleEnable);
+    return () =>
+      window.removeEventListener("oracle:auto-refresh-enable", handleEnable);
+  }, [api, effectiveMinutes]);
+
+  // Shortcut entry point from the Step 1 market-scope toggle (long-press on
+  // Baseline): stop the scheduler so a manual wide scan is not followed by an
+  // automatic refresh.
+  useEffect(() => {
+    if (!api) return;
+    const handleDisable = async () => {
+      suppressReenableRef.current = true;
+      try {
+        const next = await api.stop();
+        if (next) setStatus(next);
+      } catch {
+        /* Scheduler errors are surfaced through status broadcasts. */
+      }
+    };
+    window.addEventListener("oracle:auto-refresh-disable", handleDisable);
+    return () =>
+      window.removeEventListener("oracle:auto-refresh-disable", handleDisable);
+  }, [api]);
 
   const handleToggle = async () => {
     if (!api || busy) return;

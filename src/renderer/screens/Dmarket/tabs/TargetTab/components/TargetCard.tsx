@@ -161,8 +161,9 @@ export const TargetCard: React.FC<TargetCardProps> = ({
         </div>
       </div>
 
-      {/* Drift Status Badge */}
+      {/* Target lifecycle + drift status badges */}
       <div style={styles.driftBadgeRow}>
+        <TargetStatusBadge status={target.status} />
         {isExceedsBalance ? (
           <span
             className="badge"
@@ -426,6 +427,42 @@ export const TargetCard: React.FC<TargetCardProps> = ({
   );
 };
 
+// ── Target Lifecycle Badge ───────────────────────────────────────────
+
+interface TargetStatusMeta {
+  label: string;
+  className: string;
+  isLive: boolean;
+}
+
+const resolveTargetStatus = (status?: string): TargetStatusMeta => {
+  const raw = String(status || "ACTIVE").toUpperCase();
+  if (raw.includes("FILLED") || raw.includes("TRIGGERED")) {
+    return { label: "FILLED", className: "badge-cyan", isLive: false };
+  }
+  if (raw.includes("EXPIRED")) {
+    return { label: "EXPIRED", className: "badge-ghost", isLive: false };
+  }
+  if (raw.includes("CANCEL") || raw.includes("CLOSED")) {
+    return { label: "CANCELLED", className: "badge-loss", isLive: false };
+  }
+  return { label: "ACTIVE", className: "badge-profit", isLive: true };
+};
+
+const TargetStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+  const meta = resolveTargetStatus(status);
+  return (
+    <span
+      className={`badge ${meta.className}`}
+      style={meta.isLive ? styles.statusBadgeLive : styles.statusBadge}
+      title={`Target status: ${meta.label}`}
+    >
+      {meta.isLive && <span className="live-beacon-dot" />}
+      {meta.label}
+    </span>
+  );
+};
+
 // ── EXTRACTED STYLES & DYNAMIC STYLE HELPERS ─────────────────────────
 
 const getCardContainerStyle = (
@@ -456,7 +493,8 @@ const getCheckboxIndicatorStyle = (isSelected: boolean): React.CSSProperties => 
   alignItems: "center",
   color: isSelected ? "var(--so-primary)" : "var(--so-text-muted)",
   opacity: isSelected ? 1 : 0.45,
-  transition: "all 0.15s ease",
+  transition:
+    "color var(--so-duration-fast) var(--so-ease-out), opacity var(--so-duration-fast) var(--so-ease-out)",
 });
 
 const getPricingBlockStyle = (
@@ -546,6 +584,26 @@ const styles = {
     gap: "5px",
     minHeight: "18px",
     flexWrap: "wrap",
+  } as React.CSSProperties,
+
+  statusBadge: {
+    fontSize: "9px",
+    fontWeight: 800,
+    padding: "1px 6px",
+    borderRadius: "4px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+  } as React.CSSProperties,
+
+  statusBadgeLive: {
+    fontSize: "9px",
+    fontWeight: 800,
+    padding: "1px 6px",
+    borderRadius: "4px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
   } as React.CSSProperties,
 
   badgeAdvanced: {

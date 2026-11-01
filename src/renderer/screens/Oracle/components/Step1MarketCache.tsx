@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import toast from "react-hot-toast";
 import {
   Radio,
   ChevronDown,
@@ -122,12 +121,27 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
   const handleSelectScope = (scope: MarketScope) => {
     setActiveScope(scope);
-    toast.success(
-      scope === "snipe"
-        ? "Snipe scope applied — live refresh limited to your execution venues (trend snapshots paused)"
-        : "Baseline scope applied — wide market set for accepted-price calculation",
-      { id: "market-scope" },
-    );
+  };
+
+  // Shortcut: right-click Snipe scope → apply narrow scope + start auto-refresh.
+  const handleSnipeScopeShortcut = () => {
+    setActiveScope("snipe");
+    window.dispatchEvent(new CustomEvent("oracle:auto-refresh-enable"));
+  };
+
+  // Shortcut: long-press Baseline scope → apply wide scope + run the active
+  // provider's scan immediately.
+  const handleBaselineScopeShortcut = () => {
+    setActiveScope("baseline");
+    window.dispatchEvent(new CustomEvent("oracle:auto-refresh-disable"));
+
+    if (pricingProvider === "cs2cap") {
+      if (isCs2capStreaming || !hasCs2capKey) return;
+      onStreamCs2cap?.();
+    } else {
+      if (cacheStatus.isFetching || (!hasApiKey && !isDemoCache)) return;
+      onFetchPrices();
+    }
   };
 
   const scopeLabel = activeScope === "snipe" ? "Snipe Scope" : "Baseline Scope";
@@ -210,8 +224,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
         <div style={styles.headerLeft}>
           <div>
             <div style={styles.headerTitle}>
-              <Radio size={18} style={styles.radioIcon} /> Market Price
-              Aggregation & Cache
+              <Radio size={18} style={styles.radioIcon} /> Market Data &
+              Price Sources
             </div>
             <div style={styles.headerSubtitle}>
               {cacheStatus.lastFetchedAt
@@ -440,6 +454,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 setHideTradeMarkets={setHideTradeMarkets}
                 activeScope={activeScope}
                 onSelectScope={handleSelectScope}
+                onSnipeShortcut={handleSnipeScopeShortcut}
+                onBaselineShortcut={handleBaselineScopeShortcut}
                 cs2capScopes={cs2capScopes}
                 getMarketCount={getMarketCount}
                 getMissingQtyForMarket={getMissingQtyForMarket}
@@ -464,6 +480,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 setHideTradeMarkets={setHideTradeMarkets}
                 activeScope={activeScope}
                 onSelectScope={handleSelectScope}
+                onSnipeShortcut={handleSnipeScopeShortcut}
+                onBaselineShortcut={handleBaselineScopeShortcut}
                 skinsnipeScopes={skinsnipeScopes}
                 getMarketCount={getMarketCount}
                 getMissingQtyForMarket={getMissingQtyForMarket}

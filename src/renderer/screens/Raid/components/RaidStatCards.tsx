@@ -100,8 +100,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     flexShrink: 0,
   },
-  raidIcon: { color: '#4ade80' },
-  profitIcon: { color: '#22c55e' },
+  raidIcon: { color: 'var(--so-primary-light)' },
+  profitIcon: { color: 'var(--so-primary)' },
   valueIcon: { color: '#38bdf8' },
   offerIcon: { color: '#38bdf8' },
   coverageIcon: { color: '#a855f7' },
@@ -136,10 +136,10 @@ function getTileStyle(accent: boolean): React.CSSProperties {
     padding: '10px 12px',
     borderRadius: '10px',
     backgroundColor: accent
-      ? 'rgba(34, 197, 94, 0.08)'
+      ? 'rgba(37, 99, 235, 0.08)'
       : 'var(--so-surface-card, #131720)',
     border: accent
-      ? '1px solid rgba(34, 197, 94, 0.35)'
+      ? '1px solid rgba(37, 99, 235, 0.35)'
       : '1px solid var(--so-border-subtle, #1e2430)',
     boxSizing: 'border-box',
   };
@@ -148,6 +148,6 @@ function getTileStyle(accent: boolean): React.CSSProperties {
 function getTileValueStyle(accent: boolean): React.CSSProperties {
   return {
     ...styles.tileValue,
-    color: accent ? '#4ade80' : 'var(--so-text-primary, #f8fafc)',
+    color: accent ? 'var(--so-primary-light)' : 'var(--so-text-primary, #f8fafc)',
   };
 }

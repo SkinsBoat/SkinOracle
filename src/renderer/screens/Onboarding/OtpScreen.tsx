@@ -17,7 +17,20 @@ export default function OtpScreen({ onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(60);
+  const [expiresIn, setExpiresIn] = useState(10 * 60);
   const [error, setError] = useState("");
+
+  // Code expiry countdown (10 minutes) so the trader can see validity at a glance.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setExpiresIn((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const expiryLabel = `${Math.floor(expiresIn / 60)}:${String(
+    expiresIn % 60,
+  ).padStart(2, "0")}`;
 
   // Live 60-second OTP cooldown timer
   useEffect(() => {
@@ -93,11 +106,17 @@ export default function OtpScreen({ onSuccess }: Props) {
             color: "var(--so-text-tertiary, #a0a0a0)",
             fontSize: "12px",
             marginTop: "-12px",
-            marginBottom: "16px",
+            marginBottom: "8px",
           }}
         >
           💡 Don't see the email? Please check your{" "}
           <strong>spam/junk folder</strong>.
+        </p>
+
+        <p style={getExpiryTextStyle(expiresIn > 0)}>
+          {expiresIn > 0
+            ? `Code expires in ${expiryLabel}`
+            : "Code expired. Request a new code below."}
         </p>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -198,6 +217,15 @@ export default function OtpScreen({ onSuccess }: Props) {
     </div>
   );
 }
+
+const getExpiryTextStyle = (isValid: boolean): React.CSSProperties => ({
+  color: isValid ? "var(--so-text-muted)" : "var(--so-loss-text)",
+  fontSize: "12px",
+  fontWeight: 700,
+  marginTop: 0,
+  marginBottom: "16px",
+  textAlign: "center",
+});
 
 const styles = {
   actionRow: {

@@ -212,6 +212,7 @@ export const ApiKeysSection: React.FC = () => {
                 onChange={(e) => setSkinsnipeKey(e.target.value)}
                 placeholder={keysStatus.hasSkinsnipeKey ? "••••••••••••••••••••••••" : "sk-..."}
                 style={styles.keyInput}
+                autoComplete="off"
               />
               <button
                 type="button"
@@ -264,6 +265,7 @@ export const ApiKeysSection: React.FC = () => {
                 onChange={(e) => setCs2capKey(e.target.value)}
                 placeholder={keysStatus.hasCs2capKey ? "••••••••••••••••••••••••" : "sk_live_..."}
                 style={styles.keyInput}
+                autoComplete="off"
               />
               <button
                 type="button"
@@ -325,6 +327,7 @@ export const ApiKeysSection: React.FC = () => {
                 onChange={(e) => setCsfloatKey(e.target.value)}
                 placeholder={keysStatus.hasCsfloatKey ? "••••••••••••••••••••••••" : "Your CSFloat API Key"}
                 style={styles.keyInput}
+                autoComplete="off"
               />
               <button
                 type="button"

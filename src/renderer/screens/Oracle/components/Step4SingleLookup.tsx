@@ -32,6 +32,7 @@ interface Step4SingleLookupProps {
   results: any[];
   listingStrategy: ListingPriceStrategy;
   onLookupSingleItem: (e?: React.FormEvent) => void;
+  hideChevron?: boolean;
 }
 
 export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
@@ -43,6 +44,7 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
   results,
   listingStrategy,
   onLookupSingleItem,
+  hideChevron = false,
 }) => {
   const handlePaste = async () => {
     try {
@@ -96,7 +98,9 @@ export const Step4SingleLookup: React.FC<Step4SingleLookupProps> = ({
           <span className="badge badge-ghost" style={styles.quickLookupBadge}>
             Quick Skin Lookup
           </span>
-          <ChevronDown size={18} style={getChevronStyle(isOpen)} />
+          {!hideChevron && (
+            <ChevronDown size={18} style={getChevronStyle(isOpen)} />
+          )}
         </div>
       </div>
 

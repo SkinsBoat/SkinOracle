@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Wallet,
   RefreshCw,
@@ -53,6 +53,43 @@ export default function BalanceDashboard() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<BalanceTabId>("ledger");
+  const [txSortKey, setTxSortKey] = useState<
+    "date" | "amount" | "category" | "type"
+  >("date");
+  const [txSortDir, setTxSortDir] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (key: "date" | "amount" | "category" | "type") => {
+    if (key === txSortKey) {
+      setTxSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setTxSortKey(key);
+      setTxSortDir(key === "category" || key === "type" ? "asc" : "desc");
+    }
+  };
+
+  const sortedTransactions = useMemo(() => {
+    const list = [...transactions];
+    list.sort((a, b) => {
+      let comparison = 0;
+      switch (txSortKey) {
+        case "amount":
+          comparison = a.amountCents - b.amountCents;
+          break;
+        case "category":
+          comparison = a.category.localeCompare(b.category);
+          break;
+        case "type":
+          comparison = a.type.localeCompare(b.type);
+          break;
+        case "date":
+        default:
+          comparison =
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return txSortDir === "asc" ? comparison : -comparison;
+    });
+    return list;
+  }, [transactions, txSortKey, txSortDir]);
 
   const tabs: BalanceTab[] = [
     {
@@ -92,6 +129,55 @@ export default function BalanceDashboard() {
     fetchBalanceData(1);
   }, [fetchBalanceData]);
 
+  const freeAllowanceUsedPercent = useMemo(() => {
+    if (!balance || balance.dailyFreeAllowanceCents <= 0) return 0;
+    const used =
+      balance.dailyFreeAllowanceCents - balance.dailyFreeRemainingCents;
+    return Math.min(
+      100,
+      Math.max(0, Math.round((used / balance.dailyFreeAllowanceCents) * 100)),
+    );
+  }, [balance]);
+
+  const groupedTransactions = useMemo(() => {
+    if (txSortKey !== "date") {
+      return [{ label: "All Transactions", items: sortedTransactions }];
+    }
+
+    const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    ).getTime();
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+    const startOfWeek = startOfToday - 6 * 24 * 60 * 60 * 1000;
+
+    const groups: { label: string; items: Transaction[] }[] = [
+      { label: "Today", items: [] },
+      { label: "Yesterday", items: [] },
+      { label: "This Week", items: [] },
+      { label: "Earlier", items: [] },
+    ];
+
+    for (const tx of sortedTransactions) {
+      const timestamp = new Date(tx.createdAt).getTime();
+      if (Number.isNaN(timestamp)) {
+        groups[3].items.push(tx);
+      } else if (timestamp >= startOfToday) {
+        groups[0].items.push(tx);
+      } else if (timestamp >= startOfYesterday) {
+        groups[1].items.push(tx);
+      } else if (timestamp >= startOfWeek) {
+        groups[2].items.push(tx);
+      } else {
+        groups[3].items.push(tx);
+      }
+    }
+
+    return groups.filter((group) => group.items.length > 0);
+  }, [sortedTransactions, txSortKey]);
+
   return (
     <div style={styles.container}>
       {/* Header */}
@@ -122,52 +208,64 @@ export default function BalanceDashboard() {
         </div>
       </div>
 
-      {/* Balance Cards Overview */}
-      <div style={styles.overviewGrid}>
-        {/* Paid Account Balance Card */}
-        <div style={styles.balanceCard}>
-          <div style={styles.cardLabel}>Account Balance</div>
-          <div style={styles.balanceValue}>
+      {/* Hero balance + usage overview */}
+      <div style={styles.heroGrid}>
+        <div style={styles.heroCard}>
+          <div style={styles.heroLabel}>SkinOracle Balance</div>
+          <div style={styles.heroValue}>
             {balance ? balance.formattedBalance : "$0.00"}
           </div>
-          <div style={styles.permanentBadge}>
+          <div style={styles.heroMeta}>
             <CheckCircle2 size={13} style={styles.permanentIcon} /> Permanent
-            balance
+            prepaid balance
           </div>
+          <button
+            onClick={() => setIsDepositModalOpen(true)}
+            style={styles.heroDepositBtn}
+          >
+            <PlusCircle size={15} /> Buy More Credits
+          </button>
         </div>
 
-        {/* Daily Free Allowance Card (Hidden if set to 0 in DB) */}
-        {Boolean(balance && balance.dailyFreeAllowanceCents > 0) && (
-          <div style={styles.allowanceCard}>
-            <div style={styles.cardLabel}>Daily Free Credit Allowance</div>
-            <div style={styles.allowanceValue}>
-              $
-              {balance
-                ? (balance.dailyFreeRemainingCents / 100).toFixed(2)
-                : "0.00"}
-              <span style={styles.allowanceTotal}>
-                {" "}
-                / $
-                {(balance
-                  ? balance.dailyFreeAllowanceCents / 100
-                  : 0
-                ).toFixed(2)}
-              </span>
+        <div style={styles.sideStatStack}>
+          {Boolean(balance && balance.dailyFreeAllowanceCents > 0) && (
+            <div style={styles.allowanceCard}>
+              <div style={styles.cardLabel}>Daily Free Credit Allowance</div>
+              <div style={styles.allowanceValue}>
+                $
+                {balance
+                  ? (balance.dailyFreeRemainingCents / 100).toFixed(2)
+                  : "0.00"}
+                <span style={styles.allowanceTotal}>
+                  {" "}
+                  / $
+                  {(balance
+                    ? balance.dailyFreeAllowanceCents / 100
+                    : 0
+                  ).toFixed(2)}
+                </span>
+              </div>
+              <div className="progress-bar-track" style={styles.usageTrack}>
+                <div
+                  className="progress-bar-fill"
+                  style={{ width: `${freeAllowanceUsedPercent}%` }}
+                />
+              </div>
+              <div style={styles.allowanceNote}>
+                {freeAllowanceUsedPercent}% used this period • Resets daily at
+                00:00 UTC
+              </div>
             </div>
-            <div style={styles.allowanceNote}>
-              Resets daily at 00:00 UTC
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Audit Count Card */}
-        <div style={styles.auditCard}>
-          <div style={styles.cardLabel}>Ledger Audit Entries</div>
-          <div style={styles.auditValue}>
-            {totalTxns} <span style={styles.auditUnit}>records</span>
-          </div>
-          <div style={styles.auditNote}>
-            Double-entry immutable transaction log
+          <div style={styles.auditCard}>
+            <div style={styles.cardLabel}>Ledger Audit Entries</div>
+            <div style={styles.auditValue}>
+              {totalTxns} <span style={styles.auditUnit}>records</span>
+            </div>
+            <div style={styles.auditNote}>
+              Double-entry immutable transaction log
+            </div>
           </div>
         </div>
       </div>
@@ -241,19 +339,50 @@ export default function BalanceDashboard() {
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.tableHeadRow}>
-                    <th style={styles.th}>Type</th>
-                    <th style={styles.th}>Category</th>
-                    <th style={styles.th}>Amount</th>
+                    <th
+                      className="sortable-th"
+                      style={styles.th}
+                      onClick={() => handleSort("type")}
+                    >
+                      Type{getSortIndicator(txSortKey, txSortDir, "type")}
+                    </th>
+                    <th
+                      className="sortable-th"
+                      style={styles.th}
+                      onClick={() => handleSort("category")}
+                    >
+                      Category{getSortIndicator(txSortKey, txSortDir, "category")}
+                    </th>
+                    <th
+                      className="sortable-th"
+                      style={styles.th}
+                      onClick={() => handleSort("amount")}
+                    >
+                      Amount{getSortIndicator(txSortKey, txSortDir, "amount")}
+                    </th>
                     <th style={styles.th}>Balance After</th>
                     <th style={styles.th}>Description</th>
-                    <th style={styles.th}>Date</th>
+                    <th
+                      className="sortable-th"
+                      style={styles.th}
+                      onClick={() => handleSort("date")}
+                    >
+                      Date{getSortIndicator(txSortKey, txSortDir, "date")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((tx) => {
-                    const isCredit = tx.type === "credit";
-                    return (
-                      <tr key={tx.id} style={styles.tableRow}>
+                  {groupedTransactions.map((group) => (
+                    <React.Fragment key={group.label}>
+                      <tr>
+                        <td colSpan={6} style={styles.dateGroupLabel}>
+                          {group.label}
+                        </td>
+                      </tr>
+                      {group.items.map((tx) => {
+                        const isCredit = tx.type === "credit";
+                        return (
+                          <tr key={tx.id} style={styles.tableRow}>
                         {/* Type Badge */}
                         <td style={styles.td}>
                           <span style={getTypeBadgeStyle(isCredit)}>
@@ -294,8 +423,10 @@ export default function BalanceDashboard() {
                           {new Date(tx.createdAt).toLocaleString()}
                         </td>
                       </tr>
-                    );
-                  })}
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -360,7 +491,8 @@ function getTabButtonStyle(isActive: boolean): React.CSSProperties {
     fontSize: "13px",
     fontWeight: 700,
     cursor: "pointer",
-    transition: "all 0.15s ease",
+    transition:
+      "background-color var(--so-duration-fast) var(--so-ease-out), color var(--so-duration-fast) var(--so-ease-out)",
     whiteSpace: "nowrap",
   };
 }
@@ -421,13 +553,24 @@ function getPaginationBtnStyle(disabled: boolean): React.CSSProperties {
   };
 }
 
+// ── Sort indicator ──────────────────────────────────────────────────
+
+function getSortIndicator(
+  activeKey: string,
+  direction: "asc" | "desc",
+  key: string,
+): string {
+  if (activeKey !== key) return "";
+  return direction === "asc" ? " ↑" : " ↓";
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Centralized Styles Object
 // ─────────────────────────────────────────────────────────────────────────────
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    maxWidth: "1200px",
+    maxWidth: "var(--so-screen-max-width)",
     margin: "0 auto",
   },
   header: {
@@ -490,6 +633,82 @@ const styles: Record<string, React.CSSProperties> = {
     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
     gap: "16px",
     marginBottom: "28px",
+  },
+  heroGrid: {
+    display: "grid",
+    gridTemplateColumns: "minmax(280px, 1.2fr) minmax(260px, 1fr)",
+    gap: "16px",
+    marginBottom: "24px",
+  },
+  heroCard: {
+    padding: "28px 30px",
+    borderRadius: "var(--so-radius-lg)",
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-2)",
+    background:
+      "linear-gradient(135deg, rgba(37, 99, 235, 0.16) 0%, rgba(15, 23, 42, 0.7) 100%)",
+    boxShadow: "0 8px 30px rgba(0, 0, 0, 0.3)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    justifyContent: "center",
+  },
+  heroLabel: {
+    fontSize: "11px",
+    fontWeight: 800,
+    letterSpacing: "0.7px",
+    textTransform: "uppercase",
+    color: "var(--so-text-secondary)",
+  },
+  heroValue: {
+    fontSize: "46px",
+    fontWeight: 900,
+    lineHeight: 1.05,
+    letterSpacing: "-1px",
+    color: "var(--so-text-primary)",
+    fontVariantNumeric: "tabular-nums",
+  },
+  heroMeta: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "12px",
+    color: "var(--so-text-muted)",
+  },
+  heroDepositBtn: {
+    marginTop: "12px",
+    alignSelf: "flex-start",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "7px",
+    padding: "9px 16px",
+    borderRadius: "var(--so-radius-sm)",
+    backgroundColor: "var(--so-primary)",
+    border: "1px solid var(--so-primary-hover)",
+    color: "#ffffff",
+    fontSize: "13px",
+    fontWeight: 800,
+    cursor: "pointer",
+    transition:
+      "background-color var(--so-duration-fast) var(--so-ease-out), border-color var(--so-duration-fast) var(--so-ease-out)",
+  },
+  sideStatStack: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+  usageTrack: {
+    marginTop: "10px",
+    backgroundColor: "var(--so-surface-3)",
+  },
+  dateGroupLabel: {
+    padding: "14px 12px 6px 12px",
+    fontSize: "10px",
+    fontWeight: 800,
+    letterSpacing: "0.6px",
+    textTransform: "uppercase",
+    color: "var(--so-text-muted)",
+    borderBottom: "1px solid var(--so-border-0)",
   },
   balanceCard: {
     padding: "20px 24px",
@@ -637,9 +856,14 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "rgba(255, 255, 255, 0.02)",
   },
   th: {
+    position: "sticky",
+    top: 0,
+    zIndex: 1,
     padding: "12px 18px",
     color: "var(--so-text-muted)",
     fontWeight: 700,
+    backgroundColor: "var(--so-surface-panel)",
+    borderBottom: "1px solid var(--so-border-medium)",
   },
   tableRow: {
     borderBottom: "1px solid var(--so-border-subtle)",

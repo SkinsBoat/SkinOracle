@@ -85,7 +85,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: '17px',
   },
   cardIcon: { color: '#38bdf8' },
-  lockedIcon: { color: '#4ade80', flexShrink: 0 },
+  lockedIcon: { color: 'var(--so-primary-light)', flexShrink: 0 },
   cardTitle: {
     fontSize: '11.5px',
     fontWeight: 800,
@@ -116,7 +116,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '9px',
     fontWeight: 900,
     letterSpacing: '0.4px',
-    color: '#4ade80',
+    color: 'var(--so-primary-light)',
   },
   readyPillOff: {
     fontSize: '9px',
@@ -129,8 +129,8 @@ const styles: Record<string, React.CSSProperties> = {
 function getReadyPillStyle(ready: boolean): React.CSSProperties {
   return {
     ...styles.readyPill,
-    borderColor: ready ? 'rgba(34, 197, 94, 0.4)' : '#1e2430',
-    backgroundColor: ready ? 'rgba(34, 197, 94, 0.08)' : '#0d1117',
+    borderColor: ready ? 'rgba(37, 99, 235, 0.4)' : '#1e2430',
+    backgroundColor: ready ? 'rgba(37, 99, 235, 0.08)' : '#0d1117',
   };
 }
 
@@ -155,7 +155,7 @@ function getPrimaryBtnStyle(disabled: boolean): React.CSSProperties {
     justifyContent: 'center',
     gap: '6px',
     borderRadius: '7px',
-    backgroundColor: disabled ? 'rgba(22, 163, 74, 0.35)' : '#16a34a',
+    backgroundColor: disabled ? 'rgba(37, 99, 235, 0.35)' : 'var(--so-primary)',
     border: 'none',
     color: disabled ? 'rgba(255, 255, 255, 0.55)' : '#ffffff',
     fontSize: '11.5px',

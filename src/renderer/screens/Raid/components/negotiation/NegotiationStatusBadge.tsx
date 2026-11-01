@@ -57,9 +57,9 @@ function getStatusBadgeStyle(
 ): React.CSSProperties {
   const palette = {
     live: {
-      backgroundColor: 'rgba(34, 197, 94, 0.12)',
-      border: '1px solid rgba(34, 197, 94, 0.38)',
-      color: '#4ade80',
+      backgroundColor: 'rgba(37, 99, 235, 0.12)',
+      border: '1px solid rgba(37, 99, 235, 0.38)',
+      color: 'var(--so-primary-light)',
     },
     offline: {
       backgroundColor: 'rgba(245, 158, 11, 0.1)',

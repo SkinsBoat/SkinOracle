@@ -335,7 +335,7 @@ function getSubTabBadgeStyle(isActive: boolean): React.CSSProperties {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    maxWidth: "1050px",
+    maxWidth: "var(--so-screen-max-width)",
     margin: "0 auto",
     display: "flex",
     flexDirection: "column",

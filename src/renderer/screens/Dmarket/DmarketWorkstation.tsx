@@ -1,7 +1,7 @@
 const scanMarketGaps = (..._a: any[]) => ({ results: [] as any[], targetMarketCoverage: 0, totalCandidates: 0 });
 import React, { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { Globe, Target, Zap, Tag } from "lucide-react";
+import { Target, Zap, Tag } from "lucide-react";
 import {
   DmarketTargetItem,
 } from "../../../shared/types";
@@ -89,7 +89,7 @@ export default function DmarketWorkstation() {
 
   // Main Tab Navigation ('target' | 'soclose' | 'gap' | 'listings')
   const [mainTab, setMainTab] = useState<
-    "target" | "soclose" | "gap" | "listings"
+    "target" | "soclose" | "listings"
   >("target");
 
   // Drift Action Threshold (default 2% difference, persisted across app restarts)
@@ -796,14 +796,6 @@ export default function DmarketWorkstation() {
               }}
             />{" "}
             So Close
-          </button>
-          <button
-            onClick={() => setMainTab("gap")}
-            className={`btn ${mainTab === "gap" ? "btn-primary" : "btn-outline"} btn-sm`}
-            style={styles.tabButton}
-            title="Items tradable on other markets with no active DMarket listing"
-          >
-            <Globe size={13} /> Market Gap
           </button>
           <button
             onClick={() => setMainTab("listings")}

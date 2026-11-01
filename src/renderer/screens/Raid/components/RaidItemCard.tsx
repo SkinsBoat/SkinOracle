@@ -249,7 +249,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     borderRadius: '8px',
     background:
-      'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.08) 0%, rgba(13, 17, 23, 0.85) 100%)',
+      'radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.08) 0%, rgba(13, 17, 23, 0.85) 100%)',
     border: '1px solid rgba(255, 255, 255, 0.06)',
     display: 'flex',
     alignItems: 'center',
@@ -450,13 +450,13 @@ function getCardStyle(
     border: isExcluded
       ? '1px dashed var(--so-border-subtle, #1e2430)'
       : isRaid
-        ? '1px solid rgba(34, 197, 94, 0.4)'
+        ? '1px solid rgba(37, 99, 235, 0.4)'
         : isInventory
           ? '1px solid rgba(56, 189, 248, 0.38)'
           : '1px solid var(--so-border-subtle, #1e2430)',
     boxShadow:
       !isExcluded && isRaid
-        ? '0 2px 14px rgba(34, 197, 94, 0.12)'
+        ? '0 2px 14px rgba(37, 99, 235, 0.12)'
         : !isExcluded && isInventory
           ? '0 2px 14px rgba(56, 189, 248, 0.1)'
           : 'none',
@@ -484,7 +484,7 @@ function getSelectBtnStyle(isSelected: boolean): React.CSSProperties {
     border: 'none',
     flexShrink: 0,
     cursor: 'inherit',
-    color: isSelected ? '#4ade80' : 'var(--so-text-muted, #64748b)',
+    color: isSelected ? 'var(--so-primary-light)' : 'var(--so-text-muted, #64748b)',
   };
 }
 
@@ -505,9 +505,9 @@ function getStatusBadgeStyle(
   if (status === 'raid') {
     return {
       ...base,
-      backgroundColor: 'rgba(34, 197, 94, 0.15)',
-      border: '1px solid rgba(34, 197, 94, 0.45)',
-      color: '#4ade80',
+      backgroundColor: 'rgba(37, 99, 235, 0.15)',
+      border: '1px solid rgba(37, 99, 235, 0.45)',
+      color: 'var(--so-primary-light)',
     };
   }
   if (status === 'over-ceiling') {
@@ -571,11 +571,11 @@ function getSpreadRowStyle(isRaid: boolean): React.CSSProperties {
     padding: '6px 9px',
     borderRadius: '6px',
     backgroundColor: isRaid
-      ? 'rgba(34, 197, 94, 0.08)'
+      ? 'rgba(37, 99, 235, 0.08)'
       : 'rgba(239, 68, 68, 0.08)',
     border: isRaid
-      ? '1px solid rgba(34, 197, 94, 0.25)'
+      ? '1px solid rgba(37, 99, 235, 0.25)'
       : '1px solid rgba(239, 68, 68, 0.22)',
-    color: isRaid ? '#4ade80' : '#f87171',
+    color: isRaid ? 'var(--so-primary-light)' : '#f87171',
   };
 }

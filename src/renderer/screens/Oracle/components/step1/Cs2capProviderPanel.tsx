@@ -46,6 +46,8 @@ export interface Cs2capProviderPanelProps {
   setHideTradeMarkets: (hide: boolean) => void;
   activeScope: MarketScope;
   onSelectScope: (scope: MarketScope) => void;
+  onSnipeShortcut?: () => void;
+  onBaselineShortcut?: () => void;
   cs2capScopes?: MarketScopePresets<string>;
   getMarketCount: (marketId: string) => number;
   getMissingQtyForMarket: (marketId: string) => number;
@@ -68,6 +70,8 @@ export const Cs2capProviderPanel: React.FC<Cs2capProviderPanelProps> = ({
   setHideTradeMarkets,
   activeScope,
   onSelectScope,
+  onSnipeShortcut,
+  onBaselineShortcut,
   cs2capScopes,
   getMarketCount,
   getMissingQtyForMarket,
@@ -116,6 +120,8 @@ export const Cs2capProviderPanel: React.FC<Cs2capProviderPanelProps> = ({
         <MarketScopeToggle
           activeScope={activeScope}
           onSelectScope={onSelectScope}
+          onSnipeShortcut={onSnipeShortcut}
+          onBaselineShortcut={onBaselineShortcut}
           baselineCount={cs2capScopes?.baseline?.length ?? 0}
           snipeCount={cs2capScopes?.snipe?.length ?? 0}
           accentColor="#0891b2"

@@ -2,20 +2,16 @@ import React, { useEffect, useState } from "react";
 import { HashRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import {
-  Sparkles,
+  Cpu,
   Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Wallet,
-  ShieldAlert,
-  X,
-  Target,
-  Info,
-  Handshake,
-  Globe,
+  Radar,
+  HelpCircle,
+  Store,
   BookOpen,
-  Crosshair,
 } from "lucide-react";
 import {
   oracleLogo,
@@ -40,6 +36,7 @@ import KnowledgeBaseScreen from "./screens/Knowledge/KnowledgeBaseScreen";
 import AboutScreen from "./screens/About/AboutScreen";
 import UpdateNotification from "./components/UpdateNotification";
 import ConfirmModal from "./components/ConfirmModal";
+import InlineErrorBanner from "./components/InlineErrorBanner";
 import { CreateDealModal } from "./screens/DealMaker/modals/CreateDealModal";
 import MaintenanceScreen from "./screens/MaintenanceScreen";
 import VersionBlockedScreen from "./screens/VersionBlockedScreen";
@@ -47,12 +44,12 @@ import { VersionGateState } from "../shared/types";
 import { FEATURE_FLAGS } from "../shared/featureFlags";
 import { safeGetItem, safeSetItem } from "./utils/storage";
 import { useLayoutStore } from "./store/useLayoutStore";
-import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import "./App.css";
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [isSplashVisible, setIsSplashVisible] = useState<boolean>(true);
+  const [splashStatus, setSplashStatus] = useState<string>("Authenticating...");
   const [systemConfig, setSystemConfig] = useState<any>(null);
   const [versionGateState, setVersionGateState] =
     useState<VersionGateState | null>(null);
@@ -61,7 +58,6 @@ function AppContent() {
   const [encryptionWarningDismissed, setEncryptionWarningDismissed] =
     useState<boolean>(() => safeGetItem("so_enc_warn_dismissed") === "true");
   const { isSidebarExpanded, toggleSidebar } = useLayoutStore();
-  useGlobalShortcuts();
 
   useEffect(() => {
     const handleToggleSidebar = () => toggleSidebar();
@@ -70,8 +66,15 @@ function AppContent() {
   }, [toggleSidebar]);
 
   useEffect(() => {
+    const statusTimer = setTimeout(
+      () => setSplashStatus("Loading workstation..."),
+      450,
+    );
     const timer = setTimeout(() => setIsSplashVisible(false), 900);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(statusTimer);
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -164,7 +167,7 @@ function AppContent() {
   // Immediate Version Gate Interception: if version is blocked, render VersionBlockedScreen immediately
   if (versionGateState && !versionGateState.allowed) {
     return (
-      <HashRouter>
+      <>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -174,7 +177,7 @@ function AppContent() {
         />
         <UpdateNotification isMandatory={true} />
         <VersionBlockedScreen gateState={versionGateState} />
-      </HashRouter>
+      </>
     );
   }
 
@@ -187,12 +190,18 @@ function AppContent() {
         <div className="splash-text">
           Skin Oracle <span style={styles.splashBetaBadge}>BETA</span>
         </div>
+        <div className="splash-dots" aria-hidden="true">
+          <span className="splash-dot" />
+          <span className="splash-dot" />
+          <span className="splash-dot" />
+        </div>
+        <div className="splash-status">{splashStatus}</div>
       </div>
     );
   }
 
   return (
-    <HashRouter>
+    <>
       <Toaster
         position="top-right"
         toastOptions={{
@@ -214,23 +223,15 @@ function AppContent() {
 
       {/* OS Encryption Unavailable Warning — only shown when safeStorage falls back to base64 */}
       {encryptionWarning && !encryptionWarningDismissed && (
-        <div style={styles.encryptionWarningBanner}>
-          <ShieldAlert size={15} style={styles.shieldIcon} />
-          <span style={styles.encryptionWarningText}>
-            OS encryption is unavailable on this system. Your API keys are
-            stored as base64 (not hardware-protected). Avoid using SkinOracle on
-            a shared or public machine.
-          </span>
-          <button
-            onClick={() => {
+        <div style={styles.encryptionBannerWrap}>
+          <InlineErrorBanner
+            title="API Keys Not Hardware-Protected"
+            detail="Your OS does not support Keychain encryption. Keys are stored as Base64. Do not use SkinOracle on a shared machine."
+            onDismiss={() => {
               setEncryptionWarningDismissed(true);
               safeSetItem("so_enc_warn_dismissed", "true");
             }}
-            title="Dismiss"
-            style={styles.dismissButton}
-          >
-            <X size={14} />
-          </button>
+          />
         </div>
       )}
 
@@ -322,12 +323,16 @@ function AppContent() {
               {/* Navigation Items */}
               <nav style={styles.navContainer}>
                 {/* ORACLE ENGINE */}
-                {isSidebarExpanded && <span style={styles.navGroupLabel}>ORACLE ENGINE</span>}
+                {isSidebarExpanded && (
+                  <span className="nav-group-label" style={styles.navGroupLabel}>
+                    ORACLE ENGINE
+                  </span>
+                )}
                 <NavLink
                   to="/"
-                  title={!isSidebarExpanded ? "Pricing Central (⌘1)" : undefined}
+                  title="Pricing Central"
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getNavLinkStyle(isActive, isSidebarExpanded)
@@ -335,7 +340,7 @@ function AppContent() {
                 >
                   {({ isActive }) => (
                     <>
-                      <Sparkles
+                      <Cpu
                         size={18}
                         style={getNavIconStyle(isActive, "accent")}
                       />
@@ -346,9 +351,9 @@ function AppContent() {
 
                 <NavLink
                   to="/soclose"
-                  title={!isSidebarExpanded ? "SoClose Scanner (⌘2)" : undefined}
+                  title="SoClose Scanner"
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getNavLinkStyle(isActive, isSidebarExpanded)
@@ -356,7 +361,7 @@ function AppContent() {
                 >
                   {({ isActive }) => (
                     <>
-                      <Target
+                      <Radar
                         size={18}
                         style={getNavIconStyle(isActive, "accent")}
                       />
@@ -365,35 +370,11 @@ function AppContent() {
                   )}
                 </NavLink>
 
-                {/* Deal Maker tab disabled */}
-                {/*
-                <NavLink
-                  to="/dealmaker"
-                  title={!isSidebarExpanded ? "Deal Maker" : undefined}
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
-                  }
-                  style={({ isActive }) =>
-                    getNavLinkStyle(isActive, isSidebarExpanded)
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Handshake
-                        size={18}
-                        style={getNavIconStyle(isActive, "accent")}
-                      />
-                      {isSidebarExpanded && <span>Deal Maker</span>}
-                    </>
-                  )}
-                </NavLink>
-                */}
-
                 <NavLink
                   to="/raid"
-                  title={!isSidebarExpanded ? "RAID Auditor (⌘3)" : undefined}
+                  title="RAID Auditor"
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getNavLinkStyle(isActive, isSidebarExpanded)
@@ -401,7 +382,7 @@ function AppContent() {
                 >
                   {({ isActive }) => (
                     <>
-                      <Crosshair
+                      <Store
                         size={18}
                         style={getNavIconStyle(isActive, "accent")}
                       />
@@ -411,12 +392,16 @@ function AppContent() {
                 </NavLink>
 
                 {/* MARKETPLACES */}
-                {isSidebarExpanded && <span style={styles.navGroupLabel}>MARKETPLACES</span>}
+                {isSidebarExpanded && (
+                  <span className="nav-group-label" style={styles.navGroupLabel}>
+                    MARKETPLACES
+                  </span>
+                )}
                 <NavLink
                   to="/dmarket"
-                  title={!isSidebarExpanded ? "DMarket (⌘4)" : undefined}
+                  title="DMarket Workstation — Targets"
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getNavLinkStyle(isActive, isSidebarExpanded)
@@ -434,11 +419,9 @@ function AppContent() {
                   FEATURE_FLAGS.SKINPORT_WORKSTATION) ? (
                   <NavLink
                     to="/skinport"
-                    title={
-                      !isSidebarExpanded ? "Skinport" : undefined
-                    }
+                    title="Skinport Workstation"
                     className={({ isActive }) =>
-                      `sidebar-nav-item ${isActive ? "active" : ""}`
+                      `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                     }
                     style={({ isActive }) =>
                       getNavLinkStyle(isActive, isSidebarExpanded)
@@ -457,7 +440,11 @@ function AppContent() {
                     title="Skinport — Coming Soon"
                     style={getNavLinkStyle(false, isSidebarExpanded)}
                   >
-                    <img src={skinportLogo} alt="Skinport" style={{ ...styles.marketIcon, opacity: 0.4 }} />
+                    <img
+                      src={skinportLogo}
+                      alt="Skinport"
+                      style={{ ...styles.marketIcon, opacity: 0.4 }}
+                    />
                     {isSidebarExpanded && (
                       <>
                         <span style={{ opacity: 0.4 }}>Skinport</span>
@@ -469,9 +456,9 @@ function AppContent() {
 
                 <NavLink
                   to="/csfloat"
-                  title={!isSidebarExpanded ? "CSFloat (⌘4)" : undefined}
+                  title="CSFloat Workstation"
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getNavLinkStyle(isActive, isSidebarExpanded)
@@ -486,53 +473,16 @@ function AppContent() {
                 </NavLink>
 
                 {/* INTELLIGENCE */}
-                {isSidebarExpanded && <span style={styles.navGroupLabel}>INTELLIGENCE</span>}
-                {FEATURE_FLAGS.TREND_MARKET ? (
-                  <NavLink
-                    to="/trend-market"
-                    title={
-                      !isSidebarExpanded
-                        ? "Trend Market"
-                        : undefined
-                    }
-                    className={({ isActive }) =>
-                      `sidebar-nav-item ${isActive ? "active" : ""}`
-                    }
-                    style={({ isActive }) =>
-                      getNavLinkStyle(isActive, isSidebarExpanded)
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <Globe
-                          size={18}
-                          style={getNavIconStyle(isActive, "accent")}
-                        />
-                        {isSidebarExpanded && <span>Trend Market</span>}
-                      </>
-                    )}
-                  </NavLink>
-                ) : (
-                  <div
-                    className="nav-item-disabled"
-                    title="Trend Market — Coming Soon"
-                    style={getNavLinkStyle(false, isSidebarExpanded)}
-                  >
-                    <Globe size={18} style={{ color: "#cbd5e1", opacity: 0.4 }} />
-                    {isSidebarExpanded && (
-                      <>
-                        <span style={{ opacity: 0.4 }}>Trend Market</span>
-                        <span style={styles.badgeGhost}>SOON</span>
-                      </>
-                    )}
-                  </div>
+                {isSidebarExpanded && (
+                  <span className="nav-group-label" style={styles.navGroupLabel}>
+                    INTELLIGENCE
+                  </span>
                 )}
-
                 <NavLink
                   to="/playbook"
-                  title={!isSidebarExpanded ? "Playbook" : undefined}
+                  title="Trading Playbook"
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getNavLinkStyle(isActive, isSidebarExpanded)
@@ -550,7 +500,11 @@ function AppContent() {
                 </NavLink>
 
                 {/* ACCOUNT */}
-                {isSidebarExpanded && <span style={styles.navGroupLabel}>ACCOUNT</span>}
+                {isSidebarExpanded && (
+                  <span className="nav-group-label" style={styles.navGroupLabel}>
+                    ACCOUNT
+                  </span>
+                )}
                 <NavLink
                   to="/balance"
                   title={
@@ -559,7 +513,7 @@ function AppContent() {
                       : undefined
                   }
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getBalanceNavLinkStyle(isActive, isSidebarExpanded)
@@ -585,9 +539,9 @@ function AppContent() {
 
                 <NavLink
                   to="/settings"
-                  title={!isSidebarExpanded ? "Settings (⌘,)" : undefined}
+                  title="Settings"
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getNavLinkStyle(isActive, isSidebarExpanded)
@@ -605,31 +559,10 @@ function AppContent() {
                 </NavLink>
 
                 <NavLink
-                  to="/playbook"
-                  title={!isSidebarExpanded ? "Trading Playbook" : undefined}
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
-                  }
-                  style={({ isActive }) =>
-                    getNavLinkStyle(isActive, isSidebarExpanded)
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <BookOpen
-                        size={18}
-                        style={getNavIconStyle(isActive, "accent")}
-                      />
-                      {isSidebarExpanded && <span>Playbook</span>}
-                    </>
-                  )}
-                </NavLink>
-
-                <NavLink
                   to="/about"
-                  title={!isSidebarExpanded ? "About Skin Oracle" : undefined}
+                  title="About Skin Oracle"
                   className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? "active" : ""}`
+                    `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
                   }
                   style={({ isActive }) =>
                     getNavLinkStyle(isActive, isSidebarExpanded)
@@ -637,7 +570,7 @@ function AppContent() {
                 >
                   {({ isActive }) => (
                     <>
-                      <Info
+                      <HelpCircle
                         size={18}
                         style={getNavIconStyle(isActive, "muted")}
                       />
@@ -665,24 +598,11 @@ function AppContent() {
               </button>
 
               {isSidebarExpanded && (
-                <>
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.electronAPI?.app?.openExternal?.("https://github.com/SkinsBoat/SkinOracle");
-                    }}
-                    className="source-badge"
-                    title="View source code on GitHub"
-                    style={styles.sourceBadge}
-                  >
-                    <ShieldAlert size={12} /> Source-Available
-                  </a>
-                  <div style={styles.disclaimer}>
-                    Skin Oracle is an independent tool not affiliated with Valve,
-                    CSFloat, DMarket, or any listed marketplace. All trademarks
-                    belong to their respective owners.
-                  </div>
-                </>
+                <div style={styles.disclaimer}>
+                  Skin Oracle is an independent tool not affiliated with Valve,
+                  CSFloat, DMarket, or any listed marketplace. All trademarks
+                  belong to their respective owners.
+                </div>
               )}
             </div>
           </aside>
@@ -725,7 +645,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/register" />} />
         </Routes>
       )}
-    </HashRouter>
+    </>
   );
 }
 
@@ -764,8 +684,8 @@ const getAppContainerStyle = (hasBanner: boolean): React.CSSProperties => ({
 });
 
 const getSidebarStyle = (isExpanded: boolean): React.CSSProperties => ({
-  width: isExpanded ? "230px" : "68px",
-  transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+  width: isExpanded ? "230px" : "64px",
+  transition: "width var(--so-duration-normal) var(--so-ease-out)",
   backgroundColor: "var(--so-surface-sidebar)",
   borderRight: "1px solid var(--so-border-medium)",
   display: "flex",
@@ -773,8 +693,9 @@ const getSidebarStyle = (isExpanded: boolean): React.CSSProperties => ({
   justifyContent: "space-between",
   padding: "14px 10px",
   flexShrink: 0,
-  zIndex: 100,
+  zIndex: 10,
   boxSizing: "border-box",
+  overflow: "hidden",
 });
 
 const getNavLinkStyle = (
@@ -792,7 +713,8 @@ const getNavLinkStyle = (
   textDecoration: "none",
   fontWeight: 700,
   fontSize: "13.5px",
-  transition: "all 0.15s ease",
+  transition:
+    "background-color var(--so-duration-fast) var(--so-ease-out), color var(--so-duration-fast) var(--so-ease-out)",
   whiteSpace: "nowrap",
   overflow: "hidden",
 });
@@ -843,7 +765,8 @@ const getLogoutButtonStyle = (isExpanded: boolean): React.CSSProperties => ({
   fontWeight: 700,
   fontSize: "13.5px",
   width: "100%",
-  transition: "all 0.15s ease",
+  transition:
+    "background-color var(--so-duration-fast) var(--so-ease-out), color var(--so-duration-fast) var(--so-ease-out), border-color var(--so-duration-fast) var(--so-ease-out)",
   whiteSpace: "nowrap",
   overflow: "hidden",
   boxSizing: "border-box",
@@ -874,6 +797,17 @@ const styles = {
     border: "1px solid rgba(6, 182, 212, 0.4)",
     verticalAlign: "middle",
     marginLeft: "4px",
+  } as React.CSSProperties,
+
+  encryptionBannerWrap: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 200,
+    padding: "10px 16px",
+    backgroundColor: "rgba(9, 13, 22, 0.96)",
+    borderBottom: "1px solid var(--so-warning-border)",
   } as React.CSSProperties,
 
   encryptionWarningBanner: {
@@ -918,7 +852,20 @@ const styles = {
   sidebarTop: {
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
+    gap: "12px",
+    flex: 1,
+    minHeight: 0,
+    overflow: "hidden",
+  } as React.CSSProperties,
+
+  mainContent: {
+    flex: 1,
+    minWidth: 0,
+    height: "100%",
+    overflowY: "auto",
+    overflowX: "hidden",
+    padding: "20px 24px",
+    boxSizing: "border-box",
   } as React.CSSProperties,
 
   headerExpanded: {
@@ -1016,7 +963,13 @@ const styles = {
   navContainer: {
     display: "flex",
     flexDirection: "column",
-    gap: "4px",
+    gap: "2px",
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    overflowX: "hidden",
+    paddingRight: "2px",
+    scrollbarWidth: "thin",
   } as React.CSSProperties,
 
   navIcon: {
@@ -1066,13 +1019,14 @@ const styles = {
   } as React.CSSProperties,
 
   navGroupLabel: {
-    fontSize: "10px",
+    fontSize: "9.5px",
     fontWeight: 700,
     textTransform: "uppercase" as const,
-    letterSpacing: "0.6px",
+    letterSpacing: "0.5px",
     color: "var(--so-text-muted)",
-    padding: "16px 8px 6px 8px",
-    marginTop: "4px",
+    padding: "10px 8px 3px 8px",
+    marginTop: 0,
+    flexShrink: 0,
   } as React.CSSProperties,
   badgeGhost: {
     fontSize: "9px",
@@ -1084,3 +1038,4 @@ const styles = {
     border: "1px solid rgba(148, 163, 184, 0.25)",
     marginLeft: "auto",
   } as React.CSSProperties,
+};

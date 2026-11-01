@@ -2,8 +2,10 @@ import React from "react";
 
 export interface WorkstationHeaderProps {
   /** Marketplace/aggregator brand mark rendered as the leading element. */
-  logo: string;
-  logoAlt: string;
+  logo?: string;
+  logoAlt?: string;
+  /** Lucide-style icon rendered instead of a logo image. */
+  icon?: React.ReactNode;
   title: string;
   /** Optional pill rendered beside the title (e.g. "Direct Device IPC"). */
   badge?: string;
@@ -16,6 +18,7 @@ export interface WorkstationHeaderProps {
 export const WorkstationHeader: React.FC<WorkstationHeaderProps> = ({
   logo,
   logoAlt,
+  icon,
   title,
   badge,
   subtitle,
@@ -24,7 +27,11 @@ export const WorkstationHeader: React.FC<WorkstationHeaderProps> = ({
   return (
     <div style={styles.header}>
       <div style={styles.brandSection}>
-        <img src={logo} alt={logoAlt} style={styles.logo} />
+        {icon ? (
+          <div style={styles.iconBox}>{icon}</div>
+        ) : logo ? (
+          <img src={logo} alt={logoAlt} style={styles.logo} />
+        ) : null}
         <div style={styles.brandText}>
           <div style={styles.titleRow}>
             <h1 style={styles.title}>{title}</h1>
@@ -66,6 +73,18 @@ const styles: Record<string, React.CSSProperties> = {
     height: "36px",
     objectFit: "contain",
     flexShrink: 0,
+  },
+  iconBox: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "var(--so-radius-sm)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    color: "var(--so-cyan-text)",
+    backgroundColor: "rgba(56, 189, 248, 0.12)",
+    border: "1px solid rgba(56, 189, 248, 0.3)",
   },
   brandText: {
     minWidth: 0,
