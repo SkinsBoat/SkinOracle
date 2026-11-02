@@ -168,7 +168,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
     }
   }, [cacheStatus.isFetching, isCs2capStreaming]);
 
-  const startHeaderLongPress = () => {
+  const startHeaderLongPress = (event: React.PointerEvent) => {
+    // Only left-button presses start a long-press; right-click must not arm
+    // the scan shortcut while the context-menu action runs.
+    if (event.button !== 0) return;
     clearHeaderLongPress();
     headerLongPressFired.current = false;
     headerLongPressTimer.current = setTimeout(() => {
@@ -189,6 +192,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
   const headerScanShortcutProps = {
     onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
+      clearHeaderLongPress();
       handleSnipeScopeShortcut();
     },
     onPointerDown: startHeaderLongPress,

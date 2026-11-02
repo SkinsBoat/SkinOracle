@@ -272,7 +272,8 @@ export const MarketScopeToggle: React.FC<MarketScopeToggleProps> = ({
 
   useEffect(() => clearLongPress, []);
 
-  const startBaselineLongPress = () => {
+  const startBaselineLongPress = (event: React.PointerEvent) => {
+    if (event.button !== 0) return;
     clearLongPress();
     longPressFired.current = false;
     longPressTimer.current = setTimeout(() => {
@@ -315,7 +316,10 @@ export const MarketScopeToggle: React.FC<MarketScopeToggleProps> = ({
           onPointerUp={clearLongPress}
           onPointerLeave={clearLongPress}
           onPointerCancel={clearLongPress}
-          onContextMenu={(e) => e.preventDefault()}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            clearLongPress();
+          }}
           style={getScopeButtonStyle(isBaseline, accentColor)}
           title="Apply the wide Baseline market set. Long-press to apply it, turn auto-refresh off, and run a scan immediately."
         >
