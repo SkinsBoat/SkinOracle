@@ -148,7 +148,6 @@ export function useSoCloseScanner() {
   const [soCloseMinSssScore, setSoCloseMinSssScore] = useState<string>(
     () => loadScannerParams().soCloseMinSssScore,
   );
-  const [resultSearchQuery, setResultSearchQuery] = useState<string>("");
   const [allowedWears, setAllowedWears] = useState<AllowedWears>(
     () => loadScannerParams().allowedWears,
   );
@@ -585,18 +584,12 @@ export function useSoCloseScanner() {
       );
     }
 
-    if (resultSearchQuery.trim()) {
-      const q = resultSearchQuery.trim().toLowerCase();
-      list = list.filter((item) => item.name.toLowerCase().includes(q));
-    }
-
     list.sort((a, b) => a.closeness - b.closeness);
     return list;
   }, [
     soCloseResults,
     selectedFilterMarkets,
     isAllSelected,
-    resultSearchQuery,
     isSnoozeItemActive,
   ]);
 
@@ -656,8 +649,6 @@ export function useSoCloseScanner() {
     setSoCloseMaxCloseness,
     soCloseMinSssScore,
     setSoCloseMinSssScore,
-    resultSearchQuery,
-    setResultSearchQuery,
     allowedWears,
     setAllowedWears,
     // actions

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Radar, RefreshCw, Target } from "lucide-react";
+import { Radar } from "lucide-react";
 import { SoCloseResultItem } from "../../../shared/types";
 import { getMarketDisplayName } from "../../../shared/canonicalMarkets";
 import { WorkstationHeader } from "../../components/WorkstationHeader";
@@ -20,6 +20,17 @@ import {
   SoCloseContextMenuState,
 } from "./components/SoCloseContextMenu";
 
+const CONFIG_OPEN_STORAGE_KEY = "soclose_config_open";
+
+function loadConfigOpen(): boolean {
+  try {
+    const saved = localStorage.getItem(CONFIG_OPEN_STORAGE_KEY);
+    return saved === null ? true : saved === "true";
+  } catch {
+    return true;
+  }
+}
+
 /**
  * SoClose Opportunity Workstation.
  *
@@ -32,6 +43,17 @@ export default function SoCloseWorkstationScreen() {
     useState<LookupModalItemData | null>(null);
   const [contextMenu, setContextMenu] =
     useState<SoCloseContextMenuState | null>(null);
+  const [isConfigOpen, setIsConfigOpen] = useState<boolean>(loadConfigOpen);
+
+  const toggleConfig = () => {
+    setIsConfigOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(CONFIG_OPEN_STORAGE_KEY, String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -130,25 +152,6 @@ export default function SoCloseWorkstationScreen() {
         title="SoClose Scanner"
         badge="MULTI-MARKET RADAR"
         subtitle="Universal scan engine across all active markets to surface instant arbitrage & near-miss deals."
-        right={
-          <button
-            type="button"
-            className={`btn btn-primary ${scanner.isScanning ? "btn-loading" : ""}`}
-            onClick={scanner.runUniversalSoCloseScan}
-            disabled={scanner.isScanning}
-            title="Scan cached listings against your Oracle buy ceilings"
-          >
-            {scanner.isScanning ? (
-              <>
-                <RefreshCw size={15} className="spin" /> Scanning...
-              </>
-            ) : (
-              <>
-                <Target size={15} /> Scan Opportunities
-              </>
-            )}
-          </button>
-        }
       />
 
       <div className="card" style={styles.mainCard}>
@@ -191,6 +194,8 @@ export default function SoCloseWorkstationScreen() {
           setSoCloseMinSssScore={scanner.setSoCloseMinSssScore}
           allowedWears={scanner.allowedWears}
           setAllowedWears={scanner.setAllowedWears}
+          isOpen={isConfigOpen}
+          onToggle={toggleConfig}
           isScanning={scanner.isScanning}
           onScan={scanner.runUniversalSoCloseScan}
         />
@@ -199,8 +204,6 @@ export default function SoCloseWorkstationScreen() {
           results={scanner.processedResults}
           totalResults={scanner.soCloseResults.length}
           snoozedCount={scanner.activeSnoozeCount}
-          searchQuery={scanner.resultSearchQuery}
-          onSearchChange={scanner.setResultSearchQuery}
           cacheItemCount={scanner.cacheStatus.itemCount}
           acceptedItemCount={scanner.acceptedMeta?.itemCount ?? 0}
           isScanning={scanner.isScanning}
