@@ -2,7 +2,7 @@
 // Centralized API URLs & Route Constants
 //
 // Clean, modular endpoint constants for all external market integrations
-// (CSFloat, Skins.com, Skinsnipe) and local SaaS API services.
+// (CSFloat, Skinsnipe) and local SaaS API services.
 // ─────────────────────────────────────────────────────────────────
 
 // Base API Roots

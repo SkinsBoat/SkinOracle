@@ -14,7 +14,7 @@ interface TrendStoreState {
 /**
  * useTrendStore
  * Global reactive Zustand store caching 14-day price trend snapshots from local SQLite.
- * Allows any market workstation (CSFloat, Skins.com, DMarket, Oracle) or card component
+ * Allows any market workstation (CSFloat, DMarket, Oracle) or card component
  * to access and batch-fetch historical price trajectories with zero duplication.
  */
 const MAX_TREND_CACHE_ITEMS = 2000;

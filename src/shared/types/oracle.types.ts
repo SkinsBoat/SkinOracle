@@ -124,7 +124,7 @@ export type TargetAnalysis = WorkstationOrderAnalysis;
 
 /**
  * Universal result item for SoClose scanners across all market workstations
- * (CSFloat, DMarket, Skins.com).
+ * (CSFloat, DMarket).
  */
 export interface SoCloseResultItem {
   name: string;

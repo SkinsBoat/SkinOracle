@@ -15,7 +15,7 @@
 - **In Automated Tests:** Always use dynamically generated mock keypairs (e.g., `nacl.sign.keyPair()`) or synthetic dummy tokens (e.g., `'test-token-123'`). Never check in real API keys under the guise of testing.
 
 ### 🛡️ Rule 2: Credential Isolation & `safeStorage`
-- All third-party marketplace API credentials (CSFloat, Skins.com, DMarket), market data aggregator keys (Skinsnipe, Pricempire, or other price data feeds), and SaaS authentication tokens must be stored using the encrypted store:
+- All third-party marketplace API credentials (CSFloat, DMarket), market data aggregator keys (Skinsnipe, Pricempire, or other price data feeds), and SaaS authentication tokens must be stored using the encrypted store:
   ```typescript
   // ✅ ALWAYS use secureSet / secureGet from src/storage/secure-store.ts
   import { secureSet, secureGet, STORAGE_KEYS } from '../../storage/secure-store';
@@ -26,7 +26,7 @@
 - **Why?** `secure-store.ts` utilizes Electron's OS-backed `safeStorage` (macOS Keychain, Windows DPAPI, Linux Secret Service) with POSIX `0o600` file permissions on `secure-keys.bin`.
 
 ### 🌐 Rule 3: Direct Marketplace & Market Data Provider Communication (Zero Backend Routing)
-- Marketplace API requests (CSFloat, Skins.com, DMarket) and Market Data Provider / Price Aggregator requests (Skinsnipe, Pricempire, etc.) must execute **DIRECTLY** from the trader's machine/IP to the respective external API.
+- Marketplace API requests (CSFloat, DMarket) and Market Data Provider / Price Aggregator requests (Skinsnipe, Pricempire, etc.) must execute **DIRECTLY** from the trader's machine/IP to the respective external API.
 - **Marketplace and pricing provider credentials must NEVER be transmitted to the SaaS backend** (`saas-api`) or included in Oracle evaluation payloads.
 - DMarket Ed25519 cryptographic signatures must be computed locally in the Node.js main process (`src/main/ipc/dmarket.ipc.ts`) using `tweetnacl`. Secret keys must never leave main process memory.
 

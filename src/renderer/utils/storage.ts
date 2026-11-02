@@ -61,7 +61,7 @@ export const STORAGE_KEYS = {
 
 export interface StoreLink {
   id: string;
-  /** Canonical marketplace id (e.g. 'csfloat', 'dmarket', 'skinscom'). */
+  /** Canonical marketplace id (e.g. 'csfloat', 'dmarket'). */
   marketplace: string;
   /** Optional trader-defined label (e.g. "Main Stall", "Alt Account"). */
   label: string;
@@ -257,7 +257,7 @@ export function getDefaultStoreLink(marketplace: string): StoreLink | null {
 /**
  * Retrieve the preferred seller store / stall URL for a marketplace.
  * Reads the default registry entry first, then falls back to the legacy keys.
- * @param marketplace 'csfloat' | 'dmarket' | 'skinscom'
+ * @param marketplace 'csfloat' | 'dmarket'
  */
 export function getSavedStoreUrl(marketplace: string): string {
   const fromRegistry = getDefaultStoreLink(marketplace);
@@ -276,7 +276,7 @@ export function getSavedStoreUrl(marketplace: string): string {
 /**
  * Persist a seller marketplace store / stall URL as the default registry entry
  * (and the legacy key for backward compatibility).
- * @param marketplace 'csfloat' | 'dmarket' | 'skinscom'
+ * @param marketplace 'csfloat' | 'dmarket'
  * @param url Full stall or personal store URL
  */
 export function setSavedStoreUrl(marketplace: string, url: string): void {

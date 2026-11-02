@@ -7,7 +7,7 @@
  *
  * Guarantees that:
  * 1. Market IDs are normalized to clean, consistent canonical IDs across the app.
- * 2. Workstations (CSFloat, DMarket, Skins.com) and SoClose scanners always match.
+ * 2. Workstations (CSFloat, DMarket) and SoClose scanners always match.
  * 3. UI tables and charts display unified human-readable names.
  * ─────────────────────────────────────────────────────────────────────────────
  */

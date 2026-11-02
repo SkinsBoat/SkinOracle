@@ -32,8 +32,7 @@ import {
 
 /**
  * Marketplaces where a DealMaker seller can host a store / stall and share a
- * direct link after a flash deal matches. Skins.com is intentionally excluded
- * because it does not expose seller store links.
+ * direct link after a flash deal matches.
  */
 const MARKET_OPTIONS = DEALMAKER_STORE_LINK_MARKETS.map((m) => ({
   id: m.id,

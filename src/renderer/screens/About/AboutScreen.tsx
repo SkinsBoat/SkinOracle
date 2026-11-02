@@ -689,7 +689,7 @@ export default function AboutScreen() {
       <div style={styles.footerContainer}>
         <div>
           Skin Oracle is an official desktop trading terminal developed and maintained by the <strong>SkinsBoat</strong>{" "}
-          team. Not affiliated with Valve Corporation, Counter-Strike 2, CSFloat, DMarket, or Skins.com. All trademarks
+          team. Not affiliated with Valve Corporation, Counter-Strike 2, CSFloat, or DMarket. All trademarks
           and registered trademarks are the property of their respective owners.
         </div>
         <div style={styles.footerLinksRow}>

@@ -35,7 +35,7 @@ let priceCache: Record<
 > = {};
 
 // In-memory accepted price map — populated by OracleDashboard "Build Accepted Price" action
-// Consumed by all market workstations (CSFloat, Skins.com) without re-hitting the saas-api
+// Consumed by all market workstations (CSFloat) without re-hitting the saas-api
 let acceptedPriceMap: Record<string, AcceptedPriceInfo> = {};
 let cacheTimestamp: Date | null = null;
 let acceptedPriceTimestamp: Date | null = null;

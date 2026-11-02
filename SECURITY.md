@@ -11,7 +11,7 @@
 The SkinOracle Desktop App is engineered with a **zero-trust, local-first credential model**:
 
 1. **Hardware / OS-Level Secret Encryption (`safeStorage`)**:
-   - Marketplace API keys (CSFloat, Skins.com, DMarket), Market Data Provider / Price Aggregator keys (Skinsnipe, Pricempire, etc.), and SaaS JWTs are stored in `secure-keys.bin` inside `userData`.
+   - Marketplace API keys (CSFloat, DMarket), Market Data Provider / Price Aggregator keys (Skinsnipe, Pricempire, etc.), and SaaS JWTs are stored in `secure-keys.bin` inside `userData`.
    - Keys are encrypted using Electron's `safeStorage` (backed by macOS Keychain, Windows DPAPI, or Linux Secret Service / Keytar).
    - Storage file permissions are restricted to POSIX mode `0o600` (user read/write only).
 2. **Zero Backend Routing of Credentials**:

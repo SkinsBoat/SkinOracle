@@ -201,7 +201,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // Store the accepted price map (called by OracleDashboard after "Build Accepted Price")
     storeAcceptedPrices: (map: Record<string, AcceptedPriceInfo>) =>
       safeInvoke("oracle:store-accepted-prices", map),
-    // Get the accepted price map (called by market workstations like CSFloat, Skins.com)
+    // Get the accepted price map (called by market workstations like CSFloat)
     getAcceptedPrices: () => safeInvoke("oracle:get-accepted-prices"),
     // Store the listing price map (called by OracleDashboard after "Build Listing Prices")
     storeListingPrices: (

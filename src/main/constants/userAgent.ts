@@ -2,7 +2,7 @@ import { app } from "electron";
 
 /**
  * Standard RFC 7231 User-Agent for all external platform integrations
- * (CSFloat, DMarket, Skins.com, Skinsnipe, CS2Cap).
+ * (CSFloat, DMarket, Skinsnipe, CS2Cap).
  *
  * Clearly identifies SkinOracle desktop clients in third-party exchange & Cloudflare logs,
  * establishing brand credibility, showing active trader volume, and enabling partner/affiliate recognition.

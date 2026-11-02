@@ -25,11 +25,11 @@ Main Process (Node.js)
   ├── safeStorage → API keys encrypted by OS (Keychain / DPAPI / Secret Service)
   ├── saasAxios  → auto-attaches JWT + x-app-version header
   └── Marketplace APIs called DIRECTLY from user's machine
-        (CSFloat, Skins.com, Skinsnipe, DMarket — using user's own keys)
+        (CSFloat, Skinsnipe, DMarket — using user's own keys)
         These NEVER route through the SaaS backend.
 ```
 
-**Critical principle:** The SaaS backend never sees marketplace API keys. Marketplace requests go from the user's machine directly to CSFloat/Skins.com/Skinsnipe/DMarket using the user's own credentials.
+**Critical principle:** The SaaS backend never sees marketplace API keys. Marketplace requests go from the user's machine directly to CSFloat/Skinsnipe/DMarket using the user's own credentials.
 
 ---
 

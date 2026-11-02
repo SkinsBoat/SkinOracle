@@ -24,7 +24,7 @@ export interface UseAcceptedPricesReturn {
 /**
  * useAcceptedPrices
  * Centralized hook providing access to Oracle-calculated accepted prices
- * for all market workstations (CSFloat, DMarket, Skins.com).
+ * for all market workstations (CSFloat, DMarket).
  */
 export function useAcceptedPrices(): UseAcceptedPricesReturn {
   const [acceptedPriceMap, setAcceptedPriceMap] = useState<
