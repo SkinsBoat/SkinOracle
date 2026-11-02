@@ -2,12 +2,7 @@ import React from "react";
 import { Clock, Copy, Download, ExternalLink, Eye } from "lucide-react";
 import { SoCloseResultItem } from "../../../../shared/types";
 import { getMarketDisplayName } from "../../../../shared/canonicalMarkets";
-import {
-  SNOOZE_OPTIONS,
-  SnoozeOption,
-  SmartSnoozeSuggestion,
-  getSmartSnoozeSuggestion,
-} from "../hooks/useSnoozeStore";
+import { SNOOZE_OPTIONS, SnoozeOption } from "../hooks/useSnoozeStore";
 
 export interface SoCloseContextMenuState {
   x: number;
@@ -35,15 +30,6 @@ export const SoCloseContextMenu: React.FC<SoCloseContextMenuProps> = ({
   onCopyName,
   onSnooze,
 }) => {
-  const suggestion = getSmartSnoozeSuggestion(menu.item);
-  const recommendedOptions = SNOOZE_OPTIONS.filter(
-    (option) => option.id === suggestion.optionId,
-  );
-  const otherOptions = SNOOZE_OPTIONS.filter(
-    (option) => option.id !== suggestion.optionId,
-  );
-  const orderedOptions = [...recommendedOptions, ...otherOptions];
-
   return (
     <>
       <div
@@ -108,11 +94,10 @@ export const SoCloseContextMenu: React.FC<SoCloseContextMenuProps> = ({
         <div style={styles.contextMenuDivider} />
         <div style={styles.contextMenuSectionLabel}>Snooze</div>
 
-        {orderedOptions.map((option) => (
+        {SNOOZE_OPTIONS.map((option) => (
           <SnoozeMenuItem
             key={option.id}
             option={option}
-            suggestion={suggestion}
             onSelect={() => {
               onSnooze(menu.item, option.durationMs);
               onClose();
@@ -126,11 +111,8 @@ export const SoCloseContextMenu: React.FC<SoCloseContextMenuProps> = ({
 
 const SnoozeMenuItem: React.FC<{
   option: SnoozeOption;
-  suggestion: SmartSnoozeSuggestion;
   onSelect: () => void;
-}> = ({ option, suggestion, onSelect }) => {
-  const isRecommended = option.id === suggestion.optionId;
-
+}> = ({ option, onSelect }) => {
   return (
     <button
       type="button"
@@ -139,24 +121,14 @@ const SnoozeMenuItem: React.FC<{
       onClick={onSelect}
     >
       <Clock size={13} style={styles.contextMenuIcon} />
-      <span style={styles.snoozeText}>
-        <span>
-          Snooze {option.label}
-          {isRecommended && (
-            <span style={styles.snoozeRecommended}> (Recommended)</span>
-          )}
-        </span>
-        {isRecommended && (
-          <span style={styles.snoozeReason}>{suggestion.reason}</span>
-        )}
-      </span>
+      <span>Snooze {option.label}</span>
     </button>
   );
 };
 
 function getContextMenuStyle(x: number, y: number): React.CSSProperties {
   const MENU_WIDTH = 240;
-  const MENU_HEIGHT = 4 * 34 + 9 + 22 + 4 * 45 + 10;
+  const MENU_HEIGHT = 4 * 34 + 9 + 22 + 4 * 34 + 10;
   const margin = 8;
   const left = Math.max(
     margin,
@@ -220,20 +192,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     letterSpacing: "0.7px",
     textTransform: "uppercase",
-    color: "var(--so-text-muted)",
-  },
-  snoozeText: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-  },
-  snoozeRecommended: {
-    color: "var(--so-cyan-text)",
-    fontWeight: 800,
-  },
-  snoozeReason: {
-    fontSize: "10.5px",
-    fontWeight: 500,
     color: "var(--so-text-muted)",
   },
 };

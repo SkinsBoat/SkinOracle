@@ -19,12 +19,6 @@ export interface SnoozeEntry {
 
 export type SnoozedItemsMap = Map<string, SnoozeEntry>;
 
-export interface SmartSnoozeSuggestion {
-  optionId: Exclude<SnoozeOptionId, "session">;
-  durationMs: number;
-  reason: string;
-}
-
 export const SNOOZE_OPTIONS: SnoozeOption[] = [
   { id: "15m", label: "15 minutes", durationMs: 15 * MINUTE_MS },
   { id: "1h", label: "1 hour", durationMs: 60 * MINUTE_MS },
@@ -36,61 +30,6 @@ export function makeSnoozeKey(
   item: Pick<SoCloseResultItem, "name" | "market">,
 ): string {
   return `${item.name}__${item.market ?? "unknown"}`;
-}
-
-export function getSmartSnoozeSuggestion(
-  item: Pick<
-    SoCloseResultItem,
-    "closeness" | "currentMarketPrice" | "supplyStabilityScore"
-  >,
-): SmartSnoozeSuggestion {
-  const { closeness, currentMarketPrice, supplyStabilityScore } = item;
-
-  if (closeness <= 1.0) {
-    return {
-      optionId: "15m",
-      durationMs: 15 * MINUTE_MS,
-      reason: "Likely already taken — refresh soon",
-    };
-  }
-
-  if (closeness <= 1.02 && currentMarketPrice < 50) {
-    return {
-      optionId: "15m",
-      durationMs: 15 * MINUTE_MS,
-      reason: "Hot low-value item, check again soon",
-    };
-  }
-
-  if (currentMarketPrice >= 50 && closeness <= 1.05) {
-    return {
-      optionId: "1h",
-      durationMs: 60 * MINUTE_MS,
-      reason: "Mid-value — wait for next price cycle",
-    };
-  }
-
-  if (currentMarketPrice >= 150) {
-    return {
-      optionId: "3h",
-      durationMs: 180 * MINUTE_MS,
-      reason: "High-value — market moves slowly",
-    };
-  }
-
-  if (typeof supplyStabilityScore === "number" && supplyStabilityScore < 1.3) {
-    return {
-      optionId: "3h",
-      durationMs: 180 * MINUTE_MS,
-      reason: "Low supply stability — not reliable now",
-    };
-  }
-
-  return {
-    optionId: "1h",
-    durationMs: 60 * MINUTE_MS,
-    reason: "Hide and check later",
-  };
 }
 
 function persistSnoozedItems(items: SnoozedItemsMap) {

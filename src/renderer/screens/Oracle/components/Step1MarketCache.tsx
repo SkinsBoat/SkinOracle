@@ -144,14 +144,8 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
     }
   };
 
-  // Shortcut: long-press Baseline scope → apply wide scope and stop auto-refresh.
-  const handleBaselineScopeAutoRefreshOffShortcut = () => {
-    setActiveScope("baseline");
-    window.dispatchEvent(new CustomEvent("oracle:auto-refresh-disable"));
-  };
-
   // Header action (Scan / Restream) gestures: right-click enables Snipe +
-  // auto-refresh; long-press applies Baseline and turns auto-refresh off.
+  // auto-refresh; long-press applies Baseline, stops auto-refresh, and rescans.
   const headerLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -166,13 +160,21 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
 
   useEffect(() => clearHeaderLongPress, []);
 
+  // Clear a stale long-press flag if the release click never arrived because
+  // the button became disabled while the scan/stream was starting.
+  useEffect(() => {
+    if (!cacheStatus.isFetching && !isCs2capStreaming) {
+      headerLongPressFired.current = false;
+    }
+  }, [cacheStatus.isFetching, isCs2capStreaming]);
+
   const startHeaderLongPress = () => {
     clearHeaderLongPress();
     headerLongPressFired.current = false;
     headerLongPressTimer.current = setTimeout(() => {
       headerLongPressFired.current = true;
       headerLongPressTimer.current = null;
-      handleBaselineScopeAutoRefreshOffShortcut();
+      handleBaselineScopeShortcut();
     }, 650);
   };
 
@@ -382,7 +384,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     ? "CS2Cap API Key required"
                     : isCs2capStreaming
                       ? "Cancel active stream"
-                      : "Stream CS2Cap prices — right-click: Snipe + auto-refresh, long-press: Baseline + auto-refresh off"
+                      : "Stream CS2Cap prices — right-click: Snipe + auto-refresh, long-press: Baseline + auto-refresh off + rescan"
                 }
               >
                 {isCs2capStreaming ? (
@@ -424,7 +426,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                       ? "Select at least 1 market"
                       : cacheStatus.isFetching
                         ? "Cancel active market scan"
-                        : "Scan prices from selected markets — right-click: Snipe + auto-refresh, long-press: Baseline + auto-refresh off"
+                        : "Scan prices from selected markets — right-click: Snipe + auto-refresh, long-press: Baseline + auto-refresh off + rescan"
                 }
               >
                 {cacheStatus.isFetching ? (
