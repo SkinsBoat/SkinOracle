@@ -1,5 +1,5 @@
-import React from "react";
-import { RefreshCw } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { Bell, BellOff, RefreshCw } from "lucide-react";
 import { WorkstationDataStatusCards } from "../../../components/WorkstationDataStatusCards";
 import {
   SoCloseAcceptedMeta,
@@ -7,6 +7,9 @@ import {
   SoCloseScanSummary,
 } from "../hooks/useSoCloseScanner";
 import { formatTimeAgo } from "../../Oracle/utils/oracleUtils";
+import { getAlertSwitchBtnStyle } from "../../Oracle/components/step1/step1Styles";
+import { useNotificationStore } from "../../../store/useNotificationStore";
+import { notificationManager } from "../../../services/notificationManager";
 
 export interface SoCloseStatusBarProps {
   cacheStatus: SoCloseCacheStatus;
@@ -35,6 +38,25 @@ export const SoCloseStatusBar: React.FC<SoCloseStatusBarProps> = ({
   snoozedCount,
   closestSpreadPercent,
 }) => {
+  const { notifyOnCacheComplete, setNotifyOnCacheComplete } =
+    useNotificationStore();
+  const wasFetchingRef = useRef(cacheStatus.isFetching);
+
+  useEffect(() => {
+    if (
+      wasFetchingRef.current &&
+      !cacheStatus.isFetching &&
+      cacheStatus.itemCount > 0 &&
+      notifyOnCacheComplete
+    ) {
+      notificationManager.notifyMilestone({
+        title: "Price Cache Updated",
+        body: `Price scan finished: ${cacheStatus.itemCount.toLocaleString()} items cached.`,
+      });
+    }
+    wasFetchingRef.current = cacheStatus.isFetching;
+  }, [cacheStatus.isFetching, cacheStatus.itemCount, notifyOnCacheComplete]);
+
   return (
     <div style={styles.wrapper}>
       <div style={styles.statusRow}>
@@ -47,17 +69,42 @@ export const SoCloseStatusBar: React.FC<SoCloseStatusBarProps> = ({
           cacheEmptyLabel="No market prices cached"
         />
 
-        <button
-          type="button"
-          className={`btn btn-ghost btn-sm ${isRefreshingStatus ? "btn-loading" : ""}`}
-          onClick={onRefresh}
-          disabled={isRefreshingStatus}
-          style={styles.refreshBtn}
-          title="Refresh cache and accepted-price status"
-        >
-          <RefreshCw size={13} className={isRefreshingStatus ? "spin" : ""} />
-          Refresh Status
-        </button>
+        <div style={styles.statusActions}>
+          <button
+            type="button"
+            onClick={() => setNotifyOnCacheComplete(!notifyOnCacheComplete)}
+            style={getAlertSwitchBtnStyle(notifyOnCacheComplete)}
+            title={
+              notifyOnCacheComplete
+                ? "Alert active: chime when the price cache finishes syncing (click to mute)"
+                : "Alert muted: click to alert when the price cache finishes syncing"
+            }
+          >
+            {notifyOnCacheComplete ? (
+              <>
+                <Bell size={12} style={styles.alertIconActive} />
+                <span>Alert on Sync</span>
+              </>
+            ) : (
+              <>
+                <BellOff size={12} style={styles.alertIconMuted} />
+                <span>Muted</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm ${isRefreshingStatus ? "btn-loading" : ""}`}
+            onClick={onRefresh}
+            disabled={isRefreshingStatus}
+            style={styles.refreshBtn}
+            title="Refresh cache and accepted-price status"
+          >
+            <RefreshCw size={13} className={isRefreshingStatus ? "spin" : ""} />
+            Refresh Status
+          </button>
+        </div>
       </div>
 
       <div style={styles.summaryBar}>
@@ -138,6 +185,18 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     gap: "10px",
     flexWrap: "wrap",
+  },
+  statusActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flexWrap: "wrap",
+  },
+  alertIconActive: {
+    color: "#60a5fa",
+  },
+  alertIconMuted: {
+    color: "var(--so-text-muted)",
   },
   refreshBtn: {
     display: "inline-flex",
