@@ -18,7 +18,6 @@ export interface SoCloseStatusBarProps {
   instantDealCount: number;
   snoozedCount: number;
   closestSpreadPercent: number | null;
-  isScanning: boolean;
 }
 
 /**
@@ -35,7 +34,6 @@ export const SoCloseStatusBar: React.FC<SoCloseStatusBarProps> = ({
   instantDealCount,
   snoozedCount,
   closestSpreadPercent,
-  isScanning,
 }) => {
   return (
     <div style={styles.wrapper}>
@@ -101,16 +99,6 @@ export const SoCloseStatusBar: React.FC<SoCloseStatusBarProps> = ({
             : "No scan yet — run a scan to surface opportunities."}
         </div>
       </div>
-
-      {isScanning && (
-        <div className="live-session-toolbar" style={styles.liveToolbar}>
-          <span className="live-beacon-dot" />
-          <span style={styles.liveLabel}>LIVE</span>
-          <span style={styles.liveText}>
-            SoClose scanner is sweeping cached listings…
-          </span>
-        </div>
-      )}
     </div>
   );
 };
@@ -195,19 +183,5 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-text-muted)",
     flex: 1,
     minWidth: "220px",
-  },
-  liveToolbar: {
-    position: "static",
-    marginTop: 0,
-  },
-  liveLabel: {
-    fontSize: "10px",
-    fontWeight: 900,
-    letterSpacing: "0.8px",
-    color: "var(--so-cyan-text)",
-  },
-  liveText: {
-    fontSize: "12px",
-    color: "var(--so-text-secondary)",
   },
 };

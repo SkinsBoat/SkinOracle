@@ -165,7 +165,6 @@ export default function SoCloseWorkstationScreen() {
           instantDealCount={instantDealCount}
           snoozedCount={scanner.activeSnoozeCount}
           closestSpreadPercent={closestSpreadPercent}
-          isScanning={scanner.isScanning}
         />
 
         <SoCloseControls

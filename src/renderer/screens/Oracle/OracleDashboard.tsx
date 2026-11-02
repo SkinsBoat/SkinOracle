@@ -1131,11 +1131,15 @@ export default function OracleDashboard() {
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={toggleAllSteps}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              setOpenSteps({ step1: false, step2: false, step3: false });
+            }}
             style={styles.expandAllBtn}
             title={
               allStepsOpen
-                ? "Collapse all Oracle step containers"
-                : "Expand all Oracle step containers"
+                ? "Collapse all Oracle step containers (right-click also closes all)"
+                : "Expand all Oracle step containers (right-click closes all)"
             }
           >
             {allStepsOpen ? (
