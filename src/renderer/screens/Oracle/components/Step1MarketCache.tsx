@@ -144,6 +144,57 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
     }
   };
 
+  // Shortcut: long-press Baseline scope → apply wide scope and stop auto-refresh.
+  const handleBaselineScopeAutoRefreshOffShortcut = () => {
+    setActiveScope("baseline");
+    window.dispatchEvent(new CustomEvent("oracle:auto-refresh-disable"));
+  };
+
+  // Header action (Scan / Restream) gestures: right-click enables Snipe +
+  // auto-refresh; long-press applies Baseline and turns auto-refresh off.
+  const headerLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const headerLongPressFired = useRef(false);
+
+  const clearHeaderLongPress = () => {
+    if (headerLongPressTimer.current) {
+      clearTimeout(headerLongPressTimer.current);
+      headerLongPressTimer.current = null;
+    }
+  };
+
+  useEffect(() => clearHeaderLongPress, []);
+
+  const startHeaderLongPress = () => {
+    clearHeaderLongPress();
+    headerLongPressFired.current = false;
+    headerLongPressTimer.current = setTimeout(() => {
+      headerLongPressFired.current = true;
+      headerLongPressTimer.current = null;
+      handleBaselineScopeAutoRefreshOffShortcut();
+    }, 650);
+  };
+
+  const consumeHeaderLongPress = () => {
+    if (headerLongPressFired.current) {
+      headerLongPressFired.current = false;
+      return true;
+    }
+    return false;
+  };
+
+  const headerScanShortcutProps = {
+    onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      handleSnipeScopeShortcut();
+    },
+    onPointerDown: startHeaderLongPress,
+    onPointerUp: clearHeaderLongPress,
+    onPointerLeave: clearHeaderLongPress,
+    onPointerCancel: clearHeaderLongPress,
+  };
+
   const scopeLabel = activeScope === "snipe" ? "Snipe Scope" : "Baseline Scope";
 
   // Notification alert preference for this section
@@ -313,8 +364,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 type="button"
                 className="btn btn-primary btn-sm"
                 style={styles.headerActionBtn}
+                {...(isCs2capStreaming ? {} : headerScanShortcutProps)}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (consumeHeaderLongPress()) return;
                   if (isCs2capStreaming) {
                     onCancelCs2capStream?.();
                   } else {
@@ -329,7 +382,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                     ? "CS2Cap API Key required"
                     : isCs2capStreaming
                       ? "Cancel active stream"
-                      : "Stream CS2Cap prices into local cache"
+                      : "Stream CS2Cap prices — right-click: Snipe + auto-refresh, long-press: Baseline + auto-refresh off"
                 }
               >
                 {isCs2capStreaming ? (
@@ -348,8 +401,10 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                 type="button"
                 className="btn btn-primary btn-sm"
                 style={styles.headerActionBtn}
+                {...(cacheStatus.isFetching ? {} : headerScanShortcutProps)}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (consumeHeaderLongPress()) return;
                   if (cacheStatus.isFetching) {
                     onCancelFetch();
                   } else {
@@ -369,7 +424,7 @@ export const Step1MarketCache: React.FC<Step1MarketCacheProps> = ({
                       ? "Select at least 1 market"
                       : cacheStatus.isFetching
                         ? "Cancel active market scan"
-                        : "Scan prices from selected markets"
+                        : "Scan prices from selected markets — right-click: Snipe + auto-refresh, long-press: Baseline + auto-refresh off"
                 }
               >
                 {cacheStatus.isFetching ? (
