@@ -11,6 +11,7 @@ import {
   LookupModalItemData,
 } from "../CSFloat/modals/CSFloatLookupModal";
 import { useSoCloseScanner } from "./hooks/useSoCloseScanner";
+import { SNOOZE_OPTIONS, makeSnoozeKey } from "./hooks/useSnoozeStore";
 import { SoCloseStatusBar } from "./components/SoCloseStatusBar";
 import { SoCloseControls } from "./components/SoCloseControls";
 import { SoCloseResultsGrid } from "./components/SoCloseResultsGrid";
@@ -85,6 +86,22 @@ export default function SoCloseWorkstationScreen() {
     toast.success(`Copied ${label} to clipboard!`);
   };
 
+  const handleSnoozeItem = (
+    item: SoCloseResultItem,
+    durationMs: number | null,
+  ) => {
+    scanner.snoozeItem(makeSnoozeKey(item), durationMs);
+    const option = SNOOZE_OPTIONS.find(
+      (snoozeOption) => snoozeOption.durationMs === durationMs,
+    );
+    toast.success(
+      option
+        ? `Snoozed for ${option.label.toLowerCase()}`
+        : "Snoozed for this session",
+      { id: "soclose-snooze-toast", duration: 2000 },
+    );
+  };
+
   const handleExportCard = async (node: HTMLElement, nameHint: string) => {
     const toastId = toast.loading("Exporting card as PNG...");
     try {
@@ -143,6 +160,7 @@ export default function SoCloseWorkstationScreen() {
           scanSummary={scanner.scanSummary}
           resultCount={scanner.soCloseResults.length}
           instantDealCount={instantDealCount}
+          snoozedCount={scanner.activeSnoozeCount}
           closestSpreadPercent={closestSpreadPercent}
           isScanning={scanner.isScanning}
         />
@@ -180,6 +198,7 @@ export default function SoCloseWorkstationScreen() {
         <SoCloseResultsGrid
           results={scanner.processedResults}
           totalResults={scanner.soCloseResults.length}
+          snoozedCount={scanner.activeSnoozeCount}
           searchQuery={scanner.resultSearchQuery}
           onSearchChange={scanner.setResultSearchQuery}
           cacheItemCount={scanner.cacheStatus.itemCount}
@@ -208,6 +227,7 @@ export default function SoCloseWorkstationScreen() {
           onOpenMarket={openItemMarket}
           onInspect={handleOpenLookupModal}
           onCopyName={(name) => copyToClipboard(name, "market hash name")}
+          onSnooze={handleSnoozeItem}
         />
       )}
 

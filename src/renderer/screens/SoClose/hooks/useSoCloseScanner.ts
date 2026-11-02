@@ -8,6 +8,7 @@ import {
   isMarketMatch,
   isTradeMarket,
 } from "../../../../shared/canonicalMarkets";
+import { makeSnoozeKey, useSnoozeStore } from "./useSnoozeStore";
 
 export type AllowedWears = {
   fn: boolean;
@@ -90,6 +91,7 @@ export function loadScannerParams(): PersistedScannerParams {
  */
 export function useSoCloseScanner() {
   const { selectedMarkets: buildMarkets } = useOracleStore();
+  const { snoozeItem, unsnoozeItem, isSnoozeItemActive } = useSnoozeStore();
 
   const [cacheStatus, setCacheStatus] = useState<SoCloseCacheStatus>({
     itemCount: 0,
@@ -573,7 +575,9 @@ export function useSoCloseScanner() {
 
   // Filter Results for UI Rendering (fixed default ordering: closest to ceiling first)
   const processedResults = useMemo(() => {
-    let list = [...soCloseResults];
+    let list = soCloseResults.filter(
+      (item) => !isSnoozeItemActive(makeSnoozeKey(item)),
+    );
 
     if (!isAllSelected) {
       list = list.filter((item) =>
@@ -588,7 +592,20 @@ export function useSoCloseScanner() {
 
     list.sort((a, b) => a.closeness - b.closeness);
     return list;
-  }, [soCloseResults, selectedFilterMarkets, isAllSelected, resultSearchQuery]);
+  }, [
+    soCloseResults,
+    selectedFilterMarkets,
+    isAllSelected,
+    resultSearchQuery,
+    isSnoozeItemActive,
+  ]);
+
+  const activeSnoozeCount = useMemo(
+    () =>
+      soCloseResults.filter((item) => isSnoozeItemActive(makeSnoozeKey(item)))
+        .length,
+    [soCloseResults, isSnoozeItemActive],
+  );
 
   // Market Breakdown Counts
   const marketCountsMap = useMemo(() => {
@@ -629,6 +646,7 @@ export function useSoCloseScanner() {
     tradeCount,
     selectedCount,
     scanSummary,
+    activeSnoozeCount,
     // params
     minPrice,
     setMinPrice,
@@ -653,5 +671,9 @@ export function useSoCloseScanner() {
     runUniversalSoCloseScan,
     getMarketCount,
     buildMarkets,
+    // snooze
+    snoozeItem,
+    unsnoozeItem,
+    isSnoozeItemActive,
   };
 }

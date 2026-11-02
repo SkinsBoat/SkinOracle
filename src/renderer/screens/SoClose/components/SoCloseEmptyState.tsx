@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Calculator, Crosshair, Database } from "lucide-react";
+import { Calculator, Clock, Crosshair, Database } from "lucide-react";
 import EmptyState from "../../../components/EmptyState";
 import { Skeleton } from "../../../components/Skeleton";
 
@@ -8,6 +8,8 @@ export interface SoCloseEmptyStateProps {
   isScanning: boolean;
   cacheItemCount: number;
   acceptedItemCount: number;
+  snoozedCount: number;
+  totalResults: number;
   onScan: () => void;
 }
 
@@ -19,6 +21,8 @@ export const SoCloseEmptyState: React.FC<SoCloseEmptyStateProps> = ({
   isScanning,
   cacheItemCount,
   acceptedItemCount,
+  snoozedCount,
+  totalResults,
   onScan,
 }) => {
   const navigate = useNavigate();
@@ -57,6 +61,17 @@ export const SoCloseEmptyState: React.FC<SoCloseEmptyStateProps> = ({
         title="Accepted Ceilings Not Built"
         description="SoClose needs calculated buy ceilings to measure how close listings are. Calculate Accepted Prices in Oracle Step 2 first."
         action={{ label: "Open Oracle", onClick: () => navigate("/") }}
+      />
+    );
+  }
+
+  if (totalResults > 0 && snoozedCount >= totalResults) {
+    return (
+      <EmptyState
+        icon={<Clock size={40} />}
+        title="All Opportunities Snoozed"
+        description={`${snoozedCount} deal(s) are snoozed and hidden until their snooze expires. Session snoozes clear on app restart.`}
+        action={{ label: "Run Scan", onClick: onScan }}
       />
     );
   }

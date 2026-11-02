@@ -16,6 +16,7 @@ export interface SoCloseStatusBarProps {
   scanSummary: SoCloseScanSummary;
   resultCount: number;
   instantDealCount: number;
+  snoozedCount: number;
   closestSpreadPercent: number | null;
   isScanning: boolean;
 }
@@ -32,6 +33,7 @@ export const SoCloseStatusBar: React.FC<SoCloseStatusBarProps> = ({
   scanSummary,
   resultCount,
   instantDealCount,
+  snoozedCount,
   closestSpreadPercent,
   isScanning,
 }) => {
@@ -71,6 +73,12 @@ export const SoCloseStatusBar: React.FC<SoCloseStatusBarProps> = ({
           label="Instant Deals"
           value={instantDealCount.toLocaleString()}
           tone={instantDealCount > 0 ? "cyan" : "muted"}
+        />
+        <span style={styles.divider} />
+        <SummaryStat
+          label="Snoozed"
+          value={snoozedCount.toLocaleString()}
+          tone={snoozedCount > 0 ? "cyan" : "muted"}
         />
         <span style={styles.divider} />
         <SummaryStat

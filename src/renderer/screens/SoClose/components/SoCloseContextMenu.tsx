@@ -1,7 +1,13 @@
 import React from "react";
-import { Copy, Download, ExternalLink, Eye } from "lucide-react";
+import { Clock, Copy, Download, ExternalLink, Eye } from "lucide-react";
 import { SoCloseResultItem } from "../../../../shared/types";
 import { getMarketDisplayName } from "../../../../shared/canonicalMarkets";
+import {
+  SNOOZE_OPTIONS,
+  SnoozeOption,
+  SmartSnoozeSuggestion,
+  getSmartSnoozeSuggestion,
+} from "../hooks/useSnoozeStore";
 
 export interface SoCloseContextMenuState {
   x: number;
@@ -17,6 +23,7 @@ export interface SoCloseContextMenuProps {
   onOpenMarket: (item: SoCloseResultItem) => void;
   onInspect: (item: SoCloseResultItem) => void;
   onCopyName: (name: string) => void;
+  onSnooze: (item: SoCloseResultItem, durationMs: number | null) => void;
 }
 
 export const SoCloseContextMenu: React.FC<SoCloseContextMenuProps> = ({
@@ -26,73 +33,130 @@ export const SoCloseContextMenu: React.FC<SoCloseContextMenuProps> = ({
   onOpenMarket,
   onInspect,
   onCopyName,
-}) => (
-  <>
-    <div
-      style={styles.contextMenuOverlay}
-      onClick={onClose}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
-    />
-    <div
-      style={getContextMenuStyle(menu.x, menu.y)}
-      role="menu"
-      onContextMenu={(e) => e.preventDefault()}
+  onSnooze,
+}) => {
+  const suggestion = getSmartSnoozeSuggestion(menu.item);
+  const recommendedOptions = SNOOZE_OPTIONS.filter(
+    (option) => option.id === suggestion.optionId,
+  );
+  const otherOptions = SNOOZE_OPTIONS.filter(
+    (option) => option.id !== suggestion.optionId,
+  );
+  const orderedOptions = [...recommendedOptions, ...otherOptions];
+
+  return (
+    <>
+      <div
+        style={styles.contextMenuOverlay}
+        onClick={onClose}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onClose();
+        }}
+      />
+      <div
+        style={getContextMenuStyle(menu.x, menu.y)}
+        role="menu"
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <button
+          type="button"
+          role="menuitem"
+          style={styles.contextMenuItem}
+          onClick={() => {
+            onExport(menu.target, menu.item.name);
+            onClose();
+          }}
+        >
+          <Download size={13} style={styles.contextMenuIcon} /> Export as PNG
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          style={styles.contextMenuItem}
+          onClick={() => {
+            onOpenMarket(menu.item);
+            onClose();
+          }}
+        >
+          <ExternalLink size={13} style={styles.contextMenuIcon} /> Open on{" "}
+          {getMarketDisplayName(menu.item.market)}
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          style={styles.contextMenuItem}
+          onClick={() => {
+            onInspect(menu.item);
+            onClose();
+          }}
+        >
+          <Eye size={13} style={styles.contextMenuIcon} /> Inspect details
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          style={styles.contextMenuItem}
+          onClick={() => {
+            onCopyName(menu.item.name);
+            onClose();
+          }}
+        >
+          <Copy size={13} style={styles.contextMenuIcon} /> Copy item name
+        </button>
+
+        <div style={styles.contextMenuDivider} />
+        <div style={styles.contextMenuSectionLabel}>Snooze</div>
+
+        {orderedOptions.map((option) => (
+          <SnoozeMenuItem
+            key={option.id}
+            option={option}
+            suggestion={suggestion}
+            onSelect={() => {
+              onSnooze(menu.item, option.durationMs);
+              onClose();
+            }}
+          />
+        ))}
+      </div>
+    </>
+  );
+};
+
+const SnoozeMenuItem: React.FC<{
+  option: SnoozeOption;
+  suggestion: SmartSnoozeSuggestion;
+  onSelect: () => void;
+}> = ({ option, suggestion, onSelect }) => {
+  const isRecommended = option.id === suggestion.optionId;
+
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      style={styles.contextMenuItem}
+      onClick={onSelect}
     >
-      <button
-        type="button"
-        role="menuitem"
-        style={styles.contextMenuItem}
-        onClick={() => {
-          onExport(menu.target, menu.item.name);
-          onClose();
-        }}
-      >
-        <Download size={13} style={styles.contextMenuIcon} /> Export as PNG
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        style={styles.contextMenuItem}
-        onClick={() => {
-          onOpenMarket(menu.item);
-          onClose();
-        }}
-      >
-        <ExternalLink size={13} style={styles.contextMenuIcon} /> Open on{" "}
-        {getMarketDisplayName(menu.item.market)}
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        style={styles.contextMenuItem}
-        onClick={() => {
-          onInspect(menu.item);
-          onClose();
-        }}
-      >
-        <Eye size={13} style={styles.contextMenuIcon} /> Inspect details
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        style={styles.contextMenuItem}
-        onClick={() => {
-          onCopyName(menu.item.name);
-          onClose();
-        }}
-      >
-        <Copy size={13} style={styles.contextMenuIcon} /> Copy item name
-      </button>
-    </div>
-  </>
-);
+      <Clock size={13} style={styles.contextMenuIcon} />
+      <span style={styles.snoozeText}>
+        <span>
+          Snooze {option.label}
+          {isRecommended && (
+            <span style={styles.snoozeRecommended}> (Recommended)</span>
+          )}
+        </span>
+        {isRecommended && (
+          <span style={styles.snoozeReason}>{suggestion.reason}</span>
+        )}
+      </span>
+    </button>
+  );
+};
 
 function getContextMenuStyle(x: number, y: number): React.CSSProperties {
-  const MENU_WIDTH = 210;
-  const MENU_HEIGHT = 4 * 34 + 10;
+  const MENU_WIDTH = 240;
+  const MENU_HEIGHT = 4 * 34 + 9 + 22 + 4 * 45 + 10;
   const margin = 8;
   const left = Math.max(
     margin,
@@ -114,7 +178,9 @@ const styles: Record<string, React.CSSProperties> = {
   contextMenu: {
     position: "fixed",
     zIndex: 9999,
-    minWidth: "190px",
+    minWidth: "210px",
+    maxHeight: "calc(100vh - 16px)",
+    overflowY: "auto",
     padding: "5px",
     borderRadius: "var(--so-radius-sm)",
     backgroundColor: "var(--so-surface-card)",
@@ -142,5 +208,32 @@ const styles: Record<string, React.CSSProperties> = {
   contextMenuIcon: {
     color: "var(--so-text-muted)",
     flexShrink: 0,
+  },
+  contextMenuDivider: {
+    height: "1px",
+    margin: "4px 6px",
+    backgroundColor: "var(--so-border-subtle)",
+  },
+  contextMenuSectionLabel: {
+    padding: "2px 10px 4px",
+    fontSize: "9.5px",
+    fontWeight: 800,
+    letterSpacing: "0.7px",
+    textTransform: "uppercase",
+    color: "var(--so-text-muted)",
+  },
+  snoozeText: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+  },
+  snoozeRecommended: {
+    color: "var(--so-cyan-text)",
+    fontWeight: 800,
+  },
+  snoozeReason: {
+    fontSize: "10.5px",
+    fontWeight: 500,
+    color: "var(--so-text-muted)",
   },
 };

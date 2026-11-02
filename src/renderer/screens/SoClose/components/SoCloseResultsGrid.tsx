@@ -7,6 +7,7 @@ import { SoCloseEmptyState } from "./SoCloseEmptyState";
 export interface SoCloseResultsGridProps {
   results: SoCloseResultItem[];
   totalResults: number;
+  snoozedCount: number;
   searchQuery: string;
   onSearchChange: (value: string) => void;
   cacheItemCount: number;
@@ -24,6 +25,7 @@ export interface SoCloseResultsGridProps {
 export const SoCloseResultsGrid: React.FC<SoCloseResultsGridProps> = ({
   results,
   totalResults,
+  snoozedCount,
   searchQuery,
   onSearchChange,
   cacheItemCount,
@@ -40,6 +42,8 @@ export const SoCloseResultsGrid: React.FC<SoCloseResultsGridProps> = ({
         isScanning={isScanning}
         cacheItemCount={cacheItemCount}
         acceptedItemCount={acceptedItemCount}
+        snoozedCount={snoozedCount}
+        totalResults={totalResults}
         onScan={onScan}
       />
     );
