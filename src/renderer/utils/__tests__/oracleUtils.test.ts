@@ -1,6 +1,23 @@
 import { describe, it, expect } from "vitest";
-import { passesSmartPreFilters } from "../../screens/Oracle/utils/oracleUtils";
+import {
+  formatTrendDate,
+  formatTrendDateRange,
+  passesSmartPreFilters,
+} from "../../screens/Oracle/utils/oracleUtils";
 import { DEFAULT_PRE_FILTERS } from "../../store/useOracleStore";
+
+describe("formatTrendDate", () => {
+  it("formats stored ISO dates for display without shifting the UTC day", () => {
+    expect(formatTrendDate("2026-11-03")).toBe("03 Nov 2026");
+    expect(formatTrendDate(null)).toBe("None");
+  });
+
+  it("formats the full retained window", () => {
+    expect(formatTrendDateRange("2026-10-04", "2026-11-03")).toBe(
+      "04 Oct 2026 → 03 Nov 2026",
+    );
+  });
+});
 
 describe("passesSmartPreFilters", () => {
   const baseFilters = { ...DEFAULT_PRE_FILTERS };

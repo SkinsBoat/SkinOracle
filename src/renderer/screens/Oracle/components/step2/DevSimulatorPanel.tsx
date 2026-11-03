@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import {
   evaluateTrendHealth,
+  formatTrendDateRange,
   TrendHealthStatus,
 } from "../../utils/oracleUtils";
 import { FEATURE_FLAGS } from "../../../../../shared/featureFlags";
@@ -116,9 +117,14 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
           <span>•</span>
           <span>
             Date Range:{" "}
-            <strong style={styles.statValue}>
-              {trendStats.oldestDate || "None"} →{" "}
-              {trendStats.latestDate || "None"}
+            <strong
+              style={styles.statValue}
+              title={`${trendStats.oldestDate || "None"} → ${trendStats.latestDate || "None"}`}
+            >
+              {formatTrendDateRange(
+                trendStats.oldestDate,
+                trendStats.latestDate,
+              )}
             </strong>
             {trendHealth.daysSinceLatest !== null && (
               <span

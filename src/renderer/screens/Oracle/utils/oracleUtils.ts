@@ -351,6 +351,32 @@ export function formatTimeAgo(
   return date.toLocaleDateString();
 }
 
+/**
+ * Formats a stored `YYYY-MM-DD` trend date for display (e.g. "04 Oct 2026").
+ * Parsing and formatting are pinned to UTC so the calendar day never shifts
+ * for traders in negative-offset timezones. Storage and API payloads must keep
+ * the raw ISO `YYYY-MM-DD` format the Rust validator expects.
+ */
+export function formatTrendDate(isoDate: string | null | undefined): string {
+  if (!isoDate) return "None";
+  const parsed = new Date(`${isoDate}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return isoDate;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(parsed);
+}
+
+export function formatTrendDateRange(
+  oldestDate: string | null | undefined,
+  latestDate: string | null | undefined,
+): string {
+  if (!oldestDate && !latestDate) return "None";
+  return `${formatTrendDate(oldestDate)} → ${formatTrendDate(latestDate)}`;
+}
+
 export interface TrendHealthStatus {
   daysCount: number;
   latestDate: string | null;
