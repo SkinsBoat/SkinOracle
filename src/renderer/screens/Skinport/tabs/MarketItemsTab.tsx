@@ -175,6 +175,7 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
         <SkinportLookupModal
           item={lookupItem}
           onClose={() => setLookupItem(null)}
+          onOpenMarket={openOnSkinport}
         />
       )}
     </div>
