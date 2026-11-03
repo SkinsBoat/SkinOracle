@@ -74,6 +74,8 @@ export interface SkinportFilterState {
   feedType: FeedTypeFilter;
   /** Density: dense tape (table) vs matrix cards (grid). */
   viewMode: SkinportViewMode;
+  /** When true (default), only tradable items are shown. */
+  tradable: boolean;
 }
 
 export const DEFAULT_FILTERS: SkinportFilterState = {
@@ -85,6 +87,7 @@ export const DEFAULT_FILTERS: SkinportFilterState = {
   allowedWears: DEFAULT_ALLOWED_WEARS,
   feedType: "all",
   viewMode: "grid",
+  tradable: true,
 };
 
 /** Market Items tab defaults: matrix cards. */

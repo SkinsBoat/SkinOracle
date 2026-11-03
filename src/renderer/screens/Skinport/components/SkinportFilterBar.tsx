@@ -50,25 +50,12 @@ export const SkinportFilterBar: React.FC<SkinportFilterBarProps> = ({
       {/* ── Row 1: Price · Feed · Distance · SSS · View · CTA ── */}
       <div style={styles.barRow}>
         <div style={styles.pill}>
-          <span style={styles.filterLabel}>Price ($):</span>
+          <span style={styles.filterLabel}>Tradable</span>
           <input
-            type="number"
-            min="0"
-            step="any"
-            value={filters.priceMin}
-            onChange={(e) => onChange({ priceMin: e.target.value })}
-            placeholder="Min"
-            style={styles.numberInputWide}
-          />
-          <span style={styles.dashSeparator}>-</span>
-          <input
-            type="number"
-            min="0"
-            step="any"
-            value={filters.priceMax}
-            onChange={(e) => onChange({ priceMax: e.target.value })}
-            placeholder="Max"
-            style={styles.numberInputWide}
+            type="checkbox"
+            checked={filters.tradable}
+            onChange={(e) => onChange({ tradable: e.target.checked })}
+            style={styles.tradableCheckbox}
           />
         </div>
 
@@ -408,11 +395,17 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--so-text-muted)",
     marginRight: "2px",
   },
-  groupDivider: {
-    width: "1px",
-    height: "20px",
-    backgroundColor: "var(--so-border-medium)",
-    flexShrink: 0,
+  tradableLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+    cursor: "pointer",
+  },
+  tradableCheckbox: {
+    accentColor: "var(--so-accent-primary)",
+    width: "12px",
+    height: "12px",
+    margin: 0,
   },
   rightActionsGroup: {
     display: "flex",

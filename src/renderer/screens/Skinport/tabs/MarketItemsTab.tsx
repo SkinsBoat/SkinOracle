@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CheckSquare, ExternalLink, Square, X, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import type { AcceptedPriceEntry } from "../../../hooks/useAcceptedPrices";
 import { handleSkinportReferenceLink } from "../../../utils/marketUrls";
 import {
@@ -38,7 +38,6 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
   const [filters, setFilters] = useState<SkinportFilterState>(() =>
     loadPersistedFilters(),
   );
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [lookupItem, setLookupItem] = useState<SkinportLookupItem | null>(null);
 
   useEffect(() => {
@@ -51,10 +50,8 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
   );
 
   const { items, loading, hasScanned, scan } = useSkinportItems({
-    onScanned: (count) => {
-      setSelected({});
-      onScanned?.(count);
-    },
+    onScanned,
+    tradable: filters.tradable,
   });
 
   const handleChange = (patch: Partial<SkinportFilterState>) =>
@@ -86,12 +83,6 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
     }
   };
 
-  const selectedItems = visible.filter((i) => selected[i.market_hash_name]);
-  const selectedCount = selectedItems.length;
-
-  const handleOpenSelected = () =>
-    selectedItems.forEach((i) => openOnSkinport(i.market_hash_name));
-
   return (
     <div style={styles.container}>
       <SkinportFilterBar
@@ -111,48 +102,6 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
         maxCloseness={filters.maxCloseness}
         visibleCount={visible.length}
       />
-
-      {selectedCount > 0 && (
-        <div style={styles.selectionBar}>
-          <span style={styles.selectedText}>
-            <CheckSquare size={14} /> {selectedCount} Selected
-          </span>
-          <button
-            onClick={() =>
-              setSelected((prev) => {
-                const next = { ...prev };
-                visible.forEach((i) => {
-                  next[i.market_hash_name] = true;
-                });
-                return next;
-              })
-            }
-            className="btn btn-outline btn-sm"
-          >
-            <CheckSquare size={12} /> Select Visible ({visible.length})
-          </button>
-          <button
-            onClick={() => setSelected({})}
-            className="btn btn-outline btn-sm"
-          >
-            <Square size={12} /> Clear
-          </button>
-          <button
-            onClick={handleOpenSelected}
-            className="btn btn-primary btn-sm"
-            style={styles.openSelectedBtn}
-          >
-            <ExternalLink size={13} /> Open on Skinport ({selectedCount})
-          </button>
-          <button
-            onClick={() => setSelected({})}
-            className="btn btn-sm"
-            style={styles.clearCircleBtn}
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
 
       <div style={styles.scrollView}>
         {visible.length === 0 ? (
@@ -175,19 +124,9 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
             items={visible}
             ceilings={ceilings}
             maxCloseness={filters.maxCloseness}
-            selected={selected}
-            onToggleSelect={(name) =>
-              setSelected((prev) => ({ ...prev, [name]: !prev[name] }))
-            }
-            onToggleSelectAll={(checked) =>
-              setSelected((prev) => {
-                const next = { ...prev };
-                visible.forEach((i) => {
-                  next[i.market_hash_name] = checked;
-                });
-                return next;
-              })
-            }
+            selected={{}}
+            onToggleSelect={() => {}}
+            onToggleSelectAll={() => {}}
             onOpenMarket={openOnSkinport}
             onOpenLookup={(i) =>
               setLookupItem({
@@ -214,13 +153,6 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
                   ceilings[item.market_hash_name]?.sss ?? null
                 }
                 maxCloseness={filters.maxCloseness}
-                isSelected={!!selected[item.market_hash_name]}
-                onToggleSelect={() =>
-                  setSelected((prev) => ({
-                    ...prev,
-                    [item.market_hash_name]: !prev[item.market_hash_name],
-                  }))
-                }
                 onOpenMarket={openOnSkinport}
                 onOpenLookup={(i) =>
                   setLookupItem({
@@ -239,51 +171,23 @@ export const MarketItemsTab: React.FC<MarketItemsTabProps> = ({
         )}
       </div>
 
-      <SkinportLookupModal
-        item={lookupItem}
-        onClose={() => setLookupItem(null)}
-        onOpenMarket={openOnSkinport}
-      />
+      {lookupItem && (
+        <SkinportLookupModal
+          item={lookupItem}
+          onClose={() => setLookupItem(null)}
+        />
+      )}
     </div>
   );
-};
+}
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
     display: "flex",
     flexDirection: "column",
-    height: "100%",
+    height: "calc(100vh - 130px)",
     gap: "10px",
-    minHeight: 0,
-  },
-  selectionBar: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    backgroundColor: "var(--so-surface-card)",
-    border: "1px solid var(--so-primary)",
-    borderRadius: "var(--so-radius-md)",
-    padding: "8px 14px",
-    flexShrink: 0,
-  },
-  selectedText: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    fontWeight: 800,
-    fontSize: "12px",
-    color: "var(--so-text-primary)",
-  },
-  openSelectedBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    fontWeight: 800,
-    marginLeft: "auto",
-  },
-  clearCircleBtn: {
-    padding: "6px",
-    borderRadius: "50%",
+    overflow: "hidden",
   },
   scrollView: {
     flex: 1,

@@ -56,19 +56,14 @@ export const SkinportSaleCard: React.FC<SkinportSaleCardProps> = ({
       : "var(--so-warning)";
 
   return (
-    <div style={getCardContainerStyle(cardBorderColor)}>
+    <div style={getCardContainerStyle(cardBorderColor)} onClick={() => onOpenMarket(name)} title="Open on Skinport">
       <div style={styles.headerRow}>
         <div style={styles.headerLeft}>
           <button
-            onClick={() => onOpenMarket(name)}
-            className="btn btn-sm"
-            style={styles.actionBtn}
-            title="Open on Skinport (Browser)"
-          >
-            <ExternalLink size={13} />
-          </button>
-          <button
-            onClick={() => onOpenLookup(sale)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenLookup(sale);
+            }}
             className="btn btn-sm"
             style={styles.lookupBtn}
             title="Inspect item details"
@@ -76,6 +71,17 @@ export const SkinportSaleCard: React.FC<SkinportSaleCardProps> = ({
             <Eye size={13} />
           </button>
           <CopyMarketHashButton name={name} />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenMarket(name);
+            }}
+            className="btn btn-sm"
+            style={styles.actionBtn}
+            title="Open on Skinport (Browser)"
+          >
+            <ExternalLink size={13} />
+          </button>
         </div>
         <span style={getEventBadgeStyle(eventType)}>
           {isSold ? "SOLD" : "LISTED"}
@@ -181,17 +187,6 @@ export const SkinportSaleCard: React.FC<SkinportSaleCardProps> = ({
           </span>
         </div>
       </div>
-
-      <div style={styles.actionsRow}>
-        <button
-          onClick={() => onOpenMarket(name)}
-          className="btn btn-primary btn-sm"
-          style={styles.openMarketBtn}
-        >
-          <ExternalLink size={12} />
-          <span>Open on Skinport</span>
-        </button>
-      </div>
     </div>
   );
 };
@@ -254,6 +249,8 @@ const getCardContainerStyle = (
   border: `1px solid ${cardBorderColor}`,
   userSelect: "none",
   overflow: "hidden",
+  cursor: "pointer",
+  transition: "border-color 120ms ease",
 });
 
 const getSssBadgeStyle = (score: number): React.CSSProperties => ({

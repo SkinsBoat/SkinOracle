@@ -5,13 +5,14 @@ import { CS2_APPID } from "../constants";
 
 interface UseSkinportItemsOptions {
   onScanned?: (count: number) => void;
+  tradable?: boolean;
 }
 
 /**
  * Skins market items scan for Skinport. `GET /v1/items` is a single cached
  * (5 min) response with no paging, so `scan()` fetches the whole market once.
  */
-export function useSkinportItems({ onScanned }: UseSkinportItemsOptions = {}) {
+export function useSkinportItems({ onScanned, tradable = true }: UseSkinportItemsOptions = {}) {
   const [items, setItems] = useState<SkinportMarketItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
@@ -25,7 +26,7 @@ export function useSkinportItems({ onScanned }: UseSkinportItemsOptions = {}) {
       const list = await window.electronAPI.skinport.getItems({
         app_id: CS2_APPID,
         currency: "USD",
-        tradable: true,
+        tradable,
       });
       const arr = Array.isArray(list) ? list : [];
       setItems(arr);
@@ -40,7 +41,7 @@ export function useSkinportItems({ onScanned }: UseSkinportItemsOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [onScanned]);
+  }, [onScanned, tradable]);
 
   return { items, loading, hasScanned, updatedAt, scan };
 }

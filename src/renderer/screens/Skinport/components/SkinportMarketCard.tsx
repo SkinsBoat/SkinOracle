@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  CheckCircle2,
-  CheckSquare,
-  ExternalLink,
-  Eye,
-  Square,
-} from "lucide-react";
+import { CheckCircle2, ExternalLink, Eye } from "lucide-react";
 import TrendSparkline from "../../../components/TrendSparkline";
 import { CopyMarketHashButton } from "../../../components/CopyMarketHashButton";
 import { SkinImage } from "../../../components/SkinImage";
@@ -23,8 +17,6 @@ interface SkinportMarketCardProps {
   buyCeilingCents: number | null;
   supplyStabilityScore: number | null;
   maxCloseness: number;
-  isSelected: boolean;
-  onToggleSelect: () => void;
   onOpenMarket: (name: string) => void;
   onOpenLookup: (item: SkinportMarketItem) => void;
 }
@@ -34,8 +26,6 @@ export const SkinportMarketCard: React.FC<SkinportMarketCardProps> = ({
   buyCeilingCents,
   supplyStabilityScore,
   maxCloseness,
-  isSelected,
-  onToggleSelect,
   onOpenMarket,
   onOpenLookup,
 }) => {
@@ -57,22 +47,12 @@ export const SkinportMarketCard: React.FC<SkinportMarketCardProps> = ({
 
   return (
     <div
-      style={getCardContainerStyle(isSelected, cardBorderColor)}
-      onClick={onToggleSelect}
+      style={getCardContainerStyle(false, cardBorderColor)}
+      onClick={() => onOpenMarket(name)}
+      title="Open on Skinport"
     >
       <div style={styles.headerRow}>
         <div style={styles.headerLeft}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenMarket(name);
-            }}
-            className="btn btn-sm"
-            style={styles.actionBtn}
-            title="Open on Skinport (Browser)"
-          >
-            <ExternalLink size={13} />
-          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -85,9 +65,17 @@ export const SkinportMarketCard: React.FC<SkinportMarketCardProps> = ({
             <Eye size={13} />
           </button>
           <CopyMarketHashButton name={name} />
-        </div>
-        <div style={getCheckmarkStyle(isSelected)} title="Click card to select">
-          {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenMarket(name);
+            }}
+            className="btn btn-sm"
+            style={styles.actionBtn}
+            title="Open on Skinport (Browser)"
+          >
+            <ExternalLink size={13} />
+          </button>
         </div>
       </div>
 
@@ -159,23 +147,12 @@ export const SkinportMarketCard: React.FC<SkinportMarketCardProps> = ({
           </span>
         </div>
       </div>
-
-      <div style={styles.actionsRow} onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={() => onOpenMarket(name)}
-          className="btn btn-primary btn-sm"
-          style={styles.openMarketBtn}
-        >
-          <ExternalLink size={12} />
-          <span>Open on Skinport</span>
-        </button>
-      </div>
     </div>
   );
 };
 
 const getCardContainerStyle = (
-  isSelected: boolean,
+  _isSelected: boolean,
   cardBorderColor: string,
 ): React.CSSProperties => ({
   display: "flex",
@@ -189,19 +166,9 @@ const getCardContainerStyle = (
   boxSizing: "border-box",
   borderRadius: "var(--so-radius-md)",
   backgroundColor: "var(--so-surface-card)",
-  border: `1px solid ${isSelected ? "var(--so-primary)" : cardBorderColor}`,
-  boxShadow: isSelected ? "inset 0 0 0 1px var(--so-primary)" : "none",
+  border: `1px solid ${cardBorderColor}`,
   cursor: "pointer",
-  userSelect: "none",
-  overflow: "hidden",
-});
-
-const getCheckmarkStyle = (isSelected: boolean): React.CSSProperties => ({
-  display: "flex",
-  alignItems: "center",
-  color: isSelected ? "var(--so-primary)" : "var(--so-text-muted)",
-  opacity: isSelected ? 1 : 0.45,
-  transition: "all 0.15s ease",
+  transition: "border-color 120ms ease",
 });
 
 const getSssBadgeStyle = (score: number): React.CSSProperties => ({
