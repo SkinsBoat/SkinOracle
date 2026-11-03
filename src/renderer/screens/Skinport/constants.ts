@@ -6,7 +6,7 @@
 export const DEFAULT_MAX_CLOSENESS = 1.08;
 export const DEFAULT_MIN_SSS = 1.2;
 export const DEFAULT_PRICE_MIN = "2";
-export const DEFAULT_PRICE_MAX = "200";
+export const DEFAULT_PRICE_MAX = "500";
 /** Skinport appid for Counter-Strike 2. */
 export const CS2_APPID = 730;
 /** Skinport items endpoint caps requests at 8 / 5 min — refresh no faster. */

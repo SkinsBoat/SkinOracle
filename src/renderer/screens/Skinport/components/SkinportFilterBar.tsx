@@ -50,6 +50,29 @@ export const SkinportFilterBar: React.FC<SkinportFilterBarProps> = ({
       {/* ── Row 1: Price · Feed · Distance · SSS · View · CTA ── */}
       <div style={styles.barRow}>
         <div style={styles.pill}>
+          <span style={styles.filterLabel}>Price ($):</span>
+          <input
+            type="number"
+            min="0"
+            step="any"
+            value={filters.priceMin}
+            onChange={(e) => onChange({ priceMin: e.target.value })}
+            placeholder="Min"
+            style={styles.numberInputWide}
+          />
+          <span style={styles.dashSeparator}>-</span>
+          <input
+            type="number"
+            min="0"
+            step="any"
+            value={filters.priceMax}
+            onChange={(e) => onChange({ priceMax: e.target.value })}
+            placeholder="Max"
+            style={styles.numberInputWide}
+          />
+        </div>
+
+        <div style={styles.pill}>
           <span style={styles.filterLabel}>Tradable</span>
           <input
             type="checkbox"
