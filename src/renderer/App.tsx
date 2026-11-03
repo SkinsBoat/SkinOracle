@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { HashRouter, Routes, Route, Navigate, NavLink } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
+import { exportNodeAsPng } from "./screens/Oracle/utils/lookupImageExport";
 import {
   Cpu,
   Settings,
@@ -58,6 +59,27 @@ function AppContent() {
   const [encryptionWarningDismissed, setEncryptionWarningDismissed] =
     useState<boolean>(() => safeGetItem("so_enc_warn_dismissed") === "true");
   const { isSidebarExpanded, toggleSidebar } = useLayoutStore();
+
+  useEffect(() => {
+    const handler = async (e: KeyboardEvent) => {
+      if (e.key === "F9") {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          const target = document.documentElement;
+          await exportNodeAsPng(target, `skin-oracle-fullscreen-${Date.now()}`);
+          toast.success("Exported screen as PNG");
+        } catch (err: any) {
+          toast.error(
+            "Failed to export screen: " + (err?.message || "unknown error"),
+          );
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true });
+  }, []);
 
   useEffect(() => {
     const handleToggleSidebar = () => toggleSidebar();
