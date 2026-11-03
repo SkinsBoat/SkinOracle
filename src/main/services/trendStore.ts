@@ -5,6 +5,12 @@ import axios from "axios";
 import { app } from "electron";
 import initSqlJs, { Database, SqlJsStatic } from "sql.js";
 
+/**
+ * Rolling retention window for local trend snapshots, measured in calendar
+ * days inclusive of today (30 = today and the 29 days before it).
+ */
+export const TREND_RETENTION_DAYS = 30;
+
 export interface TrendStats {
   daysCount: number;
   totalSnapshots: number;
@@ -54,6 +60,7 @@ export class TrendStore {
   private db: Database | null = null;
   private dbPath: string;
   private isInitialized = false;
+  private initPromise: Promise<void> | null = null;
 
   private simulatedDate: string | null = null;
 
@@ -103,6 +110,18 @@ export class TrendStore {
   public async init(): Promise<void> {
     if (this.isInitialized && this.db) return;
 
+    // Deduplicate concurrent initializations. Without this, two IPC calls on
+    // launch can both load the database, and one can observe/overwrite the
+    // other's handle before the startup retention prune finishes.
+    if (!this.initPromise) {
+      this.initPromise = this.initialize().finally(() => {
+        this.initPromise = null;
+      });
+    }
+    return this.initPromise;
+  }
+
+  private async initialize(): Promise<void> {
     const wasmBuf = getSqlWasmBuffer();
     const wasmBinary = wasmBuf.buffer.slice(
       wasmBuf.byteOffset,
@@ -143,9 +162,9 @@ export class TrendStore {
     this.isInitialized = true;
     console.log(`[TrendStore] Initialized SQLite at ${this.dbPath}`);
 
-    // Auto-prune snapshots older than 30 days on startup to maintain a rolling retention window
+    // Auto-prune snapshots outside the rolling retention window on startup
     try {
-      await this.pruneOldSnapshots(30);
+      await this.pruneOldSnapshots(TREND_RETENTION_DAYS);
     } catch (e) {
       console.warn("[TrendStore] Startup auto-prune failed:", e);
     }
@@ -286,6 +305,13 @@ export class TrendStore {
       console.log(
         `[TrendStore] Recorded ${inserted} snapshots for date: ${today}`,
       );
+
+      // Keep the rolling retention window bounded even when the app stays
+      // open for days (startup prune alone is not enough).
+      if (!customDate) {
+        await this.pruneOldSnapshots(TREND_RETENTION_DAYS);
+      }
+
       return { inserted, snapshotDate: today };
     } catch (err) {
       this.db.run("ROLLBACK;");
@@ -402,15 +428,20 @@ export class TrendStore {
   }
 
   /**
-   * Prunes snapshots older than retentionDays.
+   * Prunes snapshots outside the rolling retention window.
+   *
+   * `retentionDays` is inclusive of the effective (today) date, so passing 30
+   * keeps exactly 30 distinct days: today plus the 29 days before it.
    */
-  public async pruneOldSnapshots(retentionDays: number = 30): Promise<number> {
+  public async pruneOldSnapshots(
+    retentionDays: number = TREND_RETENTION_DAYS,
+  ): Promise<number> {
     await this.init();
     if (!this.db) return 0;
 
     const effectiveDateStr = this.getEffectiveDate();
     const cutoff = new Date(effectiveDateStr + "T00:00:00.000Z");
-    cutoff.setDate(cutoff.getDate() - retentionDays);
+    cutoff.setDate(cutoff.getDate() - Math.max(0, retentionDays - 1));
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
     this.db.run(`DELETE FROM price_snapshots WHERE snapshot_date < ?;`, [

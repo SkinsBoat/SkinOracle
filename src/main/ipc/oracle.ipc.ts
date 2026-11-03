@@ -4,7 +4,7 @@ import * as path from "path";
 import * as zlib from "zlib";
 import { saasAxios, oracleAxios } from "../services/saasAxios";
 
-import { trendStore } from "../services/trendStore";
+import { trendStore, TREND_RETENTION_DAYS } from "../services/trendStore";
 import {
   OracleStrategyProfile,
   NexusStrategyProfile,
@@ -274,7 +274,7 @@ ipcMain.handle("trend-store:get-stats", async () => {
 });
 
 ipcMain.handle("trend-store:prune", async (_, retentionDays?: number) => {
-  return trendStore.pruneOldSnapshots(retentionDays || 30);
+  return trendStore.pruneOldSnapshots(retentionDays || TREND_RETENTION_DAYS);
 });
 
 ipcMain.handle("trend-store:seed-mock-history", async (_, days?: number) => {

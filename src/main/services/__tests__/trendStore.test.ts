@@ -135,6 +135,62 @@ describe("TrendStore SQLite Service", () => {
     expect(stats.latestDate).toBe(dateRecent);
   });
 
+  it("keeps exactly 30 inclusive calendar days of history", async () => {
+    const cache = {
+      "Item A": { l: [{ m: "csfloat", p: 10.0 }] },
+    };
+
+    const seedRes = await store.seedMockHistory(cache, 35);
+    expect(seedRes.seededDays).toBe(35);
+    expect((await store.getStats()).daysCount).toBe(35);
+
+    const pruned = await store.pruneOldSnapshots(30);
+    expect(pruned).toBe(5);
+
+    const stats = await store.getStats();
+    expect(stats.daysCount).toBe(30);
+
+    const cutoff = new Date(
+      `${store.getEffectiveDate()}T00:00:00.000Z`,
+    );
+    cutoff.setDate(cutoff.getDate() - 29);
+    expect(stats.oldestDate).toBe(cutoff.toISOString().slice(0, 10));
+    expect(stats.latestDate).toBe(store.getEffectiveDate());
+  });
+
+  it("auto-prunes stale days when saving a live snapshot", async () => {
+    const cache = {
+      "Item A": { l: [{ m: "csfloat", p: 10.0 }] },
+    };
+
+    await store.seedMockHistory(cache, 35);
+    expect((await store.getStats()).daysCount).toBe(35);
+
+    // Live saves (no custom date) must enforce the rolling window immediately.
+    await store.saveDailySnapshots(cache);
+
+    expect((await store.getStats()).daysCount).toBe(30);
+  });
+
+  it("prunes before exposing stats to concurrent startup callers", async () => {
+    const cache = {
+      "Item A": { l: [{ m: "csfloat", p: 10.0 }] },
+    };
+
+    await store.seedMockHistory(cache, 35);
+    expect((await store.getStats()).daysCount).toBe(35);
+    store.close(); // persist the oversized history to disk
+
+    store = TrendStore.getInstance(tempDbPath);
+    const results = await Promise.all([
+      store.getStats(),
+      store.getStats(),
+      store.getStats(),
+    ]);
+
+    expect(results.every((s) => s.daysCount === 30)).toBe(true);
+  });
+
   it("supports simulated date override for developer testing", async () => {
     store.setSimulatedDate("2026-08-15");
     expect(store.getSimulatedDate()).toBe("2026-08-15");
