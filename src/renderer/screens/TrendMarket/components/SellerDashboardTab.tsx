@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { formatTrendDateRange } from "../../Oracle/utils/oracleUtils";
 import {
   Upload,
   RefreshCw,
@@ -147,7 +148,10 @@ export const SellerDashboardTab: React.FC<SellerDashboardTabProps> = ({
                   {activeListing.daysCount} Days
                 </div>
                 <div style={styles.activeMetricLabel}>
-                  {activeListing.oldestDate} &rarr; {activeListing.latestDate}
+                  {formatTrendDateRange(
+                    activeListing.oldestDate,
+                    activeListing.latestDate,
+                  )}
                 </div>
               </div>
             </div>

@@ -17,6 +17,7 @@ import {
   Coins,
 } from "lucide-react";
 import { confirmModal } from "../../store/useConfirmStore";
+import { formatTrendDate } from "../Oracle/utils/oracleUtils";
 import {
   TrendMarketListing,
   TrendMarketMyListingResponse,
@@ -413,7 +414,8 @@ export const TrendMarketScreen: React.FC = () => {
                   {localTrendStats.totalSnapshots.toLocaleString()} snapshots)
                   {localTrendStats.latestDate && (
                     <span>
-                      {" "}• Latest: <strong>{localTrendStats.latestDate}</strong>
+                      {" "}• Latest:{" "}
+                      <strong>{formatTrendDate(localTrendStats.latestDate)}</strong>
                     </span>
                   )}
                 </span>

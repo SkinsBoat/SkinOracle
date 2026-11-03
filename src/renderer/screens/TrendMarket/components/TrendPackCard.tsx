@@ -1,4 +1,5 @@
 import React from "react";
+import { formatTrendDateRange } from "../../Oracle/utils/oracleUtils";
 import {
   TrendingUp,
   Download,
@@ -96,7 +97,7 @@ export const TrendPackCard = React.memo(function TrendPackCard({
         <div style={styles.salesInfo}>
           <span style={styles.salesCount}>{pack.salesCount} purchases</span>
           <span style={styles.dateInfo}>
-            {pack.oldestDate} &rarr; {pack.latestDate}
+            {formatTrendDateRange(pack.oldestDate, pack.latestDate)}
           </span>
         </div>
 

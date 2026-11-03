@@ -76,11 +76,11 @@ describe("TrendStore SQLite Service", () => {
     };
 
     const d1 = new Date();
-    d1.setDate(d1.getDate() - 2);
+    d1.setUTCDate(d1.getUTCDate() - 2);
     const date1 = d1.toISOString().slice(0, 10);
 
     const d2 = new Date();
-    d2.setDate(d2.getDate() - 1);
+    d2.setUTCDate(d2.getUTCDate() - 1);
     const date2 = d2.toISOString().slice(0, 10);
 
     const res1 = await store.saveDailySnapshots(cacheDay1, date1);
@@ -114,11 +114,11 @@ describe("TrendStore SQLite Service", () => {
     };
 
     const dOld = new Date();
-    dOld.setDate(dOld.getDate() - 60);
+    dOld.setUTCDate(dOld.getUTCDate() - 60);
     const dateOld = dOld.toISOString().slice(0, 10);
 
     const dRecent = new Date();
-    dRecent.setDate(dRecent.getDate() - 5);
+    dRecent.setUTCDate(dRecent.getUTCDate() - 5);
     const dateRecent = dRecent.toISOString().slice(0, 10);
 
     await store.saveDailySnapshots(cache, dateOld); // 60 days ago
@@ -153,7 +153,7 @@ describe("TrendStore SQLite Service", () => {
     const cutoff = new Date(
       `${store.getEffectiveDate()}T00:00:00.000Z`,
     );
-    cutoff.setDate(cutoff.getDate() - 29);
+    cutoff.setUTCDate(cutoff.getUTCDate() - 29);
     expect(stats.oldestDate).toBe(cutoff.toISOString().slice(0, 10));
     expect(stats.latestDate).toBe(store.getEffectiveDate());
   });
@@ -189,6 +189,41 @@ describe("TrendStore SQLite Service", () => {
     ]);
 
     expect(results.every((s) => s.daysCount === 30)).toBe(true);
+  });
+
+  it("ignores and purges malformed snapshot dates", async () => {
+    const cache = {
+      "Item A": { l: [{ m: "csfloat", p: 10.0 }] },
+    };
+
+    await store.saveDailySnapshots(cache);
+
+    // Simulate a torn/legacy row with a corrupted date string.
+    const db = (store as any).db;
+    db.run(
+      "INSERT OR REPLACE INTO price_snapshots (item_name, snapshot_date, median_price, listing_count) VALUES ('Item A', '2026-10)13', 1, 1)",
+    );
+
+    const before = await store.getStats();
+    expect(before.daysCount).toBe(1);
+    expect(before.oldestDate).not.toContain(")");
+
+    const pruned = await store.pruneOldSnapshots(30);
+    expect(pruned).toBeGreaterThanOrEqual(1);
+    expect((await store.getStats()).daysCount).toBe(1);
+  });
+
+  it("rejects invalid custom dates and simulated dates", async () => {
+    const cache = {
+      "Item A": { l: [{ m: "csfloat", p: 10.0 }] },
+    };
+
+    await expect(
+      store.saveDailySnapshots(cache, "2026-10)13"),
+    ).rejects.toThrow("Invalid snapshot date");
+
+    store.setSimulatedDate("2026-10)13");
+    expect(store.getSimulatedDate()).toBeNull();
   });
 
   it("supports simulated date override for developer testing", async () => {

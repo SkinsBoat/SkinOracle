@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import {
   evaluateTrendHealth,
+  formatTrendDate,
   formatTrendDateRange,
   TrendHealthStatus,
 } from "../../utils/oracleUtils";
@@ -58,7 +59,7 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
 
   const getPastDateStr = (daysAgo: number) => {
     const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
+    d.setUTCDate(d.getUTCDate() - daysAgo);
     return d.toISOString().slice(0, 10);
   };
 
@@ -183,7 +184,7 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
             </div>
             <span>
               Your latest price snapshot was recorded on{" "}
-              <strong>{trendStats.latestDate}</strong> (
+              <strong>{formatTrendDate(trendStats.latestDate)}</strong> (
               {trendHealth.daysSinceLatest} days ago). The Nexus valuation
               engine enforces a hard staleness cap of 3 days (
               <code>maxDataAgeDays: 3</code>). Because data is older than 3
@@ -207,7 +208,8 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
               DECAYING TREND CAUTION ({trendHealth.daysSinceLatest} Days Old)
             </div>
             <span>
-              Latest snapshot is from <strong>{trendStats.latestDate}</strong> (
+              Latest snapshot is from{" "}
+              <strong>{formatTrendDate(trendStats.latestDate)}</strong> (
               {trendHealth.daysSinceLatest} days ago). Market price movements
               over the last 48 hours are missing, meaning recent crashes or
               sudden breakouts may not be reflected in trend slopes. Consider
@@ -231,7 +233,8 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
             <span>
               There are{" "}
               <strong>{trendHealth.missingDaysInRange} missing days</strong>{" "}
-              between {trendStats.oldestDate} and {trendStats.latestDate} (
+              between {formatTrendDate(trendStats.oldestDate)} and{" "}
+              {formatTrendDate(trendStats.latestDate)} (
               {trendStats.daysCount} of {trendHealth.spanDays} days captured).
               More than 3 missing days blocks Nexus Pro until continuity is
               restored.
@@ -281,7 +284,7 @@ export const DevSimulatorPanel: React.FC<DevSimulatorPanelProps> = ({
                 className="badge badge-warning"
                 style={styles.dateOverrideBadge}
               >
-                Date Override: {simulatedDate}
+                Date Override: {formatTrendDate(simulatedDate)}
               </span>
             )}
           </div>

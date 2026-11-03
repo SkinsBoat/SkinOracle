@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { confirmModal } from "../../../store/useConfirmStore";
+import { formatTrendDateRange } from "../../Oracle/utils/oracleUtils";
 import {
   Database,
   FolderOpen,
@@ -256,7 +257,7 @@ export const DatabaseStorageSection: React.FC = () => {
             </div>
             <div style={styles.metricDateValue}>
               {trendStats?.oldestDate && trendStats?.latestDate
-                ? `${trendStats.oldestDate} → ${trendStats.latestDate}`
+                ? formatTrendDateRange(trendStats.oldestDate, trendStats.latestDate)
                 : "No snapshots yet"}
             </div>
             <div style={styles.metricSubtext}>Oldest to newest capture</div>

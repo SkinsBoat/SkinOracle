@@ -11,6 +11,9 @@ import initSqlJs, { Database, SqlJsStatic } from "sql.js";
  */
 export const TREND_RETENTION_DAYS = 30;
 
+const TREND_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TREND_DATE_GLOB = "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]";
+
 export interface TrendStats {
   daysCount: number;
   totalSnapshots: number;
@@ -75,7 +78,19 @@ export class TrendStore {
   }
 
   public setSimulatedDate(date: string | null): void {
-    this.simulatedDate = date ? date.trim().slice(0, 10) : null;
+    if (date) {
+      const normalized = date.trim().slice(0, 10);
+      if (!TREND_DATE_RE.test(normalized)) {
+        console.warn(
+          `[TrendStore] Ignoring invalid simulated date: "${date}" (expected YYYY-MM-DD)`,
+        );
+        this.simulatedDate = null;
+        return;
+      }
+      this.simulatedDate = normalized;
+    } else {
+      this.simulatedDate = null;
+    }
     console.log(
       `[TrendStore] Simulated snapshot date set to: ${this.simulatedDate || "LIVE (Today)"}`,
     );
@@ -179,7 +194,11 @@ export class TrendStore {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      fs.writeFileSync(this.dbPath, buffer);
+      // Atomic write: readers can never observe a half-written database
+      // (which would load corrupted values such as a truncated date string).
+      const tmpPath = `${this.dbPath}.tmp`;
+      fs.writeFileSync(tmpPath, buffer);
+      fs.renameSync(tmpPath, this.dbPath);
     } catch (err) {
       console.error("[TrendStore] Failed to write database to disk:", err);
     }
@@ -277,6 +296,11 @@ export class TrendStore {
     if (!this.db) throw new Error("Database not initialized");
 
     const today = customDate || this.getEffectiveDate();
+    if (!TREND_DATE_RE.test(today)) {
+      throw new Error(
+        `Invalid snapshot date "${today}" (expected YYYY-MM-DD)`,
+      );
+    }
     let inserted = 0;
 
     const stmt = this.db.prepare(`
@@ -333,7 +357,7 @@ export class TrendStore {
     const cappedDays = Math.min(Math.max(1, days), 30);
     const effectiveDateStr = this.getEffectiveDate();
     const cutoff = new Date(effectiveDateStr + "T00:00:00.000Z");
-    cutoff.setDate(cutoff.getDate() - (cappedDays + 2)); // Give a small buffer of days
+    cutoff.setUTCDate(cutoff.getUTCDate() - (cappedDays + 2)); // Give a small buffer of days
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
     const result: Record<string, TrendSeries> = {};
@@ -397,7 +421,8 @@ export class TrendStore {
         COUNT(DISTINCT item_name) as item_coverage,
         MAX(snapshot_date) as latest_date,
         MIN(snapshot_date) as oldest_date
-      FROM price_snapshots;
+      FROM price_snapshots
+      WHERE snapshot_date GLOB '${TREND_DATE_GLOB}';
     `);
 
     if (
@@ -441,12 +466,15 @@ export class TrendStore {
 
     const effectiveDateStr = this.getEffectiveDate();
     const cutoff = new Date(effectiveDateStr + "T00:00:00.000Z");
-    cutoff.setDate(cutoff.getDate() - Math.max(0, retentionDays - 1));
+    cutoff.setUTCDate(cutoff.getUTCDate() - Math.max(0, retentionDays - 1));
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
-    this.db.run(`DELETE FROM price_snapshots WHERE snapshot_date < ?;`, [
-      cutoffDate,
-    ]);
+    this.db.run(
+      `DELETE FROM price_snapshots
+       WHERE snapshot_date < ?
+          OR snapshot_date NOT GLOB '${TREND_DATE_GLOB}';`,
+      [cutoffDate],
+    );
     const changes = this.db.getRowsModified();
     if (changes > 0) {
       this.persist();
@@ -495,7 +523,7 @@ export class TrendStore {
     const dates: string[] = [];
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(now);
-      d.setDate(d.getDate() - i);
+      d.setUTCDate(d.getUTCDate() - i);
       dates.push(d.toISOString().slice(0, 10));
     }
 
@@ -587,7 +615,7 @@ export class TrendStore {
     const cappedDays = Math.min(Math.max(1, days), 90);
     const effectiveDateStr = this.getEffectiveDate();
     const cutoff = new Date(effectiveDateStr + "T00:00:00.000Z");
-    cutoff.setDate(cutoff.getDate() - cappedDays);
+    cutoff.setUTCDate(cutoff.getUTCDate() - Math.max(0, cappedDays - 1));
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
     const stmt = this.db.prepare(`
