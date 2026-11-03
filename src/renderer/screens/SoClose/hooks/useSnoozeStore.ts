@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { create } from "zustand";
 import { SoCloseResultItem } from "../../../../shared/types";
 
 const MINUTE_MS = 60 * 1000;
@@ -72,76 +72,64 @@ function loadSnoozedItems(): SnoozedItemsMap {
   return items;
 }
 
+interface SnoozeStoreState {
+  snoozedItems: SnoozedItemsMap;
+  snoozeItem: (key: string, durationMs: number | null) => void;
+  unsnoozeItem: (key: string) => void;
+  pruneExpired: (now?: number) => void;
+}
+
 /**
- * Session-scoped SoClose item snooze. Timed snoozes survive app restarts via
- * localStorage; "This session" snoozes live only in memory.
+ * Session-scoped SoClose item snooze. The store lives at module scope so
+ * switching workstation tabs does not drop session snoozes; timed snoozes
+ * also survive app restarts via localStorage.
  */
-export function useSnoozeStore() {
-  const [snoozedItems, setSnoozedItems] =
-    useState<SnoozedItemsMap>(loadSnoozedItems);
-  const [now, setNow] = useState<number>(() => Date.now());
+export const useSnoozeStore = create<SnoozeStoreState>((set) => ({
+  snoozedItems: loadSnoozedItems(),
 
-  useEffect(() => {
-    const tick = () => setNow(Date.now());
-    const interval = window.setInterval(tick, EXPIRY_SWEEP_INTERVAL_MS);
-    window.addEventListener("focus", tick);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener("focus", tick);
-    };
-  }, []);
+  snoozeItem: (key, durationMs) =>
+    set((state) => {
+      const next = new Map(state.snoozedItems);
+      next.set(key, {
+        expiresAt: durationMs === null ? null : Date.now() + durationMs,
+      });
+      persistSnoozedItems(next);
+      return { snoozedItems: next };
+    }),
 
-  useEffect(() => {
-    setSnoozedItems((prev) => {
+  unsnoozeItem: (key) =>
+    set((state) => {
+      if (!state.snoozedItems.has(key)) return state;
+      const next = new Map(state.snoozedItems);
+      next.delete(key);
+      persistSnoozedItems(next);
+      return { snoozedItems: next };
+    }),
+
+  pruneExpired: (now = Date.now()) =>
+    set((state) => {
       let changed = false;
       const next: SnoozedItemsMap = new Map();
-      prev.forEach((entry, key) => {
+      state.snoozedItems.forEach((entry, key) => {
         if (entry.expiresAt !== null && entry.expiresAt <= now) {
           changed = true;
           return;
         }
         next.set(key, entry);
       });
-      return changed ? next : prev;
-    });
-  }, [now]);
+      if (!changed) return state;
+      persistSnoozedItems(next);
+      return { snoozedItems: next };
+    }),
+}));
 
-  useEffect(() => {
-    persistSnoozedItems(snoozedItems);
-  }, [snoozedItems]);
-
-  const snoozeItem = useCallback((key: string, durationMs: number | null) => {
-    setSnoozedItems((prev) => {
-      const next = new Map(prev);
-      next.set(key, {
-        expiresAt: durationMs === null ? null : Date.now() + durationMs,
-      });
-      return next;
-    });
-  }, []);
-
-  const unsnoozeItem = useCallback((key: string) => {
-    setSnoozedItems((prev) => {
-      if (!prev.has(key)) return prev;
-      const next = new Map(prev);
-      next.delete(key);
-      return next;
-    });
-  }, []);
-
-  const isSnoozeItemActive = useCallback(
-    (key: string): boolean => {
-      const entry = snoozedItems.get(key);
-      if (!entry) return false;
-      return entry.expiresAt === null || entry.expiresAt > Date.now();
-    },
-    [snoozedItems],
-  );
-
-  return {
-    snoozedItems,
-    snoozeItem,
-    unsnoozeItem,
-    isSnoozeItemActive,
+if (typeof window !== "undefined") {
+  const sweeperWindow = window as typeof window & {
+    __socloseSnoozeSweeper?: number;
   };
+  if (!sweeperWindow.__socloseSnoozeSweeper) {
+    sweeperWindow.__socloseSnoozeSweeper = window.setInterval(() => {
+      useSnoozeStore.getState().pruneExpired();
+    }, EXPIRY_SWEEP_INTERVAL_MS);
+  }
 }

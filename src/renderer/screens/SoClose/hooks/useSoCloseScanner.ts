@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useOracleStore } from "../../../store/useOracleStore";
 import { SoCloseResultItem } from "../../../../shared/types";
@@ -91,7 +91,18 @@ export function loadScannerParams(): PersistedScannerParams {
  */
 export function useSoCloseScanner() {
   const { selectedMarkets: buildMarkets } = useOracleStore();
-  const { snoozeItem, unsnoozeItem, isSnoozeItemActive } = useSnoozeStore();
+  const snoozedItems = useSnoozeStore((state) => state.snoozedItems);
+  const snoozeItem = useSnoozeStore((state) => state.snoozeItem);
+  const unsnoozeItem = useSnoozeStore((state) => state.unsnoozeItem);
+  const isSnoozeItemActive = useCallback(
+    (key: string): boolean => {
+      const entry = snoozedItems.get(key);
+      return (
+        !!entry && (entry.expiresAt === null || entry.expiresAt > Date.now())
+      );
+    },
+    [snoozedItems],
+  );
 
   const [cacheStatus, setCacheStatus] = useState<SoCloseCacheStatus>({
     itemCount: 0,

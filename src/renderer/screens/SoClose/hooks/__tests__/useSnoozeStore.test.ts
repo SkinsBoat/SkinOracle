@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { SNOOZE_OPTIONS, makeSnoozeKey } from "../useSnoozeStore";
+import {
+  SNOOZE_OPTIONS,
+  makeSnoozeKey,
+  useSnoozeStore,
+} from "../useSnoozeStore";
 
 describe("useSnoozeStore helpers", () => {
   it("keys snoozes by name and market", () => {
@@ -22,5 +26,17 @@ describe("useSnoozeStore helpers", () => {
       "session",
     ]);
     expect(SNOOZE_OPTIONS[3].durationMs).toBeNull();
+  });
+
+  it("keeps session snoozes in module-scoped state across mounts", () => {
+    const key = "AWP | Asiimov (Field-Tested)__csfloat";
+    useSnoozeStore.getState().snoozeItem(key, null);
+
+    expect(useSnoozeStore.getState().snoozedItems.get(key)).toEqual({
+      expiresAt: null,
+    });
+
+    useSnoozeStore.getState().unsnoozeItem(key);
+    expect(useSnoozeStore.getState().snoozedItems.has(key)).toBe(false);
   });
 });
