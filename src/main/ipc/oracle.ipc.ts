@@ -285,6 +285,10 @@ ipcMain.handle("trend-store:clear", async () => {
   return trendStore.clearAllSnapshots();
 });
 
+ipcMain.handle("trend-store:repair", async () => {
+  return trendStore.repairDatabase();
+});
+
 ipcMain.handle(
   "trend-store:set-simulated-date",
   async (_, date: string | null) => {

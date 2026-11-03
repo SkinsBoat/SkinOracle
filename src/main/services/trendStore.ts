@@ -77,6 +77,10 @@ export class TrendStore {
     this.dbPath = customDbPath || path.join(baseDir, "analytics.sqlite");
   }
 
+  private get corruptionMarkerPath(): string {
+    return `${this.dbPath}.corrupt`;
+  }
+
   public setSimulatedDate(date: string | null): void {
     if (date) {
       const normalized = date.trim().slice(0, 10);
@@ -106,6 +110,92 @@ export class TrendStore {
 
   public getDbPath(): string {
     return this.dbPath;
+  }
+
+  private isMalformedError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err);
+    return /malformed|database disk image/i.test(message);
+  }
+
+  private markCorruption(): void {
+    try {
+      fs.writeFileSync(this.corruptionMarkerPath, new Date().toISOString());
+    } catch (err) {
+      console.warn("[TrendStore] Failed to write corruption marker:", err);
+    }
+  }
+
+  private clearCorruptionMarker(): void {
+    try {
+      if (fs.existsSync(this.corruptionMarkerPath)) {
+        fs.unlinkSync(this.corruptionMarkerPath);
+      }
+    } catch (err) {
+      console.warn("[TrendStore] Failed to clear corruption marker:", err);
+    }
+  }
+
+  private getIntegrityReport(): string {
+    if (!this.db) return "database not initialized";
+    try {
+      const res = this.db.exec("PRAGMA integrity_check;");
+      const rows = res?.[0]?.values ?? [];
+      const messages = rows.map((row) => String(row[0]));
+      return messages.length > 0 ? messages.join("; ") : "unknown";
+    } catch (err) {
+      return err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  /**
+   * Rebuilds all SQLite indexes without touching snapshot rows. This repairs
+   * index-only corruption ("database disk image is malformed") that otherwise
+   * makes DELETE/INSERT fail even though the data pages are intact.
+   */
+  public async repairDatabase(): Promise<{
+    repaired: boolean;
+    integrity: string;
+  }> {
+    await this.init();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const before = this.getIntegrityReport();
+    if (before === "ok") {
+      this.clearCorruptionMarker();
+      return { repaired: false, integrity: before };
+    }
+
+    console.warn(
+      `[TrendStore] Integrity check failed (${before}). Rebuilding indexes...`,
+    );
+    this.db.run("REINDEX;");
+    this.persist();
+
+    const after = this.getIntegrityReport();
+    if (after === "ok") {
+      this.clearCorruptionMarker();
+    } else {
+      this.markCorruption();
+    }
+    console.log(`[TrendStore] Repair finished. Integrity: ${after}`);
+    return { repaired: after === "ok", integrity: after };
+  }
+
+  private async runMutationWithRepair<T>(
+    label: string,
+    operation: () => T,
+  ): Promise<T> {
+    try {
+      return operation();
+    } catch (err) {
+      if (!this.isMalformedError(err)) throw err;
+      this.markCorruption();
+      console.warn(
+        `[TrendStore] ${label} hit a malformed database; rebuilding indexes and retrying...`,
+      );
+      await this.repairDatabase();
+      return operation();
+    }
   }
 
   public static getInstance(customDbPath?: string): TrendStore {
@@ -176,6 +266,19 @@ export class TrendStore {
     this.persist();
     this.isInitialized = true;
     console.log(`[TrendStore] Initialized SQLite at ${this.dbPath}`);
+
+    // A previous mutation detected index corruption. Repair before serving
+    // any reads so DELETE/INSERT operations do not fail with "malformed".
+    if (fs.existsSync(this.corruptionMarkerPath)) {
+      console.warn(
+        "[TrendStore] Corruption marker found; rebuilding indexes on startup...",
+      );
+      try {
+        await this.repairDatabase();
+      } catch (e) {
+        console.warn("[TrendStore] Startup repair failed:", e);
+      }
+    }
 
     // Auto-prune snapshots outside the rolling retention window on startup
     try {
@@ -338,8 +441,17 @@ export class TrendStore {
 
       return { inserted, snapshotDate: today };
     } catch (err) {
-      this.db.run("ROLLBACK;");
+      try {
+        this.db.run("ROLLBACK;");
+      } catch {}
       stmt.free();
+      if (this.isMalformedError(err)) {
+        this.markCorruption();
+        await this.repairDatabase();
+        throw new Error(
+          "Database indexes were corrupt and have been rebuilt. Please retry the operation.",
+        );
+      }
       throw err;
     }
   }
@@ -469,13 +581,15 @@ export class TrendStore {
     cutoff.setUTCDate(cutoff.getUTCDate() - Math.max(0, retentionDays - 1));
     const cutoffDate = cutoff.toISOString().slice(0, 10);
 
-    this.db.run(
-      `DELETE FROM price_snapshots
-       WHERE snapshot_date < ?
-          OR snapshot_date NOT GLOB '${TREND_DATE_GLOB}';`,
-      [cutoffDate],
-    );
-    const changes = this.db.getRowsModified();
+    const changes = await this.runMutationWithRepair("Retention prune", () => {
+      this.db!.run(
+        `DELETE FROM price_snapshots
+         WHERE snapshot_date < ?
+            OR snapshot_date NOT GLOB '${TREND_DATE_GLOB}';`,
+        [cutoffDate],
+      );
+      return this.db!.getRowsModified();
+    });
     if (changes > 0) {
       this.persist();
       console.log(
@@ -491,8 +605,10 @@ export class TrendStore {
   public async clearAllSnapshots(): Promise<number> {
     await this.init();
     if (!this.db) return 0;
-    this.db.run("DELETE FROM price_snapshots;");
-    const rows = this.db.getRowsModified();
+    const rows = await this.runMutationWithRepair("Clear history", () => {
+      this.db!.run("DELETE FROM price_snapshots;");
+      return this.db!.getRowsModified();
+    });
     this.persist();
     console.log(`[TrendStore] Wiped all ${rows} snapshots from SQLite.`);
     return rows;

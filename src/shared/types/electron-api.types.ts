@@ -219,6 +219,7 @@ export interface ElectronAPI {
       days?: number,
     ) => Promise<{ seededDays: number; totalSnapshots: number }>;
     clear: () => Promise<number>;
+    repair: () => Promise<{ repaired: boolean; integrity: string }>;
     setSimulatedDate: (date: string | null) => Promise<string | null>;
     getSimulatedDate: () => Promise<string | null>;
     getDbPath: () => Promise<string>;

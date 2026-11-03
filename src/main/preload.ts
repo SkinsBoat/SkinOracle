@@ -242,6 +242,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
         days,
       ),
     clear: () => safeInvoke<number>("trend-store:clear"),
+    repair: () =>
+      safeInvoke<{ repaired: boolean; integrity: string }>(
+        "trend-store:repair",
+      ),
     setSimulatedDate: (date: string | null) =>
       safeInvoke<string | null>("trend-store:set-simulated-date", date),
     getSimulatedDate: () =>

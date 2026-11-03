@@ -226,6 +226,17 @@ describe("TrendStore SQLite Service", () => {
     expect(store.getSimulatedDate()).toBeNull();
   });
 
+  it("reports a healthy database from repairDatabase", async () => {
+    const cache = {
+      "Item A": { l: [{ m: "csfloat", p: 10.0 }] },
+    };
+    await store.saveDailySnapshots(cache);
+
+    const result = await store.repairDatabase();
+    expect(result.integrity).toBe("ok");
+    expect(result.repaired).toBe(false);
+  });
+
   it("supports simulated date override for developer testing", async () => {
     store.setSimulatedDate("2026-08-15");
     expect(store.getSimulatedDate()).toBe("2026-08-15");

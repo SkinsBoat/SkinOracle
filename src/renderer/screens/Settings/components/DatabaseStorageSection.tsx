@@ -14,6 +14,7 @@ import {
   Calendar,
   Layers,
   Sparkles,
+  Wrench,
 } from "lucide-react";
 
 interface TrendStats {
@@ -30,6 +31,7 @@ export const DatabaseStorageSection: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPruning, setIsPruning] = useState<boolean>(false);
   const [isClearing, setIsClearing] = useState<boolean>(false);
+  const [isRepairing, setIsRepairing] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
 
   const fetchStatsAndPath = useCallback(async () => {
@@ -101,6 +103,37 @@ export const DatabaseStorageSection: React.FC = () => {
       toast.error(err?.message || "Failed to prune snapshots");
     } finally {
       setIsPruning(false);
+    }
+  };
+
+  const handleRepairDatabase = async () => {
+    const confirmed = await confirmModal({
+      title: "Rebuild Database Indexes?",
+      message:
+        "This verifies the local SQLite file and rebuilds its indexes without deleting any snapshot data. Use it if pruning reports 'database disk image is malformed'. It can take a few seconds for large databases.",
+      confirmText: "Repair Database",
+      cancelText: "Cancel",
+      variant: "warning",
+    });
+    if (!confirmed) return;
+
+    setIsRepairing(true);
+    try {
+      const result = await window.electronAPI.trendStore.repair();
+      if (result.integrity === "ok") {
+        toast.success(
+          result.repaired
+            ? "Database indexes rebuilt successfully."
+            : "Database integrity is already OK.",
+        );
+      } else {
+        toast.error(`Repair incomplete: ${result.integrity}`);
+      }
+      await fetchStatsAndPath();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to repair database");
+    } finally {
+      setIsRepairing(false);
     }
   };
 
@@ -277,6 +310,21 @@ export const DatabaseStorageSection: React.FC = () => {
 
         <div style={styles.maintenanceRow}>
           <div style={styles.pruneButtonGroup}>
+            <button
+              type="button"
+              onClick={handleRepairDatabase}
+              disabled={isRepairing}
+              style={styles.pruneBtn}
+              title="Verify the SQLite file and rebuild indexes without deleting data"
+            >
+              {isRepairing ? (
+                <RotateCw size={13} className="spin" />
+              ) : (
+                <Wrench size={13} />
+              )}
+              {isRepairing ? "Repairing…" : "Repair Database"}
+            </button>
+
             <button
               type="button"
               onClick={() => handlePrune(7)}
