@@ -121,14 +121,14 @@ export const ExternalLinkButton: React.FC<ExternalLinkButtonProps> = ({
       style={style}
       disabled={!hasUrl}
       onClick={handleClick}
-      onPointerDown={startLongPress}
-      onPointerUp={clearLongPress}
-      onPointerLeave={clearLongPress}
-      onPointerCancel={clearLongPress}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void copyUrl();
+      }}
       title={
         hasUrl
-          ? `${label || "Open link"} — long-press to copy URL`
+          ? `${label || "Open link"} — right-click to copy URL`
           : "Link unavailable"
       }
       aria-label={label || "Open external link"}

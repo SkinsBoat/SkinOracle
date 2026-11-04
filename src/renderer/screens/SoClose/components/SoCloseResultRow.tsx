@@ -46,9 +46,13 @@ export const SoCloseResultRow: React.FC<SoCloseResultRowProps> = ({
   return (
     <div
       className={`card ${isInstantProfit ? "stream-row-pulse" : ""}`}
-      style={getOpportunityCardStyle(isInstantProfit)}
-      onContextMenu={(e) => onContextMenu(e, item)}
-      title="Right-click for card actions"
+      style={getOpportunityCardStyle(isInstantProfit, !!marketUrl)}
+      onClick={marketUrl ? () => onOpenMarket(item) : undefined}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu(e, item);
+      }}
+      title="Click to open in market • Right-click for card actions"
     >
       {/* Row 1: Actions (left) & Market (right) */}
       <div style={styles.cardTopRow}>
@@ -134,10 +138,9 @@ export const SoCloseResultRow: React.FC<SoCloseResultRowProps> = ({
         fallbackItemName={item.name}
         title={
           marketUrl
-            ? `Click to open on ${getMarketDisplayName(item.market)}`
+            ? `Click card to open on ${getMarketDisplayName(item.market)}`
             : undefined
         }
-        onClick={marketUrl ? () => onOpenMarket(item) : undefined}
       />
 
       <div style={styles.titleWearRow}>
@@ -183,7 +186,7 @@ export const SoCloseResultRow: React.FC<SoCloseResultRowProps> = ({
 
 // ── Helpers & Styles ────────────────────────────────────────────────
 
-function getOpportunityCardStyle(isInstantProfit: boolean): React.CSSProperties {
+function getOpportunityCardStyle(isInstantProfit: boolean, hasUrl: boolean): React.CSSProperties {
   return {
     backgroundColor: "var(--so-surface-card)",
     border: `1px solid ${
@@ -195,7 +198,7 @@ function getOpportunityCardStyle(isInstantProfit: boolean): React.CSSProperties 
     flexDirection: "column",
     gap: "8px",
     position: "relative",
-    cursor: "default",
+    cursor: hasUrl ? "pointer" : "default",
     transition: "border-color var(--so-duration-fast) var(--so-ease-out)",
   };
 }
