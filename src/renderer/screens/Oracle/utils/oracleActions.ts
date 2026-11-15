@@ -8,6 +8,7 @@ import {
 import { SkinsnipeMarketId } from "../../../../shared/types";
 import { isMarketMatch } from "../../../../shared/canonicalMarkets";
 import { SKINSNIPE_AVAILABLE_MARKETS } from "../components/step1/skinsnipeMarkets";
+import { loadSavedIntervalMinutes } from "../../../utils/autoRefreshUtils";
 import {
   passesSmartPreFilters,
   isBlockedBySkinList,
@@ -347,17 +348,18 @@ export async function runScanSnipe(): Promise<void> {
   useOracleStore.getState().setActiveScope("snipe");
   const { pricingProvider, selectedMarkets, selectedCs2capProviders } =
     useOracleStore.getState();
+  const intervalMinutes = loadSavedIntervalMinutes();
   try {
     await window.electronAPI.autoRefresh?.setConfig?.({
       enabled: true,
       provider: pricingProvider,
       scope: "snipe",
-      intervalMinutes: 5,
+      intervalMinutes,
       ...(pricingProvider === "skinsnipe"
         ? { markets: selectedMarkets }
         : { providers: selectedCs2capProviders }),
     });
-    toast.success("Snipe scan mode — auto-refresh enabled (5 min)");
+    toast.success(`Snipe scan mode — auto-refresh enabled (${intervalMinutes} min)`);
   } catch (err: any) {
     toast.error(err.message || "Failed to enable snipe auto-refresh");
   }

@@ -9,58 +9,17 @@ import {
 } from "lucide-react";
 import { useOracleStore } from "../../../../store/useOracleStore";
 import { useAutoRefreshStore } from "../../../../store/useAutoRefreshStore";
-import { safeGetItem, safeSetItem } from "../../../../utils/storage";
+import {
+  loadIntervalPreference,
+  saveIntervalPreference,
+  loadSavedIntervalMinutes,
+  formatInterval,
+  PRESET_MINUTES,
+  type CustomUnit,
+} from "../../../../utils/autoRefreshUtils";
+
+export { formatInterval };
 import type { AutoRefreshStatus } from "../../../../../shared/types/autoRefresh.types";
-
-const PRESET_MINUTES = [15, 30, 60, 120];
-const INTERVAL_PREF_KEY = "so_auto_refresh_interval";
-
-type CustomUnit = "minutes" | "hours";
-
-interface IntervalPreference {
-  selectedMinutes: number | null;
-  customValue: number;
-  customUnit: CustomUnit;
-}
-
-function loadIntervalPreference(): IntervalPreference | null {
-  const raw = safeGetItem(INTERVAL_PREF_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<IntervalPreference>;
-    if (!parsed || typeof parsed !== "object") return null;
-
-    const customValue =
-      typeof parsed.customValue === "number" &&
-      Number.isFinite(parsed.customValue)
-        ? Math.max(1, Math.round(parsed.customValue))
-        : 4;
-    const customUnit: CustomUnit =
-      parsed.customUnit === "minutes" ? "minutes" : "hours";
-    const selectedMinutes =
-      typeof parsed.selectedMinutes === "number" &&
-      Number.isFinite(parsed.selectedMinutes) &&
-      PRESET_MINUTES.includes(parsed.selectedMinutes)
-        ? parsed.selectedMinutes
-        : null;
-
-    return { selectedMinutes, customValue, customUnit };
-  } catch {
-    return null;
-  }
-}
-
-function saveIntervalPreference(preference: IntervalPreference): void {
-  safeSetItem(INTERVAL_PREF_KEY, JSON.stringify(preference));
-}
-
-export const formatInterval = (minutes: number): string => {
-  if (minutes % 60 === 0 && minutes >= 60) {
-    const hours = minutes / 60;
-    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
-  }
-  return `${minutes} min`;
-};
 
 export const AutoRefreshControl: React.FC = () => {
   const pricingProvider = useOracleStore((s) => s.pricingProvider);
