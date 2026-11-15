@@ -12,6 +12,8 @@ import {
 } from "../CSFloat/modals/CSFloatLookupModal";
 import { useSoCloseScanner } from "./hooks/useSoCloseScanner";
 import { SNOOZE_OPTIONS, makeSnoozeKey } from "./hooks/useSnoozeStore";
+import { useOracleStore } from "../../store/useOracleStore";
+import { extractBaseName } from "../Oracle/utils/oracleUtils";
 import { SoCloseStatusBar } from "./components/SoCloseStatusBar";
 import { SoCloseControls } from "./components/SoCloseControls";
 import { SoCloseResultsGrid } from "./components/SoCloseResultsGrid";
@@ -39,6 +41,7 @@ function loadConfigOpen(): boolean {
  */
 export default function SoCloseWorkstationScreen() {
   const scanner = useSoCloseScanner();
+  const blockSkin = useOracleStore((state) => state.blockSkin);
   const [lookupModalItem, setLookupModalItem] =
     useState<LookupModalItemData | null>(null);
   const [contextMenu, setContextMenu] =
@@ -106,6 +109,19 @@ export default function SoCloseWorkstationScreen() {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`Copied ${label} to clipboard!`);
+  };
+
+  const handleBlockItem = (item: SoCloseResultItem) => {
+    const baseName = extractBaseName(item.name);
+    if (!baseName) {
+      toast.error("Could not resolve a blockable name for this item.");
+      return;
+    }
+    blockSkin(baseName);
+    toast.success(`Blocked: ${baseName}`, {
+      id: "soclose-block-toast",
+      duration: 2500,
+    });
   };
 
   const handleSnoozeItem = (
@@ -229,6 +245,7 @@ export default function SoCloseWorkstationScreen() {
           onOpenMarket={openItemMarket}
           onInspect={handleOpenLookupModal}
           onCopyName={(name) => copyToClipboard(name, "market hash name")}
+          onBlock={handleBlockItem}
           onSnooze={handleSnoozeItem}
         />
       )}

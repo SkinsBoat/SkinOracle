@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock, Copy, Download, ExternalLink, Eye } from "lucide-react";
+import { Ban, Clock, Copy, Download, ExternalLink, Eye } from "lucide-react";
 import { SoCloseResultItem } from "../../../../shared/types";
 import { getMarketDisplayName } from "../../../../shared/canonicalMarkets";
 import { SNOOZE_OPTIONS, SnoozeOption } from "../hooks/useSnoozeStore";
@@ -18,6 +18,7 @@ export interface SoCloseContextMenuProps {
   onOpenMarket: (item: SoCloseResultItem) => void;
   onInspect: (item: SoCloseResultItem) => void;
   onCopyName: (name: string) => void;
+  onBlock: (item: SoCloseResultItem) => void;
   onSnooze: (item: SoCloseResultItem, durationMs: number | null) => void;
 }
 
@@ -28,6 +29,7 @@ export const SoCloseContextMenu: React.FC<SoCloseContextMenuProps> = ({
   onOpenMarket,
   onInspect,
   onCopyName,
+  onBlock,
   onSnooze,
 }) => {
   return (
@@ -90,6 +92,17 @@ export const SoCloseContextMenu: React.FC<SoCloseContextMenuProps> = ({
         >
           <Copy size={13} style={styles.contextMenuIcon} /> Copy item name
         </button>
+        <button
+          type="button"
+          role="menuitem"
+          style={styles.blockMenuItem}
+          onClick={() => {
+            onBlock(menu.item);
+            onClose();
+          }}
+        >
+          <Ban size={13} style={styles.blockMenuIcon} /> Block skin
+        </button>
 
         <div style={styles.contextMenuDivider} />
         <div style={styles.contextMenuSectionLabel}>Snooze</div>
@@ -128,7 +141,7 @@ const SnoozeMenuItem: React.FC<{
 
 function getContextMenuStyle(x: number, y: number): React.CSSProperties {
   const MENU_WIDTH = 240;
-  const MENU_HEIGHT = 4 * 34 + 9 + 22 + 4 * 34 + 10;
+  const MENU_HEIGHT = 5 * 34 + 9 + 22 + 2 * 34 + 10;
   const margin = 8;
   const left = Math.max(
     margin,
@@ -180,6 +193,26 @@ const styles: Record<string, React.CSSProperties> = {
   contextMenuIcon: {
     color: "var(--so-text-muted)",
     flexShrink: 0,
+  },
+  blockMenuItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    width: "100%",
+    padding: "7px 10px",
+    border: "none",
+    borderRadius: "var(--so-radius-sm)",
+    background: "transparent",
+    color: "var(--so-danger-text, #ef4444)",
+    fontSize: "12.5px",
+    fontWeight: 600,
+    cursor: "pointer",
+    textAlign: "left",
+  },
+  blockMenuIcon: {
+    color: "var(--so-danger, #ef4444)",
+    flexShrink: 0,
+    opacity: 0.85,
   },
   contextMenuDivider: {
     height: "1px",

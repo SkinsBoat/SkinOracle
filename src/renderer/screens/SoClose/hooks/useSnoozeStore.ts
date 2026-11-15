@@ -5,7 +5,7 @@ const MINUTE_MS = 60 * 1000;
 const EXPIRY_SWEEP_INTERVAL_MS = 15 * 1000;
 const STORAGE_KEY = "soclose_snoozed_items";
 
-export type SnoozeOptionId = "15m" | "1h" | "3h" | "session";
+export type SnoozeOptionId = "1h" | "session";
 
 export interface SnoozeOption {
   id: SnoozeOptionId;
@@ -20,9 +20,7 @@ export interface SnoozeEntry {
 export type SnoozedItemsMap = Map<string, SnoozeEntry>;
 
 export const SNOOZE_OPTIONS: SnoozeOption[] = [
-  { id: "15m", label: "15 minutes", durationMs: 15 * MINUTE_MS },
   { id: "1h", label: "1 hour", durationMs: 60 * MINUTE_MS },
-  { id: "3h", label: "3 hours", durationMs: 180 * MINUTE_MS },
   { id: "session", label: "This session", durationMs: null },
 ];
 

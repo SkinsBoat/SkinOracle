@@ -18,14 +18,12 @@ describe("useSnoozeStore helpers", () => {
     );
   });
 
-  it("exposes the four supported snooze durations", () => {
+  it("exposes the two supported snooze durations", () => {
     expect(SNOOZE_OPTIONS.map((option) => option.id)).toEqual([
-      "15m",
       "1h",
-      "3h",
       "session",
     ]);
-    expect(SNOOZE_OPTIONS[3].durationMs).toBeNull();
+    expect(SNOOZE_OPTIONS[1].durationMs).toBeNull();
   });
 
   it("keeps session snoozes in module-scoped state across mounts", () => {
