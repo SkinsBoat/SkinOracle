@@ -64,13 +64,6 @@ export const OracleQuickActions: React.FC<OracleQuickActionsProps> = ({
         active={false}
       />
       <OraclePill
-        label="s"
-        icon={<Clock size={11} style={pillIcon} />}
-        onClick={handleScanSnipe}
-        disabled={busy}
-        active={false}
-      />
-      <OraclePill
         label={calcPercent != null ? `c ${calcPercent}%` : "c"}
         icon={
           busy || calcPercent != null ? (
@@ -82,6 +75,13 @@ export const OracleQuickActions: React.FC<OracleQuickActionsProps> = ({
         onClick={handleCalcAccepted}
         disabled={busy}
         active={busy}
+      />
+      <OraclePill
+        label="s"
+        icon={<Clock size={11} style={pillIcon} />}
+        onClick={handleScanSnipe}
+        disabled={busy}
+        active={false}
       />
     </div>
   );

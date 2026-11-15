@@ -24,6 +24,7 @@ import {
 import RegisterScreen from "./screens/Onboarding/RegisterScreen";
 import OtpScreen from "./screens/Onboarding/OtpScreen";
 import SettingsScreen from "./screens/Settings";
+import OracleDashboard from "./screens/Oracle/OracleDashboard";
 import CSFloatWorkstation from "./screens/CSFloat/CSFloatWorkstation";
 import DmarketWorkstation from "./screens/Dmarket/DmarketWorkstation";
 import SoCloseWorkstationScreen from "./screens/SoClose/SoCloseWorkstationScreen";
@@ -350,7 +351,7 @@ function AppContent() {
                   </span>
                 )}
                 <NavLink
-                  to="/"
+                  to="/oracle"
                   title="Pricing Central"
                   className={({ isActive }) =>
                     `sidebar-nav-item nav-link-motion ${isActive ? "active" : ""}`
@@ -632,6 +633,7 @@ function AppContent() {
           <main style={styles.mainContent}>
             <Routes>
               <Route path="/" element={<SoCloseWorkstationScreen />} />
+              <Route path="/oracle" element={<OracleDashboard />} />
               <Route path="/csfloat" element={<CSFloatWorkstation />} />
               <Route path="/dmarket" element={<DmarketWorkstation />} />
               <Route path="/soclose" element={<SoCloseWorkstationScreen />} />
