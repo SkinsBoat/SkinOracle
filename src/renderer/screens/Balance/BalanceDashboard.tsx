@@ -8,7 +8,6 @@ import {
   History,
   FileText,
   CheckCircle2,
-  Coins,
   Receipt,
   PlusCircle,
 } from "lucide-react";

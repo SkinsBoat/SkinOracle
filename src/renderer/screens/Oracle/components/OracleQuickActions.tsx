@@ -5,7 +5,6 @@ import {
   Clock,
   Zap,
   Tag,
-  Loader2,
 } from "lucide-react";
 import {
   runBuildAcceptedPrices,

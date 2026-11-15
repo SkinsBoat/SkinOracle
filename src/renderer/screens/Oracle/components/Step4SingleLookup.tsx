@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Search,
-  ChevronUp,
   ChevronDown,
   Loader2,
   Zap,

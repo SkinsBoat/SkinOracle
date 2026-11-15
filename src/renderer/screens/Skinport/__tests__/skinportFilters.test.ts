@@ -1,14 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   buildCeilingMap,
-  selectVisibleItems,
-  selectVisibleSales,
   sortMarketItems,
   sortSales,
   type SkinportFeedEntry,
 } from "../utils/skinportFilters";
 import { calculateEventVelocity } from "../utils/skinportUtils";
-import { DEFAULT_FILTERS } from "../constants";
 import type {
   SkinportMarketItem,
   SkinportSale,
@@ -63,14 +60,6 @@ const entry = (
   receivedAt,
   count: 1,
 });
-
-// Base filters widen the price window so ceiling/SSS logic is what discriminates.
-const baseFilters = {
-  ...DEFAULT_FILTERS,
-  priceMin: "1",
-  priceMax: "10000",
-  minSss: 0,
-};
 
 describe("sortSales", () => {
   const entries = [

@@ -62,7 +62,6 @@ export const SellerActiveDealCard: React.FC<SellerActiveDealCardProps> = ({
   const canonicalMarket = toCanonicalMarketId(auction.marketplace);
   const marketDisplayName = getMarketDisplayName(auction.marketplace);
   const supportsStore = !!marketConfig?.supportsStoreLink;
-  const isCsFloat = canonicalMarket === 'csfloat';
   const storeTypeName =
     marketConfig?.storeLinkLabel || `${marketDisplayName} Store`;
 

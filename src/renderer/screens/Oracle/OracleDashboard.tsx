@@ -103,7 +103,6 @@ export default function OracleDashboard() {
     setSelectedCs2capProviders,
     toggleCs2capProvider: storeToggleCs2capProvider,
     soloCs2capProvider: storeSoloCs2capProvider,
-    selectAllCs2capProviders: storeSelectAllCs2capProviders,
     resetDefaultCs2capProviders: storeResetDefaultCs2capProviders,
     hideTradeMarkets,
     setHideTradeMarkets,
@@ -461,11 +460,6 @@ export default function OracleDashboard() {
     toast.success(
       `Reset ${activeScope === "snipe" ? "Snipe" : "Baseline"} scope to its default preset (${count} markets)`,
     );
-  };
-
-  const resetPreFilters = () => {
-    storeResetPreFilters();
-    toast.success("Reset smart pre-filters to default");
   };
 
   const buildAcceptedPrices = async () => {

@@ -8,8 +8,6 @@ import {
   Loader2,
   Tag,
   Clock,
-  Zap,
-  AlertTriangle,
 } from "lucide-react";
 import {
   DmarketInventoryItem,

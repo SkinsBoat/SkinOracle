@@ -2,7 +2,6 @@ import React from "react";
 import {
   Tag,
   RotateCw,
-  Link as LinkIcon,
   Lock,
   Globe,
   Loader2,
@@ -64,9 +63,6 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({
   inventory,
   inventoryLoading,
   fetchInventory,
-  loadingListingPrices,
-  listingPricesLoaded,
-  loadListingPrices,
   isPrivateMode,
   setIsPrivateMode,
   listingAnalysis,

@@ -89,11 +89,6 @@ export const EventFeedTab: React.FC<EventFeedTabProps> = ({
     [acceptedPriceMap],
   );
 
-  const matchedCount = useMemo(
-    () => entries.filter((e) => ceilings[e.sale.marketHashName]).length,
-    [entries, ceilings],
-  );
-
   const visible = useMemo(
     () => selectVisibleSales(entries, ceilings, filters),
     [entries, ceilings, filters],

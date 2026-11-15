@@ -4,7 +4,6 @@ import {
   handleCsfloatReferenceLink,
   handleDmarketReferenceLink,
   handleWaxpeerReferenceLink,
-  handleAvanMarketReferenceLink,
   handleTradeitReferenceLink,
   handleSkinflowReferenceLink,
   handleWhiteMarketReferenceLink,

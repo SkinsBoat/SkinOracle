@@ -19,8 +19,6 @@ export interface ExternalLinkButtonProps {
   style?: React.CSSProperties;
 }
 
-const LONG_PRESS_MS = 550;
-
 const isSafeExternalUrl = (value?: string | null): boolean => {
   if (!value) return false;
   try {
@@ -43,7 +41,6 @@ export const ExternalLinkButton: React.FC<ExternalLinkButtonProps> = ({
   label,
   size = 13,
   onOpen,
-  copyOnLongPress = true,
   copyMessage = "URL copied to clipboard",
   className,
   style,
@@ -88,17 +85,6 @@ export const ExternalLinkButton: React.FC<ExternalLinkButtonProps> = ({
     } catch {
       toast.error("Could not copy URL");
     }
-  };
-
-  const startLongPress = () => {
-    if (!copyOnLongPress || !hasUrl || !url) return;
-    clearLongPress();
-    longPressFired.current = false;
-    longPressTimer.current = setTimeout(() => {
-      longPressFired.current = true;
-      longPressTimer.current = null;
-      void copyUrl();
-    }, LONG_PRESS_MS);
   };
 
   const handleClick = () => {

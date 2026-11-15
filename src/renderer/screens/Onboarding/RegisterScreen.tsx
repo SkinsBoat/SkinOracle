@@ -8,7 +8,7 @@ interface Props {
   onSuccess: () => void;
 }
 
-export default function RegisterScreen({ onSuccess }: Props) {
+export default function RegisterScreen({ }: Props) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);

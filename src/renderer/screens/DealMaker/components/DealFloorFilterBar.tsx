@@ -9,7 +9,7 @@ import {
   DollarSign,
   Layers,
 } from 'lucide-react';
-import { DealFloorFilters, AuctionFloorFilters } from '../utils/dealFilterUtils';
+import { DealFloorFilters } from '../utils/dealFilterUtils';
 import { MarketLogo } from '../../../components/MarketLogo';
 import {
   getMarketDisplayName,

@@ -11,8 +11,6 @@ import {
   AlertTriangle,
   Loader2,
   Database,
-  Layers,
-  Calendar,
   CheckCircle2,
   Coins,
 } from "lucide-react";

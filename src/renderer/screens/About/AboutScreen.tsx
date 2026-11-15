@@ -7,7 +7,6 @@ import {
   Layers,
   Send,
   Mail,
-  Globe,
   Copy,
   Check,
   Sparkles,

@@ -15,7 +15,6 @@ import {
 } from "../../../../../shared/canonicalMarkets";
 import {
   QuantityIntegrityReport,
-  MarketQuantityAudit,
   formatTimeAgo,
 } from "../../utils/oracleUtils";
 

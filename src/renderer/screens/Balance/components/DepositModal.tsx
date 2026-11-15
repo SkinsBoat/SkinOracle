@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   X,
   ExternalLink,
@@ -42,9 +42,9 @@ export default function DepositModal({
   const [activeDepositId, setActiveDepositId] = useState<string | null>(null);
   const [activeInvoiceUrl, setActiveInvoiceUrl] = useState<string | null>(null);
   const [depositStatus, setDepositStatus] = useState<string>("waiting");
-  const [countdown, setCountdown] = useState<number>(POLL_INTERVAL_SECONDS);
-  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
-  const [isCheckingNow, setIsCheckingNow] = useState<boolean>(false);
+const [countdown, setCountdown] = useState<number>(POLL_INTERVAL_SECONDS);
+const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+const [isCheckingNow, setIsCheckingNow] = useState<boolean>(false);
 
   // Check deposit status with gateway
   const checkDepositStatus = useCallback(

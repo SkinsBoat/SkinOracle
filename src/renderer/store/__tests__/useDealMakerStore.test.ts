@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useDealMakerStore, useAuctionStore } from '../useDealMakerStore';
+import { useAuctionStore } from '../useDealMakerStore';
 
 describe('useDealMakerStore Modal & State Management', () => {
   beforeEach(() => {

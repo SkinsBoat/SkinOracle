@@ -8,7 +8,6 @@ import {
   Trash2,
   Loader2,
   Clock,
-  Zap,
 } from "lucide-react";
 import { DmarketOfferItem, ListingAnalysis } from "../../../../../../shared/types";
 import {

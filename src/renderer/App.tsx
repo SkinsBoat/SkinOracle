@@ -19,7 +19,6 @@ import {
   csfloatLogo,
   dmarketLogo,
   skinportLogo,
-  skinsBoatLogo,
 } from "../../assets/images";
 import RegisterScreen from "./screens/Onboarding/RegisterScreen";
 import OtpScreen from "./screens/Onboarding/OtpScreen";

@@ -4,7 +4,6 @@ import {
   formatCooldown,
   loadStoredCooldowns,
   saveStoredCooldowns,
-  COOLDOWNS_STORAGE_KEY,
 } from "../utils/cooldownUtils";
 
 describe("cooldownUtils", () => {

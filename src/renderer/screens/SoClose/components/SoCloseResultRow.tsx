@@ -27,7 +27,6 @@ export interface SoCloseResultRowProps {
  */
 export const SoCloseResultRow: React.FC<SoCloseResultRowProps> = ({
   item,
-  index,
   onInspect,
   onOpenMarket,
   onContextMenu,

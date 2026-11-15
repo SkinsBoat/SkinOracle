@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { AlertCircle, ChevronDown, ChevronUp, X } from "lucide-react";
 
 interface InlineErrorBannerProps {

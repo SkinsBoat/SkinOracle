@@ -3,7 +3,6 @@ import toast from "react-hot-toast";
 import { confirmModal } from "../../../store/useConfirmStore";
 import {
   Zap,
-  ChevronUp,
   ChevronDown,
   TrendingUp,
   Cpu,
@@ -99,9 +98,6 @@ export const Step2AcceptedPrices: React.FC<Step2AcceptedPricesProps> = ({
   showProfitOverride,
   onReapplyProfitOverride,
   blockedSkins,
-  blockSkin,
-  unblockSkin,
-  clearBlockedSkins,
   onBuildAcceptedPrices,
   canBuild,
 }) => {

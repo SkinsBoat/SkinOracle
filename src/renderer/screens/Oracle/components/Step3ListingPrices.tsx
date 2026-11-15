@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Tag,
-  ChevronUp,
   ChevronDown,
   Zap,
   Scale,

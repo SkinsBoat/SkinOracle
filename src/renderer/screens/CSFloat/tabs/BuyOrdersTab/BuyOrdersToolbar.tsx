@@ -4,7 +4,6 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
-  HelpCircle,
   Loader2,
   RotateCw,
   Sliders,

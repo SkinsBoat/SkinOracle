@@ -139,7 +139,7 @@ describe("Oracle Batch Session Workflow (1-Ledger Deduction & Auto-Refund)", () 
     let callCount = 0;
     const evaluateChunkMock = vi
       .fn()
-      .mockImplementation(async (chunk: string[], batchId: string) => {
+      .mockImplementation(async (chunk: string[], _batchId: string) => {
         callCount++;
         if (callCount === 2) {
           throw new Error("Simulated network failure on chunk 2");

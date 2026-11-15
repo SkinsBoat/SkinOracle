@@ -2,11 +2,9 @@ import React, { useState } from "react";
 import {
   Tag,
   X,
-  AlertTriangle,
   ArrowUpRight,
   Loader2,
   PlusCircle,
-  Zap,
 } from "lucide-react";
 import {
   DmarketInventoryItem,
