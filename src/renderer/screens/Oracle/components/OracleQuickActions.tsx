@@ -1,50 +1,149 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
-import { Timer, Clock, Zap, RotateCw, Loader2 } from "lucide-react";
+import {
+  Timer,
+  Clock,
+  Zap,
+  Tag,
+  Loader2,
+} from "lucide-react";
 import {
   runBuildAcceptedPrices,
+  runBuildListingPrices,
   runScanWide,
   runScanSnipe,
 } from "../utils/oracleActions";
 
 /**
- * Minimal Oracle quick-action pill row: 3 icon pills in one line, styled to
- * match the WorkstationDataStatusCards cache pills so it sits cleanly next to
- * them. No logic here — all three actions reuse the shared implementation in
- * `oracleActions.ts`.
+ * Configurable Oracle quick-action pill row.
+ *
+ * Each workstation passes `which` to pick the actions it needs (default:
+ * wide / calc / snipe). All actions reuse the shared implementation in
+ * `oracleActions.ts` — no logic duplicated.
+ *
+ *   - "wide"  — Scan Wide (baseline scope, auto-refresh off)
+ *   - "snipe" — Scan Snipe (snipe scope, auto-refresh on)
+ *   - "calc"  — Calculate Accepted Prices (Buy Ceilings)
+ *   - "calcListing" — Generate Listing Prices (Sell Targets)
+ *
+ * Pass `onCalcListing` to override the default listing-prices handler (useful
+ * for workstations that load listing prices from their own state).
  */
+export type OracleQuickAction = "wide" | "snipe" | "calc" | "calcListing";
+
 export interface OracleQuickActionsProps {
   className?: string;
+  which?: OracleQuickAction[];
+  onCalcListing?: () => void | Promise<void>;
 }
 
+const DEFAULT_WHICH: OracleQuickAction[] = ["wide", "calc", "snipe"];
+
+const pillIcon: React.CSSProperties = { flexShrink: 0, opacity: 0.9 };
+
+const ACTION_LABELS: Record<OracleQuickAction, string> = {
+  wide: "w",
+  snipe: "s",
+  calc: "c",
+  calcListing: "l",
+};
+
+const ACTION_ICONS: Record<OracleQuickAction, React.ReactNode> = {
+  wide: <Timer size={11} style={pillIcon} />,
+  snipe: <Clock size={11} style={pillIcon} />,
+  calc: <Zap size={11} style={pillIcon} />,
+  calcListing: <Tag size={11} style={pillIcon} />,
+};
+
+/**
+ * Minimal Oracle quick-action pill row styled to match the
+ * WorkstationDataStatusCards cache pills. Sits cleanly next to them.
+ */
 export const OracleQuickActions: React.FC<OracleQuickActionsProps> = ({
   className,
+  which = DEFAULT_WHICH,
+  onCalcListing,
 }) => {
-  const [busy, setBusy] = useState(false);
-  const [calcPercent, setCalcPercent] = useState<number | null>(null);
+  const [busyActions, setBusyActions] = useState<Set<OracleQuickAction>>(
+    new Set(),
+  );
+
+  const isBusy = (key: OracleQuickAction) => busyActions.has(key);
+  const anyBusy = busyActions.size > 0;
 
   const handleScanWide = useCallback(async () => {
-    await runScanWide();
+    setBusyActions((prev) => new Set([...prev, "wide"]));
+    try {
+      await runScanWide();
+    } finally {
+      setBusyActions((prev) => {
+        const next = new Set(prev);
+        next.delete("wide");
+        return next;
+      });
+    }
   }, []);
 
   const handleScanSnipe = useCallback(async () => {
-    await runScanSnipe();
+    setBusyActions((prev) => new Set([...prev, "snipe"]));
+    try {
+      await runScanSnipe();
+    } finally {
+      setBusyActions((prev) => {
+        const next = new Set(prev);
+        next.delete("snipe");
+        return next;
+      });
+    }
   }, []);
 
   const handleCalcAccepted = useCallback(async () => {
-    if (busy) return;
-    setBusy(true);
-    setCalcPercent(null);
+    if (isBusy("calc")) return;
+    setBusyActions((prev) => new Set([...prev, "calc"]));
     try {
       await runBuildAcceptedPrices({
         setEvaluatedSummary: () => {},
         toast,
       });
     } finally {
-      setBusy(false);
-      setCalcPercent(null);
+      setBusyActions((prev) => {
+        const next = new Set(prev);
+        next.delete("calc");
+        return next;
+      });
     }
-  }, [busy]);
+  }, [isBusy]);
+
+  const handleCalcListing = useCallback(async () => {
+    if (isBusy("calcListing")) return;
+    setBusyActions((prev) => new Set([...prev, "calcListing"]));
+    try {
+      if (onCalcListing) {
+        await onCalcListing();
+      } else {
+        await runBuildListingPrices({
+          setListingSummary: () => {},
+          toast,
+        });
+      }
+    } finally {
+      setBusyActions((prev) => {
+        const next = new Set(prev);
+        next.delete("calcListing");
+        return next;
+      });
+    }
+  }, [isBusy, onCalcListing]);
+
+  const handlers: Record<OracleQuickAction, () => Promise<void>> = useMemo(
+    () => ({
+      wide: handleScanWide,
+      snipe: handleScanSnipe,
+      calc: handleCalcAccepted,
+      calcListing: handleCalcListing,
+    }),
+    [handleScanWide, handleScanSnipe, handleCalcAccepted, handleCalcListing],
+  );
 
   return (
     <div
@@ -56,33 +155,20 @@ export const OracleQuickActions: React.FC<OracleQuickActionsProps> = ({
         ...getCardStyle(),
       }}
     >
-      <OraclePill
-        label="w"
-        icon={<Timer size={11} style={pillIcon} />}
-        onClick={handleScanWide}
-        disabled={busy}
-        active={false}
-      />
-      <OraclePill
-        label={calcPercent != null ? `c ${calcPercent}%` : "c"}
-        icon={
-          busy || calcPercent != null ? (
-            <Loader2 size={11} className="spin" style={pillIcon} />
-          ) : (
-            <Zap size={11} style={pillIcon} />
-          )
-        }
-        onClick={handleCalcAccepted}
-        disabled={busy}
-        active={busy}
-      />
-      <OraclePill
-        label="s"
-        icon={<Clock size={11} style={pillIcon} />}
-        onClick={handleScanSnipe}
-        disabled={busy}
-        active={false}
-      />
+      {which.map((key) => {
+        const active = isBusy(key);
+        const label = active ? `${ACTION_LABELS[key]}…` : ACTION_LABELS[key];
+        return (
+          <OraclePill
+            key={key}
+            label={label}
+            icon={ACTION_ICONS[key]}
+            onClick={handlers[key]}
+            disabled={anyBusy}
+            active={active}
+          />
+        );
+      })}
     </div>
   );
 };
@@ -104,8 +190,6 @@ const OraclePill: React.FC<{
     <span style={pillText}>{label}</span>
   </button>
 );
-
-const pillIcon: React.CSSProperties = { flexShrink: 0, opacity: 0.9 };
 
 function getCardStyle(): React.CSSProperties {
   return {

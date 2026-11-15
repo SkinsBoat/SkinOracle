@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Loader2, RotateCw, Zap } from "lucide-react";
 import { WorkstationDataStatusCards } from "./WorkstationDataStatusCards";
+import { OracleQuickActions } from "../screens/Oracle/components/OracleQuickActions";
 
 export interface WorkstationOracleActionProps {
   meta: {
@@ -14,6 +15,8 @@ export interface WorkstationOracleActionProps {
   datasetKind?: "accepted" | "listing";
   /** Hide the market price-cache pill (stations that don't surface it). */
   showCacheStatus?: boolean;
+  /** Which quick actions to render next to the cache cards. */
+  which?: ("wide" | "snipe" | "calc" | "calcListing")[];
 }
 
 export const WorkstationOracleAction: React.FC<
@@ -25,6 +28,7 @@ export const WorkstationOracleAction: React.FC<
   disabled = false,
   datasetKind = "accepted",
   showCacheStatus = true,
+  which,
 }) => {
   // Live market price cache status (shared in-memory cache, refreshed by scans/auto-refresh)
   const [cacheStatus, setCacheStatus] = useState<{
@@ -75,6 +79,10 @@ export const WorkstationOracleAction: React.FC<
         oracleKind={datasetKind}
         showCacheStatus={showCacheStatus}
       />
+
+      {which && which.length > 0 && (
+        <OracleQuickActions which={which} />
+      )}
 
       {/* Unified Action Button */}
       <button

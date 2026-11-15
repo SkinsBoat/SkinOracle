@@ -812,6 +812,7 @@ export default function DmarketWorkstation() {
             datasetKind={mainTab === "listings" ? "listing" : "accepted"}
             loading={mainTab === "listings" ? loadingListingPrices : loadingPrices}
             onLoad={handleLoadOracle}
+            which={["wide", "calc", "snipe", "calcListing"]}
           />
         </div>
       </div>

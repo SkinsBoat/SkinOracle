@@ -8,7 +8,12 @@ import {
 import { SkinsnipeMarketId } from "../../../../shared/types";
 import { isMarketMatch } from "../../../../shared/canonicalMarkets";
 import { SKINSNIPE_AVAILABLE_MARKETS } from "../components/step1/skinsnipeMarkets";
-import { passesSmartPreFilters, isBlockedBySkinList, roundToCsFloatStep } from "./oracleUtils";
+import {
+  passesSmartPreFilters,
+  isBlockedBySkinList,
+  roundToCsFloatStep,
+  calculateSuggestedListingPrice,
+} from "./oracleUtils";
 import { applyProfitOverride } from "./profitOverride";
 import { useOracleStore } from "../../../store/useOracleStore";
 
@@ -355,6 +360,137 @@ export async function runScanSnipe(): Promise<void> {
     toast.success("Snipe scan mode — auto-refresh enabled (5 min)");
   } catch (err: any) {
     toast.error(err.message || "Failed to enable snipe auto-refresh");
+  }
+}
+
+export interface ListingBuildDeps {
+  setListingSummary: (updater: any) => void;
+  toast: {
+    success: (msg: string, opts?: any) => void;
+    error: (msg: string, opts?: any) => void;
+  };
+}
+
+/**
+ * Shared "Generate Listing Prices (Sell Targets)" flow — extracted from
+ * OracleDashboard so any workstation can trigger it without duplicating logic.
+ * Applies smart pre-filters + blocked skins, computes suggested listing prices
+ * per the configured listing strategy, and persists via IPC.
+ */
+export async function runBuildListingPrices(
+  deps: ListingBuildDeps,
+): Promise<void> {
+  const {
+    setListingSummary,
+    toast: { success, error },
+  } = deps;
+
+  const { preFilters, blockedSkins, listingStrategy } =
+    useOracleStore.getState();
+  const blockedSet = new Set(blockedSkins);
+  const electronAPI = window.electronAPI;
+
+  if (listingSummaryIsBatchEvaluating()) return;
+
+  setListingSummary((prev: any) => ({ ...prev, isBatchEvaluating: true }));
+  const toastId = toast.loading(
+    `Generating suggested listing prices using ${listingStrategy.mode.toUpperCase()} strategy...`,
+  );
+
+  try {
+    const fullCache: any =
+      electronAPI?.marketCache?.get
+        ? await electronAPI.marketCache.get()
+        : {};
+    const allItemNames = Object.keys(fullCache || {});
+
+    const filteredItemNames = allItemNames.filter(
+      (name) =>
+        passesSmartPreFilters(name, preFilters, fullCache[name]) &&
+        !isBlockedBySkinList(name, blockedSet),
+    );
+
+    if (filteredItemNames.length === 0) {
+      error("0 items matched your smart pre-filters.", { id: toastId });
+      setListingSummary((prev: any) => ({ ...prev, isBatchEvaluating: false }));
+      return;
+    }
+
+    const acceptedPricesRes =
+      await electronAPI.oracle.getAcceptedPrices();
+    const acceptedMap = acceptedPricesRes?.map || {};
+
+    const listingPriceMap: Record<
+      string,
+      {
+        listingPrice: number;
+        mode: string;
+        offsetPercent: number;
+        lowestPrice: number;
+        averagePrice: number;
+        trendMomentum14d?: number;
+      }
+    > = {};
+    let total = 0;
+
+    for (const name of filteredItemNames) {
+      const itemData = fullCache[name];
+      const listings: { p?: number; price?: number }[] = itemData?.l || [];
+      const prices = listings
+        .map((l) => l.p ?? l.price ?? 0)
+        .filter((p) => p > 0);
+
+      if (prices.length === 0) continue;
+
+      const lowestPrice = Math.min(...prices);
+      const averagePrice =
+        prices.reduce((sum: number, p: number) => sum + p, 0) / prices.length;
+
+      const listingPrice = calculateSuggestedListingPrice(
+        prices,
+        averagePrice,
+        listingStrategy,
+      );
+
+      const acceptedEntry = acceptedMap[name];
+
+      listingPriceMap[name] = {
+        listingPrice,
+        mode: listingStrategy.mode,
+        offsetPercent: listingStrategy.offsetPercent,
+        lowestPrice,
+        averagePrice,
+        trendMomentum14d: acceptedEntry?.trendMomentum14d,
+      };
+      total++;
+    }
+
+    const storeResult =
+      await electronAPI.oracle.storeListingPrices(listingPriceMap);
+    const builtAt = storeResult?.storedAt || new Date().toISOString();
+
+    setListingSummary({
+      totalEvaluated: total,
+      isBatchEvaluating: false,
+      lastBuiltAt: builtAt,
+    });
+
+    success(
+      `Computed listing prices for ${total.toLocaleString()} items using ${listingStrategy.mode.toUpperCase()} strategy!`,
+      { id: toastId },
+    );
+  } catch (err: any) {
+    console.error("[OracleActions] Generate Listing Prices error:", err);
+    error(`Generate Listing Prices failed: ${err.message}`, { id: toastId });
+    setListingSummary((prev: any) => ({ ...prev, isBatchEvaluating: false }));
+  }
+}
+
+function listingSummaryIsBatchEvaluating(): boolean {
+  try {
+    return false;
+  } catch {
+    return false;
   }
 }
 

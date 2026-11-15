@@ -1872,6 +1872,7 @@ export default function CSFloatWorkstation() {
                   ? loadListingPrices
                   : loadAcceptedPrices
               }
+              which={["wide", "calc", "snipe", "calcListing"]}
             />
           </div>
         </div>

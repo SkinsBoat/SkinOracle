@@ -103,7 +103,7 @@ export default function SkinportWorkstation() {
             datasetKind="accepted"
             loading={loadingPrices}
             onLoad={handleLoadOracle}
-            showCacheStatus={false}
+            which={["wide", "calc"]}
           />
         </div>
       </div>
