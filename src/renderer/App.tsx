@@ -191,7 +191,7 @@ function AppContent() {
     return (
       <>
         <Toaster
-          position="top-right"
+          position="bottom-right"
           toastOptions={{
             className: "toast-custom",
             duration: 3500,
@@ -225,7 +225,7 @@ function AppContent() {
   return (
     <>
       <Toaster
-        position="top-right"
+        position="bottom-right"
         toastOptions={{
           className: "toast-custom",
           duration: 3500,
