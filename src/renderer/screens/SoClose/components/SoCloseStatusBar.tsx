@@ -10,6 +10,7 @@ import { formatTimeAgo } from "../../Oracle/utils/oracleUtils";
 import { getAlertSwitchBtnStyle } from "../../Oracle/components/step1/step1Styles";
 import { useNotificationStore } from "../../../store/useNotificationStore";
 import { notificationManager } from "../../../services/notificationManager";
+import { OracleQuickActions } from "../../Oracle/components/OracleQuickActions";
 
 export interface SoCloseStatusBarProps {
   cacheStatus: SoCloseCacheStatus;
@@ -60,14 +61,17 @@ export const SoCloseStatusBar: React.FC<SoCloseStatusBarProps> = ({
   return (
     <div style={styles.wrapper}>
       <div style={styles.statusRow}>
-        <WorkstationDataStatusCards
-          cacheStatus={cacheStatus}
-          oracle={acceptedMeta}
-          oracleKind="accepted"
-          oracleNoun="Accepted prices"
-          oracleEmptyLabel="Accepted ceilings not built"
-          cacheEmptyLabel="No market prices cached"
-        />
+        <div style={styles.dataActionsRow}>
+          <WorkstationDataStatusCards
+            cacheStatus={cacheStatus}
+            oracle={acceptedMeta}
+            oracleKind="accepted"
+            oracleNoun="Accepted prices"
+            oracleEmptyLabel="Accepted ceilings not built"
+            cacheEmptyLabel="No market prices cached"
+          />
+          <OracleQuickActions />
+        </div>
 
         <div style={styles.statusActions}>
           <button
@@ -185,6 +189,11 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     gap: "10px",
     flexWrap: "wrap",
+  },
+  dataActionsRow: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "10px",
   },
   statusActions: {
     display: "flex",

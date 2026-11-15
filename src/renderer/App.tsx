@@ -24,7 +24,6 @@ import {
 import RegisterScreen from "./screens/Onboarding/RegisterScreen";
 import OtpScreen from "./screens/Onboarding/OtpScreen";
 import SettingsScreen from "./screens/Settings";
-import OracleDashboard from "./screens/Oracle/OracleDashboard";
 import CSFloatWorkstation from "./screens/CSFloat/CSFloatWorkstation";
 import DmarketWorkstation from "./screens/Dmarket/DmarketWorkstation";
 import SoCloseWorkstationScreen from "./screens/SoClose/SoCloseWorkstationScreen";
@@ -66,8 +65,8 @@ function AppContent() {
         e.preventDefault();
         e.stopPropagation();
         try {
-          const target = document.documentElement;
-          await exportNodeAsPng(target, `skin-oracle-fullscreen-${Date.now()}`);
+          const targetEl = document.documentElement;
+          await exportNodeAsPng(targetEl, `skin-oracle-fullscreen-${Date.now()}`);
           toast.success("Exported screen as PNG");
         } catch (err: any) {
           toast.error(
@@ -632,7 +631,7 @@ function AppContent() {
           {/* Main Content Area */}
           <main style={styles.mainContent}>
             <Routes>
-              <Route path="/" element={<OracleDashboard />} />
+              <Route path="/" element={<SoCloseWorkstationScreen />} />
               <Route path="/csfloat" element={<CSFloatWorkstation />} />
               <Route path="/dmarket" element={<DmarketWorkstation />} />
               <Route path="/soclose" element={<SoCloseWorkstationScreen />} />
