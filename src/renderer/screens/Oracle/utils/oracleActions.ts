@@ -309,10 +309,11 @@ export async function runBuildAcceptedPrices(
  * one-time price scan/stream using the current provider & market set.
  */
 export async function runScanWide(): Promise<void> {
-  const state = useOracleStore.getState();
-  state.setActiveScope("baseline");
+  useOracleStore.getState().setActiveScope("baseline");
   await window.electronAPI.autoRefresh?.stop?.();
-  const { pricingProvider, selectedMarkets, selectedCs2capProviders } = state;
+  const { pricingProvider, selectedMarkets, selectedCs2capProviders } =
+    useOracleStore.getState();
+  const toastId = toast.loading("Scanning wide — baseline scope…");
   try {
     if (pricingProvider === "cs2cap") {
       await window.electronAPI.cs2cap?.fetchPrices?.({
@@ -325,9 +326,11 @@ export async function runScanWide(): Promise<void> {
         "baseline",
       );
     }
-    toast.success("Wide scan started — baseline scope, auto-refresh off");
+    toast.success("Wide scan started — baseline scope, auto-refresh off", {
+      id: toastId,
+    });
   } catch (err: any) {
-    toast.error(err.message || "Wide scan failed");
+    toast.error(err.message || "Wide scan failed", { id: toastId });
   }
 }
 
@@ -336,9 +339,9 @@ export async function runScanWide(): Promise<void> {
  * cycle immediately on enable) using the current provider & market set.
  */
 export async function runScanSnipe(): Promise<void> {
-  const state = useOracleStore.getState();
-  state.setActiveScope("snipe");
-  const { pricingProvider, selectedMarkets, selectedCs2capProviders } = state;
+  useOracleStore.getState().setActiveScope("snipe");
+  const { pricingProvider, selectedMarkets, selectedCs2capProviders } =
+    useOracleStore.getState();
   try {
     await window.electronAPI.autoRefresh?.setConfig?.({
       enabled: true,

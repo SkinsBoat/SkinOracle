@@ -133,10 +133,10 @@ function getPillStyle(active: boolean, disabled = false): React.CSSProperties {
         : "var(--so-border-subtle)"
     }`,
     backgroundColor: active
-      ? "var(--so-primary)"
+      ? "rgba(6, 182, 212, 0.1)"
       : "transparent",
     color: active
-      ? "#ffffff"
+      ? "var(--so-primary)"
       : "var(--so-text-secondary)",
     cursor: disabled ? "not-allowed" : "pointer",
     fontSize: "11px",
