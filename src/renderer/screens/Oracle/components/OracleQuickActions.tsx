@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import {
   ScanSearch,
@@ -7,6 +7,7 @@ import {
   TrendingUp,
   Loader2,
 } from "lucide-react";
+import { useOracleStore } from "../../../store/useOracleStore";
 import {
   runBuildAcceptedPrices,
   runBuildListingPrices,
@@ -94,6 +95,37 @@ export const OracleQuickActions: React.FC<OracleQuickActionsProps> = ({
 }) => {
   const [busyActions, setBusyActions] = useState<Set<OracleQuickAction>>(new Set());
   const [isSnipeActive, setIsSnipeActive] = useState<boolean>(false);
+
+  // When mounting or receiving status updates, detect if Snipe auto-refresh is already active
+  useEffect(() => {
+    let mounted = true;
+
+    window.electronAPI?.autoRefresh
+      ?.getStatus?.()
+      .then((status) => {
+        if (!mounted || !status) return;
+        const isSnipeRunning = Boolean(
+          status.enabled && useOracleStore.getState().activeScope === "snipe",
+        );
+        setIsSnipeActive(isSnipeRunning);
+      })
+      .catch(() => {});
+
+    const unsubscribe = window.electronAPI?.autoRefresh?.onStatusUpdated?.(
+      (status) => {
+        if (!mounted || !status) return;
+        const isSnipeRunning = Boolean(
+          status.enabled && useOracleStore.getState().activeScope === "snipe",
+        );
+        setIsSnipeActive(isSnipeRunning);
+      },
+    );
+
+    return () => {
+      mounted = false;
+      unsubscribe?.();
+    };
+  }, []);
 
   const isBusy = useCallback((k: OracleQuickAction) => busyActions.has(k), [busyActions]);
   const anyBusy = busyActions.size > 0;
