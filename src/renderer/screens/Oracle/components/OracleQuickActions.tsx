@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import {
-  Timer,
-  Clock,
-  Zap,
-  Tag,
+  ScanSearch,
+  Crosshair,
+  Calculator,
+  TrendingUp,
+  Loader2,
 } from "lucide-react";
 import {
   runBuildAcceptedPrices,
@@ -13,21 +14,27 @@ import {
   runScanSnipe,
 } from "../utils/oracleActions";
 
-/**
- * Configurable Oracle quick-action pill row.
- *
- * Each workstation passes `which` to pick the actions it needs (default:
- * wide / calc / snipe). All actions reuse the shared implementation in
- * `oracleActions.ts` — no logic duplicated.
- *
- *   - "wide"  — Scan Wide (baseline scope, auto-refresh off)
- *   - "snipe" — Scan Snipe (snipe scope, auto-refresh on)
- *   - "calc"  — Calculate Accepted Prices (Buy Ceilings)
- *   - "calcListing" — Generate Listing Prices (Sell Targets)
- *
- * Pass `onCalcListing` to override the default listing-prices handler (useful
- * for workstations that load listing prices from their own state).
- */
+// ─── Keyframes injected once ──────────────────────────────────────────────────
+(function injectStyles() {
+  const ID = "oracle-qa-kf";
+  if (typeof document === "undefined" || document.getElementById(ID)) return;
+  const s = document.createElement("style");
+  s.id = ID;
+  s.textContent = `
+    @keyframes oqa-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes oqa-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.65; }
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 export type OracleQuickAction = "wide" | "snipe" | "calc" | "calcListing";
 
 export interface OracleQuickActionsProps {
@@ -38,103 +45,102 @@ export interface OracleQuickActionsProps {
 
 const DEFAULT_WHICH: OracleQuickAction[] = ["wide", "calc", "snipe"];
 
-const pillIcon: React.CSSProperties = { flexShrink: 0, opacity: 0.9 };
+const cm = (token: string, pct: number) =>
+  `color-mix(in srgb, var(${token}) ${pct}%, transparent)`;
 
-const ACTION_LABELS: Record<OracleQuickAction, string> = {
-  wide: "w",
-  snipe: "s",
-  calc: "c",
-  calcListing: "l",
+// ─── Unified theme tokens (Solid Royal Blue & Sky Blue) ───────────────────────
+// Sourced from app design tokens: --so-primary (#2563eb) & --so-cyan (#38bdf8)
+const UNIFIED_ACCENT = {
+  idle:         "var(--so-text-muted)",
+  active:       "var(--so-cyan)",          // #38bdf8 - crisp high-contrast sky blue
+  border:       cm("--so-primary", 45),
+  borderActive: "var(--so-primary)",       // #2563eb - app primary royal blue
+  bg:           cm("--so-primary", 12),
+  glow:         cm("--so-primary", 35),
 };
 
-const ACTION_ICONS: Record<OracleQuickAction, React.ReactNode> = {
-  wide: <Timer size={11} style={pillIcon} />,
-  snipe: <Clock size={11} style={pillIcon} />,
-  calc: <Zap size={11} style={pillIcon} />,
-  calcListing: <Tag size={11} style={pillIcon} />,
+interface ActionMeta {
+  label: string;
+  icon: React.ReactNode;
+  hideSpinner?: boolean;
+}
+
+const ACTION_META: Record<OracleQuickAction, ActionMeta> = {
+  wide: {
+    label: "Wide",
+    icon: <ScanSearch size={13} />,
+    hideSpinner: true,
+  },
+  snipe: {
+    label: "Snipe",
+    icon: <Crosshair size={13} />,
+  },
+  calc: {
+    label: "Calc",
+    icon: <Calculator size={13} />,
+  },
+  calcListing: {
+    label: "List",
+    icon: <TrendingUp size={13} />,
+  },
 };
 
-/**
- * Minimal Oracle quick-action pill row styled to match the
- * WorkstationDataStatusCards cache pills. Sits cleanly next to them.
- */
+// ─── Root Component ───────────────────────────────────────────────────────────
+
 export const OracleQuickActions: React.FC<OracleQuickActionsProps> = ({
   className,
   which = DEFAULT_WHICH,
   onCalcListing,
 }) => {
-  const [busyActions, setBusyActions] = useState<Set<OracleQuickAction>>(
-    new Set(),
-  );
+  const [busyActions, setBusyActions] = useState<Set<OracleQuickAction>>(new Set());
+  const [isSnipeActive, setIsSnipeActive] = useState<boolean>(false);
 
-  const isBusy = (key: OracleQuickAction) => busyActions.has(key);
+  const isBusy = useCallback((k: OracleQuickAction) => busyActions.has(k), [busyActions]);
   const anyBusy = busyActions.size > 0;
 
-  const handleScanWide = useCallback(async () => {
-    setBusyActions((prev) => new Set([...prev, "wide"]));
-    try {
-      await runScanWide();
-    } finally {
-      setBusyActions((prev) => {
-        const next = new Set(prev);
-        next.delete("wide");
-        return next;
-      });
-    }
-  }, []);
-
-  const handleScanSnipe = useCallback(async () => {
-    setBusyActions((prev) => new Set([...prev, "snipe"]));
-    try {
-      await runScanSnipe();
-    } finally {
-      setBusyActions((prev) => {
-        const next = new Set(prev);
-        next.delete("snipe");
-        return next;
-      });
-    }
-  }, []);
-
-  const handleCalcAccepted = useCallback(async () => {
-    if (isBusy("calc")) return;
-    setBusyActions((prev) => new Set([...prev, "calc"]));
-    try {
-      await runBuildAcceptedPrices({
-        setEvaluatedSummary: () => {},
-        toast,
-      });
-    } finally {
-      setBusyActions((prev) => {
-        const next = new Set(prev);
-        next.delete("calc");
-        return next;
-      });
-    }
-  }, [isBusy]);
-
-  const handleCalcListing = useCallback(async () => {
-    if (isBusy("calcListing")) return;
-    setBusyActions((prev) => new Set([...prev, "calcListing"]));
-    try {
-      if (onCalcListing) {
-        await onCalcListing();
-      } else {
-        await runBuildListingPrices({
-          setListingSummary: () => {},
-          toast,
+  const withBusy = useCallback(
+    (key: OracleQuickAction, fn: () => Promise<void>) => async () => {
+      if (busyActions.has(key)) return;
+      setBusyActions((p) => new Set([...p, key]));
+      try {
+        await fn();
+      } finally {
+        setBusyActions((p) => {
+          const n = new Set(p);
+          n.delete(key);
+          return n;
         });
       }
-    } finally {
-      setBusyActions((prev) => {
-        const next = new Set(prev);
-        next.delete("calcListing");
-        return next;
-      });
-    }
-  }, [isBusy, onCalcListing]);
+    },
+    [busyActions],
+  );
 
-  const handlers: Record<OracleQuickAction, () => Promise<void>> = useMemo(
+  const handleScanWide = useCallback(async () => {
+    setIsSnipeActive(false);
+    await withBusy("wide", runScanWide)();
+  }, [withBusy]);
+
+  const handleScanSnipe = useCallback(async () => {
+    setIsSnipeActive(true);
+    await withBusy("snipe", runScanSnipe)();
+  }, [withBusy]);
+
+  const handleCalcAccepted = useCallback(async () => {
+    setIsSnipeActive(false);
+    await withBusy("calc", async () => {
+      await runBuildAcceptedPrices({ setEvaluatedSummary: () => {}, toast });
+    })();
+  }, [withBusy]);
+
+  const handleCalcListing = useCallback(async () => {
+    await withBusy("calcListing", () =>
+      onCalcListing
+        ? Promise.resolve(onCalcListing())
+        : runBuildListingPrices({ setListingSummary: () => {}, toast }),
+    )();
+  }, [withBusy, onCalcListing]);
+
+  const handlers = useMemo(
     () => ({
       wide: handleScanWide,
       snipe: handleScanSnipe,
@@ -147,100 +153,166 @@ export const OracleQuickActions: React.FC<OracleQuickActionsProps> = ({
   return (
     <div
       className={className || ""}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "8px",
-        ...getCardStyle(),
-      }}
+      style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
     >
-      {which.map((key) => {
-        const active = isBusy(key);
-        const label = active ? `${ACTION_LABELS[key]}…` : ACTION_LABELS[key];
-        return (
-          <OraclePill
-            key={key}
-            label={label}
-            icon={ACTION_ICONS[key]}
-            onClick={handlers[key]}
-            disabled={anyBusy}
-            active={active}
-          />
-        );
-      })}
+      {which.map((key) => (
+        <ActionBtn
+          key={key}
+          meta={ACTION_META[key]}
+          onClick={handlers[key]}
+          dimmed={anyBusy && !isBusy(key)}
+          busy={isBusy(key)}
+          isLit={key === "snipe" && isSnipeActive}
+        />
+      ))}
     </div>
   );
 };
 
-const OraclePill: React.FC<{
-  label: string;
-  icon: React.ReactNode;
+// ─── ActionBtn ────────────────────────────────────────────────────────────────
+
+const BTN = 38;
+const RADIUS = 7;
+
+const ActionBtn: React.FC<{
+  meta: ActionMeta;
   onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-}> = ({ label, icon, onClick, disabled, active }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    style={getPillStyle(active, disabled)}
-  >
-    {icon}
-    <span style={pillText}>{label}</span>
-  </button>
-);
+  dimmed?: boolean;
+  busy?: boolean;
+  isLit?: boolean;
+}> = ({ meta, onClick, dimmed, busy, isLit: isLitExternal }) => {
+  const [hovered, setHovered] = useState(false);
+  const accent = UNIFIED_ACCENT;
+  const lit = hovered || busy || isLitExternal;
 
-function getCardStyle(): React.CSSProperties {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "5px 9px",
-    border: `1px solid var(--so-border-medium)`,
-    borderRadius: "10px",
-    backgroundColor: "var(--so-surface-panel)",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-  };
-}
+  const showSpinner = busy && !meta.hideSpinner;
 
-function getPillStyle(active: boolean, disabled = false): React.CSSProperties {
-  const base = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "5px",
-    padding: "3px 11px",
-    borderRadius: "9px",
-    border: `1px solid ${
-      active
-        ? "var(--so-primary)"
-        : "var(--so-border-subtle)"
-    }`,
-    backgroundColor: active
-      ? "rgba(6, 182, 212, 0.1)"
-      : "transparent",
-    color: active
-      ? "var(--so-primary)"
-      : "var(--so-text-secondary)",
-    cursor: disabled ? "not-allowed" : "pointer",
-    fontSize: "11px",
-    fontWeight: 700,
-    letterSpacing: "0.2px",
-    whiteSpace: "nowrap",
-    userSelect: "none",
-    WebkitTapHighlightColor: "transparent",
-  } as React.CSSProperties;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={dimmed || busy}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "relative",
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        width: `${BTN}px`,
+        height: `${BTN}px`,
+        flexShrink: 0,
+        padding: 0,
+        overflow: "hidden",
+        borderRadius: `${RADIUS}px`,
+        background: lit ? accent.bg : "var(--so-surface-card)",
+        border: `1px solid ${
+          isLitExternal
+            ? accent.borderActive
+            : lit
+              ? accent.border
+              : "var(--so-border-medium)"
+        }`,
+        boxShadow: isLitExternal
+          ? `0 0 0 1px ${accent.borderActive}, 0 0 8px ${accent.glow}, inset 0 1px 2px rgba(0,0,0,0.35)`
+          : lit && !busy
+            ? `0 0 0 1px ${accent.glow}`
+            : "none",
+        animation: busy ? "oqa-pulse 1.3s ease-in-out infinite" : "none",
+        color: lit ? accent.active : accent.idle,
+        opacity: dimmed ? 0.28 : 1,
+        cursor: dimmed ? "not-allowed" : busy ? "wait" : "pointer",
+        userSelect: "none",
+        WebkitTapHighlightColor: "transparent",
+        outline: "none",
+        transition:
+          "background 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, opacity 150ms ease",
+      }}
+    >
+      {/* ── Active Snipe indicator pip & strip (Electric Sky Blue) ── */}
+      {isLitExternal && !busy && (
+        <>
+          <span
+            style={{
+              position: "absolute",
+              top: "3px",
+              right: "3px",
+              width: "4px",
+              height: "4px",
+              borderRadius: "50%",
+              backgroundColor: "var(--so-cyan)",
+              boxShadow: "0 0 5px var(--so-cyan), 0 0 1px #fff",
+              pointerEvents: "none",
+            }}
+          />
+          <span
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: "6px",
+              right: "6px",
+              height: "2px",
+              borderRadius: "2px 2px 0 0",
+              backgroundColor: "var(--so-cyan)",
+              boxShadow: "0 0 6px var(--so-cyan)",
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      )}
 
-  if (disabled) {
-    base.opacity = 0.45;
-    base.cursor = "not-allowed";
-  }
+      {/* ── Icon ── */}
+      <span
+        style={{
+          position: "absolute",
+          display: "inline-flex",
+          marginBottom: "7px",
+          opacity: showSpinner ? 0 : 1,
+          transform: showSpinner ? "scale(0.5)" : "scale(1)",
+          transition: "opacity 140ms ease, transform 140ms ease",
+          pointerEvents: "none",
+        }}
+      >
+        {meta.icon}
+      </span>
 
-  return base;
-}
+      {/* ── Spinner (omitted when hideSpinner is set, e.g. Wide scan) ── */}
+      {!meta.hideSpinner && (
+        <span
+          style={{
+            position: "absolute",
+            display: "inline-flex",
+            marginBottom: "7px",
+            opacity: showSpinner ? 1 : 0,
+            transform: showSpinner ? "scale(1)" : "scale(0.5)",
+            transition: "opacity 140ms ease, transform 140ms ease",
+          }}
+        >
+          <Loader2
+            size={13}
+            style={{ animation: busy ? "oqa-spin 0.75s linear infinite" : "none" }}
+          />
+        </span>
+      )}
 
-const pillText: React.CSSProperties = {
-  fontSize: "11px",
-  fontWeight: 700,
-  letterSpacing: "0.2px",
-  whiteSpace: "nowrap",
+      {/* ── Short label below icon ── */}
+      <span
+        style={{
+          position: "absolute",
+          bottom: "5px",
+          fontSize: "8px",
+          fontWeight: 700,
+          letterSpacing: "0.3px",
+          lineHeight: 1,
+          color: lit ? accent.active : "var(--so-text-muted)",
+          opacity: lit ? 0.95 : 0.45,
+          transition: "color 150ms ease, opacity 150ms ease",
+          userSelect: "none",
+        }}
+      >
+        {meta.label}
+      </span>
+    </button>
+  );
 };
