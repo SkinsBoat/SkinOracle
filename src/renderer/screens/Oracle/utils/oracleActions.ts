@@ -14,6 +14,7 @@ import {
   isBlockedBySkinList,
   roundToCsFloatStep,
   calculateSuggestedListingPrice,
+  evaluateTrendHealth,
 } from "./oracleUtils";
 import { applyProfitOverride } from "./profitOverride";
 import { useOracleStore } from "../../../store/useOracleStore";
@@ -123,25 +124,32 @@ export async function runBuildAcceptedPrices(
 
     const isNexus = selectedEngine === "nexus";
 
-    if (isNexus && electronAPI?.trendStore) {
+    if (isNexus) {
+      if (!electronAPI?.trendStore) {
+        error(
+          "Cannot build with Nexus Pro: Trend store service is unavailable.",
+        );
+        setEvaluatedSummary((prev: any) => ({
+          ...prev,
+          isBatchEvaluating: false,
+          batchProgress: null,
+        }));
+        return null;
+      }
+
       try {
         const stats = await electronAPI.trendStore.getStats();
-        const spanDays =
-          stats?.oldestDate && stats?.latestDate
-            ? Math.round(
-                (Date.parse(`${stats.latestDate}T00:00:00Z`) -
-                  Date.parse(`${stats.oldestDate}T00:00:00Z`)) /
-                  (1000 * 60 * 60 * 24),
-              ) + 1
-            : 0;
-        const missingDays = stats
-          ? Math.max(0, spanDays - stats.daysCount)
-          : 0;
-        if (!stats || stats.daysCount < 3 || missingDays > 3) {
+        const simulatedDate = electronAPI.trendStore.getSimulatedDate
+          ? await electronAPI.trendStore.getSimulatedDate()
+          : null;
+        const trendHealth = evaluateTrendHealth(stats, simulatedDate);
+        const trendDaysCount = stats?.daysCount ?? 0;
+
+        if (!stats || trendDaysCount < 3 || trendHealth.hasContinuityGap) {
           error(
-            missingDays > 3
-              ? `Cannot build with Nexus Pro: trend history has ${missingDays} missing days (max 3 allowed). Purchase a clean trend pack or scan daily to restore continuity.`
-              : `Cannot build with Nexus Pro: Minimum 3 days of trend history required (Recommended: 7 days). Currently have ${stats?.daysCount ?? 0} day(s).`,
+            trendHealth.hasContinuityGap
+              ? `Cannot build with Nexus Pro: trend history has ${trendHealth.missingDaysInRange} missing days (max 3 allowed). Purchase a clean trend pack or scan daily to restore continuity.`
+              : `Cannot build with Nexus Pro: Minimum 3 days of trend history required (Recommended: 7 days). Currently have ${trendDaysCount} day(s).`,
           );
           setEvaluatedSummary((prev: any) => ({
             ...prev,
@@ -150,8 +158,16 @@ export async function runBuildAcceptedPrices(
           }));
           return null;
         }
-      } catch (trendErr) {
-        console.warn("[OracleActions] Failed to verify trend stats:", trendErr);
+      } catch (trendErr: any) {
+        error(
+          `Cannot build with Nexus Pro: failed to verify trend history (${trendErr?.message || "unknown error"}).`,
+        );
+        setEvaluatedSummary((prev: any) => ({
+          ...prev,
+          isBatchEvaluating: false,
+          batchProgress: null,
+        }));
+        return null;
       }
     }
 
