@@ -77,7 +77,7 @@ export const CANONICAL_MARKETS: CanonicalMarketInfo[] = [
     aliases: ["marketcsgo", "market_csgo", "market-csgo"],
   },
   { id: "skinport", name: "Skinport", aliases: ["skinport", "skin_port"] },
-  { id: "skinscom", name: "Skins.com", aliases: ["skinscom", "skins_com"] },
+  { id: "skinscom", name: "Skins.com", aliases: ["skinscom", "skins_com", "skins.com", "skins"] },
   {
     id: "lisskins",
     name: "LIS-SKINS",
