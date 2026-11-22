@@ -28,6 +28,7 @@ export const SKINSNIPE_AVAILABLE_MARKETS: {
   // SkinLand is temporarily unavailable on Skinsnipe — re-enable once the feed works again.
   // { id: "skinland", name: "SkinLand" },
   { id: "skinport", name: "Skinport" },
+  { id: "skins", name: "Skins" },
   { id: "skinsmonkey", name: "SkinsMonkey (Trade)" },
   { id: "skinsmonkey_market", name: "SkinsMonkey (Market)" },
   { id: "skinswap", name: "SkinSwap" },

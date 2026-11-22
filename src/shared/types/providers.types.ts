@@ -20,6 +20,7 @@ export type SkinsnipeMarketId =
   | "skinflow"
   | "skinland"
   | "skinport"
+  | "skins"
   | "skinsmonkey"
   | "skinsmonkey_market"
   | "skinswap"
