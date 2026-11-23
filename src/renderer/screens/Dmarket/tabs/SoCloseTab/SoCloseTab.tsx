@@ -1124,22 +1124,17 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                         borderRadius: "4px",
                         backgroundColor:
                           item.supplyStabilityScore >= 1.2
-                            ? "rgba(16, 185, 129, 0.18)"
+                            ? "rgba(129, 161, 193, 0.2)"
                             : item.supplyStabilityScore >= 0.8
-                              ? "rgba(6, 182, 212, 0.18)"
-                              : "rgba(245, 158, 11, 0.18)",
-                        color:
-                          item.supplyStabilityScore >= 1.2
-                            ? "var(--so-success-text)"
-                            : item.supplyStabilityScore >= 0.8
-                              ? "var(--so-cyan-text)"
-                              : "var(--so-warning)",
+                              ? "rgba(129, 161, 193, 0.14)"
+                              : "rgba(129, 161, 193, 0.1)",
+                        color: "#cbd5e1",
                         border: `1px solid ${
                           item.supplyStabilityScore >= 1.2
-                            ? "rgba(16, 185, 129, 0.35)"
+                            ? "rgba(129, 161, 193, 0.38)"
                             : item.supplyStabilityScore >= 0.8
-                              ? "rgba(6, 182, 212, 0.35)"
-                              : "rgba(245, 158, 11, 0.35)"
+                              ? "rgba(129, 161, 193, 0.3)"
+                              : "rgba(129, 161, 193, 0.24)"
                         }`,
                         whiteSpace: "nowrap",
                         flexShrink: 0,
@@ -1274,11 +1269,8 @@ export const SoCloseTab: React.FC<SoCloseTabProps> = ({
                 {/* Pricing Info Box */}
                 <div
                   style={{
-                    backgroundColor:
-                      item.closeness <= 1.0
-                        ? "rgba(16, 185, 129, 0.12)"
-                        : "var(--so-surface-input)",
-                    border: `1px solid ${item.closeness <= 1.0 ? "rgba(16, 185, 129, 0.3)" : "var(--so-border-subtle)"}`,
+                    backgroundColor: "var(--so-surface-input)",
+                    border: "1px solid var(--so-border-subtle)",
                     padding: "6px 8px",
                     borderRadius: "var(--so-radius-sm)",
                     fontSize: "11px",

@@ -164,7 +164,7 @@ export const CSFloatSoCloseCard: React.FC<CSFloatSoCloseCardProps> = ({
       </div>
 
       {/* Pricing Info Box */}
-      <div style={getPricingBoxStyle(item.closeness <= 1.0)}>
+      <div style={getPricingBoxStyle()}>
         <div style={styles.pricingBoxRow}>
           <span style={styles.labelMuted}>CSFloat Market</span>
           <span
@@ -254,36 +254,25 @@ const getSssBadgeStyle = (score: number): React.CSSProperties => ({
   borderRadius: "4px",
   backgroundColor:
     score >= 1.2
-      ? "rgba(56, 189, 248, 0.18)"
+      ? "rgba(129, 161, 193, 0.2)"
       : score >= 0.8
-        ? "rgba(6, 182, 212, 0.18)"
-        : "rgba(245, 158, 11, 0.18)",
-  color:
-    score >= 1.2
-      ? "var(--so-success-text)"
-      : score >= 0.8
-        ? "var(--so-success-text)"
-        : "var(--so-warning)",
+        ? "rgba(129, 161, 193, 0.14)"
+        : "rgba(129, 161, 193, 0.1)",
+  color: "#cbd5e1",
   border: `1px solid ${
     score >= 1.2
-      ? "rgba(56, 189, 248, 0.35)"
+      ? "rgba(129, 161, 193, 0.38)"
       : score >= 0.8
-        ? "rgba(6, 182, 212, 0.35)"
-        : "rgba(245, 158, 11, 0.35)"
+        ? "rgba(129, 161, 193, 0.3)"
+        : "rgba(129, 161, 193, 0.24)"
   }`,
   whiteSpace: "nowrap",
   flexShrink: 0,
 });
 
-const getPricingBoxStyle = (
-  isClosenessUnder1: boolean,
-): React.CSSProperties => ({
-  backgroundColor: isClosenessUnder1
-    ? "rgba(56, 189, 248, 0.12)"
-    : "var(--so-surface-input)",
-  border: `1px solid ${
-    isClosenessUnder1 ? "rgba(56, 189, 248, 0.3)" : "var(--so-border-subtle)"
-  }`,
+const getPricingBoxStyle = (): React.CSSProperties => ({
+  backgroundColor: "var(--so-surface-input)",
+  border: "1px solid var(--so-border-subtle)",
   padding: "6px 8px",
   borderRadius: "var(--so-radius-sm)",
   fontSize: "11px",

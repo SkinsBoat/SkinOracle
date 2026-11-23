@@ -159,7 +159,7 @@ export const SoCloseResultRow: React.FC<SoCloseResultRowProps> = ({
       </div>
 
       {/* Price metrics with explicit profit context */}
-      <div style={getPriceMetricsBlockStyle(item.closeness <= 1.0)}>
+      <div style={getPriceMetricsBlockStyle()}>
         <div style={styles.metricsRow}>
           <span style={styles.metricsLabel}>
             {getMarketDisplayName(item.market)} Price
@@ -212,37 +212,29 @@ function getSssBadgeStyle(score?: number): React.CSSProperties {
     fontWeight: 800,
     borderRadius: "4px",
     backgroundColor: isHigh
-      ? "rgba(16, 185, 129, 0.18)"
+      ? "rgba(129, 161, 193, 0.2)"
       : isMed
-        ? "rgba(6, 182, 212, 0.18)"
-        : "rgba(245, 158, 11, 0.18)",
-    color: isHigh
-      ? "var(--so-success-text)"
-      : isMed
-        ? "var(--so-cyan-text)"
-        : "var(--so-warning)",
+        ? "rgba(129, 161, 193, 0.14)"
+        : "rgba(129, 161, 193, 0.1)",
+    color: "#cbd5e1",
     border: `1px solid ${
       isHigh
-        ? "rgba(16, 185, 129, 0.35)"
+        ? "rgba(129, 161, 193, 0.38)"
         : isMed
-          ? "rgba(6, 182, 212, 0.35)"
-          : "rgba(245, 158, 11, 0.35)"
+          ? "rgba(129, 161, 193, 0.3)"
+          : "rgba(129, 161, 193, 0.24)"
     }`,
     whiteSpace: "nowrap",
     flexShrink: 0,
   };
 }
 
-function getPriceMetricsBlockStyle(isInstantProfit: boolean): React.CSSProperties {
+function getPriceMetricsBlockStyle(): React.CSSProperties {
   return {
     padding: "8px",
     borderRadius: "var(--so-radius-sm)",
-    backgroundColor: isInstantProfit
-      ? "rgba(16, 185, 129, 0.12)"
-      : "var(--so-surface-panel)",
-    border: `1px solid ${
-      isInstantProfit ? "rgba(16, 185, 129, 0.3)" : "var(--so-border-subtle)"
-    }`,
+    backgroundColor: "var(--so-surface-panel)",
+    border: "1px solid var(--so-border-subtle)",
     display: "flex",
     flexDirection: "column",
     gap: "4px",
