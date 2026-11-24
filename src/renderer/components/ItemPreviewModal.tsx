@@ -580,6 +580,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "6px 10px",
     alignItems: "stretch",
     minHeight: 82,
+    flexShrink: 0,
   },
   groupLabel: {
     display: "flex",
@@ -623,6 +624,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 196,
     display: "flex",
     flexDirection: "column",
+    flexShrink: 0,
   },
   targetBox: {
     padding: "16px 18px",
@@ -633,6 +635,7 @@ const styles: Record<string, React.CSSProperties> = {
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "16px",
     alignItems: "center",
+    flexShrink: 0,
   },
   targetLabel: {
     fontSize: "11px",
@@ -657,6 +660,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   marketSection: {
     minHeight: 150,
+    flexShrink: 0,
   },
   marketSkeletonGrid: {
     display: "grid",
@@ -670,6 +674,9 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "12px",
     flexWrap: "wrap",
     marginTop: "2px",
+    paddingTop: "14px",
+    borderTop: "1px solid var(--so-border-subtle)",
+    flexShrink: 0,
   },
   marketNote: {
     fontSize: "11.5px",
