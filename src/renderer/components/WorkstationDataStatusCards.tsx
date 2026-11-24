@@ -137,7 +137,7 @@ export const WorkstationDataStatusCards: React.FC<
           {cacheHasData ? (
             <span style={styles.indicatorText}>
               <span style={styles.countText}>
-                {cacheStatus!.itemCount.toLocaleString()} prices
+                {cacheStatus!.itemCount.toLocaleString()}
               </span>
               {cacheTimeAgoText && (
                 <span style={styles.timeAgoWrapper}>
@@ -158,7 +158,7 @@ export const WorkstationDataStatusCards: React.FC<
         {hasData ? (
           <span style={styles.indicatorText}>
             <span style={styles.countText}>
-              {oracle!.itemCount.toLocaleString()} items
+              {oracle!.itemCount.toLocaleString()}
             </span>
             {timeAgoText && (
               <span style={styles.timeAgoWrapper}>
