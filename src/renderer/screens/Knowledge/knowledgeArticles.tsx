@@ -1,5 +1,5 @@
 import React from "react";
-import { ShieldAlert, Target } from "lucide-react";
+import { Eye, ShieldAlert, Target } from "lucide-react";
 import {
   KnowledgeBullets,
   KnowledgeCallout,
@@ -230,6 +230,129 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
         <KnowledgeCallout tone="tip" title="Rule of thumb">
           If you have not personally executed the exact flow on a dust item
           after the last app or marketplace update, treat it as untested.
+        </KnowledgeCallout>
+      </>
+    ),
+  },
+  {
+    id: "verify-item-before-buy",
+    category: "Risk & Safety",
+    title: "Verify the Exact Item Before You Buy — Vanilla vs. Finish Variants",
+    summary:
+      "Near-identical listings sit side by side in search results. One mis-click can buy ★ StatTrak™ Ursus Knife | Boreal Forest (Field-Tested) when you wanted the vanilla ★ StatTrak™ Ursus Knife. Confirm the full item name, finish, wear, and StatTrak™ status before every purchase.",
+    readTime: "3 min read",
+    badgeColor: "#f472b6",
+    icon: <Eye size={18} style={{ color: "#f472b6" }} />,
+    content: (
+      <>
+        <KnowledgeCallout tone="warning" title="The One-Click Trap">
+          A real support case: a trader intended to buy the{" "}
+          <strong>vanilla ★ StatTrak™ Ursus Knife</strong> but purchased{" "}
+          <strong>★ StatTrak™ Ursus Knife | Boreal Forest (Field-Tested)</strong>{" "}
+          because it appeared alongside it in the search results. Both names
+          begin identically — only the finish and wear differ — so a single
+          mismatched click bought the wrong item. Refunds are not automatic and
+          depend entirely on the marketplace.
+        </KnowledgeCallout>
+
+        <KnowledgeParagraph>
+          Skins are not uniquely named for convenience — every part of the title
+          is a distinct attribute. Before you click buy, read the{" "}
+          <strong>full</strong> item name from left to right, not just the first
+          few words that match what you searched for.
+        </KnowledgeParagraph>
+
+        <KnowledgeHeading>Read the Item Name in Four Parts</KnowledgeHeading>
+        <KnowledgeStepList
+          steps={[
+            {
+              title: "Base weapon",
+              body: (
+                <>
+                  <KnowledgeCode>★ StatTrak™ Ursus Knife</KnowledgeCode> — the
+                  weapon, its special attribute (★ for knives/gloves), and the
+                  StatTrak™ kill counter. This alone is <strong>not</strong> the
+                  full item.
+                </>
+              ),
+            },
+            {
+              title: "Finish after the pipe",
+              body: (
+                <>
+                  Everything after <KnowledgeCode>|</KnowledgeCode> is the paint
+                  or finish, e.g.{" "}
+                  <KnowledgeCode>| Boreal Forest</KnowledgeCode>. A{" "}
+                  <strong>vanilla</strong> item has <strong>no</strong> pipe and
+                  no finish.
+                </>
+              ),
+            },
+            {
+              title: "Wear in parentheses",
+              body: (
+                <>
+                  <KnowledgeCode>(Factory New)</KnowledgeCode> through{" "}
+                  <KnowledgeCode>(Battle-Scarred)</KnowledgeCode> describe a
+                  skin&apos;s condition. <strong>Vanilla items carry no wear
+                  tag.</strong>
+                </>
+              ),
+            },
+            {
+              title: "Prefix modifiers",
+              body: (
+                <>
+                  <KnowledgeCode>★</KnowledgeCode> and{" "}
+                  <KnowledgeCode>StatTrak™</KnowledgeCode> change both the item
+                  and its value. Confirm they appear exactly where you intended.
+                </>
+              ),
+            },
+          ]}
+        />
+
+        <KnowledgeCallout tone="info" title="Vanilla Means No Finish, No Wear">
+          If you want a vanilla knife, the title must read exactly{" "}
+          <KnowledgeCode>★ StatTrak™ Ursus Knife</KnowledgeCode> — with{" "}
+          <strong>no</strong> <KnowledgeCode>| Boreal Forest</KnowledgeCode> and{" "}
+          <strong>no</strong> <KnowledgeCode>(Field-Tested)</KnowledgeCode>. If
+          either appears, it is a different item.
+        </KnowledgeCallout>
+
+        <KnowledgeHeading>Pre-Purchase Checklist</KnowledgeHeading>
+        <KnowledgeBullets
+          items={[
+            <>
+              Match the <strong>entire</strong> title string, not the first words
+              that happen to match your query.
+            </>,
+            <>
+              Confirm the finish: buying vanilla? The name must have{" "}
+              <strong>no</strong> <KnowledgeCode>|</KnowledgeCode> segment.
+            </>,
+            <>
+              Confirm the wear: vanilla has none; every skin always has one.
+            </>,
+            <>
+              Re-check <KnowledgeCode>★</KnowledgeCode> and{" "}
+              <KnowledgeCode>StatTrak™</KnowledgeCode> — they are easy to
+              overlook in a dense results grid.
+            </>,
+            <>
+              Sanity-check the price: a finish variant and its vanilla
+              counterpart rarely share the same buy ceiling. A listing far from
+              your accepted price is a warning sign, not a deal.
+            </>,
+          ]}
+        />
+
+        <KnowledgeCallout tone="warning" title="If You Already Bought the Wrong Item">
+          Do not withdraw, accept, or trade the item. Contact the marketplace
+          support where the order was placed with your{" "}
+          <strong>Order or Trade ID</strong>, the exact item name, and the
+          timestamp. Many venues can reverse an untouched purchase. Skin Oracle
+          cannot cancel or refund third-party marketplace orders on your behalf.
         </KnowledgeCallout>
       </>
     ),
